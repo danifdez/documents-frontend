@@ -174,7 +174,7 @@ const resource = ref<any>({});
 const projectStore = useProjectStore();
 const rawHtmlContent = ref<string>('');
 const displayMode = ref<'extracted' | 'raw' | 'translated'>('extracted');
-const apiBaseUrl = apiClient.defaults.baseURL || 'http://nestjs-app:3000';
+const apiBaseUrl = apiClient.defaults.baseURL || 'http://backend:3000';
 const { isPdfFile, isDocumentFile, isHtmlFile, isTextFile } = useResourceIcon(resource);
 
 const breadcrumbItems = computed(() => {

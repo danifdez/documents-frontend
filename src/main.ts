@@ -14,7 +14,7 @@ if (require('electron-squirrel-startup')) {
 }
 
 let activeBrowserView: WebContentsView | null = null;
-const API_URL = 'http://nestjs-app:3000';
+const API_URL = 'http://backend:3000';
 const DOCUMENTS_STORAGE_PATH = path.join(process.cwd(), 'documents_storage');
 
 if (!fs.existsSync(DOCUMENTS_STORAGE_PATH)) {
