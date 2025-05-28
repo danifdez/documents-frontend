@@ -1,17 +1,20 @@
 <template>
     <div class="editor-container">
-        <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully" />
+        <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
+            :show-comments="showComments" @toggle-comments="toggleComments" @add-comment="handleAddCommentRequest" />
         <div
             class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content">
             <template v-if="editor">
                 <editor-content :editor="editor" />
             </template>
         </div>
+        <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
+            @save="saveComment" @cancel="cancelComment" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Table from '@tiptap/extension-table';
@@ -22,7 +25,11 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import CommentExtension from './extensions/CommentExtension';
 import EditorToolbar from './EditorToolbar.vue';
+import CommentModal from '../comments/CommentModal.vue';
+import { useRoute } from 'vue-router';
+import { useCommentCreate } from '../../services/comments/useCommentCreate';
 
 const props = defineProps({
     content: {
@@ -40,11 +47,71 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-    'content-change'
+    'content-change',
+    'toggle-comments',
+    'highlight-comment'
 ]);
 
 const editor = ref(null);
 const isMounted = ref(false);
+const showComments = ref(false);
+const route = useRoute();
+const { createComment, isLoading: isCommentLoading } = useCommentCreate();
+const showCommentModal = ref(false);
+const selectedCommentText = ref('');
+const currentSelection = ref(null);
+
+const toggleComments = () => {
+    showComments.value = !showComments.value;
+    emit('toggle-comments', showComments.value);
+};
+
+const handleAddCommentRequest = (selection: { text: string; from: number; to: number }) => {
+    selectedCommentText.value = selection.text;
+    currentSelection.value = {
+        from: selection.from,
+        to: selection.to
+    };
+    showCommentModal.value = true;
+};
+
+const saveComment = async (commentText: string) => {
+    try {
+        if (!commentText.trim() || !route.params.id || route.params.id === 'new') {
+            return;
+        }
+
+        const newComment = await createComment(
+            route.params.id,
+            commentText,
+        );
+
+        if (editor.value && currentSelection.value) {
+            const { from, to } = currentSelection.value;
+            editor.value.commands.setTextSelection({ from, to });
+            editor.value.commands.setComment(newComment._id);
+        }
+
+        showCommentModal.value = false;
+        currentSelection.value = null;
+
+        if (!showComments.value) {
+            toggleComments();
+        }
+    } catch (error) {
+        console.error('Error saving comment:', error);
+    }
+};
+
+const cancelComment = () => {
+    showCommentModal.value = false;
+    currentSelection.value = null;
+    selectedCommentText.value = '';
+};
+
+const highlightComment = (commentId: string) => {
+    emit('highlight-comment', commentId);
+};
 
 onMounted(() => {
     isMounted.value = true;
@@ -92,6 +159,17 @@ onMounted(() => {
             }),
             Placeholder.configure({
                 placeholder: 'Start writing...',
+            }),
+            CommentExtension.configure({
+                HTMLAttributes: {
+                    class: 'bg-yellow-100 rounded px-1',
+                },
+                onCommentClick: (commentId) => {
+                    highlightComment(commentId);
+                    if (!showComments.value) {
+                        toggleComments();
+                    }
+                },
             }),
         ],
         content: props.content || '<p></p>',
@@ -146,6 +224,7 @@ defineExpose({
     display: flex;
     flex-direction: column;
     height: 100%;
+    width: 100%;
 }
 
 .editor-content {
@@ -245,5 +324,18 @@ defineExpose({
     padding-left: 1rem;
     margin: 0.5rem 0;
     color: #6b7280;
+}
+
+:deep(.comment-mark) {
+    background-color: rgba(255, 255, 0, 0.3);
+    border-bottom: 2px solid #FFD700;
+    cursor: pointer;
+    position: relative;
+    display: inline;
+    padding: 2px 0;
+}
+
+:deep(.comment-mark:hover) {
+    background-color: rgba(255, 255, 0, 0.5);
 }
 </style>

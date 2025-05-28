@@ -106,15 +106,45 @@
         <path d="M8 10L12 10" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
       </svg>
     </Button>
+    <!-- Insert Table Button -->
+    <div class="mx-1"></div>
     <Button @click="insertTable" title="Insert Table"
       :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('table') }]">
-      <div class="w-5 h-5 border border-gray-700 rounded-sm grid grid-cols-2 grid-rows-2 gap-px overflow-hidden">
-        <div class="bg-gray-700 w-full h-full"></div>
-        <div class="bg-gray-700 w-full h-full"></div>
-        <div class="bg-gray-700 w-full h-full"></div>
-        <div class="bg-gray-700 w-full h-full"></div>
-      </div>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="4" width="14" height="12" rx="1" stroke="#4B5563" stroke-width="1.5" />
+        <path d="M3 8H17" stroke="#4B5563" stroke-width="1.5" />
+        <path d="M3 12H17" stroke="#4B5563" stroke-width="1.5" />
+        <path d="M8 4V16" stroke="#4B5563" stroke-width="1.5" />
+        <path d="M12 4V16" stroke="#4B5563" stroke-width="1.5" />
+      </svg>
     </Button>
+    <!-- Add Comment Button -->
+    <div class="mx-1"></div>
+    <Button @click="handleAddComment" title="Add Comment"
+      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
+          stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M7 9H13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M7 12H10" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    </Button>
+    <!-- Toggle Comments Sidebar Button -->
+    <Button @click="toggleComments" title="Toggle Comments Sidebar"
+      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': showComments }]">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
+          stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6 8H14" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M6 12H12" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    </Button>
+    <div class="ml-auto flex items-center">
+      <span v-if="isSaving" class="ml-2 text-gray-500 text-sm">Saving...</span>
+      <span v-if="savedSuccessfully" class="ml-2 text-green-600 text-sm">Saved</span>
+    </div>
 
     <div v-if="showLinkForm"
       class="absolute top-10 left-0 w-64 border border-gray-300 rounded shadow-lg p-2 z-20 bg-white">
@@ -129,13 +159,11 @@
         <Button @click="insertLink" class="text-xs py-1 px-2">Insert</Button>
       </div>
     </div>
-    <span v-if="isSaving" class="ml-auto text-gray-500 text-sm">Saving...</span>
-    <span v-if="savedSuccessfully" class="ml-auto text-green-600 text-sm">Saved</span>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, nextTick } from 'vue';
+import { ref, defineProps, nextTick, defineEmits } from 'vue';
 import Button from '../ui/Button.vue';
 
 const props = defineProps({
@@ -150,12 +178,22 @@ const props = defineProps({
   savedSuccessfully: {
     type: Boolean,
     default: false
+  },
+  showComments: {
+    type: Boolean,
+    default: false
   }
 });
+
+const emit = defineEmits(['toggle-comments', 'add-comment']);
 
 const showLinkForm = ref(false);
 const linkUrl = ref('');
 const linkUrlInput = ref(null);
+
+const toggleComments = () => {
+  emit('toggle-comments');
+};
 
 const insertTable = () => {
   if (props.editor) {
@@ -214,6 +252,25 @@ const insertLink = () => {
 
 const cancelLinkForm = () => {
   showLinkForm.value = false;
+};
+
+const handleAddComment = () => {
+  if (!props.editor) return;
+
+  const { from, to } = props.editor.state.selection;
+
+  if (from === to) {
+    alert('Please select some text to comment on');
+    return;
+  }
+
+  const text = props.editor.state.doc.textBetween(from, to);
+
+  emit('add-comment', {
+    text,
+    from,
+    to
+  });
 };
 
 defineExpose({

@@ -7,9 +7,15 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
       </div>
       <div class="mt-5 h-[500px]">
-        <div class="flex flex-col w-full">
-          <EditorContent ref="editorContentRef" :content="docData?.content" :isSaving="isSaving"
-            :savedSuccessfully="savedSuccessfully" @content-change="handleEditorContentChange" />
+        <div class="flex w-full">
+          <div class="flex flex-col flex-grow">
+            <EditorContent ref="editorContentRef" :content="docData?.content" :isSaving="isSaving"
+              :savedSuccessfully="savedSuccessfully" @content-change="handleEditorContentChange"
+              @toggle-comments="toggleComments" @highlight-comment="highlightComment" />
+          </div>
+          <CommentSidebar ref="commentSidebarRef" v-if="!isNewDocument" :doc-id="route.params.id"
+            :is-visible="showComments" @comment-clicked="findAndHighlightCommentMark"
+            @comment-deleted="removeCommentMark" />
         </div>
       </div>
     </div>
@@ -24,6 +30,7 @@ import { useRoute } from 'vue-router';
 import EditorContent from '../components/editor/EditorContent.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import { useProjectStore } from '../store/projectStore';
+import CommentSidebar from '../components/comments/CommentSidebar.vue';
 
 const htmlContent = ref('');
 const editorContentRef = ref(null);
@@ -37,6 +44,11 @@ const { loadThread } = useThread();
 const thread = ref(null);
 const projectStore = useProjectStore();
 const isNewDocument = computed(() => route.params.id === 'new');
+const showComments = ref(false);
+
+const toggleComments = (value) => {
+  showComments.value = value !== undefined ? value : !showComments.value;
+};
 
 const breadcrumbItems = computed(() => {
   const items = [];
@@ -136,5 +148,100 @@ const handleEditorContentChange = (content) => {
       isSaving.value = false;
     }
   }, 1000);
+};
+
+const commentSidebarRef = ref(null);
+
+const highlightComment = (commentId) => {
+  if (commentSidebarRef.value) {
+    commentSidebarRef.value.highlightComment(commentId);
+  }
+};
+
+const findAndHighlightCommentMark = (commentId) => {
+  if (!editorContentRef.value || !editorContentRef.value.editor) return;
+
+  const editor = editorContentRef.value.editor;
+  const doc = editor.state.doc;
+
+  const findCommentMarkPosition = (doc) => {
+    let result = null;
+
+    doc.descendants((node, pos) => {
+      if (result) return false;
+
+      const marks = node.marks.filter(
+        mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
+      );
+
+      if (marks.length > 0) {
+        result = {
+          from: pos,
+          to: pos + node.nodeSize
+        };
+        return false;
+      }
+
+      return true;
+    });
+
+    return result;
+  };
+
+  const position = findCommentMarkPosition(doc);
+
+  if (position) {
+    editor.commands.setTextSelection(position);
+    editor.chain().focus().run();
+
+    const commentMark = document.querySelector(`span[data-comment-id="${commentId}"]`);
+    if (commentMark) {
+      commentMark.style.backgroundColor = 'rgba(255, 215, 0, 0.6)';
+      commentMark.style.transition = 'background-color 0.5s ease';
+
+      setTimeout(() => {
+        commentMark.style.backgroundColor = '';
+      }, 2000);
+    }
+  }
+};
+
+const removeCommentMark = (commentId) => {
+  if (!editorContentRef.value || !editorContentRef.value.editor) return;
+
+  const editor = editorContentRef.value.editor;
+  const doc = editor.state.doc;
+
+  const findCommentMarkPosition = (doc) => {
+    let result = null;
+
+    doc.descendants((node, pos) => {
+      if (result) return false;
+
+      const marks = node.marks.filter(
+        mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
+      );
+
+      if (marks.length > 0) {
+        result = {
+          from: pos,
+          to: pos + node.nodeSize
+        };
+        return false;
+      }
+
+      return true;
+    });
+
+    return result;
+  };
+
+  const position = findCommentMarkPosition(doc);
+
+  if (position) {
+    editor.commands.setTextSelection({ from: position.from, to: position.to });
+    editor.commands.unsetComment();
+    handleEditorContentChange(editor.getHTML());
+  }
 };
 </script>
