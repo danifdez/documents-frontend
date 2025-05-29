@@ -130,6 +130,15 @@
         <path d="M7 12H10" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
       </svg>
     </Button>
+    <!-- Add Mark Button -->
+    <div class="mx-1"></div>
+    <Button @click="handleAddMark" title="Add/Remove Highlight Mark"
+      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': isMarkActive }]">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="5" width="16" height="10" rx="1" stroke="#4B5563" stroke-width="1.5" />
+        <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
+      </svg>
+    </Button>
     <!-- Toggle Comments Sidebar Button -->
     <Button @click="toggleComments" title="Toggle Comments Sidebar"
       :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': showComments }]">
@@ -163,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, nextTick, defineEmits } from 'vue';
+import { ref, defineProps, nextTick, defineEmits, watch, onMounted, onBeforeUnmount } from 'vue';
 import Button from '../ui/Button.vue';
 
 const props = defineProps({
@@ -185,11 +194,12 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['toggle-comments', 'add-comment']);
+const emit = defineEmits(['toggle-comments', 'add-comment', 'add-mark', 'remove-mark']);
 
 const showLinkForm = ref(false);
 const linkUrl = ref('');
 const linkUrlInput = ref(null);
+const isMarkActive = ref(false);
 
 const toggleComments = () => {
   emit('toggle-comments');
@@ -267,6 +277,71 @@ const handleAddComment = () => {
   const text = props.editor.state.doc.textBetween(from, to);
 
   emit('add-comment', {
+    text,
+    from,
+    to
+  });
+};
+
+const checkIfMarkActive = () => {
+  if (!props.editor || !props.editor.state) return false;
+
+  const isActive = props.editor.isActive('textMark');
+  if (isActive) {
+    const attrs = props.editor.getAttributes('textMark');
+    return attrs && attrs.markId ? true : false;
+  }
+
+  return false;
+};
+
+const updateMarkActiveStatus = () => {
+  try {
+    isMarkActive.value = checkIfMarkActive();
+  } catch (error) {
+    console.error('Error checking mark active status:', error);
+    isMarkActive.value = false;
+  }
+};
+
+watch(() => props.editor?.state.selection, () => {
+  updateMarkActiveStatus();
+}, { deep: true });
+
+onMounted(() => {
+  if (props.editor) {
+    props.editor.on('selectionUpdate', updateMarkActiveStatus);
+    updateMarkActiveStatus();
+  }
+});
+
+onBeforeUnmount(() => {
+  if (props.editor) {
+    props.editor.off('selectionUpdate', updateMarkActiveStatus);
+  }
+});
+
+const handleAddMark = () => {
+  if (!props.editor) return;
+
+  if (isMarkActive.value) {
+    const attrs = props.editor.getAttributes('textMark');
+    if (attrs.markId) {
+      emit('remove-mark', attrs.markId);
+      return;
+    }
+  }
+
+  const { from, to } = props.editor.state.selection;
+
+  if (from === to) {
+    alert('Please select some text to highlight');
+    return;
+  }
+
+  const text = props.editor.state.doc.textBetween(from, to);
+
+  emit('add-mark', {
     text,
     from,
     to
