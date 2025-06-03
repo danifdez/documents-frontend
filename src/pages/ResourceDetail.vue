@@ -9,8 +9,11 @@
             <p class="text-red-500">Error: {{ error }}</p>
         </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="md:col-span-2 space-y-6">
+        <div v-else class="grid grid-cols-1 gap-6"
+            :class="[splitViewActive ? 'lg:grid-cols-2' : 'md:grid-cols-3', { 'drag-over': isDragOver }]"
+            @dragover="onDragOver" @dragenter="onDragEnter" @dragleave="onDragLeave" @drop="onDrop">
+            <div class="space-y-6"
+                :class="[splitViewActive ? 'lg:col-span-1' : 'md:col-span-2', { 'split-view-active': splitViewActive }]">
                 <div class="bg-white p-4 shadow rounded-lg">
                     <div class="flex items-center mb-4">
                         <h1 class="text-2xl font-bold mr-3">{{ resource.name }}</h1>
@@ -55,7 +58,7 @@
                     </div>
 
                     <div class="mb-3 flex justify-between">
-                        <div>
+                        <div class="flex gap-2">
                             <a @click="downloadResource"
                                 class="inline-flex items-center px-4 py-1 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -64,6 +67,15 @@
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
                             </a>
+                            <button @click="showCreateDocumentModal = true"
+                                class="inline-flex items-center px-4 py-1 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                                title="Create new document from this resource">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                            </button>
                         </div>
                         <div class="flex rounded-md shadow-sm" role="group">
                             <button v-if="resource.content" @click="displayMode = 'extracted'" type="button"
@@ -101,7 +113,65 @@
                 </div>
             </div>
 
-            <div class="md:col-span-1 space-y-6">
+            <!-- Split View Document Area -->
+            <div v-if="splitViewActive && splitDocument" class="lg:col-span-1 space-y-6 split-document-panel">
+                <div class="bg-white p-4 shadow rounded-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <input v-model="splitDocument.name" @input="handleDocumentNameChange" type="text"
+                            class="text-2xl font-bold bg-transparent border-none outline-none focus:bg-gray-50 focus:px-2 focus:py-1 rounded w-full"
+                            placeholder="Document name..." />
+                        <button @click="closeSplitView" class="text-gray-500 hover:text-gray-700 ml-2 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="mb-3 flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <a :href="`/document/${splitDocument._id}`"
+                                class="inline-flex items-center px-4 py-1 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div v-if="isDocumentSaving" class="flex items-center text-sm text-gray-500">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            Saving...
+                        </div>
+                        <div v-else-if="documentSavedSuccessfully" class="flex items-center text-sm text-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                            Saved
+                        </div>
+                    </div>
+
+                    <div class="h-[600px]">
+                        <EditorContent :content="splitDocument.content || ''" :is-saving="isDocumentSaving"
+                            :saved-successfully="documentSavedSuccessfully"
+                            @content-change="handleDocumentContentChange" />
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="!splitViewActive" class="space-y-6 md:col-span-1">
                 <div v-if="resource.description" class="bg-white p-4 shadow rounded-lg">
                     <h2 class="text-xl font-semibold mb-2">Description</h2>
                     <p class="text-gray-700">{{ resource.description }}</p>
@@ -154,6 +224,9 @@
             </div>
         </div>
     </div>
+    <CreateDocumentModal v-model="showCreateDocumentModal" :project-id="projectStore.currentProject._id"
+        :resource-content="getResourceContentForDocument()" :resource-name="resource.name"
+        :navigate-after-create="false" @document:created="onDocumentCreated" />
 </template>
 
 <script setup lang="ts">
@@ -161,20 +234,42 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useResource } from '../services/resources/useResource';
 import { useResourceIcon } from '../composables/useResourceIcon';
+import { useDocument } from '../services/documents/useDocument';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
+import CreateDocumentModal from '../components/documents/CreateDocumentModal.vue';
+import EditorContent from '../components/editor/EditorContent.vue';
 import axios from 'axios';
 import { useProjectStore } from '../store/projectStore';
+import { useNotification } from '../composables/useNotification';
 import apiClient from '../services/api';
+import { useDragDrop } from '../composables/useDragDrop';
 
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
 const { loadResource, error, isLoading } = useResource();
+const { saveDocument, loadDocument } = useDocument();
 const resource = ref<any>({});
 const projectStore = useProjectStore();
+const notification = useNotification();
 const rawHtmlContent = ref<string>('');
 const displayMode = ref<'extracted' | 'raw' | 'translated'>('extracted');
+const showCreateDocumentModal = ref(false);
+const splitViewActive = ref(false);
+const splitDocument = ref<any>(null);
+const isDocumentSaving = ref(false);
+const documentSavedSuccessfully = ref(false);
+const documentSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL || 'http://backend:3000';
 const { isPdfFile, isDocumentFile, isHtmlFile, isTextFile } = useResourceIcon(resource);
+
+const {
+    isDragOver,
+    handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
+    handleDrop
+} = useDragDrop();
 
 const breadcrumbItems = computed(() => {
     const items = [];
@@ -268,6 +363,141 @@ const formatFileSize = (bytes: number | string | undefined): string => {
         : `${size.toFixed(2).replace(/\.00$/, '')} ${units[unitIndex]}`;
 };
 
+const getResourceContentForDocument = (): string => {
+    if (resource.value.content) {
+        return resource.value.content;
+    }
+    if (resource.value.translatedContent) {
+        return resource.value.translatedContent;
+    }
+    return '';
+};
+
+const onDocumentCreated = (document: any) => {
+    notification.success(`Document "${document.name}" created successfully`);
+    splitDocument.value = document;
+    splitViewActive.value = true;
+};
+
+const closeSplitView = () => {
+    splitViewActive.value = false;
+    splitDocument.value = null;
+};
+
+const handleDocumentContentChange = async (content: string) => {
+    if (!splitDocument.value || !splitDocument.value._id) {
+        return;
+    }
+
+    if (documentSaveTimeout.value) {
+        clearTimeout(documentSaveTimeout.value);
+    }
+
+    isDocumentSaving.value = true;
+    documentSavedSuccessfully.value = false;
+
+    documentSaveTimeout.value = setTimeout(async () => {
+        try {
+            await saveDocument(splitDocument.value._id, { content });
+            splitDocument.value.content = content;
+            documentSavedSuccessfully.value = true;
+
+            setTimeout(() => {
+                documentSavedSuccessfully.value = false;
+            }, 3000);
+        } catch (error) {
+            console.error('Error saving document content:', error);
+            notification.error('Failed to save document content');
+        } finally {
+            isDocumentSaving.value = false;
+        }
+    }, 1000);
+};
+
+const handleDocumentNameChange = async () => {
+    if (!splitDocument.value || !splitDocument.value._id || !splitDocument.value.name.trim()) {
+        return;
+    }
+
+    if (documentNameSaveTimeout.value) {
+        clearTimeout(documentNameSaveTimeout.value);
+    }
+
+    isDocumentSaving.value = true;
+    documentSavedSuccessfully.value = false;
+
+    documentNameSaveTimeout.value = setTimeout(async () => {
+        try {
+            await saveDocument(splitDocument.value._id, { name: splitDocument.value.name.trim() });
+            documentSavedSuccessfully.value = true;
+
+            setTimeout(() => {
+                documentSavedSuccessfully.value = false;
+            }, 3000);
+        } catch (error) {
+            console.error('Error saving document name:', error);
+            notification.error('Failed to save document name');
+        } finally {
+            isDocumentSaving.value = false;
+        }
+    }, 1000);
+};
+
+const onDrop = async (event: DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const droppedData = handleDrop(event);
+
+    if (droppedData && droppedData.type === 'document') {
+        try {
+            const document = droppedData.document;
+            if (document && document._id) {
+                const fullDocument = await loadDocument(document._id);
+                splitDocument.value = fullDocument;
+                splitViewActive.value = true;
+                notification.success(`Document "${document.name}" opened in split view`);
+            }
+        } catch (error) {
+            console.error('Error loading dropped document:', error);
+            notification.error('Failed to load document');
+        }
+    } else {
+        const dataTransfer = event.dataTransfer;
+        const files = dataTransfer?.files;
+
+        if (files && files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                notification.info(`File dropped: ${file.name} (${formatFileSize(file.size)})`);
+            }
+        } else {
+            const url = dataTransfer?.getData('text/uri-list') || dataTransfer?.getData('text/plain');
+            if (url) {
+                notification.info(`Link dropped: ${url}`);
+            }
+        }
+    }
+};
+
+const onDragOver = (event: DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleDragOver(event);
+};
+
+const onDragEnter = (event: DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleDragEnter(event);
+};
+
+const onDragLeave = (event: DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleDragLeave(event);
+};
+
 onMounted(() => {
     loadResourceDetails();
 });
@@ -297,5 +527,51 @@ onMounted(() => {
 
 .resource-detail p {
     margin-bottom: 1rem;
+}
+
+.split-view-active {
+    border-right: 2px solid #e5e7eb;
+}
+
+.split-document-panel {
+    border-left: 2px solid #3b82f6;
+    box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 1024px) {
+    .split-view-active {
+        border-right: none;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .split-document-panel {
+        border-left: none;
+        border-top: 2px solid #3b82f6;
+        box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.drag-over {
+    border: 2px dashed #3b82f6 !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-radius: 8px;
+    position: relative;
+}
+
+.drag-over::before {
+    content: 'Drop documents here to open in split view';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
 }
 </style>

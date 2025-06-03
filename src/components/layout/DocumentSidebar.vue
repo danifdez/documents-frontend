@@ -24,7 +24,8 @@
             </div>
 
             <router-link v-for="document in filteredDocuments" :key="document._id" :to="`/document/${document._id}`"
-                class="block px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-600 rounded-md transition-all duration-200 text-left">
+                class="block px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-600 rounded-md transition-all duration-200 text-left"
+                :draggable="true" @dragstart="handleDragStart($event, document)">
                 <div class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"
@@ -35,6 +36,13 @@
                     <span class="ml-2 overflow-hidden overflow-ellipsis whitespace-nowrap">
                         {{ document.name }}
                     </span>
+
+                    <!-- Drag indicator -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-auto text-gray-400 opacity-50" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                    </svg>
                 </div>
             </router-link>
 
@@ -50,6 +58,7 @@ import { ref, watch, onMounted, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useDocumentProjectList } from '../../services/documents/useDocumentProjectList';
 import { useProjectStore } from '../../store/projectStore';
+import { useDragDrop } from '../../composables/useDragDrop';
 
 const props = defineProps({
     collapsed: {
@@ -63,6 +72,7 @@ const emit = defineEmits(['expand']);
 const route = useRoute();
 const projectStore = useProjectStore();
 const { loadDocumentsByProject, isLoading } = useDocumentProjectList();
+const { handleDragStart: dragStart } = useDragDrop();
 const documents = ref([]);
 const searchTerm = ref('');
 const isSearching = ref(false);
@@ -117,6 +127,14 @@ const loadDocuments = async () => {
             documents.value = [];
         }
     }
+};
+
+const handleDragStart = (event, document) => {
+    event.stopPropagation();
+    dragStart(event, {
+        type: 'document',
+        document: document
+    });
 };
 
 watch(currentProjectId, (newId) => {

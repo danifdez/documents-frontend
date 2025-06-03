@@ -13,7 +13,7 @@ export function useDocument() {
         return response.data;
     };
 
-    const saveDocument = async (id: string, docData: string) => {
+    const saveDocument = async (id: string, docData: object) => {
         isLoading.value = true;
         error.value = null;
         try {
