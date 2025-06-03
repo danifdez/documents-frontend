@@ -39,6 +39,7 @@
                 <span v-if="!collapsed" class="ml-3 font-medium">Open Browser</span>
             </button>
             <ResourceSidebar :collapsed="collapsed" @expand="handleResourceExpand" />
+            <DocumentSidebar :collapsed="collapsed" @expand="handleDocumentExpand" />
         </div>
     </div>
 </template>
@@ -46,6 +47,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import ResourceSidebar from './ResourceSidebar.vue';
+import DocumentSidebar from './DocumentSidebar.vue';
 import { useProjectStore } from '../../store/projectStore';
 
 const projectStore = useProjectStore();
@@ -60,6 +62,10 @@ const toggleCollapse = () => {
 };
 
 const handleResourceExpand = () => {
+    collapsed.value = false;
+};
+
+const handleDocumentExpand = () => {
     collapsed.value = false;
 };
 
