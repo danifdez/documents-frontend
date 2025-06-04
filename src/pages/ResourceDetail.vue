@@ -16,7 +16,16 @@
                 :class="[splitViewActive ? 'lg:col-span-1' : 'md:col-span-2', { 'split-view-active': splitViewActive }]">
                 <div class="bg-white p-4 shadow rounded-lg">
                     <div class="flex items-center mb-4">
-                        <h1 class="text-2xl font-bold mr-3">{{ resource.name }}</h1>
+                        <div class="flex items-center flex-grow">
+                            <input v-if="isEditingName" v-model="editResourceName" @input="handleResourceNameChange"
+                                @keyup.enter="saveResourceName" @keyup.escape="cancelNameEdit" @blur="handleBlur"
+                                type="text"
+                                class="text-2xl font-bold bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mr-3 flex-grow"
+                                placeholder="Resource name..." ref="nameInput" />
+                            <h1 v-else @dblclick="startNameEdit"
+                                class="text-2xl font-bold mr-3 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
+                                title="Double-click to edit">{{ resource.name }}</h1>
+                        </div>
                         <span v-if="resource.mimeType"
                             class="bg-blue-500 text-white p-1 rounded-md mr-2 flex items-center justify-center"
                             :title="resource.mimeType">
@@ -270,7 +279,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useResource } from '../services/resources/useResource';
 import { useResourceIcon } from '../composables/useResourceIcon';
@@ -307,6 +316,15 @@ const editContent = ref('');
 const editType = ref<'content' | 'translatedContent'>('content');
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
+
+// Resource name editing state
+const isEditingName = ref(false);
+const editResourceName = ref('');
+const isNameSaving = ref(false);
+const nameSavedSuccessfully = ref(false);
+const nameSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const nameInput = ref<HTMLInputElement | null>(null);
+const isCancelingNameEdit = ref(false);
 const { isPdfFile, isDocumentFile, isHtmlFile, isTextFile } = useResourceIcon(resource);
 
 const {
@@ -598,6 +616,102 @@ const cancelEdit = () => {
     isEditMode.value = false;
     editContent.value = '';
     savedSuccessfully.value = false;
+};
+
+// Resource name editing functions
+const startNameEdit = () => {
+    isEditingName.value = true;
+    editResourceName.value = resource.value.name;
+    nameSavedSuccessfully.value = false;
+
+    // Focus the input after the DOM updates
+    setTimeout(() => {
+        nameInput.value?.focus();
+        nameInput.value?.select();
+    }, 50);
+};
+
+const cancelNameEdit = () => {
+    console.log('cancelNameEdit called');
+    isCancelingNameEdit.value = true;
+    isEditingName.value = false;
+    editResourceName.value = '';
+    nameSavedSuccessfully.value = false;
+
+    if (nameSaveTimeout.value) {
+        clearTimeout(nameSaveTimeout.value);
+    }
+
+    // Reset canceling flag after a short delay
+    setTimeout(() => {
+        isCancelingNameEdit.value = false;
+    }, 100);
+};
+
+const handleBlur = () => {
+    // Don't save on blur if we're in the process of canceling
+    if (!isCancelingNameEdit.value) {
+        saveResourceName();
+    }
+};
+
+const handleResourceNameChange = () => {
+    if (nameSaveTimeout.value) {
+        clearTimeout(nameSaveTimeout.value);
+    }
+
+    // Clear success state when user starts typing
+    nameSavedSuccessfully.value = false;
+};
+
+const saveResourceName = async () => {
+    console.log('saveResourceName called');
+
+    // Don't proceed if we're canceling or if the input is empty
+    if (isCancelingNameEdit.value || !editResourceName.value.trim()) {
+        if (!isCancelingNameEdit.value && !editResourceName.value.trim()) {
+            notification.error('Resource name cannot be empty');
+        }
+        return;
+    }
+
+    if (editResourceName.value.trim() === resource.value.name) {
+        // No changes, just exit edit mode
+        isEditingName.value = false;
+        return;
+    }
+
+    if (nameSaveTimeout.value) {
+        clearTimeout(nameSaveTimeout.value);
+    }
+
+    isNameSaving.value = true;
+    nameSavedSuccessfully.value = false;
+
+    try {
+        const updatedResource = await updateResource(resourceId.value, {
+            name: editResourceName.value.trim()
+        });
+
+        // Update the local resource data
+        resource.value.name = editResourceName.value.trim();
+
+        nameSavedSuccessfully.value = true;
+
+        // Show success state briefly, then exit edit mode
+        setTimeout(() => {
+            nameSavedSuccessfully.value = false;
+            isEditingName.value = false;
+        }, 1500);
+
+        notification.success('Resource name updated successfully');
+    } catch (error) {
+        console.error('Error updating resource name:', error);
+        notification.error('Failed to update resource name');
+        isEditingName.value = false; // Exit edit mode on error
+    } finally {
+        isNameSaving.value = false;
+    }
 };
 
 onMounted(() => {
