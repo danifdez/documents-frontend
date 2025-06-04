@@ -225,7 +225,7 @@
                     <h2 class="text-xl font-semibold mb-2">Description</h2>
                     <p class="text-gray-700">{{ resource.description }}</p>
                 </div>
-                <div class="bg-gray-50 rounded-md p-3">
+                <div class="bg-gray-50 rounded-md">
                     <strong class="text-gray-700">Source</strong>
                     <br />
                     <div class="mt-1">
@@ -247,22 +247,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="bg-gray-50 rounded-md">
-                    <strong class="text-gray-700">Original name</strong>
-                    <br />
-                    {{ resource.originalName }}
-                </div>
-                <div class="bg-gray-50 rounded-md">
-                    <strong class="text-gray-700">Upload date</strong>
-                    <br />
-                    {{ resource.uploadDate ? new Date(resource.uploadDate).toLocaleString() : '' }}
-                </div>
-                <div class="bg-gray-50 rounded-md">
-                    <strong class="text-gray-700">Size</strong>
-                    <br />
-                    {{ formatFileSize(resource.fileSize) }}
-                </div>
-                <div v-if="resource?.language || isEditingLanguage" class="bg-gray-50 rounded-md p-3">
+                <div v-if="resource?.language || isEditingLanguage" class="bg-gray-50 rounded-md">
                     <strong class="text-gray-700">Language</strong>
                     <br />
                     <div class="mt-1">
@@ -282,6 +267,44 @@
                             <span v-else class="text-gray-400 italic">No language</span>
                         </div>
                     </div>
+                </div>
+                <div class="bg-gray-50 rounded-md">
+                    <strong class="text-gray-700">Type</strong>
+                    <br />
+                    <div class="mt-1">
+                        <select v-if="isEditingType" v-model="editResourceType" @change="handleTypeChange"
+                            @keyup.escape="cancelTypeEdit"
+                            class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            ref="typeDropdown">
+                            <option value="">Select a type...</option>
+                            <option v-for="resourceType in resourceTypes" :key="resourceType._id"
+                                :value="resourceType._id">
+                                {{ resourceType.name }}
+                            </option>
+                        </select>
+                        <div v-else @dblclick="startTypeEdit"
+                            class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
+                            title="Double-click to edit">
+                            <span v-if="resource.type">{{ getResourceTypeName(resource.type._id || resource.type)
+                                }}</span>
+                            <span v-else class="text-gray-400 italic">No type</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-md">
+                    <strong class="text-gray-700">Original name</strong>
+                    <br />
+                    {{ resource.originalName }}
+                </div>
+                <div class="bg-gray-50 rounded-md">
+                    <strong class="text-gray-700">Upload date</strong>
+                    <br />
+                    {{ resource.uploadDate ? new Date(resource.uploadDate).toLocaleString() : '' }}
+                </div>
+                <div class="bg-gray-50 rounded-md">
+                    <strong class="text-gray-700">Size</strong>
+                    <br />
+                    {{ formatFileSize(resource.fileSize) }}
                 </div>
                 <div v-if="resource.metadata" class="bg-white p-4 shadow rounded-lg">
                     <h2 class="text-xl font-semibold mb-3">Metadata</h2>
@@ -311,6 +334,7 @@
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useResource } from '../services/resources/useResource';
+import { useResourceType } from '../services/resources/useResourceType';
 import { useResourceIcon } from '../composables/useResourceIcon';
 import { useDocument } from '../services/documents/useDocument';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
@@ -325,6 +349,7 @@ import { useDragDrop } from '../composables/useDragDrop';
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
 const { loadResource, updateResource, error, isLoading } = useResource();
+const { loadResourceTypes, getResourceTypeName, resourceTypes } = useResourceType();
 const { saveDocument, loadDocument } = useDocument();
 const resource = ref<any>({});
 const projectStore = useProjectStore();
@@ -369,6 +394,14 @@ const languageSavedSuccessfully = ref(false);
 const languageSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const languageDropdown = ref<HTMLSelectElement | null>(null);
 const isCancelingLanguageEdit = ref(false);
+
+const isEditingType = ref(false);
+const editResourceType = ref('');
+const isTypeSaving = ref(false);
+const typeSavedSuccessfully = ref(false);
+const typeSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const typeDropdown = ref<HTMLSelectElement | null>(null);
+const isCancelingTypeEdit = ref(false);
 
 const languageMap = {
     'en': 'English',
@@ -983,8 +1016,89 @@ const saveResourceLanguage = async () => {
     }
 };
 
+const startTypeEdit = () => {
+    isEditingType.value = true;
+    editResourceType.value = resource.value.type?._id || resource.value.type || '';
+    typeSavedSuccessfully.value = false;
+
+    setTimeout(() => {
+        typeDropdown.value?.focus();
+    }, 50);
+};
+
+const cancelTypeEdit = () => {
+    isCancelingTypeEdit.value = true;
+    isEditingType.value = false;
+    editResourceType.value = '';
+    typeSavedSuccessfully.value = false;
+
+    if (typeSaveTimeout.value) {
+        clearTimeout(typeSaveTimeout.value);
+    }
+
+    setTimeout(() => {
+        isCancelingTypeEdit.value = false;
+    }, 100);
+};
+
+const handleTypeChange = async () => {
+    if (isCancelingTypeEdit.value) {
+        return;
+    }
+
+    await saveResourceType();
+};
+
+const saveResourceType = async () => {
+    if (isCancelingTypeEdit.value) {
+        return;
+    }
+
+    const currentTypeId = resource.value.type?._id || resource.value.type || '';
+    if (editResourceType.value === currentTypeId) {
+        isEditingType.value = false;
+        return;
+    }
+
+    if (typeSaveTimeout.value) {
+        clearTimeout(typeSaveTimeout.value);
+    }
+
+    isTypeSaving.value = true;
+    typeSavedSuccessfully.value = false;
+
+    try {
+        await updateResource(resourceId.value, {
+            type: editResourceType.value || null
+        });
+
+        if (editResourceType.value) {
+            const selectedType = resourceTypes.value.find(rt => rt._id === editResourceType.value);
+            resource.value.type = selectedType || editResourceType.value;
+        } else {
+            resource.value.type = null;
+        }
+
+        typeSavedSuccessfully.value = true;
+
+        setTimeout(() => {
+            typeSavedSuccessfully.value = false;
+            isEditingType.value = false;
+        }, 1500);
+
+        const typeName = editResourceType.value ? getResourceTypeName(editResourceType.value) : 'No type';
+        notification.success(`Type updated to: ${typeName}`);
+    } catch (error) {
+        notification.error('Failed to update type');
+        isEditingType.value = false;
+    } finally {
+        isTypeSaving.value = false;
+    }
+};
+
 onMounted(() => {
     loadResourceDetails();
+    loadResourceTypes();
 });
 </script>
 
