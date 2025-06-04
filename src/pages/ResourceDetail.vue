@@ -225,14 +225,27 @@
                     <h2 class="text-xl font-semibold mb-2">Description</h2>
                     <p class="text-gray-700">{{ resource.description }}</p>
                 </div>
-                <div class="bg-gray-50 rounded-md">
+                <div class="bg-gray-50 rounded-md p-3">
                     <strong class="text-gray-700">Source</strong>
                     <br />
-                    <a v-if="resource.type?.abbreviation === 'WEB'" :href="resource.source" target="_blank"
-                        rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline">
-                        {{ resource.source }}
-                    </a>
-                    <span v-else>{{ resource.source }}</span>
+                    <div class="mt-1">
+                        <input v-if="isEditingSource" v-model="editResourceSource" @input="handleResourceSourceChange"
+                            @keyup.enter="saveResourceSource" @keyup.escape="cancelSourceEdit" @blur="handleSourceBlur"
+                            type="text"
+                            class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Enter source..." ref="sourceInput" />
+                        <div v-else @dblclick="startSourceEdit"
+                            class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
+                            title="Double-click to edit">
+                            <a v-if="resource.type?.abbreviation === 'WEB' && resource.source" :href="resource.source"
+                                target="_blank" rel="noopener noreferrer"
+                                class="text-blue-600 hover:text-blue-800 hover:underline">
+                                {{ resource.source }}
+                            </a>
+                            <span v-else-if="resource.source">{{ resource.source }}</span>
+                            <span v-else class="text-gray-400 italic">No source</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="bg-gray-50 rounded-md">
                     <strong class="text-gray-700">Original name</strong>
@@ -249,10 +262,26 @@
                     <br />
                     {{ formatFileSize(resource.fileSize) }}
                 </div>
-                <div v-if="resource?.language" class="bg-gray-50 rounded-md">
+                <div v-if="resource?.language || isEditingLanguage" class="bg-gray-50 rounded-md p-3">
                     <strong class="text-gray-700">Language</strong>
                     <br />
-                    {{ resource.language }}
+                    <div class="mt-1">
+                        <select v-if="isEditingLanguage" v-model="editResourceLanguage" @change="handleLanguageChange"
+                            @keyup.escape="cancelLanguageEdit"
+                            class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            ref="languageDropdown">
+                            <option value="">Select a language...</option>
+                            <option v-for="(name, code) in languageMap" :key="code" :value="code">
+                                {{ name }}
+                            </option>
+                        </select>
+                        <div v-else @dblclick="startLanguageEdit"
+                            class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
+                            title="Double-click to edit">
+                            <span v-if="resource.language">{{ getLanguageName(resource.language) }}</span>
+                            <span v-else class="text-gray-400 italic">No language</span>
+                        </div>
+                    </div>
                 </div>
                 <div v-if="resource.metadata" class="bg-white p-4 shadow rounded-lg">
                     <h2 class="text-xl font-semibold mb-3">Metadata</h2>
@@ -317,7 +346,6 @@ const editType = ref<'content' | 'translatedContent'>('content');
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
 
-// Resource name editing state
 const isEditingName = ref(false);
 const editResourceName = ref('');
 const isNameSaving = ref(false);
@@ -325,6 +353,103 @@ const nameSavedSuccessfully = ref(false);
 const nameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const nameInput = ref<HTMLInputElement | null>(null);
 const isCancelingNameEdit = ref(false);
+
+const isEditingSource = ref(false);
+const editResourceSource = ref('');
+const isSourceSaving = ref(false);
+const sourceSavedSuccessfully = ref(false);
+const sourceSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const sourceInput = ref<HTMLInputElement | null>(null);
+const isCancelingSourceEdit = ref(false);
+
+const isEditingLanguage = ref(false);
+const editResourceLanguage = ref('');
+const isLanguageSaving = ref(false);
+const languageSavedSuccessfully = ref(false);
+const languageSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const languageDropdown = ref<HTMLSelectElement | null>(null);
+const isCancelingLanguageEdit = ref(false);
+
+const languageMap = {
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'it': 'Italian',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'zh': 'Chinese',
+    'ar': 'Arabic',
+    'hi': 'Hindi',
+    'nl': 'Dutch',
+    'pl': 'Polish',
+    'sv': 'Swedish',
+    'da': 'Danish',
+    'no': 'Norwegian',
+    'fi': 'Finnish',
+    'tr': 'Turkish',
+    'he': 'Hebrew',
+    'th': 'Thai',
+    'vi': 'Vietnamese',
+    'id': 'Indonesian',
+    'ms': 'Malay',
+    'tl': 'Filipino',
+    'uk': 'Ukrainian',
+    'ro': 'Romanian',
+    'hu': 'Hungarian',
+    'cs': 'Czech',
+    'sk': 'Slovak',
+    'sl': 'Slovenian',
+    'hr': 'Croatian',
+    'sr': 'Serbian',
+    'bg': 'Bulgarian',
+    'lt': 'Lithuanian',
+    'lv': 'Latvian',
+    'et': 'Estonian',
+    'mt': 'Maltese',
+    'ga': 'Irish',
+    'cy': 'Welsh',
+    'eu': 'Basque',
+    'ca': 'Catalan',
+    'gl': 'Galician',
+    'is': 'Icelandic',
+    'fa': 'Persian',
+    'ur': 'Urdu',
+    'bn': 'Bengali',
+    'ta': 'Tamil',
+    'te': 'Telugu',
+    'ml': 'Malayalam',
+    'kn': 'Kannada',
+    'gu': 'Gujarati',
+    'pa': 'Punjabi',
+    'mr': 'Marathi',
+    'or': 'Odia',
+    'as': 'Assamese',
+    'ne': 'Nepali',
+    'si': 'Sinhala',
+    'my': 'Myanmar',
+    'km': 'Khmer',
+    'lo': 'Lao',
+    'ka': 'Georgian',
+    'am': 'Amharic',
+    'sw': 'Swahili',
+    'zu': 'Zulu',
+    'af': 'Afrikaans',
+    'sq': 'Albanian',
+    'az': 'Azerbaijani',
+    'be': 'Belarusian',
+    'bs': 'Bosnian',
+    'mk': 'Macedonian',
+    'mn': 'Mongolian',
+    'kk': 'Kazakh',
+    'ky': 'Kyrgyz',
+    'tg': 'Tajik',
+    'tk': 'Turkmen',
+    'uz': 'Uzbek'
+};
+
 const { isPdfFile, isDocumentFile, isHtmlFile, isTextFile } = useResourceIcon(resource);
 
 const {
@@ -366,7 +491,6 @@ const loadRawHtmlContent = async () => {
         });
         rawHtmlContent.value = response.data;
     } catch (err) {
-        console.error('Failed to load raw HTML content:', err);
         rawHtmlContent.value = 'Error loading raw HTML content';
     }
 };
@@ -618,13 +742,11 @@ const cancelEdit = () => {
     savedSuccessfully.value = false;
 };
 
-// Resource name editing functions
 const startNameEdit = () => {
     isEditingName.value = true;
     editResourceName.value = resource.value.name;
     nameSavedSuccessfully.value = false;
 
-    // Focus the input after the DOM updates
     setTimeout(() => {
         nameInput.value?.focus();
         nameInput.value?.select();
@@ -632,7 +754,6 @@ const startNameEdit = () => {
 };
 
 const cancelNameEdit = () => {
-    console.log('cancelNameEdit called');
     isCancelingNameEdit.value = true;
     isEditingName.value = false;
     editResourceName.value = '';
@@ -642,14 +763,12 @@ const cancelNameEdit = () => {
         clearTimeout(nameSaveTimeout.value);
     }
 
-    // Reset canceling flag after a short delay
     setTimeout(() => {
         isCancelingNameEdit.value = false;
     }, 100);
 };
 
 const handleBlur = () => {
-    // Don't save on blur if we're in the process of canceling
     if (!isCancelingNameEdit.value) {
         saveResourceName();
     }
@@ -660,14 +779,10 @@ const handleResourceNameChange = () => {
         clearTimeout(nameSaveTimeout.value);
     }
 
-    // Clear success state when user starts typing
     nameSavedSuccessfully.value = false;
 };
 
 const saveResourceName = async () => {
-    console.log('saveResourceName called');
-
-    // Don't proceed if we're canceling or if the input is empty
     if (isCancelingNameEdit.value || !editResourceName.value.trim()) {
         if (!isCancelingNameEdit.value && !editResourceName.value.trim()) {
             notification.error('Resource name cannot be empty');
@@ -676,7 +791,6 @@ const saveResourceName = async () => {
     }
 
     if (editResourceName.value.trim() === resource.value.name) {
-        // No changes, just exit edit mode
         isEditingName.value = false;
         return;
     }
@@ -689,16 +803,13 @@ const saveResourceName = async () => {
     nameSavedSuccessfully.value = false;
 
     try {
-        const updatedResource = await updateResource(resourceId.value, {
+        await updateResource(resourceId.value, {
             name: editResourceName.value.trim()
         });
 
-        // Update the local resource data
         resource.value.name = editResourceName.value.trim();
-
         nameSavedSuccessfully.value = true;
 
-        // Show success state briefly, then exit edit mode
         setTimeout(() => {
             nameSavedSuccessfully.value = false;
             isEditingName.value = false;
@@ -706,11 +817,169 @@ const saveResourceName = async () => {
 
         notification.success('Resource name updated successfully');
     } catch (error) {
-        console.error('Error updating resource name:', error);
         notification.error('Failed to update resource name');
-        isEditingName.value = false; // Exit edit mode on error
+        isEditingName.value = false;
     } finally {
         isNameSaving.value = false;
+    }
+};
+
+const startSourceEdit = () => {
+    isEditingSource.value = true;
+    editResourceSource.value = resource.value.source || '';
+    sourceSavedSuccessfully.value = false;
+
+    setTimeout(() => {
+        sourceInput.value?.focus();
+        sourceInput.value?.select();
+    }, 50);
+};
+
+const cancelSourceEdit = () => {
+    isCancelingSourceEdit.value = true;
+    isEditingSource.value = false;
+    editResourceSource.value = '';
+    sourceSavedSuccessfully.value = false;
+
+    if (sourceSaveTimeout.value) {
+        clearTimeout(sourceSaveTimeout.value);
+    }
+
+    setTimeout(() => {
+        isCancelingSourceEdit.value = false;
+    }, 100);
+};
+
+const handleSourceBlur = () => {
+    if (!isCancelingSourceEdit.value) {
+        saveResourceSource();
+    }
+};
+
+const handleResourceSourceChange = () => {
+    if (sourceSaveTimeout.value) {
+        clearTimeout(sourceSaveTimeout.value);
+    }
+
+    sourceSavedSuccessfully.value = false;
+};
+
+const saveResourceSource = async () => {
+    if (isCancelingSourceEdit.value) {
+        return;
+    }
+
+    const trimmedSource = editResourceSource.value.trim();
+
+    if (trimmedSource === (resource.value.source || '')) {
+        isEditingSource.value = false;
+        return;
+    }
+
+    if (sourceSaveTimeout.value) {
+        clearTimeout(sourceSaveTimeout.value);
+    }
+
+    isSourceSaving.value = true;
+    sourceSavedSuccessfully.value = false;
+
+    try {
+        const updatedResource = await updateResource(resourceId.value, {
+            source: trimmedSource
+        });
+
+        resource.value.source = trimmedSource;
+        sourceSavedSuccessfully.value = true;
+
+        setTimeout(() => {
+            sourceSavedSuccessfully.value = false;
+            isEditingSource.value = false;
+        }, 1500);
+
+        notification.success('Resource source updated successfully');
+    } catch (error) {
+        notification.error('Failed to update resource source');
+        isEditingSource.value = false;
+    } finally {
+        isSourceSaving.value = false;
+    }
+};
+
+const getLanguageName = (code: string): string => {
+    return languageMap[code as keyof typeof languageMap] || code;
+};
+
+const startLanguageEdit = () => {
+    isEditingLanguage.value = true;
+    editResourceLanguage.value = resource.value.language || '';
+    languageSavedSuccessfully.value = false;
+
+    setTimeout(() => {
+        languageDropdown.value?.focus();
+    }, 50);
+};
+
+const cancelLanguageEdit = () => {
+    isCancelingLanguageEdit.value = true;
+    isEditingLanguage.value = false;
+    editResourceLanguage.value = '';
+    languageSavedSuccessfully.value = false;
+
+    if (languageSaveTimeout.value) {
+        clearTimeout(languageSaveTimeout.value);
+    }
+
+    setTimeout(() => {
+        isCancelingLanguageEdit.value = false;
+    }, 100);
+};
+
+const handleLanguageChange = async () => {
+    if (isCancelingLanguageEdit.value) {
+        return;
+    }
+
+    await saveResourceLanguage();
+};
+
+const saveResourceLanguage = async () => {
+    if (isCancelingLanguageEdit.value) {
+        return;
+    }
+
+    if (editResourceLanguage.value === resource.value.language) {
+        isEditingLanguage.value = false;
+        return;
+    }
+
+    if (languageSaveTimeout.value) {
+        clearTimeout(languageSaveTimeout.value);
+    }
+
+    isLanguageSaving.value = true;
+    languageSavedSuccessfully.value = false;
+
+    try {
+        await updateResource(resourceId.value, {
+            language: editResourceLanguage.value || null
+        });
+
+        resource.value.language = editResourceLanguage.value || null;
+
+        languageSavedSuccessfully.value = true;
+
+        setTimeout(() => {
+            languageSavedSuccessfully.value = false;
+            isEditingLanguage.value = false;
+        }, 1500);
+
+        const languageName = editResourceLanguage.value ? getLanguageName(editResourceLanguage.value) : 'No language';
+        notification.success(`Language updated to: ${languageName}`);
+    } catch (error) {
+        notification.error('Failed to update language');
+        isEditingLanguage.value = false;
+    } finally {
+        isLanguageSaving.value = false;
     }
 };
 
