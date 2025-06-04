@@ -76,39 +76,79 @@
                                         d="M12 4v16m8-8H4" />
                                 </svg>
                             </button>
+                            <button
+                                v-if="!isEditMode && (displayMode === 'extracted' || displayMode === 'translated') &&
+                                    ((displayMode === 'extracted' && resource.content) || (displayMode === 'translated' && resource.translatedContent))"
+                                @click="startEdit" type="button"
+                                class="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
                         </div>
-                        <div class="flex rounded-md shadow-sm" role="group">
-                            <button v-if="resource.content" @click="displayMode = 'extracted'" type="button"
-                                class="px-4 py-1 text-sm font-medium rounded-l-lg"
-                                :class="displayMode === 'extracted' ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'">
-                                Extracted Content
-                            </button>
-                            <button v-if="resource.translatedContent" @click="displayMode = 'translated'" type="button"
-                                class="px-4 py-1 text-sm font-medium"
-                                :class="displayMode === 'translated' ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'">
-                                Translated
-                            </button>
-                            <button @click="displayMode = 'raw'" type="button"
-                                class="px-4 py-1 text-sm font-medium rounded-r-lg"
-                                :class="displayMode === 'raw' ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'">
-                                Original
-                            </button>
+                        <div class="flex items-center gap-2">
+                            <div v-if="!isEditMode" class="flex rounded-md shadow-sm" role="group">
+                                <button v-if="resource.content" @click="displayMode = 'extracted'" type="button"
+                                    class="px-4 py-1 text-sm font-medium rounded-l-lg"
+                                    :class="displayMode === 'extracted' ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'">
+                                    Extracted Content
+                                </button>
+                                <button v-if="resource.translatedContent" @click="displayMode = 'translated'"
+                                    type="button" class="px-4 py-1 text-sm font-medium"
+                                    :class="displayMode === 'translated' ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'">
+                                    Translated
+                                </button>
+                                <button @click="displayMode = 'raw'" type="button"
+                                    class="px-4 py-1 text-sm font-medium rounded-r-lg"
+                                    :class="displayMode === 'raw' ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'">
+                                    Original
+                                </button>
+                            </div>
+                            <div v-if="isEditMode" class="flex gap-2">
+                                <button @click="saveEdit" :disabled="isSaving" type="button"
+                                    class="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                                    <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                            stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                        </path>
+                                    </svg>
+                                    {{ isSaving ? 'Saving...' : 'Save' }}
+                                </button>
+                                <button @click="cancelEdit" :disabled="isSaving" type="button"
+                                    class="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50">
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <div class="border border-gray-200 rounded-md p-5 overflow-auto">
-                        <div v-if="displayMode === 'extracted'" class="w-full min-h-[600px] resource-detail"
-                            v-html="resource.content">
+                        <!-- Edit mode content -->
+                        <div v-if="isEditMode" class="w-full min-h-[600px]">
+                            <EditorContent :content="editContent" :is-saving="false"
+                                :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
                         </div>
-                        <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
-                            v-html="resource.translatedContent"></div>
-                        <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
-                            :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
-                        </iframe>
-                        <iframe v-else-if="isPdfFile && displayMode === 'raw'" class="w-full min-h-[600px]"
-                            :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
-                            type="application/pdf" :title="resource.originalName || 'PDF Preview'">
-                        </iframe>
+
+                        <!-- Normal display mode content -->
+                        <div v-else>
+                            <div v-if="displayMode === 'extracted'" class="w-full min-h-[600px] resource-detail"
+                                v-html="resource.content">
+                            </div>
+                            <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
+                                v-html="resource.translatedContent"></div>
+                            <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
+                                :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
+                            </iframe>
+                            <iframe v-else-if="isPdfFile && displayMode === 'raw'" class="w-full min-h-[600px]"
+                                :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
+                                type="application/pdf" :title="resource.originalName || 'PDF Preview'">
+                            </iframe>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -246,7 +286,7 @@ import { useDragDrop } from '../composables/useDragDrop';
 
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
-const { loadResource, error, isLoading } = useResource();
+const { loadResource, updateResource, error, isLoading } = useResource();
 const { saveDocument, loadDocument } = useDocument();
 const resource = ref<any>({});
 const projectStore = useProjectStore();
@@ -261,6 +301,12 @@ const documentSavedSuccessfully = ref(false);
 const documentSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL || 'http://backend:3000';
+
+const isEditMode = ref(false);
+const editContent = ref('');
+const editType = ref<'content' | 'translatedContent'>('content');
+const isSaving = ref(false);
+const savedSuccessfully = ref(false);
 const { isPdfFile, isDocumentFile, isHtmlFile, isTextFile } = useResourceIcon(resource);
 
 const {
@@ -496,6 +542,62 @@ const onDragLeave = (event: DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
     handleDragLeave(event);
+};
+
+const startEdit = () => {
+    if (displayMode.value === 'extracted' && resource.value.content) {
+        editType.value = 'content';
+        editContent.value = resource.value.content;
+    } else if (displayMode.value === 'translated' && resource.value.translatedContent) {
+        editType.value = 'translatedContent';
+        editContent.value = resource.value.translatedContent;
+    }
+    isEditMode.value = true;
+    savedSuccessfully.value = false;
+};
+
+const handleEditContentChange = (content: string) => {
+    editContent.value = content;
+};
+
+const saveEdit = async () => {
+    if (!editContent.value.trim()) {
+        notification.error('Content cannot be empty');
+        return;
+    }
+
+    isSaving.value = true;
+    savedSuccessfully.value = false;
+
+    try {
+        const updateData = {
+            [editType.value]: editContent.value
+        };
+
+        await updateResource(resourceId.value, updateData);
+
+        resource.value[editType.value] = editContent.value;
+
+        savedSuccessfully.value = true;
+        isEditMode.value = false;
+
+        notification.success('Content updated successfully');
+
+        setTimeout(() => {
+            savedSuccessfully.value = false;
+        }, 3000);
+    } catch (error) {
+        console.error('Error saving content:', error);
+        notification.error('Failed to save content');
+    } finally {
+        isSaving.value = false;
+    }
+};
+
+const cancelEdit = () => {
+    isEditMode.value = false;
+    editContent.value = '';
+    savedSuccessfully.value = false;
 };
 
 onMounted(() => {
