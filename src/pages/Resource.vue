@@ -34,13 +34,10 @@
                         :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" />
 
                     <div class="border border-gray-200 rounded-md p-5 overflow-auto">
-                        <!-- Edit mode content -->
                         <div v-if="isEditMode" class="w-full min-h-[600px]">
                             <EditorContent :content="editContent" :is-saving="false"
                                 :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
                         </div>
-
-                        <!-- Normal display mode content -->
                         <div v-else>
                             <div v-if="displayMode === 'extracted'" class="w-full min-h-[600px] resource-detail"
                                 v-html="resource.content">
