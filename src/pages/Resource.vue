@@ -31,7 +31,7 @@
                     <Toolbar @download="downloadResource" @startEdit="startEdit" @saveEdit="saveEdit"
                         @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
-                        :hasTranslatedContent="hasTranslatedContent" />
+                        :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" />
 
                     <div class="border border-gray-200 rounded-md p-5 overflow-auto">
                         <!-- Edit mode content -->
