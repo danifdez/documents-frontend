@@ -17,10 +17,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
             </button>
-            <button
-                v-if="!isEditMode && (displayMode === 'extracted' || displayMode === 'translated') &&
-                    ((displayMode === 'extracted' && hasExtractedContent) || (displayMode === 'translated' && hasTranslatedContent))"
-                @click="emit('startEdit')" type="button"
+            <button v-if="!isEditMode && actualDisplayMode !== 'raw'" @click="emit('startEdit')" type="button"
                 class="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
