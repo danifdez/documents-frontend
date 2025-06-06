@@ -4,7 +4,7 @@ import Project from '../pages/Project.vue'
 import Thread from '../pages/Thread.vue'
 import Doc from '../pages/Doc.vue'
 import BrowserToolbar from '../pages/BrowserToolbar.vue'
-import ResourceDetail from '../pages/ResourceDetail.vue'
+import Resource from '../pages/Resource.vue'
 
 const routes = [
   {
@@ -30,8 +30,8 @@ const routes = [
   },
   {
     path: '/resource/:id',
-    name: 'ResourceDetail',
-    component: ResourceDetail,
+    name: 'Resource',
+    component: Resource,
   },
 ]
 
