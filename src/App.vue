@@ -6,7 +6,7 @@
   </MainLayout>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted } from 'vue';
 import MainLayout from './components/layout/MainLayout.vue';
 import socket from './services/notifications/notification';
