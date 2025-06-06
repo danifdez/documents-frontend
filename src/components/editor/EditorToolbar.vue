@@ -178,7 +178,6 @@ import Button from '../ui/Button.vue';
 const props = defineProps({
   editor: {
     type: Object,
-    required: true
   },
   isSaving: {
     type: Boolean,
