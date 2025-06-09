@@ -39,8 +39,8 @@
                                 :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
                         </div>
                         <div v-else>
-                            <div v-if="displayMode === 'extracted'" class="w-full min-h-[600px] resource-detail"
-                                v-html="resource.content">
+                            <div ref="extractedContent" v-if="displayMode === 'extracted'"
+                                class="w-full min-h-[600px] resource-detail" v-html="resource.content">
                             </div>
                             <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
                                 v-html="resource.translatedContent"></div>
@@ -120,6 +120,8 @@
     <CreateDocumentModal v-model="showCreateDocumentModal" :project-id="projectStore.currentProject._id"
         :resource-content="getResourceContentForDocument()" :resource-name="resource.name"
         :navigate-after-create="false" @document:created="onDocumentCreated" />
+
+    <FloatingSearchBox :active-contents="activeContents" v-model="showFloatingSearch" />
 </template>
 
 <script setup lang="ts">
@@ -139,6 +141,8 @@ import { useDragDrop } from '../composables/useDragDrop';
 import Properties from '../components/resources/Properties.vue';
 import Toolbar from '../components/resources/Toolbar.vue';
 import IconType from '../components/resources/IconType.vue';
+import FloatingSearchBox from '../components/ui/FloatingSearchBox.vue';
+import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
@@ -171,6 +175,8 @@ const nameSavedSuccessfully = ref(false);
 const nameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const nameInput = ref<HTMLInputElement | null>(null);
 const isCancelingNameEdit = ref(false);
+const extractedContent = ref<HTMLElement | null>(null);
+
 
 const { isPdfFile, isHtmlFile } = useResourceIcon(computed(() => resource.value.mimeType));
 
@@ -197,6 +203,15 @@ const breadcrumbItems = computed(() => {
     }
 
     return items;
+});
+
+const activeContents = computed(() => {
+    return [
+        {
+            type: 'html',
+            content: extractedContent,
+        }
+    ];
 });
 
 const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated') => {
@@ -529,6 +544,8 @@ const saveResourceName = async () => {
 onMounted(() => {
     loadResourceDetails();
 });
+
+const { showFloatingSearch } = useGlobalKeyboard();
 </script>
 
 <style>

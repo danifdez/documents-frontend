@@ -1,0 +1,243 @@
+<template>
+    <Teleport to="body">
+        <div v-if="isVisible" class="fixed top-4 right-4 z-50" @click.stop>
+            <div class="bg-white rounded-lg shadow-2xl border border-gray-200 w-96 overflow-hidden animate-in slide-in-from-top-2 duration-200"
+                @click.stop>
+                <div class="flex items-center px-4 py-3 border-b border-gray-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-3" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input ref="searchInput" v-model="searchQuery" type="text" placeholder="Search..."
+                        class="flex-1 outline-none text-lg text-gray-900 placeholder-gray-500"
+                        @keydown.escape="closeSearch" @keydown.enter="handleEnterKey" @input="handleSearchInput" />
+                    <div v-if="hasResults" class="flex items-center ml-2">
+                        <span class="text-xs text-gray-500 mr-2">{{ currentResultIndex + 1 }}/{{ totalResults }}</span>
+                        <button @click="previousResult"
+                            class="p-1 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="totalResults === 0" title="Previous result (Shift+Enter)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 15l7-7 7 7" />
+                            </svg>
+                        </button>
+                        <button @click="nextResult"
+                            class="p-1 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="totalResults === 0" title="Next result (Enter)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <button @click="closeSearch" class="ml-3 p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
+</template>
+
+<script setup lang="ts">
+import { ref, nextTick, watch } from 'vue';
+
+const props = defineProps({
+    modelValue: {
+        type: Boolean,
+        default: false
+    },
+    activeContents: {
+        type: Array,
+        default: () => []
+    },
+});
+
+const emit = defineEmits(['update:modelValue']);
+
+const isVisible = ref(props.modelValue);
+const searchQuery = ref('');
+const searchInput = ref<HTMLInputElement | null>(null);
+const hasResults = ref(false);
+const currentResultIndex = ref(0);
+const totalResults = ref(0);
+const searchTimeout = ref<NodeJS.Timeout | null>(null);
+const matches = ref([]);
+
+watch(() => props.modelValue, (newValue) => {
+    isVisible.value = newValue;
+    if (newValue) {
+        searchQuery.value = '';
+        nextTick(() => {
+            searchInput.value?.focus();
+        });
+    }
+});
+
+watch(isVisible, (newValue) => {
+    emit('update:modelValue', newValue);
+});
+
+const closeSearch = () => {
+    isVisible.value = false;
+    searchQuery.value = '';
+    hasResults.value = false;
+    currentResultIndex.value = 0;
+    totalResults.value = 0;
+    if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value);
+    }
+};
+
+const performSearch = () => {
+    clearHighlights();
+
+    props.activeContents.forEach((content, index) => {
+        if (content.type === 'html') {
+            const regex = new RegExp(escapeRegExp(searchQuery.value), 'gi');
+            const walker = document.createTreeWalker(content.content.value, NodeFilter.SHOW_TEXT, null);
+            const ranges = [];
+
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                let match;
+                while ((match = regex.exec(node.textContent)) !== null) {
+                    const range = document.createRange();
+                    range.setStart(node, match.index);
+                    range.setEnd(node, match.index + match[0].length);
+                    ranges.push(range);
+                }
+            }
+
+            matches.value = ranges.map(range => {
+                const highlight = document.createElement('mark');
+                highlight.className = 'search-highlight';
+                range.surroundContents(highlight);
+                return highlight;
+            });
+
+            currentResultIndex.value = 0;
+            totalResults.value = matches.value.length;
+            hasResults.value = totalResults.value > 0;
+            scrollToCurrent();
+        }
+    });
+};
+
+const handleEnterKey = (event: KeyboardEvent) => {
+    event.preventDefault();
+    if (hasResults.value && totalResults.value > 0) {
+        if (event.shiftKey) {
+            previousResult();
+        } else {
+            nextResult();
+        }
+    } else {
+        handleSearchInput();
+    }
+};
+
+const escapeRegExp = (text: string) => {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const scrollToCurrent = () => {
+    matches.value.forEach((el, idx) =>
+        el.classList.toggle('active-highlight', idx === currentResultIndex.value)
+    );
+    if (matches.value[currentResultIndex.value]) {
+        matches.value[currentResultIndex.value].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+};
+
+const clearHighlights = () => {
+    props.activeContents.forEach((content, index) => {
+        if (content.type === 'html') {
+            const highlights = content.content.value.querySelectorAll('mark.search-highlight');
+            highlights.forEach(mark => {
+                const parent = mark.parentNode;
+                while (mark.firstChild) {
+                    parent.insertBefore(mark.firstChild, mark);
+                }
+                parent.removeChild(mark);
+                parent.normalize();
+            });
+        }
+    });
+};
+
+const handleSearchInput = () => {
+    if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value);
+    }
+
+    if (searchQuery.value.trim()) {
+        searchTimeout.value = setTimeout(() => {
+            performSearch();
+        }, 300); // Debounce search
+    } else {
+        clearHighlights();
+        hasResults.value = false;
+        totalResults.value = 0;
+        currentResultIndex.value = 0;
+    }
+};
+
+const previousResult = () => {
+    if (totalResults.value > 0) {
+        if (currentResultIndex.value > 0) {
+            currentResultIndex.value--;
+        } else {
+            currentResultIndex.value = totalResults.value - 1;
+        }
+        scrollToCurrent();
+    }
+};
+
+const nextResult = () => {
+    if (totalResults.value > 0) {
+        if (currentResultIndex.value < totalResults.value - 1) {
+            currentResultIndex.value++;
+        } else {
+            currentResultIndex.value = 0;
+        }
+        scrollToCurrent();
+    }
+};
+</script>
+
+<style scoped>
+kbd {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.animate-in {
+    animation: slideInFromTop 0.2s ease-out;
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .w-96 {
+        width: calc(100vw - 2rem);
+    }
+}
+</style>
