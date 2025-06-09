@@ -35,13 +35,12 @@
 
                     <div class="border border-gray-200 rounded-md p-5 overflow-auto">
                         <div v-if="isEditMode" class="w-full min-h-[600px]">
-                            <EditorContent :content="editContent" :is-saving="false"
+                            <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
                                 :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
                         </div>
                         <div v-else>
-                            <div ref="extractedContent" v-if="displayMode === 'extracted'"
-                                class="w-full min-h-[600px] resource-detail" v-html="resource.content">
-                            </div>
+                            <HtmlContent v-if="displayMode === 'extracted'" ref="extractedContent"
+                                :content="resource.content" />
                             <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
                                 v-html="resource.translatedContent"></div>
                             <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
@@ -107,8 +106,8 @@
                     </div>
 
                     <div class="h-[600px]">
-                        <EditorContent :content="splitDocument.content || ''" :is-saving="isDocumentSaving"
-                            :saved-successfully="documentSavedSuccessfully"
+                        <EditorContent ref="splitEditor" :content="splitDocument.content || ''"
+                            :is-saving="isDocumentSaving" :saved-successfully="documentSavedSuccessfully"
                             @content-change="handleDocumentContentChange" />
                     </div>
                 </div>
@@ -143,6 +142,7 @@ import Toolbar from '../components/resources/Toolbar.vue';
 import IconType from '../components/resources/IconType.vue';
 import FloatingSearchBox from '../components/ui/FloatingSearchBox.vue';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
+import HtmlContent from '../components/contents/HtmlContent.vue';
 
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
@@ -161,6 +161,8 @@ const documentSavedSuccessfully = ref(false);
 const documentSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL || 'http://backend:3000';
+const editorContentRef = ref();
+const splitEditor = ref();
 
 const isEditMode = ref(false);
 const editContent = ref('');
@@ -206,12 +208,27 @@ const breadcrumbItems = computed(() => {
 });
 
 const activeContents = computed(() => {
-    return [
-        {
+    const contents = [];
+    if (isEditMode.value) {
+        contents.push({
+            type: 'edit',
+            content: editorContentRef
+        });
+    } else {
+        contents.push({
             type: 'html',
             content: extractedContent,
-        }
-    ];
+        });
+    }
+
+    if (splitDocument.value) {
+        contents.push({
+            type: 'edit',
+            content: splitEditor,
+        });
+    }
+
+    return contents;
 });
 
 const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated') => {

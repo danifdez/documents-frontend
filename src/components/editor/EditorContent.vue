@@ -19,6 +19,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
+import { Decoration, DecorationSet } from 'prosemirror-view'
+import { Plugin } from 'prosemirror-state';
 import StarterKit from '@tiptap/starter-kit';
 import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
@@ -77,6 +79,19 @@ const showMarkModal = ref(false);
 const selectedCommentText = ref('');
 const selectedMarkText = ref('');
 const currentSelection = ref(null);
+const matches = ref([]);
+let currentDecorations = DecorationSet.empty
+
+
+function createSearchDecorationPlugin(getDecorations) {
+    return new Plugin({
+        props: {
+            decorations() {
+                return getDecorations()
+            },
+        },
+    })
+}
 
 const toggleComments = () => {
     showComments.value = !showComments.value;
@@ -332,6 +347,10 @@ onMounted(async () => {
         },
     });
 
+    if (editor.value) {
+        editor.value.registerPlugin(createSearchDecorationPlugin(() => currentDecorations))
+    }
+
     await loadDocumentMarks();
 });
 
@@ -384,9 +403,69 @@ const handleRemoveMark = async (markId: string) => {
     }
 };
 
+const search = (text: string) => {
+    matches.value = [];
+    const decorations: Decoration[] = [];
+    editor.value.state.doc.descendants((node, pos) => {
+        if (node.isText) {
+            let index = node.text.indexOf(text);
+            while (index !== -1) {
+                const from = pos + index;
+                const to = pos + index + text.length;
+
+                matches.value.push({
+                    from,
+                    to,
+                    match: text
+                });
+                decorations.push(
+                    Decoration.inline(from, to, { class: 'search-highlight' })
+                );
+
+                index = node.text.indexOf(text, index + 1);
+            }
+        }
+    });
+    currentDecorations = DecorationSet.create(editor.value.state.doc, decorations)
+    editor.value.view.dispatch(editor.value.state.tr)
+    return matches.value.length;
+}
+
+const scrollTo = (index: number) => {
+    if (!matches.value.length || index >= matches.value.length || !editor.value) return;
+
+    const { from, to } = matches.value[index];
+
+    editor.value.chain().setTextSelection({ from, to }).run();
+
+    requestAnimationFrame(() => {
+        try {
+            const dom = editor.value.view.domAtPos(from);
+            const element = dom.node.nodeType === 3 ? dom.node.parentElement : dom.node as HTMLElement;
+
+            if (element && typeof element.scrollIntoView === 'function') {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        } catch (e) {
+            console.error('scrollTo error:', e);
+        }
+    });
+};
+
+const clearHighlights = () => {
+    matches.value = [];
+    currentDecorations = DecorationSet.empty;
+    if (editor.value) {
+        editor.value.view.dispatch(editor.value.state.tr);
+    }
+};
+
 defineExpose({
     editor,
     setLink,
+    search,
+    scrollTo,
+    clearHighlights,
 });
 </script>
 
@@ -400,6 +479,11 @@ defineExpose({
 
 .editor-content {
     position: relative;
+}
+
+:deep(.search-highlight) {
+    background-color: yellow;
+    border-radius: 2px;
 }
 
 :deep(.ProseMirror) {

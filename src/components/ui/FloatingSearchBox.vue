@@ -69,6 +69,7 @@ const searchInput = ref<HTMLInputElement | null>(null);
 const hasResults = ref(false);
 const currentResultIndex = ref(0);
 const totalResults = ref(0);
+const results = ref([]);
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
 const matches = ref([]);
 
@@ -98,38 +99,18 @@ const closeSearch = () => {
 };
 
 const performSearch = () => {
-    clearHighlights();
-
+    totalResults.value = 0;
+    results.value = [];
     props.activeContents.forEach((content, index) => {
-        if (content.type === 'html') {
-            const regex = new RegExp(escapeRegExp(searchQuery.value), 'gi');
-            const walker = document.createTreeWalker(content.content.value, NodeFilter.SHOW_TEXT, null);
-            const ranges = [];
-
-            while (walker.nextNode()) {
-                const node = walker.currentNode;
-                let match;
-                while ((match = regex.exec(node.textContent)) !== null) {
-                    const range = document.createRange();
-                    range.setStart(node, match.index);
-                    range.setEnd(node, match.index + match[0].length);
-                    ranges.push(range);
-                }
-            }
-
-            matches.value = ranges.map(range => {
-                const highlight = document.createElement('mark');
-                highlight.className = 'search-highlight';
-                range.surroundContents(highlight);
-                return highlight;
-            });
-
-            currentResultIndex.value = 0;
-            totalResults.value = matches.value.length;
-            hasResults.value = totalResults.value > 0;
-            scrollToCurrent();
+        const numResults = content.content.value.search(searchQuery.value);
+        if (numResults > 0) {
+            hasResults.value = true;
         }
+        totalResults.value += numResults;
+        results.value.push(numResults);
+        currentResultIndex.value = 0;
     });
+    scrollToCurrent();
 };
 
 const handleEnterKey = (event: KeyboardEvent) => {
@@ -145,32 +126,48 @@ const handleEnterKey = (event: KeyboardEvent) => {
     }
 };
 
-const escapeRegExp = (text: string) => {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const getCurrentResult = () => {
+    if (totalResults.value === 0) return null;
+
+    let remainingIndex = currentResultIndex.value;
+    let contentIndex = 0;
+
+    for (let i = 0; i < results.value.length; i++) {
+        if (remainingIndex < results.value[i]) {
+            contentIndex = i;
+            break;
+        }
+        remainingIndex -= results.value[i];
+    }
+
+    return {
+        contentIndex,
+        indexInContent: remainingIndex
+    };
 };
 
 const scrollToCurrent = () => {
-    matches.value.forEach((el, idx) =>
-        el.classList.toggle('active-highlight', idx === currentResultIndex.value)
-    );
-    if (matches.value[currentResultIndex.value]) {
-        matches.value[currentResultIndex.value].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const currentResult = getCurrentResult();
+
+    if (!currentResult || currentResult.contentIndex >= props.activeContents.length) {
+        return;
     }
+
+    const content = props.activeContents[currentResult.contentIndex];
+    if (!content || !content.content || !content.content.value) {
+        return;
+    }
+
+    if (typeof content.content.value.scrollTo !== 'function') {
+        return;
+    }
+
+    content.content.value.scrollTo(currentResult.indexInContent);
 };
 
 const clearHighlights = () => {
     props.activeContents.forEach((content, index) => {
-        if (content.type === 'html') {
-            const highlights = content.content.value.querySelectorAll('mark.search-highlight');
-            highlights.forEach(mark => {
-                const parent = mark.parentNode;
-                while (mark.firstChild) {
-                    parent.insertBefore(mark.firstChild, mark);
-                }
-                parent.removeChild(mark);
-                parent.normalize();
-            });
-        }
+        // Clear existing highlights in the content
     });
 };
 
