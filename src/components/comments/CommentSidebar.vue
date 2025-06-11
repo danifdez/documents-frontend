@@ -1,5 +1,5 @@
 <template>
-  <div class="comment-sidebar bg-gray-50 border-l border-gray-300 w-80 p-4 overflow-y-auto" v-if="isVisible">
+  <div class="comment-sidebar bg-gray-50 border-l border-gray-300 w-80 p-4 overflow-y-auto">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-medium">Comments</h3>
     </div>
@@ -66,10 +66,6 @@ const props = defineProps({
     type: String,
     required: true
   },
-  isVisible: {
-    type: Boolean,
-    default: false
-  }
 });
 
 const emit = defineEmits(['comment-added', 'comment-clicked', 'comment-updated', 'comment-deleted']);
@@ -164,20 +160,14 @@ defineExpose({
 });
 
 onMounted(() => {
-  if (props.docId && props.isVisible) {
+  if (props.docId) {
     loadComments(props.docId);
   }
 });
 
 watch(() => props.docId, (newId) => {
-  if (newId && props.isVisible) {
+  if (newId) {
     loadComments(newId);
-  }
-});
-
-watch(() => props.isVisible, (visible) => {
-  if (visible && props.docId && comments.value.length === 0) {
-    loadComments(props.docId);
   }
 });
 </script>

@@ -13,9 +13,8 @@
               :savedSuccessfully="savedSuccessfully" @content-change="handleEditorContentChange"
               @toggle-comments="toggleComments" @highlight-comment="highlightComment" />
           </div>
-          <CommentSidebar ref="commentSidebarRef" v-if="!isNewDocument" :doc-id="route.params.id"
-            :is-visible="showComments" @comment-clicked="findAndHighlightCommentMark"
-            @comment-deleted="removeCommentMark" />
+          <CommentSidebar ref="commentSidebarRef" v-if="!isNewDocument && showComments" :doc-id="route.params.id"
+            @comment-clicked="findAndHighlightCommentMark" @comment-deleted="removeCommentMark" />
         </div>
       </div>
     </div>
