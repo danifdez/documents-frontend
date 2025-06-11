@@ -10,6 +10,16 @@
                             <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
                         </svg>
                     </Button>
+                    <Button @click="handleAddComment" title="Add Comment"
+                        :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
+                                stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M7 9H13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+                            <path d="M7 12H10" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -34,7 +44,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['remove-mark', 'add-mark']);
+const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment']);
 
 const isMarkActive = ref(false);
 const route = useRoute();
@@ -54,6 +64,10 @@ const checkIfMarkActive = () => {
     }
 
     return false;
+};
+
+const handleAddComment = () => {
+    emit('add-comment');
 };
 
 const updateMarkActiveStatus = () => {

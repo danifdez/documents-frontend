@@ -113,7 +113,34 @@
                 </div>
             </div>
 
-            <Properties v-if="!splitViewActive" :resource="resource" />
+            <div v-if="!splitViewActive">
+                <div class="md:col-span-1 space-y-6">
+                    <div class="bg-white p-4 shadow rounded-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex bg-gray-100 rounded-lg p-1">
+                                <button @click="viewSideBar = 'properties'" :class="[
+                                    'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                                    viewSideBar === 'properties'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                ]">
+                                    Properties
+                                </button>
+                                <button @click="viewSideBar = 'comments'" :class="[
+                                    'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                                    viewSideBar === 'comments'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                ]">
+                                    Comments
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
+                <CommentSidebar v-else-if="viewSideBar === 'comments'" :doc-id="resource._id" />
+            </div>
         </div>
     </div>
     <CreateDocumentModal v-model="showCreateDocumentModal" :project-id="projectStore.currentProject._id"
@@ -143,6 +170,7 @@ import IconType from '../components/resources/IconType.vue';
 import FloatingSearchBox from '../components/ui/FloatingSearchBox.vue';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import HtmlContent from '../components/contents/HtmlContent.vue';
+import CommentSidebar from '../components/comments/CommentSidebar.vue';
 
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
@@ -163,6 +191,7 @@ const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL || 'http://backend:3000';
 const editorContentRef = ref();
 const splitEditor = ref();
+const viewSideBar = ref<'properties' | 'comments'>('properties');
 
 const isEditMode = ref(false);
 const editContent = ref('');

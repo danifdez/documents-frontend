@@ -1,6 +1,7 @@
 <template>
     <div>
-        <Toolbar :editor="null" :resourceId="resourceId" @add-mark="handleAddMark" @remove-mark="handleRemoveMark" />
+        <Toolbar :editor="null" :resourceId="resourceId" @add-mark="handleAddMark" @remove-mark="handleRemoveMark"
+            @add-comment="handleAddComment" />
         <div class="relative">
             <div v-if="savedSuccessfully"
                 class="absolute top-2 right-2 bg-green-100 text-green-800 px-3 py-1 rounded-md shadow-sm z-10">
@@ -8,6 +9,8 @@
             </div>
             <div ref="extractedContent" class="w-full min-h-[600px] resource-detail" v-html="content"></div>
         </div>
+        <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
+            @save="saveComment" @cancel="cancelComment" />
     </div>
 </template>
 
@@ -19,15 +22,21 @@ import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
 import { useResource } from '../../services/resources/useResource';
+import { useCommentCreate } from '../../services/comments/useCommentCreate';
+import CommentModal from '../comments/CommentModal.vue';
 
 const extractedContent = ref<HTMLDivElement | null>(null);
 const matches = ref([]);
 const savedSuccessfully = ref(false);
+const selectedCommentText = ref('');
+const currentSelection = ref(null);
+const showCommentModal = ref(false);
 const route = useRoute();
 const { createMark } = useMarkCreate();
 const { deleteMark } = useMarkDelete();
 const { loadMarks } = useMarks();
 const { updateResource } = useResource();
+const { createComment, isLoading: isCommentLoading } = useCommentCreate();
 
 const props = defineProps({
     content: {
@@ -39,10 +48,68 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['content-updated']);
+const emit = defineEmits(['content-updated', 'highlight-comment']);
 
 const escapeRegExp = (text: string) => {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const handleAddComment = () => {
+    const windowSelection = window.getSelection();
+
+    if (!windowSelection || windowSelection.rangeCount === 0) {
+        return;
+    }
+
+    const range = windowSelection.getRangeAt(0);
+
+    if (!extractedContent.value || !extractedContent.value.contains(range.commonAncestorContainer)) {
+        return;
+    }
+
+    selectedCommentText.value = windowSelection.toString().trim();
+    const storedPosition = storeSelectionPosition(windowSelection);
+    currentSelection.value = storedPosition;
+    showCommentModal.value = true;
+
+    windowSelection.removeAllRanges();
+};
+
+const saveComment = async (commentText: string) => {
+    try {
+        if (!commentText.trim() || !props.resourceId || props.resourceId === 'new') {
+            return;
+        }
+
+        const newComment = await createComment(
+            props.resourceId,
+            commentText,
+        );
+
+        if (currentSelection.value) {
+            const span = document.createElement('span');
+            span.className = 'comment-mark';
+            span.setAttribute('data-comment-id', newComment._id);
+
+            const success = wrapStoredSelection(currentSelection.value, span);
+
+            if (!success) {
+                console.error('Failed to wrap stored selection');
+            }
+        }
+
+        showCommentModal.value = false;
+        currentSelection.value = null;
+        await saveModifiedContent();
+    } catch (error) {
+        console.error('Error saving comment:', error);
+    }
+};
+
+const cancelComment = () => {
+    showCommentModal.value = false;
+    currentSelection.value = null;
+    selectedCommentText.value = '';
 };
 
 const search = (text: string) => {
@@ -237,6 +304,77 @@ onMounted(() => {
     }, 100);
 });
 
+const storeSelectionPosition = (selection: Selection) => {
+    if (!selection.rangeCount) return null;
+
+    const range = selection.getRangeAt(0);
+    const container = extractedContent.value;
+
+    return {
+        startNodePath: getNodePath(range.startContainer, container),
+        startOffset: range.startOffset,
+        endNodePath: getNodePath(range.endContainer, container),
+        endOffset: range.endOffset,
+        text: selection.toString()
+    };
+};
+
+const getNodePath = (node: Node, container: Element): number[] => {
+    const path: number[] = [];
+    let current = node;
+
+    while (current && current !== container) {
+        const parent = current.parentNode;
+        if (parent) {
+            const index = Array.from(parent.childNodes).indexOf(current as ChildNode);
+            path.unshift(index);
+            current = parent;
+        } else {
+            break;
+        }
+    }
+
+    return path;
+};
+
+const wrapStoredSelection = (storedPosition: any, wrapperElement: HTMLElement) => {
+    if (!storedPosition || !extractedContent.value) return false;
+
+    try {
+        const startNode = getNodeByPath(storedPosition.startNodePath, extractedContent.value);
+        const endNode = getNodeByPath(storedPosition.endNodePath, extractedContent.value);
+
+        if (!startNode || !endNode) return false;
+
+        const range = document.createRange();
+        range.setStart(startNode, storedPosition.startOffset);
+        range.setEnd(endNode, storedPosition.endOffset);
+
+        if (range.toString() === storedPosition.text) {
+            range.surroundContents(wrapperElement);
+            return true;
+        }
+    } catch (error) {
+        console.error('Error restoring selection:', error);
+    }
+
+    return false;
+};
+
+const getNodeByPath = (path: number[], container: Element): Node | null => {
+    let current: Node = container;
+
+    for (const index of path) {
+        if (current.childNodes[index]) {
+            current = current.childNodes[index];
+        } else {
+            return null;
+        }
+    }
+
+    return current;
+};
+
 defineExpose({
     search,
     matches,
@@ -264,5 +402,18 @@ defineExpose({
 
 :deep(.search-highlight.active-highlight) {
     background-color: orange;
+}
+
+:deep(.comment-mark) {
+    background-color: rgba(255, 255, 0, 0.3);
+    border-bottom: 2px solid #FFD700;
+    cursor: pointer;
+    position: relative;
+    display: inline;
+    padding: 2px 0;
+}
+
+:deep(.comment-mark:hover) {
+    background-color: rgba(255, 255, 0, 0.5);
 }
 </style>
