@@ -40,7 +40,7 @@
                         </div>
                         <div v-else>
                             <HtmlContent v-if="displayMode === 'extracted'" ref="extractedContent"
-                                :content="resource.content" />
+                                :content="resource.content" :resource-id="resource._id" />
                             <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
                                 v-html="resource.translatedContent"></div>
                             <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
