@@ -466,6 +466,16 @@ defineExpose({
     search,
     scrollTo,
     clearHighlights,
+    undo() {
+        if (editor.value) {
+            editor.value.commands.undo();
+        }
+    },
+    redo() {
+        if (editor.value) {
+            editor.value.commands.redo();
+        }
+    },
 });
 </script>
 

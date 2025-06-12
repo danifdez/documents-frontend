@@ -150,6 +150,26 @@
         <path d="M6 12H12" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
       </svg>
     </Button>
+    <!-- Undo Button -->
+    <Button @click="handleUndo" title="Undo"
+      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 7L3 10L7 13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M3 10H13C15.2091 10 17 11.7909 17 14C17 16.2091 15.2091 18 13 18H11" stroke="#4B5563"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </Button>
+    <!-- Redo Button -->
+    <Button @click="handleRedo" title="Redo"
+      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 7L17 10L13 13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <path d="M17 10H7C4.79086 10 3 11.7909 3 14C3 16.2091 4.79086 18 7 18H9" stroke="#4B5563" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </Button>
+    <div class="mx-1"></div>
     <div class="ml-auto flex items-center">
       <span v-if="isSaving" class="ml-2 text-gray-500 text-sm">Saving...</span>
       <span v-if="savedSuccessfully" class="ml-2 text-green-600 text-sm">Saved</span>
@@ -345,6 +365,22 @@ const handleAddMark = () => {
     from,
     to
   });
+};
+
+const handleUndo = () => {
+  if (props.editor && typeof props.editor.undo === 'function') {
+    props.editor.undo();
+  } else if (props.editor && props.editor.commands && typeof props.editor.commands.undo === 'function') {
+    props.editor.commands.undo();
+  }
+};
+
+const handleRedo = () => {
+  if (props.editor && typeof props.editor.redo === 'function') {
+    props.editor.redo();
+  } else if (props.editor && props.editor.commands && typeof props.editor.commands.redo === 'function') {
+    props.editor.commands.redo();
+  }
 };
 
 defineExpose({
