@@ -1,32 +1,60 @@
 <template>
     <div class="space-y-6 md:col-span-1">
-        <div v-if="resource.description" class="bg-white p-4 shadow rounded-lg">
-            <h2 class="text-xl font-semibold mb-2">Description</h2>
-            <p class="text-gray-700">{{ resource.description }}</p>
-        </div>
         <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Source</strong>
+            <strong class="text-gray-700">Type</strong>
             <br />
             <div class="mt-1">
-                <input v-if="isEditingSource" v-model="editResourceSource" @input="handleResourceSourceChange"
-                    @keyup.enter="saveResourceSource" @keyup.escape="cancelSourceEdit" @blur="handleSourceBlur"
-                    type="text"
+                <select v-if="isEditingType" v-model="editResourceType" @change="handleTypeChange"
+                    @keyup.escape="cancelTypeEdit"
                     class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter source..." ref="sourceInput" />
-                <div v-else @dblclick="startSourceEdit"
+                    ref="typeDropdown">
+                    <option value="">Select a type...</option>
+                    <option v-for="resourceType in resourceTypes" :key="resourceType._id" :value="resourceType._id">
+                        {{ resourceType.name }}
+                    </option>
+                </select>
+                <div v-else @dblclick="startTypeEdit"
                     class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
                     title="Double-click to edit">
-                    <a v-if="resource.type?.abbreviation === 'WEB' && resource.source" :href="resource.source"
-                        target="_blank" rel="noopener noreferrer"
-                        class="text-blue-600 hover:text-blue-800 hover:underline">
-                        {{ resource.source }}
-                    </a>
-                    <span v-else-if="resource.source">{{ resource.source }}</span>
-                    <span v-else class="text-gray-400 italic">No source</span>
+                    <span v-if="resource.type">{{ getResourceTypeName(resource.type._id || resource.type)
+                        }}</span>
+                    <span v-else class="text-gray-400 italic">No type</span>
                 </div>
             </div>
         </div>
-        <div v-if="resource?.language || isEditingLanguage" class="bg-gray-50 rounded-md">
+        <div class="bg-gray-50 rounded-md">
+            <strong class="text-gray-700">Title</strong>
+            <br />
+            <div class="mt-1">
+                <input v-if="isEditingTitle" v-model="editResourceTitle" @blur="handleTitleChange"
+                    @keyup.enter="handleTitleChange" @keyup.escape="cancelTitleEdit"
+                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    ref="titleInput" type="text" placeholder="Enter title...">
+                <div v-else @dblclick="startTitleEdit"
+                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
+                    title="Double-click to edit">
+                    <span v-if="resource.title" class="text-gray-700">{{ resource.title }}</span>
+                    <span v-else class="text-gray-400 italic">No title</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 rounded-md">
+            <strong class="text-gray-700">Author</strong>
+            <br />
+            <div class="mt-1">
+                <input v-if="isEditingAuthor" v-model="editResourceAuthor" @blur="handleAuthorChange"
+                    @keyup.enter="handleAuthorChange" @keyup.escape="cancelAuthorEdit"
+                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    ref="authorInput" type="text" placeholder="Enter author...">
+                <div v-else @dblclick="startAuthorEdit"
+                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
+                    title="Double-click to edit">
+                    <span v-if="resource.author" class="text-gray-700">{{ resource.author }}</span>
+                    <span v-else class="text-gray-400 italic">No author</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 rounded-md">
             <strong class="text-gray-700">Language</strong>
             <br />
             <div class="mt-1">
@@ -48,31 +76,46 @@
             </div>
         </div>
         <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Type</strong>
+            <strong class="text-gray-700">URL</strong>
             <br />
             <div class="mt-1">
-                <select v-if="isEditingType" v-model="editResourceType" @change="handleTypeChange"
-                    @keyup.escape="cancelTypeEdit"
+                <input v-if="isEditingUrl" v-model="editResourceUrl" @blur="handleUrlChange"
+                    @keyup.enter="handleUrlChange" @keyup.escape="cancelUrlEdit"
                     class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    ref="typeDropdown">
-                    <option value="">Select a type...</option>
-                    <option v-for="resourceType in resourceTypes" :key="resourceType._id" :value="resourceType._id">
-                        {{ resourceType.name }}
-                    </option>
-                </select>
-                <div v-else @dblclick="startTypeEdit"
+                    ref="urlInput" type="url" placeholder="Enter URL...">
+                <div v-else @dblclick="startUrlEdit"
                     class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
                     title="Double-click to edit">
-                    <span v-if="resource.type">{{ getResourceTypeName(resource.type._id || resource.type)
-                    }}</span>
-                    <span v-else class="text-gray-400 italic">No type</span>
+                    <a v-if="resource.url" :href="resource.url" target="_blank" rel="noopener noreferrer"
+                        class="text-blue-600 hover:text-blue-800 underline break-all">
+                        {{ resource.url }}
+                    </a>
+                    <span v-else class="text-gray-400 italic">No URL</span>
                 </div>
             </div>
         </div>
         <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Original name</strong>
+            <strong class="text-gray-700">Publication Date</strong>
             <br />
-            {{ resource.originalName }}
+            <div class="mt-1">
+                <input v-if="isEditingPublicationDate" v-model="editResourcePublicationDate"
+                    @blur="handlePublicationDateChange" @keyup.enter="handlePublicationDateChange"
+                    @keyup.escape="cancelPublicationDateEdit"
+                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    ref="publicationDateInput" type="datetime-local" placeholder="Enter publication date...">
+                <div v-else @dblclick="startPublicationDateEdit"
+                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
+                    title="Double-click to edit">
+                    <span v-if="resource.publicationDate" class="text-gray-700">{{ new
+                        Date(resource.publicationDate).toLocaleString() }}</span>
+                    <span v-else class="text-gray-400 italic">No publication date</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 rounded-md">
+            <strong class="text-gray-700">Size</strong>
+            <br />
+            {{ formatFileSize(resource.fileSize) }}
         </div>
         <div class="bg-gray-50 rounded-md">
             <strong class="text-gray-700">Upload date</strong>
@@ -80,17 +123,9 @@
             {{ resource.uploadDate ? new Date(resource.uploadDate).toLocaleString() : '' }}
         </div>
         <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Size</strong>
+            <strong class="text-gray-700">Original name</strong>
             <br />
-            {{ formatFileSize(resource.fileSize) }}
-        </div>
-        <div v-if="resource.metadata" class="bg-white p-4 shadow rounded-lg">
-            <h2 class="text-xl font-semibold mb-3">Metadata</h2>
-            <div class="space-y-3">
-                <div v-for="(value, key) in resource.metadata" :key="key" class="bg-gray-50 rounded-md">
-                    <strong class="text-gray-700">{{ formatKey(key) }}</strong><br />{{ value }}
-                </div>
-            </div>
+            {{ resource.originalName }}
         </div>
         <div v-if="resource.entities && resource.entities.length > 0" class="bg-white p-4 shadow rounded-lg">
             <h2 class="text-xl font-semibold mb-3">Entities</h2>
@@ -123,16 +158,41 @@ const isTypeSaving = ref(false);
 const isCancelingLanguageEdit = ref(false);
 const languageSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const isLanguageSaving = ref(false);
-const isEditingSource = ref(false);
-const editResourceSource = ref('');
-const sourceSavedSuccessfully = ref(false);
-const sourceInput = ref<HTMLInputElement | null>(null);
-const isSourceSaving = ref(false);
-const sourceSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const isCancelingSourceEdit = ref(false);
 
 const typeSavedSuccessfully = ref(false);
 const isCancelingTypeEdit = ref(false);
+
+const isEditingUrl = ref(false);
+const editResourceUrl = ref('');
+const urlInput = ref<HTMLInputElement | null>(null);
+const urlSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const urlSavedSuccessfully = ref(false);
+const isCancelingUrlEdit = ref(false);
+const isUrlSaving = ref(false);
+
+const isEditingTitle = ref(false);
+const editResourceTitle = ref('');
+const titleInput = ref<HTMLInputElement | null>(null);
+const titleSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const titleSavedSuccessfully = ref(false);
+const isCancelingTitleEdit = ref(false);
+const isTitleSaving = ref(false);
+
+const isEditingAuthor = ref(false);
+const editResourceAuthor = ref('');
+const authorInput = ref<HTMLInputElement | null>(null);
+const authorSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const authorSavedSuccessfully = ref(false);
+const isCancelingAuthorEdit = ref(false);
+const isAuthorSaving = ref(false);
+
+const isEditingPublicationDate = ref(false);
+const editResourcePublicationDate = ref('');
+const publicationDateInput = ref<HTMLInputElement | null>(null);
+const publicationDateSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const publicationDateSavedSuccessfully = ref(false);
+const isCancelingPublicationDateEdit = ref(false);
+const isPublicationDateSaving = ref(false);
 
 const props = defineProps({
     resource: {
@@ -402,83 +462,292 @@ const saveResourceLanguage = async () => {
     }
 };
 
-const startSourceEdit = () => {
-    console.log(props.resource);
-    isEditingSource.value = true;
-    editResourceSource.value = props.resource.source || '';
-    sourceSavedSuccessfully.value = false;
+const startUrlEdit = () => {
+    isEditingUrl.value = true;
+    editResourceUrl.value = props.resource.url || '';
+    urlSavedSuccessfully.value = false;
 
     setTimeout(() => {
-        sourceInput.value?.focus();
-        sourceInput.value?.select();
+        urlInput.value?.focus();
     }, 50);
 };
 
-const saveResourceSource = async () => {
-    if (isCancelingSourceEdit.value) {
-        return;
-    }
+const cancelUrlEdit = () => {
+    isCancelingUrlEdit.value = true;
+    isEditingUrl.value = false;
+    editResourceUrl.value = '';
+    urlSavedSuccessfully.value = false;
 
-    const trimmedSource = editResourceSource.value.trim();
-
-    if (trimmedSource === (props.resource.source || '')) {
-        isEditingSource.value = false;
-        return;
-    }
-
-    if (sourceSaveTimeout.value) {
-        clearTimeout(sourceSaveTimeout.value);
-    }
-
-    isSourceSaving.value = true;
-    sourceSavedSuccessfully.value = false;
-
-    try {
-        const updatedResource = await updateResource(props.resource._id, {
-            source: trimmedSource
-        });
-
-        props.resource.source = trimmedSource;
-        sourceSavedSuccessfully.value = true;
-
-        setTimeout(() => {
-            sourceSavedSuccessfully.value = false;
-            isEditingSource.value = false;
-        }, 1500);
-    } catch (error) {
-        isEditingSource.value = false;
-    } finally {
-        isSourceSaving.value = false;
-    }
-};
-
-const cancelSourceEdit = () => {
-    isCancelingSourceEdit.value = true;
-    isEditingSource.value = false;
-    editResourceSource.value = '';
-    sourceSavedSuccessfully.value = false;
-
-    if (sourceSaveTimeout.value) {
-        clearTimeout(sourceSaveTimeout.value);
+    if (urlSaveTimeout.value) {
+        clearTimeout(urlSaveTimeout.value);
     }
 
     setTimeout(() => {
-        isCancelingSourceEdit.value = false;
+        isCancelingUrlEdit.value = false;
     }, 100);
 };
 
-const handleSourceBlur = () => {
-    if (!isCancelingSourceEdit.value) {
-        saveResourceSource();
+const handleUrlChange = async () => {
+    if (isCancelingUrlEdit.value) {
+        return;
+    }
+
+    await saveResourceUrl();
+};
+
+const saveResourceUrl = async () => {
+    if (isCancelingUrlEdit.value) {
+        return;
+    }
+
+    if (editResourceUrl.value === props.resource.url) {
+        isEditingUrl.value = false;
+        return;
+    }
+
+    if (urlSaveTimeout.value) {
+        clearTimeout(urlSaveTimeout.value);
+    }
+
+    isUrlSaving.value = true;
+    urlSavedSuccessfully.value = false;
+
+    try {
+        await updateResource(props.resource._id, {
+            url: editResourceUrl.value || null
+        });
+
+        props.resource.url = editResourceUrl.value || null;
+
+        urlSavedSuccessfully.value = true;
+
+        setTimeout(() => {
+            urlSavedSuccessfully.value = false;
+            isEditingUrl.value = false;
+        }, 1500);
+    } catch (error) {
+        isEditingUrl.value = false;
+    } finally {
+        isUrlSaving.value = false;
     }
 };
 
-const handleResourceSourceChange = () => {
-    if (sourceSaveTimeout.value) {
-        clearTimeout(sourceSaveTimeout.value);
+const startTitleEdit = () => {
+    isEditingTitle.value = true;
+    editResourceTitle.value = props.resource.title || '';
+    titleSavedSuccessfully.value = false;
+
+    setTimeout(() => {
+        titleInput.value?.focus();
+    }, 50);
+};
+
+const cancelTitleEdit = () => {
+    isCancelingTitleEdit.value = true;
+    isEditingTitle.value = false;
+    editResourceTitle.value = '';
+    titleSavedSuccessfully.value = false;
+
+    if (titleSaveTimeout.value) {
+        clearTimeout(titleSaveTimeout.value);
     }
 
-    sourceSavedSuccessfully.value = false;
+    setTimeout(() => {
+        isCancelingTitleEdit.value = false;
+    }, 100);
+};
+
+const handleTitleChange = async () => {
+    if (isCancelingTitleEdit.value) {
+        return;
+    }
+
+    await saveResourceTitle();
+};
+
+const saveResourceTitle = async () => {
+    if (isCancelingTitleEdit.value) {
+        return;
+    }
+
+    if (editResourceTitle.value === props.resource.title) {
+        isEditingTitle.value = false;
+        return;
+    }
+
+    if (titleSaveTimeout.value) {
+        clearTimeout(titleSaveTimeout.value);
+    }
+
+    isTitleSaving.value = true;
+    titleSavedSuccessfully.value = false;
+
+    try {
+        await updateResource(props.resource._id, {
+            title: editResourceTitle.value || null
+        });
+
+        props.resource.title = editResourceTitle.value || null;
+
+        titleSavedSuccessfully.value = true;
+
+        setTimeout(() => {
+            titleSavedSuccessfully.value = false;
+            isEditingTitle.value = false;
+        }, 1500);
+    } catch (error) {
+        isEditingTitle.value = false;
+    } finally {
+        isTitleSaving.value = false;
+    }
+};
+
+const startAuthorEdit = () => {
+    isEditingAuthor.value = true;
+    editResourceAuthor.value = props.resource.author || '';
+    authorSavedSuccessfully.value = false;
+
+    setTimeout(() => {
+        authorInput.value?.focus();
+    }, 50);
+};
+
+const cancelAuthorEdit = () => {
+    isCancelingAuthorEdit.value = true;
+    isEditingAuthor.value = false;
+    editResourceAuthor.value = '';
+    authorSavedSuccessfully.value = false;
+
+    if (authorSaveTimeout.value) {
+        clearTimeout(authorSaveTimeout.value);
+    }
+
+    setTimeout(() => {
+        isCancelingAuthorEdit.value = false;
+    }, 100);
+};
+
+const handleAuthorChange = async () => {
+    if (isCancelingAuthorEdit.value) {
+        return;
+    }
+
+    await saveResourceAuthor();
+};
+
+const saveResourceAuthor = async () => {
+    if (isCancelingAuthorEdit.value) {
+        return;
+    }
+
+    if (editResourceAuthor.value === props.resource.author) {
+        isEditingAuthor.value = false;
+        return;
+    }
+
+    if (authorSaveTimeout.value) {
+        clearTimeout(authorSaveTimeout.value);
+    }
+
+    isAuthorSaving.value = true;
+    authorSavedSuccessfully.value = false;
+
+    try {
+        await updateResource(props.resource._id, {
+            author: editResourceAuthor.value || null
+        });
+
+        props.resource.author = editResourceAuthor.value || null;
+
+        authorSavedSuccessfully.value = true;
+
+        setTimeout(() => {
+            authorSavedSuccessfully.value = false;
+            isEditingAuthor.value = false;
+        }, 1500);
+    } catch (error) {
+        isEditingAuthor.value = false;
+    } finally {
+        isAuthorSaving.value = false;
+    }
+};
+
+const startPublicationDateEdit = () => {
+    isEditingPublicationDate.value = true;
+    if (props.resource.publicationDate) {
+        const date = new Date(props.resource.publicationDate);
+        editResourcePublicationDate.value = date.toISOString().slice(0, 16);
+    } else {
+        editResourcePublicationDate.value = '';
+    }
+    publicationDateSavedSuccessfully.value = false;
+
+    setTimeout(() => {
+        publicationDateInput.value?.focus();
+    }, 50);
+};
+
+const cancelPublicationDateEdit = () => {
+    isCancelingPublicationDateEdit.value = true;
+    isEditingPublicationDate.value = false;
+    editResourcePublicationDate.value = '';
+    publicationDateSavedSuccessfully.value = false;
+
+    if (publicationDateSaveTimeout.value) {
+        clearTimeout(publicationDateSaveTimeout.value);
+    }
+
+    setTimeout(() => {
+        isCancelingPublicationDateEdit.value = false;
+    }, 100);
+};
+
+const handlePublicationDateChange = async () => {
+    if (isCancelingPublicationDateEdit.value) {
+        return;
+    }
+
+    await saveResourcePublicationDate();
+};
+
+const saveResourcePublicationDate = async () => {
+    if (isCancelingPublicationDateEdit.value) {
+        return;
+    }
+
+    const currentDate = props.resource.publicationDate ? new Date(props.resource.publicationDate).toISOString().slice(0, 16) : '';
+    if (editResourcePublicationDate.value === currentDate) {
+        isEditingPublicationDate.value = false;
+        return;
+    }
+
+    if (publicationDateSaveTimeout.value) {
+        clearTimeout(publicationDateSaveTimeout.value);
+    }
+
+    isPublicationDateSaving.value = true;
+    publicationDateSavedSuccessfully.value = false;
+
+    try {
+        const dateValue = editResourcePublicationDate.value ? new Date(editResourcePublicationDate.value).toISOString() : null;
+
+        await updateResource(props.resource._id, {
+            publicationDate: dateValue
+        });
+
+        props.resource.publicationDate = dateValue;
+
+        publicationDateSavedSuccessfully.value = true;
+
+        setTimeout(() => {
+            publicationDateSavedSuccessfully.value = false;
+            isEditingPublicationDate.value = false;
+        }, 1500);
+    } catch (error) {
+        isEditingPublicationDate.value = false;
+    } finally {
+        isPublicationDateSaving.value = false;
+    }
 };
 
 onMounted(async () => {

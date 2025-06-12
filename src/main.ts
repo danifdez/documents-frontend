@@ -93,6 +93,8 @@ app.whenReady().then(() => {
 
     try {
       const content = await activeBrowserView.webContents.executeJavaScript(`document.documentElement.outerHTML`);
+      const title = await activeBrowserView.webContents.executeJavaScript(`document.title`);
+      const url = await activeBrowserView.webContents.executeJavaScript(`window.location.href`);
 
       const tempDir = path.join(os.tmpdir(), 'document-manager');
       if (!fs.existsSync(tempDir)) {
@@ -104,10 +106,10 @@ app.whenReady().then(() => {
       const formData = new FormData();
       const fileStream = fs.createReadStream(tempFilePath);
       formData.append('file', fileStream);
-      formData.append('name', 'Web Page Content');
+      formData.append('name', title);
       formData.append('projectId', idProject);
-      formData.append('typeId', 'webpage');
-      formData.append('source', 'automatic');
+      formData.append('type', 'webpage');
+      formData.append('url', url);
 
       const uploadResponse = await axios.post(`${API_URL}/resources/upload`, formData, {
         headers: {
@@ -129,7 +131,6 @@ app.whenReady().then(() => {
   ipcMain.handle("upload-document", async (_, idProject, filePath) => {
     try {
       if (!filePath) {
-        console.error("Error: No file path provided.");
         return { error: "No file path provided" };
       }
 
@@ -141,7 +142,6 @@ app.whenReady().then(() => {
       formData.append('file', fileStream);
       formData.append('name', fileName);
       formData.append('projectId', idProject);
-      formData.append('source', 'manual');
 
       const uploadResponse = await axios.post(`${API_URL}/resources/upload`, formData, {
         headers: {
