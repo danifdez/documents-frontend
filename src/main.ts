@@ -163,7 +163,7 @@ app.whenReady().then(() => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'txt', 'htm', 'html'] }
+        { name: 'Allowed Files', extensions: ['pdf', 'doc', 'docx', 'txt', 'htm', 'html', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'] }
       ]
     });
 

@@ -28,8 +28,8 @@
                         </div>
                         <IconType :mimeType="resource.mimeType" />
                     </div>
-                    <Toolbar @download="downloadResource" @startEdit="startEdit" @saveEdit="saveEdit"
-                        @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
+                    <Toolbar v-if="!isImageFile" @download="downloadResource" @startEdit="startEdit"
+                        @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
                         :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" />
 
@@ -39,7 +39,7 @@
                                 :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
                         </div>
                         <div v-else>
-                            <HtmlContent v-if="displayMode === 'extracted'" ref="extractedContent"
+                            <HtmlContent v-if="!isImageFile && displayMode === 'extracted'" ref="extractedContent"
                                 :content="resource.content" :resource-id="resource._id" />
                             <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
                                 v-html="resource.translatedContent"></div>
@@ -50,6 +50,9 @@
                                 :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
                                 type="application/pdf" :title="resource.originalName || 'PDF Preview'">
                             </iframe>
+                            <img v-else-if="isImageFile" class="w-full object-contain"
+                                :src="`${apiBaseUrl}/resources/${resourceId}/view`"
+                                :alt="resource.originalName || 'Image Preview'" />
                         </div>
                     </div>
                 </div>
@@ -126,7 +129,7 @@
                                 ]">
                                     Properties
                                 </button>
-                                <button @click="viewSideBar = 'comments'" :class="[
+                                <button v-if="!isImageFile" @click="viewSideBar = 'comments'" :class="[
                                     'px-3 py-1 text-sm font-medium rounded-md transition-colors',
                                     viewSideBar === 'comments'
                                         ? 'bg-white text-gray-900 shadow-sm'
@@ -209,7 +212,7 @@ const isCancelingNameEdit = ref(false);
 const extractedContent = ref<HTMLElement | null>(null);
 
 
-const { isPdfFile, isHtmlFile } = useResourceIcon(computed(() => resource.value.mimeType));
+const { isPdfFile, isHtmlFile, isImageFile } = useResourceIcon(computed(() => resource.value.mimeType));
 
 const {
     isDragOver,

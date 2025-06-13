@@ -5,6 +5,7 @@ interface ResourceIconResult {
     isPdfFile: ComputedRef<boolean>;
     isHtmlFile: ComputedRef<boolean>;
     isTextFile: ComputedRef<boolean>;
+    isImageFile: ComputedRef<boolean>; // Added
 }
 
 export function useResourceIcon(mimeType?: string | Ref<string> | ComputedRef<string>): ResourceIconResult {
@@ -45,10 +46,17 @@ export function useResourceIcon(mimeType?: string | Ref<string> | ComputedRef<st
         return textMimeTypes.includes(mime);
     });
 
+    const isImageFile = computed(() => {
+        const mime = unref(mimeType);
+        if (!mime) return false;
+        return mime.startsWith('image/');
+    });
+
     return {
         isDocumentFile,
         isPdfFile,
         isHtmlFile,
         isTextFile,
+        isImageFile,
     };
 }
