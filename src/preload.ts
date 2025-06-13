@@ -12,5 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('project-id', (_event, projectId) => callback(projectId)),
     extractContent: (idProject: string) => ipcRenderer.invoke('extract-content', idProject),
     uploadDocument: (idProject: string, filePath: string) => ipcRenderer.invoke('upload-document', idProject, filePath),
-    openMultipleFileDialog: () => ipcRenderer.invoke('open-multiple-file-dialog')
+    openMultipleFileDialog: () => ipcRenderer.invoke('open-multiple-file-dialog'),
+    getSettings: () => ipcRenderer.invoke('settings:get'),
+    setSettings: (settings: any) => ipcRenderer.invoke('settings:set', settings)
 });

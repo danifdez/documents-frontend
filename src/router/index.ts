@@ -5,6 +5,7 @@ import Thread from '../pages/Thread.vue'
 import Doc from '../pages/Doc.vue'
 import BrowserToolbar from '../pages/BrowserToolbar.vue'
 import Resource from '../pages/Resource.vue'
+import Settings from '../pages/Settings.vue'
 
 const routes = [
   {
@@ -32,6 +33,11 @@ const routes = [
     path: '/resource/:id',
     name: 'Resource',
     component: Resource,
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings,
   },
 ]
 

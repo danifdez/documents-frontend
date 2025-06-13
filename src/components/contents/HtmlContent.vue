@@ -7,7 +7,8 @@
                 class="absolute top-2 right-2 bg-green-100 text-green-800 px-3 py-1 rounded-md shadow-sm z-10">
                 Content saved
             </div>
-            <div ref="extractedContent" class="w-full min-h-[600px] resource-detail" v-html="content"></div>
+            <div ref="extractedContent" :style="cssVars" class="w-full min-h-[600px] resource-detail" v-html="content">
+            </div>
         </div>
         <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
             @save="saveComment" @cancel="cancelComment" />
@@ -15,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import Toolbar from './Toolbar.vue';
 import { useMarkCreate } from '../../services/marks/useMarkCreate';
@@ -50,8 +51,34 @@ const props = defineProps({
 
 const emit = defineEmits(['content-updated', 'highlight-comment']);
 
+const settings = ref({ fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 });
+
+const cssVars = ref({
+    '--font-size-p': settings.value.fontSize + 'px',
+    '--font-family': settings.value.fontFamily,
+    '--paragraph-spacing': settings.value.paragraphSpacing.toString(),
+});
+
 const escapeRegExp = (text: string) => {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const applySettings = () => {
+    cssVars.value = {
+        '--font-size-p': settings.value.fontSize.toString(),
+        '--font-family': settings.value.fontFamily || 'sans-serif',
+        '--paragraph-spacing': settings.value.paragraphSpacing.toString(),
+    };
+};
+
+const loadAndApplySettings = async () => {
+    if (window.electronAPI && window.electronAPI.getSettings) {
+        const loaded = await window.electronAPI.getSettings();
+        if (loaded) {
+            settings.value = loaded;
+        }
+    }
+    applySettings();
 };
 
 const handleAddComment = () => {
@@ -301,8 +328,17 @@ const loadExistingMarks = async () => {
 onMounted(() => {
     setTimeout(() => {
         loadExistingMarks();
+        loadAndApplySettings();
     }, 100);
 });
+
+watch(
+    () => settings.value,
+    () => {
+        applySettings();
+    },
+    { deep: true }
+);
 
 const storeSelectionPosition = (selection: Selection) => {
     if (!selection.rangeCount) return null;
@@ -415,5 +451,36 @@ defineExpose({
 
 :deep(.comment-mark:hover) {
     background-color: rgba(255, 255, 0, 0.5);
+}
+
+:deep(.resource-detail) {
+    font-family: var(--font-family);
+}
+
+:deep(.resource-detail p) {
+    font-size: calc(var(--font-size-p) * 1px);
+    margin-bottom: calc(var(--paragraph-spacing) * 0.5em);
+}
+
+:deep(.resource-detail ul li) {
+    font-size: calc(var(--font-size-p) * 1px);
+}
+
+:deep(.resource-detail h1) {
+    font-size: calc(var(--font-size-p) * 2.2px);
+    margin-bottom: calc(var(--paragraph-spacing) * 1em);
+    margin-top: calc(var(--paragraph-spacing) * 0.1em);
+}
+
+:deep(.resource-detail h2) {
+    font-size: calc(var(--font-size-p) * 1.8px);
+    margin-bottom: calc(var(--paragraph-spacing) * 0.4em);
+    margin-top: calc(var(--paragraph-spacing) * 0.1em);
+}
+
+:deep(.resource-detail h3) {
+    font-size: calc(var(--font-size-p) * 1.5px);
+    margin-bottom: calc(var(--paragraph-spacing) * 0.8em);
+    margin-top: calc(var(--paragraph-spacing) * 0.1em);
 }
 </style>

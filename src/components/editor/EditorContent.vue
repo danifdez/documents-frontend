@@ -6,7 +6,7 @@
         <div
             class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content">
             <template v-if="editor">
-                <editor-content :editor="editor" />
+                <editor-content :style="cssVars" :editor="editor" />
             </template>
         </div>
         <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
@@ -82,6 +82,13 @@ const currentSelection = ref(null);
 const matches = ref([]);
 let currentDecorations = DecorationSet.empty
 
+const settings = ref({ fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 });
+
+const cssVars = ref({
+    '--font-size-p': settings.value.fontSize.toString(),
+    '--font-family': settings.value.fontFamily,
+    '--paragraph-spacing': settings.value.paragraphSpacing.toString(),
+});
 
 function createSearchDecorationPlugin(getDecorations) {
     return new Plugin({
@@ -272,6 +279,24 @@ const checkForMarkChanges = (editor: Editor) => {
     }
 };
 
+const applySettings = () => {
+    cssVars.value = {
+        '--font-size-p': settings.value.fontSize.toString(),
+        '--font-family': settings.value.fontFamily || 'sans-serif',
+        '--paragraph-spacing': settings.value.paragraphSpacing.toString(),
+    };
+};
+
+const loadAndApplySettings = async () => {
+    if (window.electronAPI && window.electronAPI.getSettings) {
+        const loaded = await window.electronAPI.getSettings();
+        if (loaded) {
+            settings.value = loaded;
+        }
+    }
+    applySettings();
+};
+
 onMounted(async () => {
     isMounted.value = true;
 
@@ -352,6 +377,7 @@ onMounted(async () => {
     }
 
     await loadDocumentMarks();
+    loadAndApplySettings();
 });
 
 onBeforeUnmount(() => {
@@ -366,6 +392,14 @@ watch(() => props.content, (newContent) => {
         editor.value.commands.setContent(newContent || '<p></p>');
     }
 }, { deep: true });
+
+watch(
+    () => settings.value,
+    () => {
+        applySettings();
+    },
+    { deep: true }
+);
 
 const setLink = (url: string) => {
     if (url === '' || url === undefined) {
@@ -477,6 +511,7 @@ defineExpose({
         }
     },
 });
+
 </script>
 
 <style scoped>
@@ -500,6 +535,31 @@ defineExpose({
     min-height: 280px;
     padding: 0.5rem;
     outline: none;
+    font-size: calc(var(--font-size-p) * 1px);
+    margin-bottom: calc(var(--paragraph-spacing) * 0.5em);
+    font-family: var(--font-family);
+}
+
+:deep(.ProseMirror h1) {
+    font-size: calc(var(--font-size-p) * 2.2px);
+    margin-bottom: calc(var(--paragraph-spacing) * 1em);
+    margin-top: calc(var(--paragraph-spacing) * 0.1em);
+}
+
+:deep(.ProseMirror h2) {
+    font-size: calc(var(--font-size-p) * 1.8px);
+    margin-bottom: calc(var(--paragraph-spacing) * 0.4em);
+    margin-top: calc(var(--paragraph-spacing) * 0.1em);
+}
+
+:deep(.ProseMirror h3) {
+    font-size: calc(var(--font-size-p) * 1.5px);
+    margin-bottom: calc(var(--paragraph-spacing) * 0.8em);
+    margin-top: calc(var(--paragraph-spacing) * 0.1em);
+}
+
+:deep(.ProseMirror p) {
+    margin-bottom: calc(var(--paragraph-spacing) * 0.5em);
 }
 
 :deep(.ProseMirror p.is-editor-empty:first-child::before) {

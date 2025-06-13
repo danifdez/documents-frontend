@@ -5,6 +5,7 @@ import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import FormData from 'form-data';
+import Store from 'electron-store';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -15,6 +16,7 @@ if (require('electron-squirrel-startup')) {
 
 let activeBrowserView: WebContentsView | null = null;
 const API_URL = 'http://backend:3000';
+const store = new Store();
 
 const createWindow = () => {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -173,6 +175,19 @@ app.whenReady().then(() => {
       path: filePath,
       name: path.basename(filePath)
     }));
+  });
+
+  ipcMain.handle('settings:get', () => {
+    return store.get('settings', {
+      fontSize: 16,
+      fontFamily: 'sans-serif',
+      paragraphSpacing: 1.5
+    });
+  });
+
+  ipcMain.handle('settings:set', (_event, settings) => {
+    store.set('settings', settings);
+    return true;
   });
 
   createWindow();
