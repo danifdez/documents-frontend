@@ -41,6 +41,7 @@ import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
+import Image from '@tiptap/extension-image';
 
 const props = defineProps({
     content: {
@@ -361,6 +362,7 @@ onMounted(async () => {
                 },
                 onMarkClick: onMarkClick,
             }),
+            Image, // <-- Add Image extension here
         ],
         content: props.content || '<p></p>',
         autofocus: true,
@@ -538,6 +540,11 @@ defineExpose({
     font-size: calc(var(--font-size-p) * 1px);
     margin-bottom: calc(var(--paragraph-spacing) * 0.5em);
     font-family: var(--font-family);
+}
+
+:deep(.ProseMirror img) {
+    width: 100%;
+    margin: calc(var(--paragraph-spacing) * 0.5em) 0;
 }
 
 :deep(.ProseMirror h1) {

@@ -457,9 +457,14 @@ defineExpose({
     font-family: var(--font-family);
 }
 
+:deep(.resource-detail img) {
+    width: 100%;
+    margin: calc(var(--paragraph-spacing) * 0.5em) 0;
+}
+
 :deep(.resource-detail p) {
     font-size: calc(var(--font-size-p) * 1px);
-    margin-bottom: calc(var(--paragraph-spacing) * 0.5em);
+    margin: calc(var(--paragraph-spacing) * 0.5em);
 }
 
 :deep(.resource-detail ul li) {
