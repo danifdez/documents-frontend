@@ -27,6 +27,16 @@
                                 title="Double-click to edit">{{ resource.name }}</h1>
                         </div>
                         <IconType :mimeType="resource.mimeType" />
+                        <button @click="confirmRemoveResource"
+                            class="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 focus:outline-none"
+                            title="Remove Resource">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Remove
+                        </button>
                     </div>
                     <Toolbar v-if="!isImageFile" @download="downloadResource" @startEdit="startEdit"
                         @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
@@ -156,6 +166,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useResource } from '../services/resources/useResource';
 import { useResourceIcon } from '../composables/useResourceIcon';
 import { useDocument } from '../services/documents/useDocument';
@@ -174,6 +185,7 @@ import FloatingSearchBox from '../components/ui/FloatingSearchBox.vue';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import HtmlContent from '../components/contents/HtmlContent.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
+const router = useRouter();
 
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
@@ -399,6 +411,23 @@ const handleDocumentNameChange = async () => {
             isDocumentSaving.value = false;
         }
     }, 1000);
+};
+
+const removeResource = async () => {
+    try {
+        await apiClient.delete(`/resources/${resourceId.value}`);
+        notification.success('Resource removed successfully');
+
+        router.push(`/project/${projectStore.currentProject._id}`);
+    } catch (error) {
+        notification.error('Failed to remove resource');
+    }
+};
+
+const confirmRemoveResource = () => {
+    if (window.confirm('Are you sure you want to remove this resource? This action cannot be undone.')) {
+        removeResource();
+    }
 };
 
 const onDrop = async (event: DragEvent) => {
