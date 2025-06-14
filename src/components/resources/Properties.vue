@@ -16,8 +16,7 @@
                 <div v-else @dblclick="startTypeEdit"
                     class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
                     title="Double-click to edit">
-                    <span v-if="resource.type">{{ getResourceTypeName(resource.type._id || resource.type)
-                        }}</span>
+                    <span v-if="resource.type">{{ getResourceTypeName(resource.type._id || resource.type) }}</span>
                     <span v-else class="text-gray-400 italic">No type</span>
                 </div>
             </div>
@@ -133,6 +132,19 @@
                 <div v-for="(value, key) in resource.entities" :key="key" class="bg-gray-50 rounded-md">
                     <strong class="text-gray-700">{{ value.entity }}</strong><br />{{ value.word }}
                 </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 rounded-md">
+            <strong class="text-gray-700">Related To</strong>
+            <br />
+            <div class="mt-1">
+                <template v-if="resource.relatedTo">
+                    <router-link :to="`/resource/${resource.relatedTo}`"
+                        class="text-blue-600 hover:text-blue-800 underline">
+                        {{ resource.relatedTo }}
+                    </router-link>
+                </template>
+                <span v-else class="text-gray-400 italic">No related resource</span>
             </div>
         </div>
     </div>

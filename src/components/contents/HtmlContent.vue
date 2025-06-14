@@ -12,11 +12,20 @@
         </div>
         <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
             @save="saveComment" @cancel="cancelComment" />
+        <div v-if="showContextMenu"
+            :style="{ position: 'fixed', left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px', zIndex: 10000 }"
+            class="bg-white border rounded shadow-lg">
+            <ul class="py-1">
+                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer" @click="saveImageAsResource">Save image as
+                    resource</li>
+            </ul>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
+import { onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import Toolbar from './Toolbar.vue';
 import { useMarkCreate } from '../../services/marks/useMarkCreate';
@@ -24,7 +33,9 @@ import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
 import { useResource } from '../../services/resources/useResource';
 import { useCommentCreate } from '../../services/comments/useCommentCreate';
+import { useProjectStore } from '../../store/projectStore';
 import CommentModal from '../comments/CommentModal.vue';
+import apiClient from '../../services/api';
 
 const extractedContent = ref<HTMLDivElement | null>(null);
 const matches = ref([]);
@@ -32,12 +43,16 @@ const savedSuccessfully = ref(false);
 const selectedCommentText = ref('');
 const currentSelection = ref(null);
 const showCommentModal = ref(false);
+const showContextMenu = ref(false);
+const contextMenuPosition = ref({ x: 0, y: 0 });
+const contextMenuImageUrl = ref({ url: '', alt: '', name: '' });
 const route = useRoute();
 const { createMark } = useMarkCreate();
 const { deleteMark } = useMarkDelete();
 const { loadMarks } = useMarks();
 const { updateResource } = useResource();
 const { createComment, isLoading: isCommentLoading } = useCommentCreate();
+const { currentProject } = useProjectStore();
 
 const props = defineProps({
     content: {
@@ -330,6 +345,10 @@ onMounted(() => {
         loadExistingMarks();
         loadAndApplySettings();
     }, 100);
+    if (extractedContent.value) {
+        extractedContent.value.addEventListener('contextmenu', handleImageContextMenu);
+    }
+    document.addEventListener('click', handleClickOutside);
 });
 
 watch(
@@ -411,6 +430,77 @@ const getNodeByPath = (path: number[], container: Element): Node | null => {
     return current;
 };
 
+const isRemoteImage = (src) => {
+    try {
+        const url = new URL(src, window.location.origin);
+        return url.origin !== window.location.origin && url.protocol.startsWith('http');
+    } catch {
+        return false;
+    }
+};
+
+const handleImageContextMenu = (event) => {
+    if (!extractedContent.value) return;
+    const target = event.target;
+    if (target && target.tagName === 'IMG') {
+        const src = target.getAttribute('src');
+        if (src && isRemoteImage(src)) {
+            event.preventDefault();
+            let name = '';
+            try {
+                const urlObj = new URL(src, window.location.origin);
+                name = urlObj.pathname.split('/').pop() || '';
+            } catch {
+                name = src.split('/').pop() || '';
+            }
+            contextMenuImageUrl.value = { url: src, alt: target.getAttribute('alt') || '', name: name };
+            showContextMenu.value = true;
+            contextMenuPosition.value = { x: event.clientX, y: event.clientY };
+        } else {
+            showContextMenu.value = false;
+        }
+    } else {
+        showContextMenu.value = false;
+    }
+};
+
+const handleClickOutside = (event) => {
+    if (showContextMenu.value) {
+        showContextMenu.value = false;
+    }
+};
+
+const saveImageAsResource = async () => {
+    if (!contextMenuImageUrl.value) return;
+    try {
+        const response = await fetch(contextMenuImageUrl.value.url);
+        const blob = await response.blob();
+        const formData = new FormData();
+        formData.append('file', blob, 'imported-image.jpg');
+        formData.append('relatedTo', props.resourceId);
+        formData.append('projectId', currentProject._id);
+        formData.append('url', contextMenuImageUrl.value.url);
+        formData.append('originalName', contextMenuImageUrl.value.name);
+        formData.append('name', contextMenuImageUrl.value.alt || '');
+
+        await apiClient.post('/resources/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        emit('content-updated');
+    } catch (error) {
+        console.error('Error importing image as resource:', error);
+        alert('Failed to import image as resource.');
+    } finally {
+        showContextMenu.value = false;
+    }
+};
+
+onBeforeUnmount(() => {
+    if (extractedContent.value) {
+        extractedContent.value.removeEventListener('contextmenu', handleImageContextMenu);
+    }
+    document.removeEventListener('click', handleClickOutside);
+});
 defineExpose({
     search,
     matches,
