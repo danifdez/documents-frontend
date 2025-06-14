@@ -3,8 +3,9 @@
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
             :show-comments="showComments" @toggle-comments="toggleComments" @add-comment="handleAddCommentRequest"
             @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark" />
-        <div
-            class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content">
+        <div class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content"
+            spellcheck="false" autocorrect="off" autocomplete="off" data-gramm="false" data-enable-grammarly="false"
+            data-lt-tmp-id="false" data-lt-active="false" data-lt-autocomplete="off" data-lt-spellcheck="false">
             <template v-if="editor">
                 <editor-content :style="cssVars" :editor="editor" />
             </template>
