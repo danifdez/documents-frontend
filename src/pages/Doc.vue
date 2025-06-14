@@ -2,9 +2,11 @@
   <div class="p-5 max-w-7xl mx-auto">
     <Breadcrumb :items="breadcrumbItems" />
     <div>
-      <div class="relative mb-4">
+      <div class="relative mb-4 flex items-center gap-2">
         <input id="docName" v-model="docData.name" type="text" required
-          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+          class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+        <button v-if="!isNewDocument" @click="removeDoc"
+          class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">Remove Document</button>
       </div>
       <div class="mt-5 h-[500px]">
         <div class="flex w-full">
@@ -25,7 +27,7 @@
 import { useDocument } from '../services/documents/useDocument';
 import { useThread } from '../services/threads/useThread';
 import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import EditorContent from '../components/editor/EditorContent.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import { useProjectStore } from '../store/projectStore';
@@ -35,10 +37,11 @@ const htmlContent = ref('');
 const editorContentRef = ref(null);
 const docData = ref({ name: '', content: '' });
 const route = useRoute();
+const router = useRouter();
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
 const saveTimeout = ref(null);
-const { loadDocument, saveDocument, createDocument } = useDocument();
+const { loadDocument, saveDocument, createDocument, removeDocument } = useDocument();
 const { loadThread } = useThread();
 const thread = ref(null);
 const projectStore = useProjectStore();
@@ -241,6 +244,23 @@ const removeCommentMark = (commentId) => {
     editor.commands.setTextSelection({ from: position.from, to: position.to });
     editor.commands.unsetComment();
     handleEditorContentChange(editor.getHTML());
+  }
+};
+
+const removeDoc = async () => {
+  if (!docData.value._id) return;
+  if (confirm('Are you sure you want to remove this document?')) {
+    try {
+      await removeDocument(docData.value._id);
+      if (thread.value) {
+        router.push(`/thread/${thread.value._id}`);
+      } else {
+        router.push(`/project/${projectStore.currentProject._id}`);
+      }
+    } catch (error) {
+      console.error('Error removing document:', error);
+      alert('Failed to remove document.');
+    }
   }
 };
 </script>
