@@ -3,12 +3,14 @@
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
             :show-comments="showComments" @toggle-comments="toggleComments" @add-comment="handleAddCommentRequest"
             @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark" />
-        <div class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content"
-            spellcheck="false" autocorrect="off" autocomplete="off" data-gramm="false" data-enable-grammarly="false"
-            data-lt-tmp-id="false" data-lt-active="false" data-lt-autocomplete="off" data-lt-spellcheck="false">
-            <template v-if="editor">
-                <editor-content :style="cssVars" :editor="editor" />
-            </template>
+        <div class="editor-scroll-wrapper">
+            <div class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content"
+                spellcheck="false" autocorrect="off" autocomplete="off" data-gramm="false" data-enable-grammarly="false"
+                data-lt-tmp-id="false" data-lt-active="false" data-lt-autocomplete="off" data-lt-spellcheck="false">
+                <template v-if="editor">
+                    <editor-content :style="cssVars" :editor="editor" />
+                </template>
+            </div>
         </div>
         <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
             @save="saveComment" @cancel="cancelComment" />
@@ -525,8 +527,36 @@ defineExpose({
     width: 100%;
 }
 
+.editor-scroll-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    height: calc(100vh - 200px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
 .editor-content {
     position: relative;
+    height: 100%;
+    max-height: 100%;
+    overflow-y: scroll;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.editor-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.editor-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.editor-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
 }
 
 :deep(.search-highlight) {
