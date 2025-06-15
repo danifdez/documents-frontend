@@ -431,6 +431,9 @@ const getNodeByPath = (path: number[], container: Element): Node | null => {
 };
 
 const isRemoteImage = (src) => {
+    if (typeof src === 'string' && src.startsWith('data:image/')) {
+        return true;
+    }
     try {
         const url = new URL(src, window.location.origin);
         return url.origin !== window.location.origin && url.protocol.startsWith('http');
