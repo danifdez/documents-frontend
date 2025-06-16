@@ -551,7 +551,6 @@ defineExpose({
 }
 
 :deep(.resource-detail img) {
-    width: 100%;
     margin: calc(var(--paragraph-spacing) * 0.5em) 0;
 }
 
