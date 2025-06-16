@@ -548,6 +548,7 @@ defineExpose({
 
 :deep(.resource-detail) {
     font-family: var(--font-family);
+    overflow-x: auto;
 }
 
 :deep(.resource-detail img) {
@@ -579,5 +580,37 @@ defineExpose({
     font-size: calc(var(--font-size-p) * 1.5px);
     margin-bottom: calc(var(--paragraph-spacing) * 0.8em);
     margin-top: calc(var(--paragraph-spacing) * 0.1em);
+}
+
+:deep(.resource-detail table) {
+    width: auto;
+    max-width: 100%;
+    table-layout: auto;
+    display: block;
+    overflow-x: auto;
+    margin: 1em 0;
+    background: #fff;
+    font-size: calc(var(--font-size-p) * 1px);
+}
+
+:deep(.resource-detail th),
+:deep(.resource-detail td) {
+    border: 1px solid #e5e7eb;
+    padding: 0.75em 1em;
+    text-align: left;
+}
+
+:deep(.resource-detail th) {
+    background: #f3f4f6;
+    font-weight: 600;
+    color: #374151;
+}
+
+:deep(.resource-detail tr:nth-child(even)) {
+    background: #f9fafb;
+}
+
+:deep(.resource-detail tr:hover) {
+    background: #f1f5f9;
 }
 </style>
