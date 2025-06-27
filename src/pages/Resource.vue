@@ -41,7 +41,8 @@
                     <Toolbar v-if="!isImageFile" @download="downloadResource" @startEdit="startEdit"
                         @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
-                        :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" />
+                        :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode"
+                        @ask="showChat = true" />
 
                     <div class="border border-gray-200 rounded-md p-5 overflow-auto">
                         <div v-if="isEditMode" class="w-full min-h-[600px]">
@@ -161,6 +162,8 @@
         :navigate-after-create="false" @document:created="onDocumentCreated" />
 
     <FloatingSearchBox :active-contents="activeContents" v-model="showFloatingSearch" />
+
+    <ChatSidebar :show="showChat" :messages="chatMessages" @close="showChat = false" @send="handleSendMessage" />
 </template>
 
 <script setup lang="ts">
@@ -185,6 +188,7 @@ import FloatingSearchBox from '../components/ui/FloatingSearchBox.vue';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import HtmlContent from '../components/contents/HtmlContent.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
+import ChatSidebar from '../components/ui/ChatSidebar.vue';
 const router = useRouter();
 
 const route = useRoute();
@@ -624,6 +628,16 @@ onMounted(() => {
 });
 
 const { showFloatingSearch } = useGlobalKeyboard();
+
+const showChat = ref(false);
+const chatInput = ref('');
+const chatMessages = ref<{ role: 'user' | 'assistant'; text: string }[]>([]);
+
+function handleSendMessage(msg: string) {
+    if (msg.trim()) {
+        chatMessages.value.push({ role: 'user', text: msg });
+    }
+}
 </script>
 
 <style>
@@ -696,5 +710,15 @@ const { showFloatingSearch } = useGlobalKeyboard();
     z-index: 10;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     pointer-events: none;
+}
+
+.ask-btn {
+    margin-bottom: 1rem;
+}
+
+.chat-sidebar {
+    min-width: 320px;
+    max-width: 100vw;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.04);
 }
 </style>
