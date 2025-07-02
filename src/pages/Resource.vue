@@ -41,8 +41,9 @@
                     <Toolbar v-if="!isImageFile" @download="downloadResource" @startEdit="startEdit"
                         @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
-                        :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode"
-                        @ask="showChat = true" />
+                        :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" @ask="showChat = true"
+                        :extractedContent="resource.content" :translatedContent="resource.translatedContent"
+                        :sourceLanguage="resource.language || ''" @summarize="handleSummarizeJob" />
 
                     <div class="border border-gray-200 rounded-md p-5 overflow-auto">
                         <div v-if="isEditMode" class="w-full min-h-[600px]">
@@ -132,6 +133,14 @@
                     <div class="bg-white p-4 shadow rounded-lg">
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex bg-gray-100 rounded-lg p-1">
+                                <button v-if="resource.summary" @click="viewSideBar = 'summary'" :class="[
+                                    'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                                    viewSideBar === 'summary'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                ]">
+                                    Summary
+                                </button>
                                 <button @click="viewSideBar = 'properties'" :class="[
                                     'px-3 py-1 text-sm font-medium rounded-md transition-colors',
                                     viewSideBar === 'properties'
@@ -154,6 +163,9 @@
                 </div>
                 <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
                 <CommentSidebar v-else-if="viewSideBar === 'comments'" :doc-id="resource._id" />
+                <div v-else-if="viewSideBar === 'summary'" class="bg-white p-4 shadow rounded-lg">
+                    {{ resource.summary || 'No summary available' }}
+                </div>
             </div>
         </div>
     </div>
@@ -638,6 +650,23 @@ function handleSendMessage(msg: string) {
         chatMessages.value.push({ role: 'user', text: msg });
     }
 }
+
+const handleSummarizeJob = async (payload: { content: string, sourceLanguage: string, targetLanguage: string, displayMode: string }) => {
+    try {
+        const content = displayMode.value === 'extracted' ? resource.value.content : resource.value.translatedContent;
+        const sourceLanguage = displayMode.value === 'extracted' ? resource.value.language || 'en' : 'es';
+        await apiClient.post('/jobs', {
+            type: 'summarize',
+            content: content,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: 'es',
+            resourceId: resourceId.value,
+        });
+        notification.success('Summarization job created successfully');
+    } catch (error) {
+        notification.error('Failed to create summarization job');
+    }
+};
 </script>
 
 <style>
