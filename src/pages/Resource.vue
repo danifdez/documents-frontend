@@ -655,8 +655,7 @@ const handleSummarizeJob = async (payload: { content: string, sourceLanguage: st
     try {
         const content = displayMode.value === 'extracted' ? resource.value.content : resource.value.translatedContent;
         const sourceLanguage = displayMode.value === 'extracted' ? resource.value.language || 'en' : 'es';
-        await apiClient.post('/jobs', {
-            type: 'summarize',
+        await apiClient.post('/model/summarize', {
             content: content,
             sourceLanguage: sourceLanguage,
             targetLanguage: 'es',

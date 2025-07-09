@@ -9,7 +9,7 @@ export function useAsk() {
         isLoading.value = true;
         error.value = null;
         try {
-            await apiClient.post('/ask', { question });
+            await apiClient.post('/model/ask', { question });
         } catch (err: any) {
             error.value = err.message || 'Failed to get response';
             return null;
