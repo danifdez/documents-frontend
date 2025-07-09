@@ -28,7 +28,8 @@
 
 <script setup lang="ts">
 import { useAsk } from '../../services/ask/useAsk';
-import { ref, defineProps, defineEmits } from 'vue';
+import socket from '../../services/notifications/notification';
+import { ref, defineProps, defineEmits, onMounted } from 'vue';
 
 const { ask, isLoading } = useAsk();
 const props = defineProps({
@@ -49,13 +50,18 @@ async function sendMessage() {
         emit('send', input.value);
         const question = input.value;
         input.value = '';
-        const response = await ask(question);
-        localMessages.value.push({
-            role: 'assistant',
-            text: response || 'No response from assistant.'
-        });
+        await ask(question);
     }
 }
+
+onMounted(() => {
+    socket.on('askResponse', (data) => {
+        localMessages.value.push({
+            role: 'assistant',
+            text: data.response || 'No response from assistant.'
+        });
+    });
+});
 </script>
 
 <style scoped>
