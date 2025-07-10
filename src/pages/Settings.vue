@@ -23,6 +23,12 @@
                         @change="saveSettings" class="w-full" />
                     <span class="ml-2">{{ paragraphSpacing }}</span>
                 </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Language</label>
+                    <select v-model="language" @change="saveSettings" class="border rounded px-2 py-1">
+                        <option v-for="lang in languages" :key="lang.code" :value="lang.code">{{ lang.label }}</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -40,9 +46,19 @@ const fontFamilies = [
     { label: 'Roboto', value: 'Roboto, sans-serif' },
 ];
 
+const languages = [
+    { label: 'English', code: 'en' },
+    { label: 'Spanish', code: 'es' },
+    { label: 'Italian', code: 'it' },
+    { label: 'Portuguese', code: 'pt' },
+    { label: 'German', code: 'de' },
+    { label: 'French', code: 'fr' },
+];
+
 const fontSize = ref(16);
 const fontFamily = ref('sans-serif');
 const paragraphSpacing = ref(1.5);
+const language = ref('en');
 
 const loadSettings = async () => {
     if (window.electronAPI && window.electronAPI.getSettings) {
@@ -51,6 +67,7 @@ const loadSettings = async () => {
             fontSize.value = settings.fontSize || 16;
             fontFamily.value = settings.fontFamily || 'sans-serif';
             paragraphSpacing.value = settings.paragraphSpacing || 1.5;
+            language.value = settings.language || 'en';
         }
     }
 };
@@ -61,6 +78,7 @@ const saveSettings = () => {
             fontSize: fontSize.value,
             fontFamily: fontFamily.value,
             paragraphSpacing: paragraphSpacing.value,
+            language: language.value,
         });
     }
 };

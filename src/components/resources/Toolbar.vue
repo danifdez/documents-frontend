@@ -20,6 +20,14 @@
                 </svg>
                 Summarize
             </button>
+            <button @click="emit('translate')"
+                class="inline-flex items-center px-4 py-1 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 mr-1"
+                title="Translate Resource">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Translate
+            </button>
             <a @click="emit('download')"
                 class="inline-flex items-center px-4 py-1 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -97,7 +105,7 @@ const props = defineProps({
 
 const actualDisplayMode = ref(props.displayMode || 'extracted');
 
-const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'createDocument', 'ask', 'summarize']);
+const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'createDocument', 'ask', 'summarize', 'translate']);
 
 const changeDisplayMode = (mode: string) => {
     emit('changeDisplayMode', mode);

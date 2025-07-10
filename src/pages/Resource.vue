@@ -43,7 +43,8 @@
                         @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
                         :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" @ask="showChat = true"
                         :extractedContent="resource.content" :translatedContent="resource.translatedContent"
-                        :sourceLanguage="resource.language || ''" @summarize="handleSummarizeJob" />
+                        :sourceLanguage="resource.language || ''" @summarize="handleSummarizeJob"
+                        @translate="handleTranslate" />
 
                     <div class="border border-gray-200 rounded-md p-5 overflow-auto">
                         <div v-if="isEditMode" class="w-full min-h-[600px]">
@@ -651,14 +652,24 @@ function handleSendMessage(msg: string) {
     }
 }
 
-const handleSummarizeJob = async (payload: { content: string, sourceLanguage: string, targetLanguage: string, displayMode: string }) => {
+// Helper to get language from settings (async)
+const getLanguageSetting = async (): Promise<string> => {
+    if (window.electronAPI && window.electronAPI.getSettings) {
+        const settings = await window.electronAPI.getSettings();
+        return settings?.language || 'en';
+    }
+    return 'en';
+};
+
+const handleSummarizeJob = async () => {
     try {
         const content = displayMode.value === 'extracted' ? resource.value.content : resource.value.translatedContent;
         const sourceLanguage = displayMode.value === 'extracted' ? resource.value.language || 'en' : 'es';
+        const language = await getLanguageSetting();
         await apiClient.post('/model/summarize', {
             content: content,
             sourceLanguage: sourceLanguage,
-            targetLanguage: 'es',
+            targetLanguage: language,
             resourceId: resourceId.value,
         });
         notification.success('Summarization job created successfully');
@@ -666,6 +677,23 @@ const handleSummarizeJob = async (payload: { content: string, sourceLanguage: st
         notification.error('Failed to create summarization job');
     }
 };
+
+const handleTranslate = async () => {
+    try {
+        const content = resource.value.content;
+        const sourceLanguage = resource.value.language;
+        const language = await getLanguageSetting();
+        await apiClient.post('/model/translate', {
+            content: content,
+            sourceLanguage: sourceLanguage,
+            resourceId: resourceId.value,
+            targetLanguage: language,
+        });
+        notification.success('Translation job created successfully');
+    } catch (error) {
+        notification.error('Failed to create translation job');
+    }
+}
 </script>
 
 <style>
