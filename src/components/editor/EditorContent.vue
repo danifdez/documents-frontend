@@ -2,7 +2,8 @@
     <div class="editor-container">
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
             :show-comments="showComments" @toggle-comments="toggleComments" @add-comment="handleAddCommentRequest"
-            @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark" />
+            @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
+            @add-reference="showReferenceModal = true" />
         <div class="editor-scroll-wrapper">
             <div class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content"
                 spellcheck="false" autocorrect="off" autocomplete="off" data-gramm="false" data-enable-grammarly="false"
@@ -16,6 +17,7 @@
             @save="saveComment" @cancel="cancelComment" />
         <MarkModal :is-visible="showMarkModal" :selected-text="selectedMarkText" :is-loading="isMarkLoading"
             @save="saveMark" @cancel="cancelMark" />
+        <ReferenceModal v-model="showReferenceModal" @select="handleReferenceSelect" />
     </div>
 </template>
 
@@ -44,7 +46,9 @@ import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
+import ReferenceModal from '../../components/references/ReferenceModal.vue';
 import Image from '@tiptap/extension-image';
+import { ReferenceNode } from './extensions/ReferenceExtension';
 
 const props = defineProps({
     content: {
@@ -84,6 +88,7 @@ const selectedCommentText = ref('');
 const selectedMarkText = ref('');
 const currentSelection = ref(null);
 const matches = ref([]);
+const showReferenceModal = ref(false);
 let currentDecorations = DecorationSet.empty
 
 const settings = ref({ fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 });
@@ -283,6 +288,21 @@ const checkForMarkChanges = (editor: Editor) => {
     }
 };
 
+const handleReferenceSelect = (item: any) => {
+    const { from, to } = editor.value.state.selection;
+    const text = editor.value.state.doc.textBetween(from, to) || item.name || item.content;
+
+    editor.value
+        .chain()
+        .focus()
+        .insertReferenceNode({
+            referenceId: item._id,
+            referenceType: item.type,
+            text: text,
+        })
+        .run();
+};
+
 const applySettings = () => {
     cssVars.value = {
         '--font-size-p': settings.value.fontSize.toString(),
@@ -365,6 +385,7 @@ onMounted(async () => {
                 },
                 onMarkClick: onMarkClick,
             }),
+            ReferenceNode,
             Image, // <-- Add Image extension here
         ],
         content: props.content || '<p></p>',

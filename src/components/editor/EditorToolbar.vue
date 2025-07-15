@@ -139,6 +139,14 @@
         <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
       </svg>
     </Button>
+    <!-- Reference Button -->
+    <Button @click="handleAddReference" title="Add Reference"
+      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 8L14 3M14 3H10M14 3V7" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M11 12L6 17M6 17H10M6 17V13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </Button>
     <!-- Toggle Comments Sidebar Button -->
     <Button @click="toggleComments" title="Toggle Comments Sidebar"
       :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': showComments }]">
@@ -213,7 +221,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['toggle-comments', 'add-comment', 'add-mark', 'remove-mark']);
+const emit = defineEmits(['toggle-comments', 'add-comment', 'add-mark', 'remove-mark', 'add-reference']);
 
 const showLinkForm = ref(false);
 const linkUrl = ref('');
@@ -365,6 +373,10 @@ const handleAddMark = () => {
     from,
     to
   });
+};
+
+const handleAddReference = () => {
+  emit('add-reference');
 };
 
 const handleUndo = () => {
