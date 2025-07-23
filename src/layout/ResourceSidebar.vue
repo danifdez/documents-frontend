@@ -43,9 +43,9 @@
 <script setup>
 import { ref, watch, onMounted, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { useResourceList } from '../../services/resources/useResourceList';
-import { useProjectStore } from '../../store/projectStore';
-import IconType from '../resources/IconType.vue';
+import { useResourceList } from '../services/resources/useResourceList';
+import { useProjectStore } from '../store/projectStore';
+import IconType from '../components/resources/IconType.vue';
 
 const props = defineProps({
     collapsed: {

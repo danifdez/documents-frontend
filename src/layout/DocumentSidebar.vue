@@ -56,9 +56,9 @@
 <script setup>
 import { ref, watch, onMounted, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { useDocumentProjectList } from '../../services/documents/useDocumentProjectList';
-import { useProjectStore } from '../../store/projectStore';
-import { useDragDrop } from '../../composables/useDragDrop';
+import { useDocumentProjectList } from '../services/documents/useDocumentProjectList';
+import { useProjectStore } from '../store/projectStore';
+import { useDragDrop } from '../composables/useDragDrop';
 
 const props = defineProps({
     collapsed: {

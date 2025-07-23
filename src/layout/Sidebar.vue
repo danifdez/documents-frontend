@@ -60,7 +60,7 @@
 import { ref, computed } from 'vue';
 import ResourceSidebar from './ResourceSidebar.vue';
 import DocumentSidebar from './DocumentSidebar.vue';
-import { useProjectStore } from '../../store/projectStore';
+import { useProjectStore } from '../store/projectStore';
 
 const projectStore = useProjectStore();
 const collapsed = ref(true);

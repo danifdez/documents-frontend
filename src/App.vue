@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import MainLayout from './components/layout/MainLayout.vue';
+import MainLayout from './layout/MainLayout.vue';
 import GlobalSearchModal from './components/GlobalSearchModal.vue';
 import { useGlobalSearchModal } from './composables/useGlobalSearchModal';
 import socket from './services/notifications/notification';
