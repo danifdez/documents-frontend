@@ -6,7 +6,6 @@
 
     <div class="space-y-4">
       <div class="flex justify-end items-center space-x-4">
-        <SearchInput v-model="searchQuery" @search="handleSearch" placeholder="Search documents..." width="md" />
         <Button @click="createNewDocument">
           <span class="mr-2">+</span>
           Create New Document
@@ -23,6 +22,7 @@
         <p class="text-gray-500">No documents found in this thread.</p>
       </div>
     </div>
+    <SearchInput :show="showFloatingSearch" @search="handleSearch" placeholder="Search threads..." />
   </div>
 </template>
 
@@ -36,11 +36,13 @@ import Card from '../components/ui/Card.vue';
 import SearchInput from '../components/search/SearchInput.vue';
 import { useThread } from '../services/threads/useThread';
 import { useProjectStore } from '../store/projectStore';
+import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 
 const route = useRoute();
 const router = useRouter();
 const { documents, loadDocuments } = useDocumentList();
 const { loadThread } = useThread();
+const { showFloatingSearch } = useGlobalKeyboard();
 const thread = ref(null);
 const projectStore = useProjectStore();
 const searchQuery = ref('');

@@ -13,7 +13,6 @@
     <div v-else-if="projectStore.currentProject" class="space-y-4">
       <div class="flex justify-end items-center">
         <div class="flex space-x-2 items-center">
-          <SearchInput v-model="searchTerm" @search="searchThreads" placeholder="Search threads..." width="md" />
           <Button @click="openCreateThreadModal" class="flex items-center">
             <span>Add New Thread</span>
           </Button>
@@ -82,6 +81,7 @@
 
     <ImportDocumentModal v-model="showImportDocumentModal" :project-id="route.params.id"
       @documents:imported="handleDocumentsImported" />
+    <SearchInput :show="showFloatingSearch" @search="searchThreads" placeholder="Search threads..." />
   </div>
 </template>
 
@@ -101,7 +101,9 @@ import SearchInput from '../components/search/SearchInput.vue';
 import Card from '../components/ui/Card.vue';
 import { useNotification } from '../composables/useNotification';
 import { useProjectStore } from '../store/projectStore';
+import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 
+const { showFloatingSearch } = useGlobalKeyboard();
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -193,17 +195,17 @@ const handleThreadCreated = async () => {
   loadThreads(id);
 };
 
-const searchThreads = () => {
-  filterThreads();
+const searchThreads = (searchTerm) => {
+  filterThreads(searchTerm);
 };
 
-const filterThreads = () => {
-  if (!searchTerm.value.trim()) {
+const filterThreads = (searchTerm) => {
+  if (!searchTerm) {
     filteredThreads.value = threads.value;
     return;
   }
 
-  const term = searchTerm.value.toLowerCase().trim();
+  const term = searchTerm.toLowerCase().trim();
   filteredThreads.value = threads.value.filter(thread =>
     thread.name.toLowerCase().includes(term) ||
     (thread.description && thread.description.toLowerCase().includes(term))

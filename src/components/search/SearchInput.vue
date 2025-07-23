@@ -1,56 +1,48 @@
 <template>
-    <div class="relative" :class="widthClass">
-        <input type="text" v-model="searchValue" @keyup.enter="onSearch" :placeholder="placeholder"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+    <div v-if="show" class="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-5">
+        <input ref="inputRef" type="text" v-model="searchValue" :placeholder="placeholder"
+            class="mt-4 px-6 py-4 text-2xl border border-gray-300 rounded-md shadow-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white z-50 w-[40rem]" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps({
-    modelValue: {
-        type: String,
-        default: ''
+    show: {
+        type: Boolean,
+        default: false
     },
     placeholder: {
         type: String,
         default: 'Search...'
     },
-    width: {
-        type: String,
-        default: 'md' // sm, md, lg, full
+});
+const emit = defineEmits(['search']);
+
+const searchValue = ref('');
+const inputRef = ref<HTMLInputElement | null>(null);
+
+
+let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+const DEBOUNCE_DELAY = 300; // ms
+
+
+watch(searchValue, () => {
+    if (debounceTimeout) clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+        emit('search', searchValue.value);
+    }, DEBOUNCE_DELAY);
+});
+
+watch(
+    () => props.show,
+    (val) => {
+        if (val) {
+            setTimeout(() => {
+                inputRef.value?.focus();
+            }, 0);
+        }
     }
-});
-
-const emit = defineEmits(['update:modelValue', 'search']);
-
-const searchValue = ref(props.modelValue);
-
-watch(() => props.modelValue, (newVal) => {
-    searchValue.value = newVal;
-});
-
-watch(() => searchValue.value, (newVal) => {
-    emit('update:modelValue', newVal);
-});
-
-const onSearch = () => {
-    emit('search', searchValue.value);
-};
-
-const widthClass = computed(() => {
-    switch (props.width) {
-        case 'sm':
-            return 'w-32';
-        case 'md':
-            return 'w-64';
-        case 'lg':
-            return 'w-96';
-        case 'full':
-            return 'w-full';
-        default:
-            return 'w-64';
-    }
-});
+);
 </script>
