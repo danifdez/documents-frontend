@@ -67,12 +67,14 @@ const createBrowserWindow = (projectId: string) => {
   });
   win.contentView.addChildView(browserView);
 
-  toolbarView.setBounds({ x: 0, y: 0, width: width, height: 100 });
-  browserView.setBounds({ x: 0, y: 100, width: width, height: height - 100 });
+  const marginHeight = 70;
+
+  toolbarView.setBounds({ x: 0, y: 0, width: width, height: marginHeight });
+  browserView.setBounds({ x: 0, y: marginHeight, width: width, height: height - marginHeight });
 
   activeBrowserView = browserView;
 
-  toolbarView.webContents.openDevTools();
+  //toolbarView.webContents.openDevTools();
 };
 
 app.whenReady().then(() => {

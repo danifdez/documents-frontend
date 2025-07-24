@@ -1,5 +1,5 @@
 <template>
-    <div class="container mx-auto p-5 max-w-7xl">
+    <div>
         <Breadcrumb :items="breadcrumbItems" />
         <div v-if="isLoading" class="flex justify-center items-center h-64">
             <p class="text-gray-500">Loading resource details...</p>

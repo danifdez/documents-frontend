@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     <Card v-for="project in projects" :key="project._id" :title="project.name" :description="project.description"
       :to="`/project/${project._id}`" />
 
@@ -7,7 +7,7 @@
       <div class="text-center text-gray-500">
         <p class="text-lg" v-if="searchTerm">No projects found matching "{{ searchTerm }}"</p>
         <p class="text-lg" v-else>No projects created yet</p>
-        <p class="text-sm mt-1" v-if="!searchTerm">Create your first project using the form above</p>
+        <p class="text-sm mt-1" v-if="!searchTerm">Create your first project using the button above</p>
       </div>
     </div>
   </div>

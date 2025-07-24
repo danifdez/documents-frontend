@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 max-w-7xl mx-auto">
+  <div>
     <Breadcrumb :items="breadcrumbItems" />
     <div>
       <div class="relative mb-4 flex items-center gap-2">

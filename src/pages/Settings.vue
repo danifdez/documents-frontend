@@ -1,5 +1,5 @@
 <template>
-    <div class="p-8 max-w-2xl mx-auto">
+    <div>
         <h1 class="text-2xl font-bold mb-6">App Settings</h1>
         <div class="space-y-6">
             <div class="bg-white rounded shadow p-6">
@@ -14,7 +14,7 @@
                     <label class="block text-sm font-medium mb-1">Font Family</label>
                     <select v-model="fontFamily" @change="saveSettings" class="border rounded px-2 py-1">
                         <option v-for="family in fontFamilies" :key="family.value" :value="family.value">{{ family.label
-                        }}</option>
+                            }}</option>
                     </select>
                 </div>
                 <div class="mb-4">

@@ -1,7 +1,7 @@
 <template>
     <div class="flex">
         <Sidebar v-if="!isBrowserToolbar" />
-        <div class="flex-1 overflow-y-auto">
+        <div class="flex-1 min-h-screen">
             <slot></slot>
         </div>
     </div>

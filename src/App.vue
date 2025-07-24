@@ -1,7 +1,7 @@
 <template>
   <MainLayout>
-    <div class="container mx-auto p-1">
-      <router-view></router-view>
+    <div class="flex-1 flex flex-col min-h-0 pr-3 pl-3">
+      <router-view class="flex-1 min-h-0" />
     </div>
     <GlobalSearchModal ref="globalSearchModalRef" />
   </MainLayout>

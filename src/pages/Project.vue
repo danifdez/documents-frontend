@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white shadow-md rounded p-4">
+  <div>
     <Breadcrumb :items="breadcrumbItems" />
 
     <div v-if="projectStore.loading" class="flex justify-center py-6">
@@ -13,12 +13,17 @@
     <div v-else-if="projectStore.currentProject" class="space-y-4">
       <div class="flex justify-end items-center">
         <div class="flex space-x-2 items-center">
-          <Button @click="openCreateThreadModal" class="flex items-center">
-            <span>Add New Thread</span>
+          <Button @click="openCreateThreadModal" class="px-3 py-2 rounded-full text-base">
+            +
           </Button>
-          <Button @click="openImportDocumentModal" class="flex items-center">
-            <span>Import Document</span>
+          <Button @click="openImportDocumentModal" class="px-3 py-2 rounded-full text-base">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 4v12m0 0l-4-4m4 4l4-4m-8 8h8" />
+            </svg>
           </Button>
+
           <Dropdown :showDots="true">
             <DropdownItem @click="openEditModal">Edit</DropdownItem>
             <DropdownItem @click="confirmDelete" className="text-red-500">Delete</DropdownItem>
@@ -44,7 +49,7 @@
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card v-for="thread in filteredThreads" :key="thread._id" :title="thread.name"
             :description="thread.description" :to="`/thread/${thread._id}`" />
 

@@ -6,9 +6,8 @@
 
     <div class="space-y-4">
       <div class="flex justify-end items-center space-x-4">
-        <Button @click="createNewDocument">
-          <span class="mr-2">+</span>
-          Create New Document
+        <Button @click="createNewDocument" class="px-3 py-2 rounded-full text-base">
+          +
         </Button>
       </div>
     </div>
