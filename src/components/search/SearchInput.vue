@@ -1,5 +1,6 @@
 <template>
-    <div v-if="show" class="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-5">
+    <div v-if="show" class="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-5"
+        @mousedown.self="close">
         <input ref="inputRef" type="text" v-model="searchValue" :placeholder="placeholder"
             class="mt-4 px-6 py-4 text-2xl border border-gray-300 rounded-md shadow-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white z-50 w-[40rem]" />
     </div>
@@ -18,7 +19,7 @@ const props = defineProps({
         default: 'Search...'
     },
 });
-const emit = defineEmits(['search']);
+const emit = defineEmits(['search', 'close']);
 
 const searchValue = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
@@ -27,6 +28,9 @@ const inputRef = ref<HTMLInputElement | null>(null);
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 const DEBOUNCE_DELAY = 300; // ms
 
+function close() {
+    emit('close');
+}
 
 watch(searchValue, () => {
     if (debounceTimeout) clearTimeout(debounceTimeout);

@@ -3,23 +3,22 @@
     <div class="flex-1 flex flex-col min-h-0 pr-3 pl-3">
       <router-view class="flex-1 min-h-0" />
     </div>
-    <GlobalSearchModal ref="globalSearchModalRef" />
+    <GlobalSearchModal :show="showGlobalSearch" @close="showGlobalSearch = false" />
   </MainLayout>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import MainLayout from './layout/MainLayout.vue';
 import GlobalSearchModal from './components/GlobalSearchModal.vue';
-import { useGlobalSearchModal } from './composables/useGlobalSearchModal';
+import { useGlobalKeyboard } from './composables/useGlobalKeyboard';
 import socket from './services/notifications/notification';
 import { useRouter } from 'vue-router';
 import { useNotification } from './composables/useNotification';
 
 const notification = useNotification();
 const router = useRouter();
-const globalSearchModalRef = ref();
-useGlobalSearchModal(globalSearchModalRef);
+const { showGlobalSearch } = useGlobalKeyboard();
 
 onMounted(() => {
   socket.connect();

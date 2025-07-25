@@ -1,10 +1,10 @@
 <template>
-    <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+        @mousedown.self="close">
         <div class="bg-white rounded-lg shadow-lg w-full max-w-xl p-6">
             <div class="flex items-center mb-4">
-                <input v-model="term" @keydown.enter="performSearch" class="flex-1 border rounded px-3 py-2 mr-2"
-                    type="text" placeholder="Search..." autofocus />
-                <button @click="close" class="ml-2 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
+                <input v-model="term" ref="inputRef" class="flex-1 border rounded px-3 py-2 mr-2" type="text"
+                    placeholder="Search..." />
             </div>
             <div v-if="loading" class="text-gray-500">Searching...</div>
             <div v-else>
@@ -28,22 +28,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineExpose } from 'vue';
+import { ref, watch } from 'vue';
 import apiClient from '../services/api';
 
-const visible = ref(false);
+const props = defineProps({
+    show: {
+        type: Boolean,
+        default: false
+    }
+});
+
+const emit = defineEmits(['close']);
+
 const term = ref('');
 const results = ref<any[]>([]);
 const loading = ref(false);
+const inputRef = ref<HTMLInputElement | null>(null);
 
-function open() {
-    visible.value = true;
-    term.value = '';
-    results.value = [];
-}
-function close() {
-    visible.value = false;
-}
 async function performSearch() {
     if (!term.value) return;
     loading.value = true;
@@ -67,5 +68,32 @@ function getResultLink(result: any) {
     return '#';
 }
 
-defineExpose({ open, close });
+function close() {
+    emit('close');
+}
+
+let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+const DEBOUNCE_DELAY = 300; // ms
+
+watch(term, () => {
+    if (debounceTimeout) clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+        performSearch();
+    }, DEBOUNCE_DELAY);
+});
+
+watch(
+    () => props.show,
+    (val) => {
+        if (val) {
+            setTimeout(() => {
+                inputRef.value?.focus();
+            }, 0);
+        } else {
+            term.value = '';
+            results.value = [];
+        }
+    }
+);
+
 </script>

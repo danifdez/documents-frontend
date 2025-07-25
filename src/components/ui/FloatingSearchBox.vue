@@ -71,7 +71,6 @@ const currentResultIndex = ref(0);
 const totalResults = ref(0);
 const results = ref([]);
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
-const matches = ref([]);
 
 watch(() => props.modelValue, (newValue) => {
     isVisible.value = newValue;
@@ -93,6 +92,7 @@ const closeSearch = () => {
     hasResults.value = false;
     currentResultIndex.value = 0;
     totalResults.value = 0;
+    clearHighlights();
     if (searchTimeout.value) {
         clearTimeout(searchTimeout.value);
     }
@@ -166,8 +166,10 @@ const scrollToCurrent = () => {
 };
 
 const clearHighlights = () => {
-    props.activeContents.forEach((content, index) => {
-        // Clear existing highlights in the content
+    props.activeContents.forEach((content) => {
+        if (content && typeof content.content?.value?.clearHighlights === 'function') {
+            content.content.value.clearHighlights();
+        }
     });
 };
 

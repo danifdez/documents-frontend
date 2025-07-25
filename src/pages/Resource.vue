@@ -174,7 +174,7 @@
         :resource-content="getResourceContentForDocument()" :resource-name="resource.name"
         :navigate-after-create="false" @document:created="onDocumentCreated" />
 
-    <FloatingSearchBox :active-contents="activeContents" v-model="showFloatingSearch" />
+    <FloatingSearchBox :active-contents="activeContents" v-model="showSearch" />
 
     <ChatSidebar :show="showChat" :messages="chatMessages" @close="showChat = false" @send="handleSendMessage" />
 </template>
@@ -640,10 +640,9 @@ onMounted(() => {
     loadResourceDetails();
 });
 
-const { showFloatingSearch } = useGlobalKeyboard();
+const { showSearch } = useGlobalKeyboard();
 
 const showChat = ref(false);
-const chatInput = ref('');
 const chatMessages = ref<{ role: 'user' | 'assistant'; text: string }[]>([]);
 
 function handleSendMessage(msg: string) {

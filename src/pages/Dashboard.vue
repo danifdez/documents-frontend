@@ -9,7 +9,8 @@
     <ProjectList ref="projectsComponent" :search-term="searchTerm" />
 
     <ProjectAddModal v-model="showProjectModal" @project:created="onNewProject" />
-    <SearchInput :show="showFloatingSearch" @search="searchProjects" placeholder="Search projects..." />
+    <SearchInput :show="showSearch" @search="searchProjects" @close="showSearch = false"
+      placeholder="Search projects..." />
   </div>
 </template>
 
@@ -28,7 +29,7 @@ const showProjectModal = ref(false);
 const searchTerm = ref('');
 const projectStore = useProjectStore();
 
-const { showFloatingSearch } = useGlobalKeyboard();
+const { showSearch } = useGlobalKeyboard();
 
 const breadcrumbItems = computed(() => {
   return [];

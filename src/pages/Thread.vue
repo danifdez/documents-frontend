@@ -21,7 +21,8 @@
         <p class="text-gray-500">No documents found in this thread.</p>
       </div>
     </div>
-    <SearchInput :show="showFloatingSearch" @search="handleSearch" placeholder="Search threads..." />
+    <SearchInput :show="showSearch" @search="handleSearch" @close="showSearch = false"
+      placeholder="Search threads..." />
   </div>
 </template>
 
@@ -41,7 +42,7 @@ const route = useRoute();
 const router = useRouter();
 const { documents, loadDocuments } = useDocumentList();
 const { loadThread } = useThread();
-const { showFloatingSearch } = useGlobalKeyboard();
+const { showSearch } = useGlobalKeyboard();
 const thread = ref(null);
 const projectStore = useProjectStore();
 const searchQuery = ref('');

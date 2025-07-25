@@ -86,7 +86,8 @@
 
     <ImportDocumentModal v-model="showImportDocumentModal" :project-id="route.params.id"
       @documents:imported="handleDocumentsImported" />
-    <SearchInput :show="showFloatingSearch" @search="searchThreads" placeholder="Search threads..." />
+    <SearchInput :show="showSearch" @search="searchThreads" @close="showSearch = false"
+      placeholder="Search threads..." />
   </div>
 </template>
 
@@ -108,7 +109,7 @@ import { useNotification } from '../composables/useNotification';
 import { useProjectStore } from '../store/projectStore';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 
-const { showFloatingSearch } = useGlobalKeyboard();
+const { showSearch } = useGlobalKeyboard();
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
