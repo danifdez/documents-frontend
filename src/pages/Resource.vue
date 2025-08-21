@@ -150,6 +150,15 @@
                                 ]">
                                     Properties
                                 </button>
+                                <button v-if="hasExtractedContent"
+                                    @click="(viewSideBar = 'index', refreshTocFromChild())" :class="[
+                                        'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                                        viewSideBar === 'index'
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:text-gray-900'
+                                    ]">
+                                    Index
+                                </button>
                                 <button v-if="!isImageFile" @click="viewSideBar = 'comments'" :class="[
                                     'px-3 py-1 text-sm font-medium rounded-md transition-colors',
                                     viewSideBar === 'comments'
@@ -164,6 +173,19 @@
                 </div>
                 <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
                 <CommentSidebar v-else-if="viewSideBar === 'comments'" :doc-id="resource._id" />
+                <div v-else-if="viewSideBar === 'index'" class="bg-white p-4 shadow rounded-lg">
+                    <div class="mb-2">
+                        <strong class="text-sm text-gray-700">Table of Contents</strong>
+                    </div>
+                    <div v-if="!tocItems.length">No headings found in this resource.</div>
+                    <ul v-else class="space-y-1">
+                        <li v-for="item in tocItems" :key="item.id"
+                            :style="{ marginLeft: (item.level - 1) * 12 + 'px' }">
+                            <a href="#" @click.prevent="scrollToHeadingFromSidebar(item.id)"
+                                class="text-blue-600 hover:underline">{{ item.text }}</a>
+                        </li>
+                    </ul>
+                </div>
                 <div v-else-if="viewSideBar === 'summary'" class="bg-white p-4 shadow rounded-lg">
                     {{ resource.summary || 'No summary available' }}
                 </div>
@@ -238,7 +260,31 @@ const nameSavedSuccessfully = ref(false);
 const nameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const nameInput = ref<HTMLInputElement | null>(null);
 const isCancelingNameEdit = ref(false);
-const extractedContent = ref<HTMLElement | null>(null);
+const extractedContent = ref<any>(null);
+const tocItems = ref<{ id: string; text: string; level: number }[]>([]);
+
+const refreshTocFromChild = () => {
+    // HtmlContent exposes `toc` and `scrollToHeading`
+    try {
+        if (extractedContent.value && extractedContent.value.toc) {
+            tocItems.value = extractedContent.value.toc;
+        } else {
+            tocItems.value = [];
+        }
+    } catch (e) {
+        tocItems.value = [];
+    }
+};
+
+const scrollToHeadingFromSidebar = (id: string) => {
+    try {
+        if (extractedContent.value && typeof extractedContent.value.scrollToHeading === 'function') {
+            extractedContent.value.scrollToHeading(id);
+        }
+    } catch (e) {
+        console.error('Failed to scroll to heading', e);
+    }
+};
 
 
 const { isPdfFile, isHtmlFile, isImageFile } = useResourceIcon(computed(() => resource.value.mimeType));

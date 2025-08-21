@@ -39,6 +39,7 @@ import apiClient from '../../services/api';
 
 const extractedContent = ref<HTMLDivElement | null>(null);
 const matches = ref([]);
+const toc = ref<{ id: string; text: string; level: number }[]>([]);
 const savedSuccessfully = ref(false);
 const selectedCommentText = ref('');
 const currentSelection = ref(null);
@@ -349,6 +350,7 @@ onMounted(() => {
         extractedContent.value.addEventListener('contextmenu', handleImageContextMenu);
     }
     document.addEventListener('click', handleClickOutside);
+    setTimeout(() => buildToc(), 150);
 });
 
 watch(
@@ -358,6 +360,58 @@ watch(
     },
     { deep: true }
 );
+
+// rebuild TOC when content changes
+watch(
+    () => props.content,
+    () => {
+        setTimeout(() => {
+            buildToc();
+        }, 50);
+    }
+);
+
+const slugify = (text: string) => {
+    return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9\-]/g, '')
+        .replace(/-+/g, '-');
+};
+
+const buildToc = () => {
+    toc.value = [];
+    if (!extractedContent.value) return;
+    const headings = extractedContent.value.querySelectorAll('h1,h2,h3,h4,h5,h6');
+    const used = new Set<string>();
+    headings.forEach((h: Element) => {
+        const level = parseInt(h.tagName.substring(1), 10);
+        const text = (h.textContent || '').trim();
+        if (!text) return;
+        let id = h.getAttribute('id') || slugify(text);
+        let unique = id;
+        let i = 1;
+        while (used.has(unique)) {
+            unique = `${id}-${i++}`;
+        }
+        used.add(unique);
+        h.setAttribute('id', unique);
+        toc.value.push({ id: unique, text, level });
+    });
+};
+
+const scrollToHeading = (id: string) => {
+    if (!extractedContent.value) return;
+    const el = extractedContent.value.querySelector(`#${CSS.escape(id)}`) as HTMLElement | null;
+    if (el) {
+        // scroll within the container
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.add('toc-target');
+        setTimeout(() => el.classList.remove('toc-target'), 1500);
+    }
+};
 
 const storeSelectionPosition = (selection: Selection) => {
     if (!selection.rangeCount) return null;
@@ -508,6 +562,8 @@ defineExpose({
     search,
     matches,
     scrollTo,
+    scrollToHeading,
+    toc,
     clearHighlights,
 });
 </script>
@@ -612,5 +668,11 @@ defineExpose({
 
 :deep(.resource-detail tr:hover) {
     background: #f1f5f9;
+}
+
+/* highlight when navigated from TOC */
+:deep(.toc-target) {
+    transition: background-color 0.3s ease;
+    background-color: rgba(99, 102, 241, 0.12);
 }
 </style>
