@@ -9,4 +9,4 @@ npm install
 chown root:root /app/node_modules/electron/dist/chrome-sandbox
 chmod 4755 /app/node_modules/electron/dist/chrome-sandbox
 
-npm start
+npm start -- --no-sandbox

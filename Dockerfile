@@ -26,6 +26,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY . /app
+ENV ELECTRON_DISABLE_SECURITY_KEYRING=1
+RUN mkdir -p /run/user/0 && chmod 700 /run/user/0
 USER node
 
-CMD ["sh", "scripts/run.sh"]
+CMD ["sh", "-c", "scripts/run.sh --no-sandbox"]
