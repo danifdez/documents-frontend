@@ -143,8 +143,10 @@
     <Button @click="handleAddReference" title="Add Reference"
       :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M9 8L14 3M14 3H10M14 3V7" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M11 12L6 17M6 17H10M6 17V13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M9 8L14 3M14 3H10M14 3V7" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <path d="M11 12L6 17M6 17H10M6 17V13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
       </svg>
     </Button>
     <!-- Toggle Comments Sidebar Button -->
@@ -156,6 +158,16 @@
           stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
         <path d="M6 8H14" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
         <path d="M6 12H12" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    </Button>
+    <!-- Toggle TOC Sidebar Button -->
+    <Button @click="toggleToc" title="Toggle Table of Contents"
+      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': showToc }]">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 4H17" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M3 8H13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M3 12H15" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M3 16H11" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
       </svg>
     </Button>
     <!-- Undo Button -->
@@ -218,10 +230,14 @@ const props = defineProps({
   showComments: {
     type: Boolean,
     default: false
+  },
+  showToc: {
+    type: Boolean,
+    default: false
   }
 });
 
-const emit = defineEmits(['toggle-comments', 'add-comment', 'add-mark', 'remove-mark', 'add-reference']);
+const emit = defineEmits(['toggle-comments', 'toggle-toc', 'add-comment', 'add-mark', 'remove-mark', 'add-reference']);
 
 const showLinkForm = ref(false);
 const linkUrl = ref('');
@@ -230,6 +246,10 @@ const isMarkActive = ref(false);
 
 const toggleComments = () => {
   emit('toggle-comments');
+};
+
+const toggleToc = () => {
+  emit('toggle-toc');
 };
 
 const insertTable = () => {

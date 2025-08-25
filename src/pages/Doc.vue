@@ -12,11 +12,13 @@
         <div class="flex w-full">
           <div class="flex flex-col flex-grow">
             <EditorContent ref="editorContentRef" :content="docData?.content" :isSaving="isSaving"
-              :savedSuccessfully="savedSuccessfully" @content-change="handleEditorContentChange"
-              @toggle-comments="toggleComments" @highlight-comment="highlightComment" />
+              :savedSuccessfully="savedSuccessfully" :show-toc="showToc" @content-change="handleEditorContentChange"
+              @toggle-comments="toggleComments" @toggle-toc="toggleToc" @highlight-comment="highlightComment" />
           </div>
           <CommentSidebar ref="commentSidebarRef" v-if="!isNewDocument && showComments" :doc-id="route.params.id"
             @comment-clicked="findAndHighlightCommentMark" @comment-deleted="removeCommentMark" />
+          <TableOfContents v-if="!isNewDocument && showToc" ref="tocRef" :editor="editorContentRef?.editor"
+            @scroll-to="scrollToPosition" />
         </div>
       </div>
     </div>
@@ -32,6 +34,7 @@ import EditorContent from '../components/editor/EditorContent.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import { useProjectStore } from '../store/projectStore';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
+import TableOfContents from '../components/editor/TableOfContents.vue';
 
 const htmlContent = ref('');
 const editorContentRef = ref(null);
@@ -47,9 +50,15 @@ const thread = ref(null);
 const projectStore = useProjectStore();
 const isNewDocument = computed(() => route.params.id === 'new');
 const showComments = ref(false);
+const showToc = ref(true);
+const tocRef = ref(null);
 
 const toggleComments = (value) => {
   showComments.value = value !== undefined ? value : !showComments.value;
+};
+
+const toggleToc = () => {
+  showToc.value = !showToc.value;
 };
 
 const breadcrumbItems = computed(() => {
@@ -261,6 +270,12 @@ const removeDoc = async () => {
       console.error('Error removing document:', error);
       alert('Failed to remove document.');
     }
+  }
+};
+
+const scrollToPosition = (position) => {
+  if (editorContentRef.value && editorContentRef.value.scrollToPosition) {
+    editorContentRef.value.scrollToPosition(position);
   }
 };
 </script>

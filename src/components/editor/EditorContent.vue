@@ -1,8 +1,8 @@
 <template>
     <div class="editor-container">
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
-            :show-comments="showComments" @toggle-comments="toggleComments" @add-comment="handleAddCommentRequest"
-            @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
+            :show-comments="showComments" :show-toc="showToc" @toggle-comments="toggleComments" @toggle-toc="toggleToc"
+            @add-comment="handleAddCommentRequest" @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
             @add-reference="showReferenceModal = true" />
         <div class="editor-scroll-wrapper">
             <div class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content"
@@ -62,12 +62,17 @@ const props = defineProps({
     savedSuccessfully: {
         type: Boolean,
         default: false
+    },
+    showToc: {
+        type: Boolean,
+        default: false
     }
 });
 
 const emit = defineEmits([
     'content-change',
     'toggle-comments',
+    'toggle-toc',
     'highlight-comment',
     'highlight-mark'
 ]);
@@ -112,6 +117,10 @@ function createSearchDecorationPlugin(getDecorations) {
 const toggleComments = () => {
     showComments.value = !showComments.value;
     emit('toggle-comments', showComments.value);
+};
+
+const toggleToc = () => {
+    emit('toggle-toc');
 };
 
 const handleAddCommentRequest = (selection: { text: string; from: number; to: number }) => {
@@ -520,11 +529,71 @@ const clearHighlights = () => {
     }
 };
 
-defineExpose({
+const scrollToPosition = (position: number) => {
+    if (!editor.value) return;
+
+    // First, set the text selection at the position
+    editor.value.chain().setTextSelection(position).run();
+    editor.value.commands.focus();
+
+    // Find the editor container element for proper scrolling
+    const editorElement = editor.value.view.dom;
+    const scrollContainer = editorElement.closest('.editor-content') || editorElement.parentElement;
+
+    // Scroll the element into view with proper timing
+    setTimeout(() => {
+        try {
+            const dom = editor.value.view.domAtPos(position);
+            let targetElement = dom.node;
+            
+            // If it's a text node, get the parent element
+            if (targetElement.nodeType === 3) {
+                targetElement = targetElement.parentElement;
+            }
+            
+            // Find the actual heading element
+            while (targetElement && !['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(targetElement.tagName)) {
+                targetElement = targetElement.parentElement;
+                if (!targetElement || targetElement === document.body) break;
+            }
+
+            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
+                // Use scrollIntoView with proper options for better positioning
+                targetElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start',
+                    inline: 'nearest' 
+                });
+                
+                // Additional manual scroll adjustment to ensure proper viewport positioning
+                setTimeout(() => {
+                    if (scrollContainer && scrollContainer.scrollTop !== undefined) {
+                        const elementRect = targetElement.getBoundingClientRect();
+                        const containerRect = scrollContainer.getBoundingClientRect();
+                        
+                        // Calculate the offset to position the heading near the top of the viewport
+                        const offset = 20; // 20px from top
+                        const currentScroll = scrollContainer.scrollTop;
+                        const elementPosition = elementRect.top - containerRect.top;
+                        const targetScroll = currentScroll + elementPosition - offset;
+                        
+                        scrollContainer.scrollTo({
+                            top: Math.max(0, targetScroll),
+                            behavior: 'smooth'
+                        });
+                    }
+                }, 100);
+            }
+        } catch (e) {
+            console.error('scrollToPosition error:', e);
+        }
+    }, 150);
+};defineExpose({
     editor,
     setLink,
     search,
     scrollTo,
+    scrollToPosition,
     clearHighlights,
     undo() {
         if (editor.value) {
