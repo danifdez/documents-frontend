@@ -545,12 +545,12 @@ const scrollToPosition = (position: number) => {
         try {
             const dom = editor.value.view.domAtPos(position);
             let targetElement = dom.node;
-            
+
             // If it's a text node, get the parent element
             if (targetElement.nodeType === 3) {
                 targetElement = targetElement.parentElement;
             }
-            
+
             // Find the actual heading element
             while (targetElement && !['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(targetElement.tagName)) {
                 targetElement = targetElement.parentElement;
@@ -559,24 +559,24 @@ const scrollToPosition = (position: number) => {
 
             if (targetElement && typeof targetElement.scrollIntoView === 'function') {
                 // Use scrollIntoView with proper options for better positioning
-                targetElement.scrollIntoView({ 
-                    behavior: 'smooth', 
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
                     block: 'start',
-                    inline: 'nearest' 
+                    inline: 'nearest'
                 });
-                
+
                 // Additional manual scroll adjustment to ensure proper viewport positioning
                 setTimeout(() => {
                     if (scrollContainer && scrollContainer.scrollTop !== undefined) {
                         const elementRect = targetElement.getBoundingClientRect();
                         const containerRect = scrollContainer.getBoundingClientRect();
-                        
+
                         // Calculate the offset to position the heading near the top of the viewport
                         const offset = 20; // 20px from top
                         const currentScroll = scrollContainer.scrollTop;
                         const elementPosition = elementRect.top - containerRect.top;
                         const targetScroll = currentScroll + elementPosition - offset;
-                        
+
                         scrollContainer.scrollTo({
                             top: Math.max(0, targetScroll),
                             behavior: 'smooth'
@@ -588,7 +588,7 @@ const scrollToPosition = (position: number) => {
             console.error('scrollToPosition error:', e);
         }
     }, 150);
-};defineExpose({
+}; defineExpose({
     editor,
     setLink,
     search,

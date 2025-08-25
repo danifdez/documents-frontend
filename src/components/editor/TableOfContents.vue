@@ -55,77 +55,77 @@ let editorUpdateCleanup: (() => void) | null = null;
 let scrollListenerCleanup: (() => void) | null = null;
 
 const updateActiveHeadingOnScroll = () => {
-  if (!props.editor || headings.value.length === 0) return;
+    if (!props.editor || headings.value.length === 0) return;
 
-  try {
-    const editorElement = props.editor.view.dom;
-    const scrollContainer = editorElement.closest('.editor-content') || editorElement.parentElement;
-    
-    if (!scrollContainer) return;
+    try {
+        const editorElement = props.editor.view.dom;
+        const scrollContainer = editorElement.closest('.editor-content') || editorElement.parentElement;
 
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const scrollTop = scrollContainer.scrollTop;
-    
-    // Find which heading is currently most visible
-    let currentHeading = headings.value[0];
-    
-    for (const heading of headings.value) {
-      const headingElements = editorElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
-      
-      for (const el of headingElements) {
-        if (el.textContent?.trim() === heading.text) {
-          const elementRect = el.getBoundingClientRect();
-          const elementTop = elementRect.top - containerRect.top + scrollTop;
-          
-          // If this heading is above or at the current scroll position, it could be the active one
-          if (elementTop <= scrollTop + 100) { // 100px threshold
-            currentHeading = heading;
-          }
-          break;
+        if (!scrollContainer) return;
+
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const scrollTop = scrollContainer.scrollTop;
+
+        // Find which heading is currently most visible
+        let currentHeading = headings.value[0];
+
+        for (const heading of headings.value) {
+            const headingElements = editorElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+            for (const el of headingElements) {
+                if (el.textContent?.trim() === heading.text) {
+                    const elementRect = el.getBoundingClientRect();
+                    const elementTop = elementRect.top - containerRect.top + scrollTop;
+
+                    // If this heading is above or at the current scroll position, it could be the active one
+                    if (elementTop <= scrollTop + 100) { // 100px threshold
+                        currentHeading = heading;
+                    }
+                    break;
+                }
+            }
         }
-      }
+
+        if (currentHeading.id !== activeHeadingId.value) {
+            activeHeadingId.value = currentHeading.id;
+        }
+    } catch (error) {
+        console.error('Error updating active heading:', error);
     }
-    
-    if (currentHeading.id !== activeHeadingId.value) {
-      activeHeadingId.value = currentHeading.id;
-    }
-  } catch (error) {
-    console.error('Error updating active heading:', error);
-  }
 };
 
 const extractHeadings = () => {
-  if (!props.editor || !props.editor.state) return;
+    if (!props.editor || !props.editor.state) return;
 
-  const newHeadings: Heading[] = [];
-  const doc = props.editor.state.doc;
+    const newHeadings: Heading[] = [];
+    const doc = props.editor.state.doc;
 
-  try {
-    // Use descendants method which is the standard way in ProseMirror
-    doc.descendants((node: any, pos: number) => {
-      if (node.type && node.type.name === 'heading') {
-        const text = node.textContent ? node.textContent.trim() : '';
-        
-        if (text) {
-          const level = node.attrs && node.attrs.level ? node.attrs.level : 1;
-          const id = generateHeadingId(text);
-          
-          newHeadings.push({
-            id,
-            text,
-            level,
-            position: pos
-          });
-        }
-      }
-      return true; // Continue traversing
-    });
-  } catch (error) {
-    console.error('Error during heading extraction:', error);
-  }
+    try {
+        // Use descendants method which is the standard way in ProseMirror
+        doc.descendants((node: any, pos: number) => {
+            if (node.type && node.type.name === 'heading') {
+                const text = node.textContent ? node.textContent.trim() : '';
 
-  headings.value = newHeadings;
-};const generateHeadingId = (text: string): string => {
+                if (text) {
+                    const level = node.attrs && node.attrs.level ? node.attrs.level : 1;
+                    const id = generateHeadingId(text);
+
+                    newHeadings.push({
+                        id,
+                        text,
+                        level,
+                        position: pos
+                    });
+                }
+            }
+            return true; // Continue traversing
+        });
+    } catch (error) {
+        console.error('Error during heading extraction:', error);
+    }
+
+    headings.value = newHeadings;
+}; const generateHeadingId = (text: string): string => {
     return text
         .toLowerCase()
         .replace(/[^\w\s-]/g, '')
@@ -134,49 +134,49 @@ const extractHeadings = () => {
 };
 
 const scrollToHeading = (heading: Heading) => {
-  console.log('Scrolling to heading:', heading);
-  
-  // Set active heading for visual feedback
-  activeHeadingId.value = heading.id;
-  
-  // Emit scroll event to parent
-  emit('scrollTo', heading.position);
-  
-  // Additional fallback scroll mechanism
-  setTimeout(() => {
-    if (props.editor && props.editor.view) {
-      try {
-        // Alternative approach: find the heading by text content
-        const editorElement = props.editor.view.dom;
-        const headings = editorElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        
-        for (const el of headings) {
-          if (el.textContent?.trim() === heading.text) {
-            const scrollContainer = editorElement.closest('.editor-content') || editorElement.parentElement;
-            
-            if (scrollContainer) {
-              const containerRect = scrollContainer.getBoundingClientRect();
-              const elementRect = el.getBoundingClientRect();
-              const offset = 20; // Offset from top
-              
-              const targetScroll = scrollContainer.scrollTop + (elementRect.top - containerRect.top) - offset;
-              
-              scrollContainer.scrollTo({
-                top: Math.max(0, targetScroll),
-                behavior: 'smooth'
-              });
-              
-              console.log('Fallback scroll executed for:', heading.text);
+    console.log('Scrolling to heading:', heading);
+
+    // Set active heading for visual feedback
+    activeHeadingId.value = heading.id;
+
+    // Emit scroll event to parent
+    emit('scrollTo', heading.position);
+
+    // Additional fallback scroll mechanism
+    setTimeout(() => {
+        if (props.editor && props.editor.view) {
+            try {
+                // Alternative approach: find the heading by text content
+                const editorElement = props.editor.view.dom;
+                const headings = editorElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+                for (const el of headings) {
+                    if (el.textContent?.trim() === heading.text) {
+                        const scrollContainer = editorElement.closest('.editor-content') || editorElement.parentElement;
+
+                        if (scrollContainer) {
+                            const containerRect = scrollContainer.getBoundingClientRect();
+                            const elementRect = el.getBoundingClientRect();
+                            const offset = 20; // Offset from top
+
+                            const targetScroll = scrollContainer.scrollTop + (elementRect.top - containerRect.top) - offset;
+
+                            scrollContainer.scrollTo({
+                                top: Math.max(0, targetScroll),
+                                behavior: 'smooth'
+                            });
+
+                            console.log('Fallback scroll executed for:', heading.text);
+                        }
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.error('Fallback scroll error:', error);
             }
-            break;
-          }
         }
-      } catch (error) {
-        console.error('Fallback scroll error:', error);
-      }
-    }
-  }, 300);
-};const updateActiveHeading = (scrollTop: number) => {
+    }, 300);
+}; const updateActiveHeading = (scrollTop: number) => {
     // This would be called when the user scrolls to update the active heading
     // For now, we'll implement a simple version
     if (headings.value.length > 0) {
@@ -189,53 +189,53 @@ const scrollToHeading = (heading: Heading) => {
 
 // Watch for editor changes to update headings
 watch(() => props.editor, (newEditor, oldEditor) => {
-  // Cleanup previous editor listeners
-  if (editorUpdateCleanup) {
-    editorUpdateCleanup();
-    editorUpdateCleanup = null;
-  }
-  
-  if (scrollListenerCleanup) {
-    scrollListenerCleanup();
-    scrollListenerCleanup = null;
-  }
-  
-  if (newEditor && newEditor.state) {
-    // Initial extraction
-    setTimeout(() => {
-      extractHeadings();
-    }, 200);
-    
-    // Listen to editor update events
-    const updateHandler = () => {
-      setTimeout(extractHeadings, 100);
-    };
-    
-    newEditor.on('update', updateHandler);
-    
-    // Set up scroll listener for active heading detection
-    setTimeout(() => {
-      const editorElement = newEditor.view.dom;
-      const scrollContainer = editorElement.closest('.editor-content') || editorElement.parentElement;
-      
-      if (scrollContainer) {
-        const scrollHandler = () => {
-          updateActiveHeadingOnScroll();
+    // Cleanup previous editor listeners
+    if (editorUpdateCleanup) {
+        editorUpdateCleanup();
+        editorUpdateCleanup = null;
+    }
+
+    if (scrollListenerCleanup) {
+        scrollListenerCleanup();
+        scrollListenerCleanup = null;
+    }
+
+    if (newEditor && newEditor.state) {
+        // Initial extraction
+        setTimeout(() => {
+            extractHeadings();
+        }, 200);
+
+        // Listen to editor update events
+        const updateHandler = () => {
+            setTimeout(extractHeadings, 100);
         };
-        
-        scrollContainer.addEventListener('scroll', scrollHandler, { passive: true });
-        
-        scrollListenerCleanup = () => {
-          scrollContainer.removeEventListener('scroll', scrollHandler);
+
+        newEditor.on('update', updateHandler);
+
+        // Set up scroll listener for active heading detection
+        setTimeout(() => {
+            const editorElement = newEditor.view.dom;
+            const scrollContainer = editorElement.closest('.editor-content') || editorElement.parentElement;
+
+            if (scrollContainer) {
+                const scrollHandler = () => {
+                    updateActiveHeadingOnScroll();
+                };
+
+                scrollContainer.addEventListener('scroll', scrollHandler, { passive: true });
+
+                scrollListenerCleanup = () => {
+                    scrollContainer.removeEventListener('scroll', scrollHandler);
+                };
+            }
+        }, 300);
+
+        // Store cleanup function
+        editorUpdateCleanup = () => {
+            newEditor.off('update', updateHandler);
         };
-      }
-    }, 300);
-    
-    // Store cleanup function
-    editorUpdateCleanup = () => {
-      newEditor.off('update', updateHandler);
-    };
-  }
+    }
 }, { immediate: true });// Also watch document changes as fallback
 watch(() => props.editor?.state?.doc?.content, () => {
     if (props.editor?.state?.doc) {
