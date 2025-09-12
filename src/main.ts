@@ -1,4 +1,4 @@
-import { app, BaseWindow, BrowserWindow, ipcMain, WebContentsView, screen, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, WebContentsView, screen, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -14,6 +14,7 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+let mainWindow: BrowserWindow | null = null;
 let activeBrowserView: WebContentsView | null = null;
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -22,7 +23,8 @@ const store = new Store();
 const createWindow = () => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
-  const mainWindow = new BrowserWindow({
+
+  mainWindow = new BrowserWindow({
     width,
     height,
     webPreferences: {
@@ -43,14 +45,23 @@ const createWindow = () => {
 const createBrowserWindow = (projectId: string) => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
-  const win = new BaseWindow({ width, height });
+
+  const win = new BrowserWindow({
+    width,
+    height,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
 
   const toolbarView = new WebContentsView({
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
-      contextIsolation: true
-    }
+      contextIsolation: true,
+    },
   });
   toolbarView.webContents.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#/browser-toolbar`);
   win.contentView.addChildView(toolbarView);
