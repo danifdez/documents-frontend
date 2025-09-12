@@ -1,4 +1,4 @@
-FROM node:22-bullseye
+FROM node:24.8.0-trixie
 
 RUN apt-get update && apt-get install -y \
     libnss3 \
@@ -27,7 +27,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY . /app
 ENV ELECTRON_DISABLE_SECURITY_KEYRING=1
-RUN mkdir -p /run/user/0 && chmod 700 /run/user/0
-USER node
+ENV ELECTRON_DISABLE_SANDBOX=1
 
-CMD ["sh", "-c", "scripts/run.sh --no-sandbox"]
+RUN mkdir -p /run/user/0 && chmod 700 /run/user/0
+
+CMD ["sh", "-c", "scripts/run.sh"]
