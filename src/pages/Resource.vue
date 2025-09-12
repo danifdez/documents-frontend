@@ -64,7 +64,7 @@
                         </div>
                         <div v-else>
                             <HtmlContent v-if="!isImageFile && displayMode === 'extracted'" ref="extractedContent"
-                                :content="resource.content" :resource-id="resource._id" />
+                                :content="resource.content" :resource-id="resource.id" />
                             <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
                                 v-html="resource.translatedContent"></div>
                             <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
@@ -100,7 +100,7 @@
 
                     <div class="mb-3 flex justify-between items-center">
                         <div class="flex gap-2">
-                            <a :href="`/document/${splitDocument._id}`"
+                            <a :href="`/document/${splitDocument.id}`"
                                 class="inline-flex items-center px-4 py-1 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
@@ -178,12 +178,13 @@
                                 ]">
                                     Comments
                                 </button>
-                                <button v-if="resource.key_points && resource.key_points.length" @click="viewSideBar = 'key_points'" :class="[
-                                    'px-3 py-1 text-sm font-medium rounded-md transition-colors',
-                                    viewSideBar === 'key_points'
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                ]">
+                                <button v-if="resource.key_points && resource.key_points.length"
+                                    @click="viewSideBar = 'key_points'" :class="[
+                                        'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                                        viewSideBar === 'key_points'
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:text-gray-900'
+                                    ]">
                                     Key Points
                                 </button>
                             </div>
@@ -191,7 +192,7 @@
                     </div>
                 </div>
                 <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
-                <CommentSidebar v-else-if="viewSideBar === 'comments'" :doc-id="resource._id" />
+                <CommentSidebar v-else-if="viewSideBar === 'comments'" :doc-id="resource.id" />
                 <div v-else-if="viewSideBar === 'index'" class="bg-white p-4 shadow rounded-lg">
                     <div class="mb-2">
                         <strong class="text-sm text-gray-700">Table of Contents</strong>
@@ -222,7 +223,7 @@
             </div>
         </div>
     </div>
-    <CreateDocumentModal v-model="showCreateDocumentModal" :project-id="projectStore.currentProject._id"
+    <CreateDocumentModal v-model="showCreateDocumentModal" :project-id="projectStore.currentProject.id"
         :resource-content="getResourceContentForDocument()" :resource-name="resource.name"
         :navigate-after-create="false" @document:created="onDocumentCreated" />
 
@@ -332,7 +333,7 @@ const breadcrumbItems = computed(() => {
 
     items.push({
         name: projectStore.currentProject.name,
-        path: `/project/${projectStore.currentProject._id}`
+        path: `/project/${projectStore.currentProject.id}`
     });
 
     if (resource.value && resource.value.name) {
@@ -450,7 +451,7 @@ const closeSplitView = () => {
 };
 
 const handleDocumentContentChange = async (content: string) => {
-    if (!splitDocument.value || !splitDocument.value._id) {
+    if (!splitDocument.value || !splitDocument.value.id) {
         return;
     }
 
@@ -463,7 +464,7 @@ const handleDocumentContentChange = async (content: string) => {
 
     documentSaveTimeout.value = setTimeout(async () => {
         try {
-            await saveDocument(splitDocument.value._id, { content });
+            await saveDocument(splitDocument.value.id, { content });
             splitDocument.value.content = content;
             documentSavedSuccessfully.value = true;
 
@@ -479,7 +480,7 @@ const handleDocumentContentChange = async (content: string) => {
 };
 
 const handleDocumentNameChange = async () => {
-    if (!splitDocument.value || !splitDocument.value._id || !splitDocument.value.name.trim()) {
+    if (!splitDocument.value || !splitDocument.value.id || !splitDocument.value.name.trim()) {
         return;
     }
 
@@ -492,7 +493,7 @@ const handleDocumentNameChange = async () => {
 
     documentNameSaveTimeout.value = setTimeout(async () => {
         try {
-            await saveDocument(splitDocument.value._id, { name: splitDocument.value.name.trim() });
+            await saveDocument(splitDocument.value.id, { name: splitDocument.value.name.trim() });
             documentSavedSuccessfully.value = true;
 
             setTimeout(() => {
@@ -511,7 +512,7 @@ const removeResource = async () => {
         await apiClient.delete(`/resources/${resourceId.value}`);
         notification.success('Resource removed successfully');
 
-        router.push(`/project/${projectStore.currentProject._id}`);
+        router.push(`/project/${projectStore.currentProject.id}`);
     } catch (error) {
         notification.error('Failed to remove resource');
     }
@@ -532,8 +533,8 @@ const onDrop = async (event: DragEvent) => {
     if (droppedData && droppedData.type === 'document') {
         try {
             const document = droppedData.document;
-            if (document && document._id) {
-                const fullDocument = await loadDocument(document._id);
+            if (document && document.id) {
+                const fullDocument = await loadDocument(document.id);
                 splitDocument.value = fullDocument;
                 splitViewActive.value = true;
             }

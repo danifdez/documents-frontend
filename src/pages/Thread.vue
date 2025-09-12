@@ -13,8 +13,8 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-      <Card v-for="document in filteredDocuments" :key="document._id" :title="document.name"
-        :to="`/document/${document._id}`">
+      <Card v-for="document in filteredDocuments" :key="document.id" :title="document.name"
+        :to="`/document/${document.id}`">
       </Card>
 
       <div v-if="filteredDocuments.length === 0" class="col-span-full text-center py-8 bg-gray-50 rounded-lg">
@@ -66,7 +66,7 @@ const createNewDocument = () => {
   if (thread.value) {
     router.push({
       path: '/document/new',
-      query: { threadId: thread.value._id }
+      query: { threadId: thread.value.id }
     });
   }
 };
@@ -76,7 +76,7 @@ const breadcrumbItems = computed(() => {
 
   items.push({
     name: projectStore.currentProject.name,
-    path: `/project/${projectStore.currentProject._id}`
+    path: `/project/${projectStore.currentProject.id}`
   });
 
   if (thread.value) {

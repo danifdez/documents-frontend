@@ -132,7 +132,7 @@ const saveComment = async (commentText: string) => {
         if (currentSelection.value) {
             const span = document.createElement('span');
             span.className = 'comment-mark';
-            span.setAttribute('data-comment-id', newComment._id);
+            span.setAttribute('data-comment-id', newComment.id);
 
             const success = wrapStoredSelection(currentSelection.value, span);
 
@@ -240,8 +240,8 @@ const handleAddMark = async (data: { text: string; from: number; to: number }) =
 
         const newMark = await createMark(resourceId as string, data.text);
 
-        if (newMark && newMark._id) {
-            wrapTextWithMark(data.text, newMark._id);
+        if (newMark && newMark.id) {
+            wrapTextWithMark(data.text, newMark.id);
             await saveModifiedContent();
         }
     } catch (error) {
@@ -328,10 +328,10 @@ const loadExistingMarks = async () => {
             const marks = await loadMarks(resourceId as string);
 
             marks.forEach(mark => {
-                if (mark.content && mark._id) {
-                    const existingMark = extractedContent.value?.querySelector(`[data-mark-id="${mark._id}"]`);
+                if (mark.content && mark.id) {
+                    const existingMark = extractedContent.value?.querySelector(`[data-mark-id="${mark.id}"]`);
                     if (!existingMark) {
-                        wrapTextWithMark(mark.content, mark._id);
+                        wrapTextWithMark(mark.content, mark.id);
                     }
                 }
             });
@@ -535,7 +535,7 @@ const saveImageAsResource = async () => {
         const formData = new FormData();
         formData.append('file', blob, 'imported-image.jpg');
         formData.append('relatedTo', props.resourceId);
-        formData.append('projectId', currentProject._id);
+        formData.append('projectId', currentProject.id);
         formData.append('url', contextMenuImageUrl.value.url);
         formData.append('originalName', contextMenuImageUrl.value.name);
         formData.append('name', contextMenuImageUrl.value.alt || '');

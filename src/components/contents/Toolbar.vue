@@ -86,13 +86,13 @@ const loadDocumentMarks = async () => {
 
             if (props.editor && loadedMarks.length > 0) {
                 loadedMarks.forEach(mark => {
-                    markContentMap.value.set(mark._id, mark.content);
+                    markContentMap.value.set(mark.id, mark.content);
                 });
 
                 setTimeout(() => {
                     loadedMarks.forEach(mark => {
                         try {
-                            if (!mark.content || !mark._id) {
+                            if (!mark.content || !mark.id) {
                                 return;
                             }
 
@@ -104,12 +104,12 @@ const loadDocumentMarks = async () => {
                                     from: position,
                                     to: position + mark.content.length
                                 });
-                                props.editor.commands.setTextMark(mark._id);
+                                props.editor.commands.setTextMark(mark.id);
                             } else {
                                 console.warn(`Mark content not found in document: ${mark.content}`);
                             }
                         } catch (err) {
-                            console.error(`Error applying mark ${mark._id}:`, err);
+                            console.error(`Error applying mark ${mark.id}:`, err);
                         }
                     });
                 }, 500);
@@ -204,12 +204,12 @@ const handleAddMark = async () => {
 
         const newMark = await createMark(resourceId as string, text);
 
-        if (newMark && newMark._id) {
+        if (newMark && newMark.id) {
             props.editor.commands.setTextSelection({ from, to });
-            props.editor.commands.setTextMark(newMark._id);
+            props.editor.commands.setTextMark(newMark.id);
 
             emit('add-mark', {
-                markId: newMark._id,
+                markId: newMark.id,
                 text,
                 from,
                 to

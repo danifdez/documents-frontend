@@ -18,12 +18,12 @@
     </div>
 
     <div v-else class="space-y-4">
-      <div v-for="comment in sortedComments" :key="comment._id" :id="`comment-${comment._id}`"
+      <div v-for="comment in sortedComments" :key="comment.id" :id="`comment-${comment.id}`"
         class="p-3 bg-white rounded-md shadow-sm transition-all duration-200 hover:bg-gray-50"
-        :class="{ 'bg-yellow-50 border border-yellow-400': highlightedCommentId === comment._id }">
+        :class="{ 'bg-yellow-50 border border-yellow-400': highlightedCommentId === comment.id }">
         <div class="flex justify-between items-start">
           <div class="text-gray-700 text-sm whitespace-pre-wrap cursor-pointer flex-grow"
-            @click="handleCommentClick(comment._id)">{{ comment.content }}</div>
+            @click="handleCommentClick(comment.id)">{{ comment.content }}</div>
           <div class="flex items-center">
             <button @click.stop="editComment(comment)"
               class="p-1 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded">
@@ -118,8 +118,8 @@ const editComment = (comment) => {
 const handleEditSave = async (newContent) => {
   if (currentEditComment.value && newContent.trim() !== currentEditComment.value.content) {
     try {
-      const updatedComment = await updateComment(currentEditComment.value._id, newContent);
-      const index = comments.value.findIndex(c => c._id === currentEditComment.value._id);
+      const updatedComment = await updateComment(currentEditComment.value.id, newContent);
+      const index = comments.value.findIndex(c => c.id === currentEditComment.value.id);
       if (index !== -1) {
         comments.value[index].content = newContent;
       }
@@ -142,13 +142,13 @@ const handleEditCancel = () => {
 const deleteComment = async (comment) => {
   if (confirm(`Are you sure you want to delete this comment: "${comment.content.substring(0, 30)}${comment.content.length > 30 ? '...' : ''}"?`)) {
     try {
-      await deleteCommentAPI(comment._id);
-      const index = comments.value.findIndex(c => c._id === comment._id);
+      await deleteCommentAPI(comment.id);
+      const index = comments.value.findIndex(c => c.id === comment.id);
       if (index !== -1) {
         comments.value.splice(index, 1);
       }
 
-      emit('comment-deleted', comment._id);
+      emit('comment-deleted', comment.id);
     } catch (error) {
       console.error('Error deleting comment:', error);
     }

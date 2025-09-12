@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 
 interface Document {
-    _id: string;
+    id: string;
     name: string;
     content?: string;
     [key: string]: unknown;

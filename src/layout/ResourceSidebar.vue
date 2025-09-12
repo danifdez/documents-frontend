@@ -23,7 +23,7 @@
                 <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
             </div>
 
-            <router-link v-for="resource in filteredResources" :key="resource._id" :to="`/resource/${resource._id}`"
+            <router-link v-for="resource in filteredResources" :key="resource.id" :to="`/resource/${resource.id}`"
                 class="block px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-600 rounded-md transition-all duration-200 text-left">
                 <div class="flex items-center">
                     <IconType :mimeType="resource.mimeType" class="mr-2" />
@@ -73,7 +73,7 @@ const filteredResources = computed(() => {
 
 const currentProjectId = computed(() => {
     if (projectStore.currentProject) {
-        return projectStore.currentProject._id;
+        return projectStore.currentProject.id;
     }
 
     if (route.params.id) {

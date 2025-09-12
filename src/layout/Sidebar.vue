@@ -66,7 +66,7 @@ const projectStore = useProjectStore();
 const collapsed = ref(true);
 
 const hasProjectSelected = computed(() => {
-    return !!projectStore?.currentProject?._id;
+    return !!projectStore?.currentProject?.id;
 });
 
 const toggleCollapse = () => {
@@ -82,6 +82,6 @@ const handleDocumentExpand = () => {
 };
 
 const openBrowser = async () => {
-    await window.electronAPI.openExternalBrowser(projectStore.currentProject._id);
+    await window.electronAPI.openExternalBrowser(projectStore.currentProject.id);
 };
 </script>

@@ -1,7 +1,7 @@
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-    <Card v-for="project in projects" :key="project._id" :title="project.name" :description="project.description"
-      :to="`/project/${project._id}`" />
+    <Card v-for="project in projects" :key="project.id" :title="project.name" :description="project.description"
+      :to="`/project/${project.id}`" />
 
     <div v-if="projects.length === 0" class="col-span-full flex justify-center p-8">
       <div class="text-center text-gray-500">

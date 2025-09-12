@@ -66,13 +66,13 @@ const breadcrumbItems = computed(() => {
 
   items.push({
     name: projectStore.currentProject.name,
-    path: `/project/${projectStore.currentProject._id}`
+    path: `/project/${projectStore.currentProject.id}`
   });
 
   if (thread.value) {
     items.push({
       name: thread.value.name,
-      path: `/thread/${thread.value._id}`
+      path: `/thread/${thread.value.id}`
     });
   }
 
@@ -97,7 +97,7 @@ onMounted(async () => {
   }
 
   let threadId = route.query.threadId || docData.value?.thread;
-  let projectId = projectStore.currentProject._id;
+  let projectId = projectStore.currentProject.id;
 
   try {
     if (threadId) {
@@ -115,8 +115,8 @@ onMounted(async () => {
     docData.value = {
       name: '',
       content: '',
-      thread: threadId,
-      project: projectId
+      thread: threadId ? Number(threadId) : null,
+      project: projectId ? Number(projectId) : null
     };
   }
 
@@ -140,10 +140,12 @@ const handleEditorContentChange = (content) => {
   saveTimeout.value = setTimeout(async () => {
     if (docData.value && htmlContent.value !== docData.value.content) {
       try {
+        docData.value.content = htmlContent.value;
+
         if (isNewDocument.value) {
           await createDocument(docData.value);
         } else {
-          await saveDocument(docData.value._id, { content: htmlContent.value });
+          await saveDocument(docData.value.id, { content: htmlContent.value });
         }
         savedSuccessfully.value = true;
       } catch (error) {
@@ -257,14 +259,14 @@ const removeCommentMark = (commentId) => {
 };
 
 const removeDoc = async () => {
-  if (!docData.value._id) return;
+  if (!docData.value.id) return;
   if (confirm('Are you sure you want to remove this document?')) {
     try {
-      await removeDocument(docData.value._id);
+      await removeDocument(docData.value.id);
       if (thread.value) {
-        router.push(`/thread/${thread.value._id}`);
+        router.push(`/thread/${thread.value.id}`);
       } else {
-        router.push(`/project/${projectStore.currentProject._id}`);
+        router.push(`/project/${projectStore.currentProject.id}`);
       }
     } catch (error) {
       console.error('Error removing document:', error);

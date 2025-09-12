@@ -9,7 +9,7 @@
                     <p>Loading...</p>
                 </div>
                 <ul v-else-if="results.length > 0">
-                    <li v-for="item in results" :key="item._id" class="p-2 hover:bg-gray-100 cursor-pointer rounded-md"
+                    <li v-for="item in results" :key="item.id" class="p-2 hover:bg-gray-100 cursor-pointer rounded-md"
                         @click="selectItem(item)">
                         <div class="font-semibold">{{ item.name || item.content }}</div>
                         <div class="text-sm text-gray-500">{{ item.type }}</div>

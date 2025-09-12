@@ -60,10 +60,10 @@ async function performSearch() {
 
 function getResultLink(result: any) {
     if (result.collection === 'docs') {
-        return `/document/${result._id}`;
+        return `/document/${result.id}`;
     }
     if (result.collection === 'resources') {
-        return `/resource/${result._id}`;
+        return `/resource/${result.id}`;
     }
     return '#';
 }

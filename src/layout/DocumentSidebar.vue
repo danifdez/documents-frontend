@@ -23,7 +23,7 @@
                 <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
             </div>
 
-            <router-link v-for="document in filteredDocuments" :key="document._id" :to="`/document/${document._id}`"
+            <router-link v-for="document in filteredDocuments" :key="document.id" :to="`/document/${document.id}`"
                 class="block px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-600 rounded-md transition-all duration-200 text-left"
                 :draggable="true" @dragstart="handleDragStart($event, document)">
                 <div class="flex items-center">
@@ -87,7 +87,7 @@ const filteredDocuments = computed(() => {
 
 const currentProjectId = computed(() => {
     if (projectStore.currentProject) {
-        return projectStore.currentProject._id;
+        return projectStore.currentProject.id;
     }
 
     if (route.params.id) {

@@ -13,7 +13,7 @@
                 <select id="threadSelect" v-model="selectedThreadId"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                     <option value="">No thread selected</option>
-                    <option v-for="thread in threads" :key="thread._id" :value="thread._id">
+                    <option v-for="thread in threads" :key="thread.id" :value="thread.id">
                         {{ thread.name }}
                     </option>
                 </select>
@@ -107,11 +107,15 @@ async function createNewDocument() {
     try {
         isSubmitting.value = true;
 
-        const documentData = {
+        const documentData: any = {
             name: documentName.value.trim(),
-            project: props.projectId,
-            ...(selectedThreadId.value && { thread: selectedThreadId.value })
+            project: Number(props.projectId),
+            ...(selectedThreadId.value && { thread: Number(selectedThreadId.value) })
         };
+
+        if (props.resourceContent) {
+            documentData.content = props.resourceContent;
+        }
 
         const newDocument = await createDocument(documentData);
 
@@ -121,7 +125,7 @@ async function createNewDocument() {
             emit('document:created', newDocument);
 
             if (props.navigateAfterCreate) {
-                router.push(`/document/${newDocument._id}`);
+                router.push(`/document/${newDocument.id}`);
             }
         }
     } catch (error) {

@@ -50,8 +50,8 @@
         </div>
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card v-for="thread in filteredThreads" :key="thread._id" :title="thread.name"
-            :description="thread.description" :to="`/thread/${thread._id}`" />
+          <Card v-for="thread in filteredThreads" :key="thread.id" :title="thread.name"
+            :description="thread.description" :to="`/thread/${thread.id}`" />
 
           <div v-if="filteredThreads.length === 0" class="col-span-full text-center py-8 bg-gray-50 rounded-lg">
             <p class="text-gray-500">
@@ -137,7 +137,7 @@ onMounted(async () => {
     return;
   }
 
-  if (projectStore.currentProject && projectStore.currentProject._id === id) {
+  if (projectStore.currentProject && projectStore.currentProject.id === id) {
     await loadThreads(id);
     return;
   }

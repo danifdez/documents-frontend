@@ -9,14 +9,14 @@
                     class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     ref="typeDropdown">
                     <option value="">Select a type...</option>
-                    <option v-for="resourceType in resourceTypes" :key="resourceType._id" :value="resourceType._id">
+                    <option v-for="resourceType in resourceTypes" :key="resourceType.id" :value="resourceType.id">
                         {{ resourceType.name }}
                     </option>
                 </select>
                 <div v-else @dblclick="startTypeEdit"
                     class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
                     title="Double-click to edit">
-                    <span v-if="resource.type">{{ getResourceTypeName(resource.type._id || resource.type) }}</span>
+                    <span v-if="resource.type">{{ getResourceTypeName(resource.type.id || resource.type) }}</span>
                     <span v-else class="text-gray-400 italic">No type</span>
                 </div>
             </div>
@@ -325,7 +325,7 @@ const formatKey = (key: string | number): string => {
 
 const startTypeEdit = () => {
     isEditingType.value = true;
-    editResourceType.value = props.resource.type?._id || props.resource.type || '';
+    editResourceType.value = props.resource.type?.id || props.resource.type || '';
     typeSavedSuccessfully.value = false;
 
     setTimeout(() => {
@@ -371,7 +371,7 @@ const saveResourceType = async () => {
         return;
     }
 
-    const currentTypeId = props.resource.type?._id || props.resource.type || '';
+    const currentTypeId = props.resource.type?.id || props.resource.type || '';
     if (editResourceType.value === currentTypeId) {
         isEditingType.value = false;
         return;
@@ -385,12 +385,12 @@ const saveResourceType = async () => {
     typeSavedSuccessfully.value = false;
 
     try {
-        await updateResource(props.resource._id, {
+        await updateResource(props.resource.id, {
             type: editResourceType.value || null
         });
 
         if (editResourceType.value) {
-            const selectedType = resourceTypes.value.find(rt => rt._id === editResourceType.value);
+            const selectedType = resourceTypes.value.find(rt => rt.id === editResourceType.value);
             props.resource.type = selectedType || editResourceType.value;
         } else {
             props.resource.type = null;
@@ -453,7 +453,7 @@ const saveResourceLanguage = async () => {
     languageSavedSuccessfully.value = false;
 
     try {
-        await updateResource(props.resource._id, {
+        await updateResource(props.resource.id, {
             language: editResourceLanguage.value || null
         });
 
@@ -525,7 +525,7 @@ const saveResourceUrl = async () => {
     urlSavedSuccessfully.value = false;
 
     try {
-        await updateResource(props.resource._id, {
+        await updateResource(props.resource.id, {
             url: editResourceUrl.value || null
         });
 
@@ -595,7 +595,7 @@ const saveResourceTitle = async () => {
     titleSavedSuccessfully.value = false;
 
     try {
-        await updateResource(props.resource._id, {
+        await updateResource(props.resource.id, {
             title: editResourceTitle.value || null
         });
 
@@ -665,7 +665,7 @@ const saveResourceAuthor = async () => {
     authorSavedSuccessfully.value = false;
 
     try {
-        await updateResource(props.resource._id, {
+        await updateResource(props.resource.id, {
             author: editResourceAuthor.value || null
         });
 
@@ -743,7 +743,7 @@ const saveResourcePublicationDate = async () => {
     try {
         const dateValue = editResourcePublicationDate.value ? new Date(editResourcePublicationDate.value).toISOString() : null;
 
-        await updateResource(props.resource._id, {
+        await updateResource(props.resource.id, {
             publicationDate: dateValue
         });
 

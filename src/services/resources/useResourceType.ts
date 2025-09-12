@@ -2,7 +2,7 @@ import { ref } from "vue";
 import apiClient from "../api";
 
 export interface ResourceType {
-    _id: string;
+    id: string;
     abbreviation: string;
     name: string;
     description?: string;
@@ -30,12 +30,12 @@ export function useResourceType() {
     };
 
     const getResourceTypeName = (typeId: string): string => {
-        const resourceType = resourceTypes.value.find(rt => rt._id === typeId);
+        const resourceType = resourceTypes.value.find(rt => rt.id === typeId);
         return resourceType ? resourceType.name : typeId;
     };
 
     const getResourceTypeAbbreviation = (typeId: string): string => {
-        const resourceType = resourceTypes.value.find(rt => rt._id === typeId);
+        const resourceType = resourceTypes.value.find(rt => rt.id === typeId);
         return resourceType ? resourceType.abbreviation : typeId;
     };
 

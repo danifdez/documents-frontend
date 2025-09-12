@@ -10,8 +10,8 @@ export const useProjectStore = defineStore('project', () => {
 
     const setCurrentProject = (project: Project | null) => {
         if (project) {
-            if (!project._id) {
-                console.error('Attempted to store a project without _id:', project);
+            if (!project.id) {
+                console.error('Attempted to store a project without id:', project);
                 return;
             }
 
@@ -30,7 +30,7 @@ export const useProjectStore = defineStore('project', () => {
             return;
         }
 
-        if (currentProject.value && currentProject.value._id === id) {
+        if (currentProject.value && currentProject.value.id === id) {
             return;
         }
 
@@ -44,7 +44,7 @@ export const useProjectStore = defineStore('project', () => {
                 throw new Error('No project data received from API');
             }
 
-            if (!response.data._id || !response.data.name) {
+            if (!response.data.id || !response.data.name) {
                 throw new Error('Invalid project data received');
             }
 

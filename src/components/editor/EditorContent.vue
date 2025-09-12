@@ -146,7 +146,7 @@ const saveComment = async (commentText: string) => {
         if (editor.value && currentSelection.value) {
             const { from, to } = currentSelection.value;
             editor.value.commands.setTextSelection({ from, to });
-            editor.value.commands.setComment(newComment._id);
+            editor.value.commands.setComment(newComment.id);
         }
 
         showCommentModal.value = false;
@@ -193,7 +193,7 @@ const saveMark = async () => {
         if (editor.value && currentSelection.value) {
             const { from, to } = currentSelection.value;
             editor.value.commands.setTextSelection({ from, to });
-            editor.value.commands.setTextMark(newMark._id);
+            editor.value.commands.setTextMark(newMark.id);
         }
 
         showMarkModal.value = false;
@@ -219,12 +219,12 @@ const loadDocumentMarks = async () => {
 
             if (editor.value && loadedMarks.length > 0) {
                 loadedMarks.forEach(mark => {
-                    markContentMap.value.set(mark._id, mark.content);
+                    markContentMap.value.set(mark.id, mark.content);
                 });
                 setTimeout(() => {
                     loadedMarks.forEach(mark => {
                         try {
-                            if (!mark.content || !mark._id) {
+                            if (!mark.content || !mark.id) {
                                 console.warn('Invalid mark data:', mark);
                                 return;
                             }
@@ -237,12 +237,12 @@ const loadDocumentMarks = async () => {
                                     from: position,
                                     to: position + mark.content.length
                                 });
-                                editor.value.commands.setTextMark(mark._id);
+                                editor.value.commands.setTextMark(mark.id);
                             } else {
                                 console.warn(`Mark content not found in document: ${mark.content}`);
                             }
                         } catch (err) {
-                            console.error(`Error applying mark ${mark._id}:`, err);
+                            console.error(`Error applying mark ${mark.id}:`, err);
                         }
                     });
                 }, 500);
@@ -305,7 +305,7 @@ const handleReferenceSelect = (item: any) => {
         .chain()
         .focus()
         .insertReferenceNode({
-            referenceId: item._id,
+            referenceId: item.id,
             referenceType: item.type,
             text: text,
         })
