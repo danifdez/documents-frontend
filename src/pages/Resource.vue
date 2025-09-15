@@ -46,16 +46,7 @@
                         :sourceLanguage="resource.language || ''" @summarize="handleSummarizeJob"
                         @translate="handleTranslate" />
 
-                    <button @click="handleKeyPointsJob"
-                        class="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
-                        title="Extract Key Points">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 16h-1v-4h-1m1-4h.01" />
-                        </svg>
-                        Key point
-                    </button>
+
 
                     <div class="border border-gray-200 rounded-md p-5 overflow-auto">
                         <div v-if="isEditMode" class="w-full min-h-[600px]">
@@ -178,15 +169,7 @@
                                 ]">
                                     Comments
                                 </button>
-                                <button v-if="resource.key_points && resource.key_points.length"
-                                    @click="viewSideBar = 'key_points'" :class="[
-                                        'px-3 py-1 text-sm font-medium rounded-md transition-colors',
-                                        viewSideBar === 'key_points'
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900'
-                                    ]">
-                                    Key Points
-                                </button>
+
                             </div>
                         </div>
                     </div>
@@ -209,17 +192,7 @@
                 <div v-else-if="viewSideBar === 'summary'" class="bg-white p-4 shadow rounded-lg">
                     {{ resource.summary || 'No summary available' }}
                 </div>
-                <div v-else-if="viewSideBar === 'key_points'" class="bg-white p-4 shadow rounded-lg">
-                    <div class="mb-2">
-                        <strong class="text-sm text-gray-700">Key Points</strong>
-                    </div>
-                    <div v-if="!resource.key_points || !resource.key_points.length">No key points found.</div>
-                    <ul v-else class="space-y-1">
-                        <li v-for="(point, idx) in resource.key_points" :key="idx" class="text-gray-800">
-                            • {{ point }}
-                        </li>
-                    </ul>
-                </div>
+
             </div>
         </div>
     </div>
@@ -276,7 +249,7 @@ const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL;
 const editorContentRef = ref();
 const splitEditor = ref();
-const viewSideBar = ref<'properties' | 'comments' | 'key_points' | 'index' | 'summary'>('properties');
+const viewSideBar = ref<'properties' | 'comments' | 'index' | 'summary'>('properties');
 
 const isEditMode = ref(false);
 const editContent = ref('');
@@ -754,18 +727,7 @@ const handleSummarizeJob = async () => {
     }
 };
 
-const handleKeyPointsJob = async () => {
-    try {
-        const content = displayMode.value === 'extracted' ? resource.value.content : resource.value.translatedContent;
-        await apiClient.post('/model/key_points', {
-            document: content,
-            resourceId: resourceId.value,
-        });
-        notification.success('Key points job created successfully');
-    } catch (error) {
-        notification.error('Failed to create key points job');
-    }
-};
+
 
 const handleTranslate = async () => {
     try {
