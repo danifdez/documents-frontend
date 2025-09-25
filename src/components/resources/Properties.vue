@@ -126,14 +126,6 @@
             <br />
             {{ resource.originalName }}
         </div>
-        <div v-if="resource.entities && resource.entities.length > 0" class="bg-white p-4 shadow rounded-lg">
-            <h2 class="text-xl font-semibold mb-3">Entities</h2>
-            <div class="space-y-3">
-                <div v-for="(value, key) in resource.entities" :key="key" class="bg-gray-50 rounded-md">
-                    <strong class="text-gray-700">{{ value.entity }}</strong><br />{{ value.word }}
-                </div>
-            </div>
-        </div>
         <div class="bg-gray-50 rounded-md">
             <strong class="text-gray-700">Related To</strong>
             <br />
@@ -316,11 +308,6 @@ const formatFileSize = (bytes: number | string | undefined): string => {
     return unitIndex === 0
         ? `${size} ${units[unitIndex]}`
         : `${size.toFixed(2).replace(/\.00$/, '')} ${units[unitIndex]}`;
-};
-
-const formatKey = (key: string | number): string => {
-    const strKey = String(key);
-    return strKey.charAt(0).toUpperCase() + strKey.slice(1).replace(/([A-Z])/g, ' $1');
 };
 
 const startTypeEdit = () => {
