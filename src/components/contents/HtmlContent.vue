@@ -203,6 +203,103 @@ const clearHighlights = () => {
     });
 }
 
+const clearEntityHighlights = () => {
+    if (!extractedContent.value) return;
+    const highlights = extractedContent.value.querySelectorAll('mark.entity-highlight');
+    highlights.forEach(mark => {
+        const parent = mark.parentNode;
+        while (mark.firstChild) {
+            parent.insertBefore(mark.firstChild, mark);
+        }
+        parent.removeChild(mark);
+        parent.normalize();
+    });
+};
+
+const highlightEntity = (entityName: string, aliases: string[] = []) => {
+    if (!extractedContent.value) return;
+
+    // Clear previous entity highlights
+    clearEntityHighlights();
+
+    // Create array of all terms to highlight (entity name + aliases)
+    const termsToHighlight = [entityName, ...(aliases || [])].filter(term => term && term.trim());
+
+    if (termsToHighlight.length === 0) return;
+
+    // Create a combined regex pattern for all terms
+    const escapedTerms = termsToHighlight.map(term => escapeRegExp(term.trim()));
+    const pattern = new RegExp(`\\b(${escapedTerms.join('|')})\\b`, 'gi');
+
+    const walker = document.createTreeWalker(
+        extractedContent.value,
+        NodeFilter.SHOW_TEXT,
+        {
+            acceptNode: (node) => {
+                // Skip text nodes that are already inside highlights, marks, or comments
+                const parent = node.parentElement;
+                if (!parent) return NodeFilter.FILTER_REJECT;
+
+                const tagName = parent.tagName.toLowerCase();
+                if (tagName === 'mark' || tagName === 'script' || tagName === 'style') {
+                    return NodeFilter.FILTER_REJECT;
+                }
+
+                if (parent.classList.contains('search-highlight') ||
+                    parent.classList.contains('entity-highlight') ||
+                    parent.classList.contains('comment-mark') ||
+                    parent.classList.contains('text-mark')) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        }
+    );
+
+    const nodesToProcess = [];
+    let node;
+    while (node = walker.nextNode()) {
+        nodesToProcess.push(node);
+    }
+
+    nodesToProcess.forEach(textNode => {
+        const text = textNode.textContent;
+        if (!text || !pattern.test(text)) return;
+
+        const parent = textNode.parentNode;
+        const fragment = document.createDocumentFragment();
+        let lastIndex = 0;
+        let match;
+
+        // Reset regex to start from beginning
+        pattern.lastIndex = 0;
+
+        while ((match = pattern.exec(text)) !== null) {
+            // Add text before the match
+            if (match.index > lastIndex) {
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+            }
+
+            // Create highlight for the match
+            const highlight = document.createElement('mark');
+            highlight.className = 'entity-highlight';
+            highlight.textContent = match[0];
+            fragment.appendChild(highlight);
+
+            lastIndex = match.index + match[0].length;
+        }
+
+        // Add remaining text
+        if (lastIndex < text.length) {
+            fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+        }
+
+        // Replace the original text node with the fragment
+        parent.replaceChild(fragment, textNode);
+    });
+};
+
 const saveModifiedContent = async () => {
     try {
         if (!extractedContent.value) return;
@@ -565,6 +662,8 @@ defineExpose({
     scrollToHeading,
     toc,
     clearHighlights,
+    highlightEntity,
+    clearEntityHighlights,
 });
 </script>
 
@@ -587,6 +686,20 @@ defineExpose({
 
 :deep(.search-highlight.active-highlight) {
     background-color: orange;
+}
+
+:deep(.entity-highlight) {
+    background-color: #E3F2FD;
+    border-radius: 0.25rem;
+    padding: 0.125rem;
+    border: 1px solid #2196F3;
+    color: #1976D2;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+:deep(.entity-highlight:hover) {
+    background-color: #BBDEFB;
 }
 
 :deep(.comment-mark) {

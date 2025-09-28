@@ -169,6 +169,15 @@
                                 ]">
                                     Comments
                                 </button>
+                                <button v-if="resource.entities && resource.entities.length > 0"
+                                    @click="viewSideBar = 'entities'" :class="[
+                                        'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                                        viewSideBar === 'entities'
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:text-gray-900'
+                                    ]">
+                                    Entities
+                                </button>
 
                             </div>
                         </div>
@@ -192,7 +201,9 @@
                 <div v-else-if="viewSideBar === 'summary'" class="bg-white p-4 shadow rounded-lg">
                     {{ resource.summary || 'No summary available' }}
                 </div>
-
+                <EntitiesList v-else-if="viewSideBar === 'entities'" :resource-id="resourceId"
+                    :entities="resource.entities || []" @entity:removed="handleEntityRemoved"
+                    @entity:merged="handleEntityMerged" @entity:highlight="handleEntityHighlight" />
             </div>
         </div>
     </div>
@@ -228,6 +239,7 @@ import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import HtmlContent from '../components/contents/HtmlContent.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import ChatSidebar from '../components/ui/ChatSidebar.vue';
+import EntitiesList from '../components/entities/EntitiesList.vue';
 const router = useRouter();
 
 const route = useRoute();
@@ -249,7 +261,7 @@ const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL;
 const editorContentRef = ref();
 const splitEditor = ref();
-const viewSideBar = ref<'properties' | 'comments' | 'index' | 'summary'>('properties');
+const viewSideBar = ref<'properties' | 'comments' | 'index' | 'summary' | 'entities'>('properties');
 
 const isEditMode = ref(false);
 const editContent = ref('');
@@ -745,6 +757,35 @@ const handleTranslate = async () => {
         notification.error('Failed to create translation job');
     }
 }
+
+const handleEntityRemoved = (entityId: number) => {
+    // Remove the entity from the local resource object
+    if (resource.value.entities) {
+        resource.value.entities = resource.value.entities.filter((entity: any) => entity.id !== entityId);
+    }
+};
+
+const handleEntityMerged = (sourceEntityId: number, targetEntity: any) => {
+    // Remove the source entity and update the target entity in the local resource object
+    if (resource.value.entities) {
+        const sourceIndex = resource.value.entities.findIndex((entity: any) => entity.id === sourceEntityId);
+        if (sourceIndex !== -1) {
+            resource.value.entities.splice(sourceIndex, 1);
+        }
+
+        const targetIndex = resource.value.entities.findIndex((entity: any) => entity.id === targetEntity.id);
+        if (targetIndex !== -1) {
+            resource.value.entities[targetIndex] = targetEntity;
+        }
+    }
+};
+
+const handleEntityHighlight = (entityName: string, aliases: string[]) => {
+    // Call the HtmlContent component's highlightEntity method
+    if (extractedContent.value && extractedContent.value.highlightEntity) {
+        extractedContent.value.highlightEntity(entityName, aliases);
+    }
+};
 </script>
 
 <style>
