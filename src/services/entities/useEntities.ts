@@ -1,10 +1,20 @@
 import { ref } from 'vue';
 import apiClient from '../api';
 
+export interface EntityTranslation {
+    [locale: string]: string;
+}
+
+export interface EntityAlias {
+    locale: string;
+    value: string;
+}
+
 export interface Entity {
     id: number;
     name: string;
-    aliases?: string[] | null;
+    translations?: EntityTranslation | null;
+    aliases?: EntityAlias[] | null;
     entityType: {
         id: number;
         name: string;

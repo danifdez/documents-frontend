@@ -2,7 +2,13 @@
     <div class="bg-white p-4 shadow rounded-lg">
         <div class="mb-4 flex items-center justify-between">
             <h3 class="text-lg font-medium text-gray-900">Entities</h3>
-            <span class="text-sm text-gray-500">{{ entities.length }} entities found</span>
+            <span class="text-sm text-gray-500">{{ displayedEntities.length }} of {{ entities.length }} entities
+                found</span>
+        </div>
+
+        <div class="mb-3">
+            <input v-model="filterTerm" type="text" placeholder="Search entities by name or alias..."
+                class="block w-full rounded-md border border-gray-200 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
         </div>
 
         <div v-if="entities.length === 0" class="text-center py-8">
@@ -16,17 +22,21 @@
             </div>
         </div>
 
-        <div v-else class="space-y-3">
-            <div v-for="entity in entities" :key="entity.id" @click="highlightEntityInContent(entity)"
+        <!-- Make the list itself scrollable so the sidebar can fit in viewport -->
+        <div v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+            <div v-if="displayedEntities.length === 0" class="text-center py-8 text-gray-500">
+                No entities match your search
+            </div>
+            <div v-for="entity in displayedEntities" :key="entity.id" @click="highlightEntityInContent(entity)"
                 class="flex items-center justify-between p-3 border rounded-md transition-colors cursor-pointer" :class="[
                     selectedHighlightEntity?.id === entity.id
                         ? 'border-blue-300 bg-blue-50'
                         : 'border-gray-200 hover:bg-gray-50'
-                ]" :title="`Click to highlight ${entity.name} in the document`">
+                ]" :title="`Click to highlight ${displayEntityName(entity)} in the document`">
                 <div class="flex-1">
                     <div class="flex items-center space-x-3">
                         <div class="flex-1">
-                            <h4 class="font-medium text-gray-900">{{ entity.name }}</h4>
+                            <h4 class="font-medium text-gray-900">{{ displayEntityName(entity) }}</h4>
                             <div class="flex items-center space-x-2 mt-1">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                                     :class="getEntityTypeBadgeClass(entity.entityType.name)">
@@ -35,7 +45,7 @@
                             </div>
                             <div v-if="entity.aliases && entity.aliases.length > 0" class="mt-2">
                                 <p class="text-xs text-gray-500">
-                                    Aliases: {{ entity.aliases.join(', ') }}
+                                    Aliases: {{ formatAliases(entity.aliases) }}
                                 </p>
                             </div>
                         </div>
@@ -69,7 +79,7 @@
         <div v-if="showMerge" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">
-                    Merge Entity: {{ selectedEntity?.name }}
+                    Merge Entity: {{ selectedEntity ? displayEntityName(selectedEntity) : '' }}
                 </h3>
 
                 <div class="mb-4">
@@ -99,7 +109,7 @@
                     <div class="p-2 text-xs text-gray-500 border-b">Found {{ searchResults.length }} entities</div>
                     <button v-for="result in searchResults" :key="result.id" @click="selectTargetEntity(result)"
                         class="w-full text-left p-3 hover:bg-gray-50 border-b last:border-b-0 focus:outline-none focus:bg-gray-50">
-                        <div class="font-medium">{{ result.name }}</div>
+                        <div class="font-medium">{{ displayEntityName(result) }}</div>
                         <div class="text-sm text-gray-500">{{ result.entityType.name }}</div>
                     </button>
                 </div>
@@ -125,8 +135,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits } from 'vue';
-import { useEntities, type Entity } from '../../services/entities/useEntities';
+import { ref, defineEmits, computed } from 'vue';
+import { useEntities, type Entity, type EntityAlias, type EntityTranslation } from '../../services/entities/useEntities';
 import { useNotification } from '../../composables/useNotification';
 
 interface Props {
@@ -142,7 +152,64 @@ const emit = defineEmits<{
     'entity:highlight': [entityName: string, aliases: string[]];
 }>();
 
+const formatAliases = (aliases: EntityAlias[]): string => {
+    return aliases.map(alias => `${alias.value} (${alias.locale})`).join(', ');
+};
+
+const displayEntityName = (entity: Entity | null): string => {
+    if (!entity) return '';
+    try {
+        // Prefer Spanish translation when available, fallback to original name
+        const translations = entity.translations as Record<string, string> | undefined;
+        return (translations && translations['es']) || entity.name;
+    } catch (e) {
+        return entity.name;
+    }
+};
+
+const getAliasValues = (aliases: EntityAlias[] | null): string[] => {
+    return aliases ? aliases.map(alias => alias.value) : [];
+};
+
 const selectedHighlightEntity = ref<Entity | null>(null);
+
+// Search/filter state
+const filterTerm = ref('');
+
+const displayedEntities = computed(() => {
+    const q = filterTerm.value.trim().toLowerCase();
+    if (!q) return props.entities || [];
+
+    return (props.entities || []).filter((entity: Entity) => {
+        // name
+        const name = (entity.name || '').toString().toLowerCase();
+        if (name.includes(q)) return true;
+
+        // translations
+        try {
+            const translations = entity.translations as Record<string, string> | undefined;
+            if (translations) {
+                for (const v of Object.values(translations)) {
+                    if ((v || '').toLowerCase().includes(q)) return true;
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        // aliases
+        if (entity.aliases && entity.aliases.length > 0) {
+            for (const a of entity.aliases) {
+                if ((a.value || '').toLowerCase().includes(q)) return true;
+            }
+        }
+
+        // entity type
+        if (entity.entityType && (entity.entityType.name || '').toLowerCase().includes(q)) return true;
+
+        return false;
+    });
+});
 
 const { removeEntityFromResource, mergeEntities, searchEntities, getAllEntities, isLoading } = useEntities();
 const notification = useNotification();
@@ -200,14 +267,14 @@ const getEntityTypeBadgeClass = (typeName: string) => {
 };
 
 const removeEntity = async (entity: Entity) => {
-    if (!confirm(`Are you sure you want to remove "${entity.name}" from this resource?`)) {
+    if (!confirm(`Are you sure you want to remove "${displayEntityName(entity)}" from this resource?`)) {
         return;
     }
 
     try {
         await removeEntityFromResource(props.resourceId, entity.id);
         emit('entity:removed', entity.id);
-        notification.success(`Entity "${entity.name}" removed from resource`);
+        notification.success(`Entity "${displayEntityName(entity)}" removed from resource`);
     } catch (error) {
         notification.error('Failed to remove entity from resource');
     }
@@ -241,7 +308,7 @@ const performMerge = async () => {
         return;
     }
 
-    if (!confirm(`Are you sure you want to merge "${selectedEntity.value.name}" into "${selectedTargetEntity.value.name}"? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to merge "${displayEntityName(selectedEntity.value)}" into "${displayEntityName(selectedTargetEntity.value)}"? This action cannot be undone.`)) {
         return;
     }
 
@@ -249,7 +316,7 @@ const performMerge = async () => {
     try {
         const mergedEntity = await mergeEntities(selectedEntity.value.id, selectedTargetEntity.value.id);
         emit('entity:merged', selectedEntity.value.id, mergedEntity);
-        notification.success(`Entity "${selectedEntity.value.name}" merged into "${mergedEntity.name}"`);
+        notification.success(`Entity "${displayEntityName(selectedEntity.value)}" merged into "${displayEntityName(mergedEntity)}"`);
         closeMergeModal();
     } catch (error) {
         notification.error('Failed to merge entities');
@@ -260,6 +327,6 @@ const performMerge = async () => {
 
 const highlightEntityInContent = (entity: Entity) => {
     selectedHighlightEntity.value = entity;
-    emit('entity:highlight', entity.name, entity.aliases || []);
+    emit('entity:highlight', displayEntityName(entity), getAliasValues(entity.aliases));
 };
 </script>
