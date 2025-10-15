@@ -38,18 +38,40 @@
             </div>
         </div>
         <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Author</strong>
+            <strong class="text-gray-700">Authors</strong>
             <br />
             <div class="mt-1">
-                <input v-if="isEditingAuthor" v-model="editResourceAuthor" @blur="handleAuthorChange"
-                    @keyup.enter="handleAuthorChange" @keyup.escape="cancelAuthorEdit"
-                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    ref="authorInput" type="text" placeholder="Enter author...">
-                <div v-else @dblclick="startAuthorEdit"
+                <!-- Edit mode with autocomplete -->
+                <div v-if="isEditingAuthors" class="relative">
+                    <input v-model="editResourceAuthors" @input="handleAuthorInput" @blur="handleAuthorsBlur"
+                        @keydown.enter="handleAuthorsEnter" @keyup.escape="cancelAuthorsEdit"
+                        @keydown.down.prevent="navigateAuthorSuggestions(1)"
+                        @keydown.up.prevent="navigateAuthorSuggestions(-1)"
+                        class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        ref="authorsInput" type="text" placeholder="Enter authors (comma-separated)...">
+
+                    <!-- Autocomplete dropdown -->
+                    <div v-if="showAuthorSuggestions && filteredAuthorSuggestions.length > 0"
+                        class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <div v-for="(suggestion, index) in filteredAuthorSuggestions" :key="suggestion.id"
+                            @mousedown="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
+                            @click="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }" :class="[
+                                'px-3 py-2 cursor-pointer',
+                                index === selectedSuggestionIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
+                            ]">
+                            {{ suggestion.name }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Display mode -->
+                <div v-else @dblclick="startAuthorsEdit"
                     class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
                     title="Double-click to edit">
-                    <span v-if="resource.author" class="text-gray-700">{{ resource.author }}</span>
-                    <span v-else class="text-gray-400 italic">No author</span>
+                    <span v-if="resource.authors && resource.authors.length > 0" class="text-gray-700">
+                        {{resource.authors.map((a: any) => a.name).join(', ')}}
+                    </span>
+                    <span v-else class="text-gray-400 italic">No authors</span>
                 </div>
             </div>
         </div>
@@ -146,9 +168,11 @@
 import { onMounted, ref } from 'vue';
 import { useResourceType } from '../../services/resources/useResourceType';
 import { useResource } from '../../services/resources/useResource';
+import { useAuthor, type Author } from '../../services/author/useAuthor';
 
 const { loadResourceTypes, getResourceTypeName, resourceTypes } = useResourceType();
 const { updateResource } = useResource();
+const { updateResourceAuthors, loadAuthors } = useAuthor();
 
 const isEditingType = ref(false);
 const editResourceType = ref('');
@@ -182,13 +206,19 @@ const titleSavedSuccessfully = ref(false);
 const isCancelingTitleEdit = ref(false);
 const isTitleSaving = ref(false);
 
-const isEditingAuthor = ref(false);
-const editResourceAuthor = ref('');
-const authorInput = ref<HTMLInputElement | null>(null);
-const authorSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const authorSavedSuccessfully = ref(false);
-const isCancelingAuthorEdit = ref(false);
-const isAuthorSaving = ref(false);
+const isEditingAuthors = ref(false);
+const editResourceAuthors = ref('');
+const authorsInput = ref<HTMLInputElement | null>(null);
+const authorsSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const authorsSavedSuccessfully = ref(false);
+const isCancelingAuthorsEdit = ref(false);
+const isAuthorsSaving = ref(false);
+
+// Autocomplete state for authors
+const allAuthors = ref<Author[]>([]);
+const showAuthorSuggestions = ref(false);
+const filteredAuthorSuggestions = ref<Author[]>([]);
+const selectedSuggestionIndex = ref(-1);
 
 const isEditingPublicationDate = ref(false);
 const editResourcePublicationDate = ref('');
@@ -601,73 +631,185 @@ const saveResourceTitle = async () => {
     }
 };
 
-const startAuthorEdit = () => {
-    isEditingAuthor.value = true;
-    editResourceAuthor.value = props.resource.author || '';
-    authorSavedSuccessfully.value = false;
+const startAuthorsEdit = async () => {
+    isEditingAuthors.value = true;
+    // Convert authors array to comma-separated string
+    const authorNames = props.resource.authors?.map((a: Author) => a.name).join(', ') || '';
+    editResourceAuthors.value = authorNames;
+    authorsSavedSuccessfully.value = false;
+
+    // Load all authors for autocomplete
+    try {
+        allAuthors.value = await loadAuthors();
+    } catch (error) {
+        console.error('Failed to load authors for autocomplete:', error);
+    }
 
     setTimeout(() => {
-        authorInput.value?.focus();
+        authorsInput.value?.focus();
     }, 50);
 };
 
-const cancelAuthorEdit = () => {
-    isCancelingAuthorEdit.value = true;
-    isEditingAuthor.value = false;
-    editResourceAuthor.value = '';
-    authorSavedSuccessfully.value = false;
+// Handle author input for autocomplete
+const handleAuthorInput = () => {
+    const inputValue = editResourceAuthors.value;
 
-    if (authorSaveTimeout.value) {
-        clearTimeout(authorSaveTimeout.value);
+    // Get the current word being typed (after last comma)
+    const parts = inputValue.split(',');
+    const currentPart = parts[parts.length - 1].trim();
+
+    if (currentPart.length > 0) {
+        // Filter authors by current input (case-insensitive)
+        filteredAuthorSuggestions.value = allAuthors.value.filter(author =>
+            author.name.toLowerCase().includes(currentPart.toLowerCase())
+        ).slice(0, 10); // Limit to 10 suggestions
+
+        showAuthorSuggestions.value = filteredAuthorSuggestions.value.length > 0;
+        selectedSuggestionIndex.value = -1;
+    } else {
+        showAuthorSuggestions.value = false;
+        filteredAuthorSuggestions.value = [];
+    }
+};
+
+// Navigate through suggestions with arrow keys
+const navigateAuthorSuggestions = (direction: number) => {
+    if (filteredAuthorSuggestions.value.length === 0) return;
+
+    selectedSuggestionIndex.value += direction;
+
+    if (selectedSuggestionIndex.value < 0) {
+        selectedSuggestionIndex.value = filteredAuthorSuggestions.value.length - 1;
+    } else if (selectedSuggestionIndex.value >= filteredAuthorSuggestions.value.length) {
+        selectedSuggestionIndex.value = 0;
+    }
+};
+
+// Handle Enter key - select suggestion if one is highlighted, otherwise save
+const handleAuthorsEnter = (event: KeyboardEvent) => {
+    if (showAuthorSuggestions.value && selectedSuggestionIndex.value >= 0) {
+        // Select the highlighted suggestion
+        event.preventDefault();
+        const suggestion = filteredAuthorSuggestions.value[selectedSuggestionIndex.value];
+        selectAuthorSuggestion(suggestion);
+    } else if (showAuthorSuggestions.value && filteredAuthorSuggestions.value.length > 0) {
+        // Select the first suggestion if dropdown is open but nothing highlighted
+        event.preventDefault();
+        selectAuthorSuggestion(filteredAuthorSuggestions.value[0]);
+    } else {
+        // No suggestions, save the changes
+        event.preventDefault();
+        handleAuthorsChange();
+    }
+};
+
+// Select a suggestion from autocomplete
+const selectAuthorSuggestion = (suggestion: Author) => {
+    const parts = editResourceAuthors.value.split(',');
+    const beforeLast = parts.slice(0, -1).join(',');
+    const lastPart = ' ' + suggestion.name;
+
+    if (beforeLast) {
+        editResourceAuthors.value = beforeLast + ',' + lastPart;
+    } else {
+        editResourceAuthors.value = suggestion.name;
+    }
+
+    showAuthorSuggestions.value = false;
+    filteredAuthorSuggestions.value = [];
+    selectedSuggestionIndex.value = -1;
+
+    // Focus back on input and move cursor to end
+    setTimeout(() => {
+        if (authorsInput.value) {
+            authorsInput.value.focus();
+            authorsInput.value.setSelectionRange(
+                editResourceAuthors.value.length,
+                editResourceAuthors.value.length
+            );
+        }
+    }, 10);
+};
+
+// Handle blur with delay to allow clicking suggestions
+const handleAuthorsBlur = () => {
+    // Longer delay to ensure mousedown event fires first
+    setTimeout(() => {
+        if (showAuthorSuggestions.value) {
+            showAuthorSuggestions.value = false;
+        }
+        if (isEditingAuthors.value) {
+            handleAuthorsChange();
+        }
+    }, 250);
+};
+
+const cancelAuthorsEdit = () => {
+    isCancelingAuthorsEdit.value = true;
+    isEditingAuthors.value = false;
+    editResourceAuthors.value = '';
+    authorsSavedSuccessfully.value = false;
+    showAuthorSuggestions.value = false;
+    filteredAuthorSuggestions.value = [];
+
+    if (authorsSaveTimeout.value) {
+        clearTimeout(authorsSaveTimeout.value);
     }
 
     setTimeout(() => {
-        isCancelingAuthorEdit.value = false;
+        isCancelingAuthorsEdit.value = false;
     }, 100);
 };
 
-const handleAuthorChange = async () => {
-    if (isCancelingAuthorEdit.value) {
+const handleAuthorsChange = async () => {
+    if (isCancelingAuthorsEdit.value) {
         return;
     }
 
-    await saveResourceAuthor();
+    await saveResourceAuthors();
 };
 
-const saveResourceAuthor = async () => {
-    if (isCancelingAuthorEdit.value) {
+const saveResourceAuthors = async () => {
+    if (isCancelingAuthorsEdit.value) {
         return;
     }
 
-    if (editResourceAuthor.value === props.resource.author) {
-        isEditingAuthor.value = false;
+    // Convert comma-separated string to array
+    const newAuthorNames = editResourceAuthors.value
+        .split(',')
+        .map(name => name.trim())
+        .filter(name => name.length > 0);
+
+    // Check if authors have changed
+    const currentAuthorNames = props.resource.authors?.map((a: Author) => a.name) || [];
+    const authorsChanged = JSON.stringify(newAuthorNames.sort()) !== JSON.stringify(currentAuthorNames.sort());
+
+    if (!authorsChanged) {
+        isEditingAuthors.value = false;
         return;
     }
 
-    if (authorSaveTimeout.value) {
-        clearTimeout(authorSaveTimeout.value);
+    if (authorsSaveTimeout.value) {
+        clearTimeout(authorsSaveTimeout.value);
     }
 
-    isAuthorSaving.value = true;
-    authorSavedSuccessfully.value = false;
+    isAuthorsSaving.value = true;
+    authorsSavedSuccessfully.value = false;
 
     try {
-        await updateResource(props.resource.id, {
-            author: editResourceAuthor.value || null
-        });
+        const updatedAuthors = await updateResourceAuthors(props.resource.id, newAuthorNames);
+        props.resource.authors = updatedAuthors;
 
-        props.resource.author = editResourceAuthor.value || null;
-
-        authorSavedSuccessfully.value = true;
+        authorsSavedSuccessfully.value = true;
 
         setTimeout(() => {
-            authorSavedSuccessfully.value = false;
-            isEditingAuthor.value = false;
+            authorsSavedSuccessfully.value = false;
+            isEditingAuthors.value = false;
         }, 1500);
     } catch (error) {
-        isEditingAuthor.value = false;
+        isEditingAuthors.value = false;
     } finally {
-        isAuthorSaving.value = false;
+        isAuthorsSaving.value = false;
     }
 };
 
