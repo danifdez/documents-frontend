@@ -139,6 +139,11 @@
             <br />
             {{ formatFileSize(resource.fileSize) }}
         </div>
+        <div v-if="resource.pages" class="bg-gray-50 rounded-md">
+            <strong class="text-gray-700">Pages</strong>
+            <br />
+            {{ resource.pages }}
+        </div>
         <div class="bg-gray-50 rounded-md">
             <strong class="text-gray-700">Upload date</strong>
             <br />
