@@ -98,6 +98,22 @@
             </div>
         </div>
         <div class="bg-gray-50 rounded-md">
+            <strong class="text-gray-700">License</strong>
+            <br />
+            <div class="mt-1">
+                <input v-if="isEditingLicense" v-model="editResourceLicense" @blur="handleLicenseChange"
+                    @keyup.enter="handleLicenseChange" @keyup.escape="cancelLicenseEdit"
+                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    ref="licenseInput" type="text" placeholder="Enter license...">
+                <div v-else @dblclick="startLicenseEdit"
+                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
+                    title="Double-click to edit">
+                    <span v-if="resource.license" class="text-gray-700">{{ resource.license }}</span>
+                    <span v-else class="text-gray-400 italic">No license</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 rounded-md">
             <strong class="text-gray-700">URL</strong>
             <br />
             <div class="mt-1">
@@ -233,6 +249,14 @@ const publicationDateSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const publicationDateSavedSuccessfully = ref(false);
 const isCancelingPublicationDateEdit = ref(false);
 const isPublicationDateSaving = ref(false);
+
+const isEditingLicense = ref(false);
+const editResourceLicense = ref('');
+const licenseInput = ref<HTMLInputElement | null>(null);
+const licenseSaveTimeout = ref<NodeJS.Timeout | null>(null);
+const licenseSavedSuccessfully = ref(false);
+const isCancelingLicenseEdit = ref(false);
+const isLicenseSaving = ref(false);
 
 const props = defineProps({
     resource: {
@@ -909,6 +933,76 @@ const saveResourcePublicationDate = async () => {
         isEditingPublicationDate.value = false;
     } finally {
         isPublicationDateSaving.value = false;
+    }
+};
+
+const startLicenseEdit = () => {
+    isEditingLicense.value = true;
+    editResourceLicense.value = props.resource.license || '';
+    licenseSavedSuccessfully.value = false;
+
+    setTimeout(() => {
+        licenseInput.value?.focus();
+    }, 50);
+};
+
+const cancelLicenseEdit = () => {
+    isCancelingLicenseEdit.value = true;
+    isEditingLicense.value = false;
+    editResourceLicense.value = '';
+    licenseSavedSuccessfully.value = false;
+
+    if (licenseSaveTimeout.value) {
+        clearTimeout(licenseSaveTimeout.value);
+    }
+
+    setTimeout(() => {
+        isCancelingLicenseEdit.value = false;
+    }, 100);
+};
+
+const handleLicenseChange = async () => {
+    if (isCancelingLicenseEdit.value) {
+        return;
+    }
+
+    await saveResourceLicense();
+};
+
+const saveResourceLicense = async () => {
+    if (isCancelingLicenseEdit.value) {
+        return;
+    }
+
+    if (editResourceLicense.value === props.resource.license) {
+        isEditingLicense.value = false;
+        return;
+    }
+
+    if (licenseSaveTimeout.value) {
+        clearTimeout(licenseSaveTimeout.value);
+    }
+
+    isLicenseSaving.value = true;
+    licenseSavedSuccessfully.value = false;
+
+    try {
+        await updateResource(props.resource.id, {
+            license: editResourceLicense.value || null
+        });
+
+        props.resource.license = editResourceLicense.value || null;
+
+        licenseSavedSuccessfully.value = true;
+
+        setTimeout(() => {
+            licenseSavedSuccessfully.value = false;
+            isEditingLicense.value = false;
+        }, 1500);
+    } catch (error) {
+        isEditingLicense.value = false;
+    } finally {
+        isLicenseSaving.value = false;
     }
 };
 
