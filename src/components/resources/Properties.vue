@@ -9,14 +9,15 @@
                     class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     ref="typeDropdown">
                     <option value="">Select a type...</option>
-                    <option v-for="resourceType in resourceTypes" :key="resourceType.id" :value="resourceType.id">
+                    <option v-for="resourceType in resourceTypes" :key="resourceType.id"
+                        :value="String(resourceType.id)">
                         {{ resourceType.name }}
                     </option>
                 </select>
                 <div v-else @dblclick="startTypeEdit"
                     class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
                     title="Double-click to edit">
-                    <span v-if="resource.type">{{ getResourceTypeName(resource.type.id || resource.type) }}</span>
+                    <span v-if="resource.type">{{ displayTypeName }}</span>
                     <span v-else class="text-gray-400 italic">No type</span>
                 </div>
             </div>
@@ -165,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useResourceType } from '../../services/resources/useResourceType';
 import { useResource } from '../../services/resources/useResource';
 import { useAuthor, type Author } from '../../services/author/useAuthor';
@@ -233,6 +234,15 @@ const props = defineProps({
         type: Object,
         default: () => ({})
     }
+});
+
+// Computed property to get the type name reactively
+const displayTypeName = computed(() => {
+    if (!props.resource.type) return null;
+    const typeId = typeof props.resource.type === 'object' ? props.resource.type.id : props.resource.type;
+    const typeIdNum = typeof typeId === 'string' ? parseInt(typeId, 10) : typeId;
+    const resourceType = resourceTypes.value.find(rt => rt.id === typeIdNum);
+    return resourceType ? resourceType.name : typeId;
 });
 
 const getLanguageName = (code: string): string => {
@@ -342,7 +352,15 @@ const formatFileSize = (bytes: number | string | undefined): string => {
 
 const startTypeEdit = () => {
     isEditingType.value = true;
-    editResourceType.value = props.resource.type?.id || props.resource.type || '';
+    const currentType = props.resource.type;
+
+    if (typeof currentType === 'object' && currentType !== null) {
+        editResourceType.value = String(currentType.id);
+    } else if (currentType) {
+        editResourceType.value = String(currentType);
+    } else {
+        editResourceType.value = '';
+    }
     typeSavedSuccessfully.value = false;
 
     setTimeout(() => {
@@ -388,7 +406,12 @@ const saveResourceType = async () => {
         return;
     }
 
-    const currentTypeId = props.resource.type?.id || props.resource.type || '';
+    // Normalize current type for comparison
+    const currentType = props.resource.type;
+    const currentTypeId = (typeof currentType === 'object' && currentType !== null)
+        ? String(currentType.id)
+        : String(currentType || '');
+
     if (editResourceType.value === currentTypeId) {
         isEditingType.value = false;
         return;
@@ -406,12 +429,7 @@ const saveResourceType = async () => {
             type: editResourceType.value || null
         });
 
-        if (editResourceType.value) {
-            const selectedType = resourceTypes.value.find(rt => rt.id === editResourceType.value);
-            props.resource.type = selectedType || editResourceType.value;
-        } else {
-            props.resource.type = null;
-        }
+        props.resource.type = editResourceType.value || null;
 
         typeSavedSuccessfully.value = true;
 
@@ -419,8 +437,6 @@ const saveResourceType = async () => {
             typeSavedSuccessfully.value = false;
             isEditingType.value = false;
         }, 1500);
-
-        const typeName = editResourceType.value ? getResourceTypeName(editResourceType.value) : 'No type';
     } catch (error) {
         isEditingType.value = false;
     } finally {
