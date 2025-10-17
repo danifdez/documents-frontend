@@ -389,6 +389,11 @@ const loadResourceDetails = async () => {
     try {
         const data = await loadResource(resourceId.value);
         resource.value = data;
+
+        if (!data.content || data.content.trim().length === 0) {
+            displayMode.value = 'raw';
+        }
+
         if ('mimeType' in data && data.mimeType === 'text/html' && displayMode.value === 'raw') {
             await loadRawHtmlContent();
         }
@@ -412,6 +417,14 @@ const downloadResource = async () => {
 
 watch(resourceId, () => {
     loadResourceDetails();
+});
+
+// Watch for content becoming available and switch from raw to extracted view
+watch(() => resource.value.content, (newContent, oldContent) => {
+    // If we're in raw mode because there was no content, and content becomes available
+    if (displayMode.value === 'raw' && newContent && newContent.trim().length > 0 && (!oldContent || oldContent.trim().length === 0)) {
+        displayMode.value = 'extracted';
+    }
 });
 
 const getResourceContentForDocument = (): string => {
