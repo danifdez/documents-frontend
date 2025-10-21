@@ -1,26 +1,27 @@
 <template>
-    <div class="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
+    <div class="bg-white border-b border-gray-200 px-4 py-2 shadow-sm">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <div class="flex items-center gap-1">
-                    <Button @click="handleAddMark" title="Add/Remove Highlight Mark"
-                        :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': isMarkActive }]">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="2" y="5" width="16" height="10" rx="1" stroke="#4B5563" stroke-width="1.5" />
-                            <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
-                        </svg>
-                    </Button>
-                    <Button @click="handleAddComment" title="Add Comment"
-                        :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
-                                stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                            <path d="M7 9H13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
-                            <path d="M7 12H10" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
-                        </svg>
-                    </Button>
-                </div>
+                <Button @click="handleAddMark" title="Add/Remove Highlight Mark" size="small"
+                    :class="{ 'bg-gray-200': isMarkActive }" borderless>
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
+                        class="mr-1">
+                        <rect x="2" y="5" width="16" height="10" rx="1" stroke="currentColor" stroke-width="1.5" />
+                        <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
+                    </svg>
+                    Highlight
+                </Button>
+                <Button @click="handleAddComment" title="Add Comment" size="small" borderless>
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
+                        class="mr-1">
+                        <path
+                            d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M7 9H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        <path d="M7 12H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                    Comment
+                </Button>
             </div>
         </div>
     </div>

@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div v-bind="$attrs">
         <Breadcrumb :items="breadcrumbItems" />
         <div v-if="isLoading" class="flex justify-center items-center h-64">
             <p class="text-gray-500">Loading resource details...</p>
@@ -16,6 +16,7 @@
                 :class="[splitViewActive ? 'lg:col-span-1' : 'md:col-span-2', { 'split-view-active': splitViewActive }]">
                 <div class="bg-white p-4 shadow rounded-lg">
                     <div class="flex items-center mb-4">
+                        <IconType :mimeType="resource.mimeType" />
                         <div class="flex items-center flex-grow">
                             <input v-if="isEditingName" v-model="editResourceName" @input="handleResourceNameChange"
                                 @keyup.enter="saveResourceName" @keyup.escape="cancelNameEdit" @blur="handleBlur"
@@ -26,17 +27,14 @@
                                 class="text-2xl font-bold mr-3 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
                                 title="Double-click to edit">{{ resource.name }}</h1>
                         </div>
-                        <IconType :mimeType="resource.mimeType" />
-                        <button @click="confirmRemoveResource"
-                            class="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 focus:outline-none"
-                            title="Remove Resource">
+                        <Button @click="confirmRemoveResource" variant="danger" title="Remove Resource">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12" />
                             </svg>
                             Remove
-                        </button>
+                        </Button>
                     </div>
                     <Toolbar v-if="!isImageFile" @download="downloadResource" @startEdit="startEdit"
                         @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
@@ -54,8 +52,8 @@
                                 :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
                         </div>
                         <div v-else>
-                            <HtmlContent v-if="!isImageFile && displayMode === 'extracted'" ref="extractedContent"
-                                :content="resource.content" :resource-id="resource.id" />
+                            <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
+                                ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)" />
                             <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
                                 v-html="resource.translatedContent"></div>
                             <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
@@ -80,13 +78,13 @@
                         <input v-model="splitDocument.name" @input="handleDocumentNameChange" type="text"
                             class="text-2xl font-bold bg-transparent border-none outline-none focus:bg-gray-50 focus:px-2 focus:py-1 rounded w-full"
                             placeholder="Document name..." />
-                        <button @click="closeSplitView" class="text-gray-500 hover:text-gray-700 ml-2 flex-shrink-0">
+                        <Button @click="closeSplitView">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                        </button>
+                        </Button>
                     </div>
 
                     <div class="mb-3 flex justify-between items-center">
@@ -135,51 +133,29 @@
                 <div class="md:col-span-1 space-y-6">
                     <div class="bg-white p-4 shadow rounded-lg">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="flex bg-gray-100 rounded-lg p-1">
-                                <button v-if="resource.summary" @click="viewSideBar = 'summary'" :class="[
-                                    'px-3 py-1 text-sm font-medium rounded-md transition-colors',
-                                    viewSideBar === 'summary'
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                ]">
+                            <ButtonGroup>
+                                <Button v-if="resource.summary" variant="secondary" :active="viewSideBar === 'summary'"
+                                    @click="viewSideBar = 'summary'">
                                     Summary
-                                </button>
-                                <button @click="viewSideBar = 'properties'" :class="[
-                                    'px-3 py-1 text-sm font-medium rounded-md transition-colors',
-                                    viewSideBar === 'properties'
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                ]">
+                                </Button>
+                                <Button variant="secondary" :active="viewSideBar === 'properties'"
+                                    @click="viewSideBar = 'properties'">
                                     Properties
-                                </button>
-                                <button v-if="hasExtractedContent"
-                                    @click="(viewSideBar = 'index', refreshTocFromChild())" :class="[
-                                        'px-3 py-1 text-sm font-medium rounded-md transition-colors',
-                                        viewSideBar === 'index'
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900'
-                                    ]">
+                                </Button>
+                                <Button v-if="hasExtractedContent" variant="secondary" :active="viewSideBar === 'index'"
+                                    @click="(viewSideBar = 'index', refreshTocFromChild())">
                                     Index
-                                </button>
-                                <button v-if="!isImageFile" @click="viewSideBar = 'comments'" :class="[
-                                    'px-3 py-1 text-sm font-medium rounded-md transition-colors',
-                                    viewSideBar === 'comments'
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                ]">
+                                </Button>
+                                <Button v-if="!isImageFile" variant="secondary" :active="viewSideBar === 'comments'"
+                                    @click="viewSideBar = 'comments'">
                                     Comments
-                                </button>
-                                <button v-if="resource.entities && resource.entities.length > 0"
-                                    @click="viewSideBar = 'entities'" :class="[
-                                        'px-3 py-1 text-sm font-medium rounded-md transition-colors',
-                                        viewSideBar === 'entities'
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900'
-                                    ]">
+                                </Button>
+                                <Button v-if="resource.entities && resource.entities.length > 0" variant="secondary"
+                                    :active="viewSideBar === 'entities'" @click="viewSideBar = 'entities'">
                                     Entities
-                                </button>
+                                </Button>
 
-                            </div>
+                            </ButtonGroup>
                         </div>
                     </div>
                 </div>
@@ -206,14 +182,15 @@
                     @entity:merged="handleEntityMerged" @entity:highlight="handleEntityHighlight" />
             </div>
         </div>
+
+        <CreateDocumentModal v-model="showCreateDocumentModal" :project-id="String(projectStore.currentProject.id)"
+            :resource-content="getResourceContentForDocument()" :resource-name="resource.name"
+            :navigate-after-create="false" @document:created="onDocumentCreated" />
+
+        <FloatingSearchBox :active-contents="activeContents" v-model="showSearch" />
+
+        <ChatSidebar :show="showChat" :messages="chatMessages" @close="showChat = false" @send="handleSendMessage" />
     </div>
-    <CreateDocumentModal v-model="showCreateDocumentModal" :project-id="projectStore.currentProject.id"
-        :resource-content="getResourceContentForDocument()" :resource-name="resource.name"
-        :navigate-after-create="false" @document:created="onDocumentCreated" />
-
-    <FloatingSearchBox :active-contents="activeContents" v-model="showSearch" />
-
-    <ChatSidebar :show="showChat" :messages="chatMessages" @close="showChat = false" @send="handleSendMessage" />
 </template>
 
 <script setup lang="ts">
@@ -240,7 +217,15 @@ import HtmlContent from '../components/contents/HtmlContent.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import ChatSidebar from '../components/ui/ChatSidebar.vue';
 import EntitiesList from '../components/entities/EntitiesList.vue';
+import Button from '../components/ui/Button.vue';
+import ButtonGroup from '../components/ui/ButtonGroup.vue';
+
+defineOptions({
+    inheritAttrs: false
+});
+
 const router = useRouter();
+
 
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);

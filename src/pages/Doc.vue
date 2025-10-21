@@ -5,8 +5,7 @@
       <div class="relative mb-4 flex items-center gap-2">
         <input id="docName" v-model="docData.name" type="text" required
           class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
-        <button v-if="!isNewDocument" @click="removeDoc"
-          class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">Remove Document</button>
+        <Button v-if="!isNewDocument" variant="danger" @click="removeDoc">Remove Document</Button>
       </div>
       <div class="mt-5 h-[500px]">
         <div class="flex w-full">
@@ -35,6 +34,7 @@ import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import { useProjectStore } from '../store/projectStore';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import TableOfContents from '../components/editor/TableOfContents.vue';
+import Button from '../components/ui/Button.vue';
 
 const htmlContent = ref('');
 const editorContentRef = ref(null);

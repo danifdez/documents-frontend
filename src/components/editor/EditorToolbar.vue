@@ -1,191 +1,182 @@
 <template>
-  <div class="mb-2.5 flex items-center gap-0.5 bg-white p-1 rounded-md">
-    <Button @click="editor?.chain().focus().toggleBold().run()" title="Bold"
-      :class="['w-9 h-9 border-0 flex items-center justify-center', { 'bg-gray-200': editor?.isActive('bold') }]">
-      <strong>B</strong>
+  <div class="mb-2.5 flex items-center gap-1 bg-white p-2 rounded-md border border-gray-200">
+    <Button @click="editor?.chain().focus().toggleBold().run()" title="Bold" size="small"
+      :active="editor?.isActive('bold')" borderless>
+      <strong class="text-base font-bold">B</strong>
     </Button>
-    <Button @click="editor?.chain().focus().toggleItalic().run()" title="Italic"
-      :class="['w-9 h-9 border-0 flex items-center justify-center  hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('italic') }]">
-      <em>I</em>
+    <Button @click="editor?.chain().focus().toggleItalic().run()" title="Italic" size="small"
+      :active="editor?.isActive('italic')" borderless>
+      <em class="text-base font-semibold">I</em>
     </Button>
-    <Button @click="editor?.chain().focus().toggleUnderline().run()" title="Underline"
-      :class="['w-9 h-9 border-0 flex items-center justify-center  hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('underline') }]">
-      <u>U</u>
+    <Button @click="editor?.chain().focus().toggleUnderline().run()" title="Underline" size="small"
+      :active="editor?.isActive('underline')" borderless>
+      <u class="text-base font-semibold">U</u>
     </Button>
-    <Button @click="editor?.chain().focus().toggleStrike().run()" title="Strikethrough"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('strike') }]">
-      <s>S</s>
+    <Button @click="editor?.chain().focus().toggleStrike().run()" title="Strikethrough" size="small"
+      :active="editor?.isActive('strike')" borderless>
+      <s class="text-base font-semibold">S</s>
     </Button>
-    <Button @click="editor?.chain().focus().toggleHeading({ level: 1 }).run()" title="Heading 1"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('heading', { level: 1 }) }]">
-      H1
+    <Button @click="editor?.chain().focus().toggleHeading({ level: 1 }).run()" title="Heading 1" size="small"
+      :active="editor?.isActive('heading', { level: 1 })" borderless>
+      <span class="text-sm font-bold">H1</span>
     </Button>
-    <Button @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()" title="Heading 2"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('heading', { level: 2 }) }]">
-      H2
+    <Button @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()" title="Heading 2" size="small"
+      :active="editor?.isActive('heading', { level: 2 })" borderless>
+      <span class="text-sm font-bold">H2</span>
     </Button>
-    <Button @click="editor?.chain().focus().toggleHeading({ level: 3 }).run()" title="Heading 3"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('heading', { level: 3 }) }]">
-      H3
+    <Button @click="editor?.chain().focus().toggleHeading({ level: 3 }).run()" title="Heading 3" size="small"
+      :active="editor?.isActive('heading', { level: 3 })" borderless>
+      <span class="text-sm font-bold">H3</span>
     </Button>
-    <div class="mx-1"></div>
-    <Button @click="editor?.chain().focus().setTextAlign('left').run()" title="Align Left"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive({ textAlign: 'left' }) }]">
-      <div class="flex flex-col items-start space-y-0.5 text-gray-700">
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-        <div class="w-3 h-0.5 bg-gray-700"></div>
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-      </div>
+    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+    <Button @click="editor?.chain().focus().setTextAlign('left').run()" title="Align Left" size="small"
+      :active="editor?.isActive({ textAlign: 'left' })" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="4" width="12" height="2.5" rx="1" fill="currentColor" />
+        <rect x="3" y="9" width="8" height="2.5" rx="1" fill="currentColor" />
+        <rect x="3" y="14" width="12" height="2.5" rx="1" fill="currentColor" />
+      </svg>
     </Button>
-    <Button @click="editor?.chain().focus().setTextAlign('center').run()" title="Align Center"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive({ textAlign: 'center' }) }]">
-      <div class="flex flex-col items-center space-y-0.5 text-gray-700">
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-        <div class="w-3 h-0.5 bg-gray-700"></div>
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-      </div>
+    <Button @click="editor?.chain().focus().setTextAlign('center').run()" title="Align Center" size="small"
+      :active="editor?.isActive({ textAlign: 'center' })" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="4" width="16" height="2.5" rx="1" fill="currentColor" />
+        <rect x="5" y="9" width="10" height="2.5" rx="1" fill="currentColor" />
+        <rect x="2" y="14" width="16" height="2.5" rx="1" fill="currentColor" />
+      </svg>
     </Button>
-    <Button @click="editor?.chain().focus().setTextAlign('right').run()" title="Align Right"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive({ textAlign: 'right' }) }]">
-      <div class="flex flex-col items-end space-y-0.5 text-gray-700">
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-        <div class="w-3 h-0.5 bg-gray-700"></div>
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-      </div>
+    <Button @click="editor?.chain().focus().setTextAlign('right').run()" title="Align Right" size="small"
+      :active="editor?.isActive({ textAlign: 'right' })" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="5" y="4" width="12" height="2.5" rx="1" fill="currentColor" />
+        <rect x="9" y="9" width="8" height="2.5" rx="1" fill="currentColor" />
+        <rect x="5" y="14" width="12" height="2.5" rx="1" fill="currentColor" />
+      </svg>
     </Button>
-    <Button @click="editor?.chain().focus().setTextAlign('justify').run()" title="Justify"
-      :class="['w-9 h-9 border-0 flex items-center justify-center  hover:bg-gray-100', { 'bg-gray-200': editor?.isActive({ textAlign: 'justify' }) }]">
-      <div class="flex flex-col items-center space-y-0.5 text-gray-700">
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-        <div class="w-4 h-0.5 bg-gray-700"></div>
-      </div>
+    <Button @click="editor?.chain().focus().setTextAlign('justify').run()" title="Justify" size="small"
+      :active="editor?.isActive({ textAlign: 'justify' })" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="4" width="16" height="2.5" rx="1" fill="currentColor" />
+        <rect x="2" y="9" width="16" height="2.5" rx="1" fill="currentColor" />
+        <rect x="2" y="14" width="16" height="2.5" rx="1" fill="currentColor" />
+      </svg>
     </Button>
-    <div class="mx-1"></div>
-    <Button @click="editor?.chain().focus().toggleBlockquote().run()" title="Quote"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('blockquote') }]">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+    <Button @click="editor?.chain().focus().toggleBlockquote().run()" title="Quote" size="small"
+      :active="editor?.isActive('blockquote')" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
-          d="M8 6H4C3.44772 6 3 6.44772 3 7V11C3 11.5523 3.44772 12 4 12H6C6.55228 12 7 12.4477 7 13V14H4C3.44772 14 3 13.5523 3 13V12.5"
-          stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          d="M3 6L3 14L3.5 14C4.05228 14 4.5 13.5523 4.5 13L4.5 11C4.5 10.4477 4.94772 10 5.5 10L7.5 10C8.05228 10 8.5 9.55228 8.5 9L8.5 7C8.5 6.44772 8.05228 6 7.5 6L3 6Z"
+          fill="currentColor" />
         <path
-          d="M17 6H13C12.4477 6 12 6.44772 12 7V11C12 11.5523 12.4477 12 13 12H15C15.5523 12 16 12.4477 16 13V14H13C12.4477 14 12 13.5523 12 13V12.5"
-          stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          d="M11.5 6L11.5 14L12 14C12.5523 14 13 13.5523 13 13L13 11C13 10.4477 13.4477 10 14 10L16 10C16.5523 10 17 9.55228 17 9L17 7C17 6.44772 16.5523 6 16 6L11.5 6Z"
+          fill="currentColor" />
       </svg>
     </Button>
-    <div class="mx-1"></div>
-    <Button @click="editor?.chain().focus().toggleOrderedList().run()" title="Ordered List"
-      :class="['w-9 h-9 border-0 flex items-center justify-center  hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('orderedList') }]">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <text x="2.5" y="5" font-size="5" font-weight="bold" fill="#4B5563">1</text>
-        <rect x="8" y="4.25" width="10" height="1.5" rx="0.75" fill="#4B5563" />
-        <text x="2.5" y="10" font-size="5" font-weight="bold" fill="#4B5563">2</text>
-        <rect x="8" y="9.25" width="10" height="1.5" rx="0.75" fill="#4B5563" />
-        <text x="2.5" y="15" font-size="5" font-weight="bold" fill="#4B5563">3</text>
-        <rect x="8" y="14.25" width="10" height="1.5" rx="0.75" fill="#4B5563" />
+    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+    <Button @click="editor?.chain().focus().toggleOrderedList().run()" title="Ordered List" size="small"
+      :active="editor?.isActive('orderedList')" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="3" width="3" height="3.5" rx="0.5" fill="currentColor" />
+        <rect x="8" y="3.5" width="10" height="2.5" rx="1" fill="currentColor" />
+        <rect x="2" y="8.5" width="3" height="3.5" rx="0.5" fill="currentColor" />
+        <rect x="8" y="9" width="10" height="2.5" rx="1" fill="currentColor" />
+        <rect x="2" y="14" width="3" height="3.5" rx="0.5" fill="currentColor" />
+        <rect x="8" y="14.5" width="10" height="2.5" rx="1" fill="currentColor" />
       </svg>
     </Button>
-    <Button @click="editor?.chain().focus().toggleBulletList().run()" title="Bullet List"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('bulletList') }]">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="4" cy="5" r="2" fill="#4B5563" />
-        <rect x="8" y="4.25" width="10" height="1.5" rx="0.75" fill="#4B5563" />
-        <circle cx="4" cy="10" r="2" fill="#4B5563" />
-        <rect x="8" y="9.25" width="10" height="1.5" rx="0.75" fill="#4B5563" />
-        <circle cx="4" cy="15" r="2" fill="#4B5563" />
-        <rect x="8" y="14.25" width="10" height="1.5" rx="0.75" fill="#4B5563" />
+    <Button @click="editor?.chain().focus().toggleBulletList().run()" title="Bullet List" size="small"
+      :active="editor?.isActive('bulletList')" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="4" cy="4.5" r="2.5" fill="currentColor" />
+        <rect x="8" y="3.5" width="10" height="2.5" rx="1" fill="currentColor" />
+        <circle cx="4" cy="10" r="2.5" fill="currentColor" />
+        <rect x="8" y="9" width="10" height="2.5" rx="1" fill="currentColor" />
+        <circle cx="4" cy="15.5" r="2.5" fill="currentColor" />
+        <rect x="8" y="14.5" width="10" height="2.5" rx="1" fill="currentColor" />
       </svg>
     </Button>
-    <Button @click="toggleLinkForm" title="Insert Link"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('link') }]">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M9 7H7C5.89543 7 5 7.89543 5 9V11C5 12.1046 5.89543 13 7 13H9" stroke="#4B5563" stroke-width="1.5"
+    <Button @click="toggleLinkForm" title="Insert Link" size="small" :active="editor?.isActive('link')" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 7H7C5.89543 7 5 7.89543 5 9V11C5 12.1046 5.89543 13 7 13H9" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" />
-        <path d="M11 13H13C14.1046 13 15 12.1046 15 11V9C15 7.89543 14.1046 7 13 7H11" stroke="#4B5563"
-          stroke-width="1.5" stroke-linecap="round" />
-        <path d="M8 10L12 10" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M11 13H13C14.1046 13 15 12.1046 15 11V9C15 7.89543 14.1046 7 13 7H11" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" />
+        <path d="M8 10L12 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>
     </Button>
     <!-- Insert Table Button -->
-    <div class="mx-1"></div>
-    <Button @click="insertTable" title="Insert Table"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': editor?.isActive('table') }]">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="4" width="14" height="12" rx="1" stroke="#4B5563" stroke-width="1.5" />
-        <path d="M3 8H17" stroke="#4B5563" stroke-width="1.5" />
-        <path d="M3 12H17" stroke="#4B5563" stroke-width="1.5" />
-        <path d="M8 4V16" stroke="#4B5563" stroke-width="1.5" />
-        <path d="M12 4V16" stroke="#4B5563" stroke-width="1.5" />
+    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+    <Button @click="insertTable" title="Insert Table" size="small" :active="editor?.isActive('table')" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="4" width="14" height="12" rx="1" stroke="currentColor" stroke-width="2" />
+        <rect x="3" y="7.5" width="14" height="1.5" fill="currentColor" />
+        <rect x="3" y="11" width="14" height="1.5" fill="currentColor" />
+        <rect x="7.5" y="4" width="1.5" height="12" fill="currentColor" />
+        <rect x="11" y="4" width="1.5" height="12" fill="currentColor" />
       </svg>
     </Button>
     <!-- Add Comment Button -->
-    <div class="mx-1"></div>
-    <Button @click="handleAddComment" title="Add Comment"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+    <Button @click="handleAddComment" title="Add Comment" size="small" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
-          stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M7 9H13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
-        <path d="M7 12H10" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="6" y="8" width="8" height="1.5" rx="0.75" fill="currentColor" />
+        <rect x="6" y="11.5" width="5" height="1.5" rx="0.75" fill="currentColor" />
       </svg>
     </Button>
     <!-- Add Mark Button -->
-    <div class="mx-1"></div>
-    <Button @click="handleAddMark" title="Add/Remove Highlight Mark"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': isMarkActive }]">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2" y="5" width="16" height="10" rx="1" stroke="#4B5563" stroke-width="1.5" />
-        <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
+    <Button @click="handleAddMark" title="Add/Remove Highlight Mark" size="small" :active="isMarkActive" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="5" width="16" height="10" rx="1" stroke="currentColor" stroke-width="2" />
+        <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFC107" />
       </svg>
     </Button>
     <!-- Reference Button -->
-    <Button @click="handleAddReference" title="Add Reference"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M9 8L14 3M14 3H10M14 3V7" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round"
+    <Button @click="handleAddReference" title="Add Reference" size="small" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 8L14 3M14 3H10M14 3V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round" />
-        <path d="M11 12L6 17M6 17H10M6 17V13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round"
+        <path d="M11 12L6 17M6 17H10M6 17V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round" />
       </svg>
     </Button>
     <!-- Toggle Comments Sidebar Button -->
-    <Button @click="toggleComments" title="Toggle Comments Sidebar"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': showComments }]">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <Button @click="toggleComments" title="Toggle Comments Sidebar" size="small" :active="showComments" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
-          stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M6 8H14" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
-        <path d="M6 12H12" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="6" y="7.5" width="8" height="1.5" rx="0.75" fill="currentColor" />
+        <rect x="6" y="11" width="6" height="1.5" rx="0.75" fill="currentColor" />
       </svg>
     </Button>
     <!-- Toggle TOC Sidebar Button -->
-    <Button @click="toggleToc" title="Toggle Table of Contents"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100', { 'bg-gray-200': showToc }]">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 4H17" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
-        <path d="M3 8H13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
-        <path d="M3 12H15" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
-        <path d="M3 16H11" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" />
+    <Button @click="toggleToc" title="Toggle Table of Contents" size="small" :active="showToc" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3.5" width="14" height="2.5" rx="1" fill="currentColor" />
+        <rect x="3" y="7.5" width="10" height="2.5" rx="1" fill="currentColor" />
+        <rect x="3" y="11.5" width="12" height="2.5" rx="1" fill="currentColor" />
+        <rect x="3" y="15.5" width="8" height="2.5" rx="1" fill="currentColor" />
       </svg>
     </Button>
     <!-- Undo Button -->
-    <Button @click="handleUndo" title="Undo"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M7 7L3 10L7 13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M3 10H13C15.2091 10 17 11.7909 17 14C17 16.2091 15.2091 18 13 18H11" stroke="#4B5563"
-          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    <Button @click="handleUndo" title="Undo" size="small" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 7L3 10L7 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <path d="M3 10H13C15.2091 10 17 11.7909 17 14C17 16.2091 15.2091 18 13 18H11" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </Button>
     <!-- Redo Button -->
-    <Button @click="handleRedo" title="Redo"
-      :class="['w-9 h-9 border-0 flex items-center justify-center hover:bg-gray-100']">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M13 7L17 10L13 13" stroke="#4B5563" stroke-width="1.5" stroke-linecap="round"
+    <Button @click="handleRedo" title="Redo" size="small" borderless>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 7L17 10L13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round" />
-        <path d="M17 10H7C4.79086 10 3 11.7909 3 14C3 16.2091 4.79086 18 7 18H9" stroke="#4B5563" stroke-width="1.5"
+        <path d="M17 10H7C4.79086 10 3 11.7909 3 14C3 16.2091 4.79086 18 7 18H9" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </Button>

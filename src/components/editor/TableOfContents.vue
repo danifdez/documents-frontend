@@ -2,11 +2,9 @@
     <div class="toc-sidebar bg-gray-50 border-l border-gray-300 flex flex-col min-w-[250px] max-w-[300px] h-full">
         <div class="flex items-center justify-between p-4 pb-2 border-b border-gray-200 bg-gray-50 flex-shrink-0">
             <h3 class="text-lg font-semibold text-gray-800">Table of Contents</h3>
-            <button @click="extractHeadings"
-                class="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors"
-                title="Refresh TOC">
+            <Button @click="extractHeadings" title="Refresh TOC">
                 ↻
-            </button>
+            </Button>
         </div>
         <div class="flex-1 overflow-y-auto p-4 pt-2">
             <div v-if="headings.length === 0" class="text-gray-500 text-sm italic">
@@ -15,13 +13,14 @@
             <nav v-else>
                 <ul class="space-y-1">
                     <li v-for="(heading, index) in headings" :key="index">
-                        <button @click="scrollToHeading(heading)" :class="[
+                        <Button @click="scrollToHeading(heading)" :class-name="[
                             'block w-full text-left py-2 px-3 rounded text-sm hover:bg-gray-200 transition-colors duration-200',
                             `toc-level-${heading.level}`,
                             { 'bg-blue-100 text-blue-800 border-l-4 border-blue-500': heading.id === activeHeadingId }
-                        ]" :style="{ paddingLeft: `${(heading.level - 1) * 12 + 12}px` }" :title="heading.text">
+                        ].flat().filter(v => typeof v === 'string').join(' ')"
+                            :style="{ paddingLeft: `${(heading.level - 1) * 12 + 12}px` }" :title="heading.text">
                             <span class="truncate block">{{ heading.text }}</span>
-                        </button>
+                        </Button>
                     </li>
                 </ul>
             </nav>
@@ -31,6 +30,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount } from 'vue';
+import Button from '../ui/Button.vue';
 
 interface Heading {
     id: string;

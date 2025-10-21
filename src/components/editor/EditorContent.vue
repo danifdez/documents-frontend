@@ -344,6 +344,9 @@ onMounted(async () => {
                         class: 'border-l-4 border-gray-300 pl-4 my-2 text-gray-500',
                     },
                 },
+                // Disable extensions that we're adding separately with custom configuration
+                link: false,
+                underline: false,
             }),
             Table.configure({
                 resizable: true,

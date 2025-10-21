@@ -53,24 +53,20 @@
                 </div>
 
                 <div class="flex items-center space-x-2" @click.stop>
-                    <button @click="showMergeModal(entity)"
-                        class="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                        title="Merge with another entity">
+                    <Button @click="showMergeModal(entity)" title="Merge with another entity">
                         <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
                         Merge
-                    </button>
-                    <button @click="removeEntity(entity)"
-                        class="inline-flex items-center px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                        title="Remove entity from resource">
+                    </Button>
+                    <Button @click="removeEntity(entity)" title="Remove entity from resource">
                         <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                         Remove
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -107,11 +103,10 @@
 
                 <div v-else-if="searchResults.length > 0" class="max-h-40 overflow-y-auto border rounded-md mb-4">
                     <div class="p-2 text-xs text-gray-500 border-b">Found {{ searchResults.length }} entities</div>
-                    <button v-for="result in searchResults" :key="result.id" @click="selectTargetEntity(result)"
-                        class="w-full text-left p-3 hover:bg-gray-50 border-b last:border-b-0 focus:outline-none focus:bg-gray-50">
+                    <Button v-for="result in searchResults" :key="result.id" @click="selectTargetEntity(result)">
                         <div class="font-medium">{{ displayEntityName(result) }}</div>
                         <div class="text-sm text-gray-500">{{ result.entityType.name }}</div>
-                    </button>
+                    </Button>
                 </div>
 
                 <div v-else-if="searchTerm && !isSearching" class="text-center py-4 text-gray-500">
@@ -119,15 +114,13 @@
                 </div>
 
                 <div class="flex justify-end space-x-3">
-                    <button @click="closeMergeModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    <Button @click="closeMergeModal">
                         Cancel
-                    </button>
-                    <button @click="performMerge" :disabled="!selectedTargetEntity || isMerging"
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    </Button>
+                    <Button @click="performMerge" :disabled="!selectedTargetEntity || isMerging">
                         <span v-if="isMerging">Merging...</span>
                         <span v-else>Merge</span>
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -138,6 +131,7 @@
 import { ref, defineEmits, computed } from 'vue';
 import { useEntities, type Entity, type EntityAlias, type EntityTranslation } from '../../services/entities/useEntities';
 import { useNotification } from '../../composables/useNotification';
+import Button from '../ui/Button.vue';
 
 interface Props {
     resourceId: string;

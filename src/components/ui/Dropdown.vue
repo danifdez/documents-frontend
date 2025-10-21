@@ -2,7 +2,7 @@
     <div class="relative inline-block text-left" ref="dropdownRef">
         <div @click="toggleDropdown">
             <slot name="trigger">
-                <Button :className="triggerClassName" v-if="!showDots">
+                <Button v-if="!showDots">
                     {{ label }}
                     <span class="ml-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24"
@@ -11,15 +11,13 @@
                         </svg>
                     </span>
                 </Button>
-                <button v-else
-                    class="p-1.5 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
-                    :class="dotsClassName" aria-label="More options">
+                <Button v-else aria-label="More options">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20"
                         fill="currentColor">
                         <path
                             d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
                     </svg>
-                </button>
+                </Button>
             </slot>
         </div>
 
@@ -47,10 +45,6 @@ const props = defineProps({
         default: false
     },
     dotsClassName: {
-        type: String,
-        default: ''
-    },
-    triggerClassName: {
         type: String,
         default: ''
     },

@@ -13,14 +13,12 @@
             </div>
 
             <div class="flex justify-end gap-2">
-                <button @click="cancel"
-                    class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                <Button @click="cancel">
                     Cancel
-                </button>
-                <button @click="save" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    :disabled="isLoading || !commentText.trim()">
+                </Button>
+                <Button @click="save" :disabled="isLoading || !commentText.trim()">
                     {{ isLoading ? 'Saving...' : 'Save' }}
-                </button>
+                </Button>
             </div>
         </div>
     </div>
@@ -28,6 +26,7 @@
 
 <script setup lang="ts">
 import { ref, defineProps, defineEmits, nextTick, watch } from 'vue';
+import Button from '../ui/Button.vue';
 
 const props = defineProps({
     isVisible: {
