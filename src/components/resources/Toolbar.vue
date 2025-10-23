@@ -1,14 +1,14 @@
 <template>
     <div class="mb-3 flex justify-between">
         <div class="mb-2.5 flex gap-2">
-            <Button v-if="!hasSummary" @click="emit('ask')" size="small" title="Ask Assistant">
+            <Button @click="emit('ask')" size="small" title="Ask Assistant">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 10h.01M12 14h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" />
                 </svg>
             </Button>
-            <Button @click="emit('summarize')" size="small" title="Summarize Resource">
+            <Button v-if="!hasSummary" @click="emit('summarize')" size="small" title="Summarize Resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
