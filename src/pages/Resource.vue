@@ -47,7 +47,7 @@
 
 
 
-                    <div class="border border-gray-200 rounded-md p-5 overflow-auto">
+                    <div class="border border-gray-200 rounded-md px-5 py-0 overflow-auto">
                         <div v-if="isEditMode" class="w-full min-h-[600px]">
                             <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
                                 :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
@@ -776,12 +776,8 @@ const handleSummarizeJob = async () => {
 
 const handleTranslate = async () => {
     try {
-        const content = resource.value.content;
-        const sourceLanguage = resource.value.language;
         const language = await getLanguageSetting();
         await apiClient.post('/model/translate', {
-            content: content,
-            sourceLanguage: sourceLanguage,
             resourceId: resourceId.value,
             targetLanguage: language,
         });

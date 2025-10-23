@@ -5,13 +5,13 @@ export const useMarkCreate = () => {
     const isLoading = ref(false);
     const error = ref<Error | null>(null);
 
-    const createMark = async (docId: string, content: string): Promise<any> => {
+    const createMark = async (resourceId: string, content: string): Promise<any> => {
         isLoading.value = true;
         error.value = null;
 
         try {
             const response = await apiClient.post('/marks', {
-                doc: docId,
+                resource: resourceId,
                 content
             });
             return response.data;

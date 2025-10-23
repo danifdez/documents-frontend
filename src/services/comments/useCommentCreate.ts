@@ -6,13 +6,13 @@ export function useCommentCreate() {
     const error = ref<string | null>(null);
     const isLoading = ref<boolean>(false);
 
-    const createComment = async (docId: string, content: string) => {
+    const createComment = async (resourceId: string, content: string) => {
         isLoading.value = true;
         error.value = null;
 
         try {
             const response = await apiClient.post('/comments', {
-                doc: docId,
+                resource: resourceId,
                 content
             });
 

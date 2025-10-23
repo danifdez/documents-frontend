@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-2.5 flex items-center gap-1 bg-white p-2 rounded-md border border-gray-200">
+  <div class="mb-2.5 flex items-center gap-1 bg-white p-2">
     <Button @click="editor?.chain().focus().toggleBold().run()" title="Bold" size="small"
       :active="editor?.isActive('bold')" borderless>
       <strong class="text-base font-bold">B</strong>

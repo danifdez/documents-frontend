@@ -1,35 +1,36 @@
 <template>
-    <div class="bg-white border-b border-gray-200 px-4 py-2 shadow-sm">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <Button @click="handleAddMark" title="Add/Remove Highlight Mark" size="small"
-                    :class="{ 'bg-gray-200': isMarkActive }" borderless>
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
-                        class="mr-1">
-                        <rect x="2" y="5" width="16" height="10" rx="1" stroke="currentColor" stroke-width="1.5" />
-                        <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
-                    </svg>
-                    Highlight
-                </Button>
-                <Button @click="handleAddComment" title="Add Comment" size="small" borderless>
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
-                        class="mr-1">
-                        <path
-                            d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
-                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                        <path d="M7 9H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                        <path d="M7 12H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                    </svg>
-                    Comment
-                </Button>
-            </div>
+    <div class="bg-white py-2">
+        <!-- Context menu for text selection -->
+        <div v-if="showContextMenu" :style="contextMenuStyle"
+            class="fixed z-50 bg-white shadow-lg rounded-md border border-gray-200 py-1 min-w-[160px]" @click.stop>
+            <button @click="handleContextMenuAction('highlight')"
+                class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm"
+                :class="{ 'bg-gray-50': isMarkActive }">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="5" width="16" height="10" rx="1" stroke="currentColor" stroke-width="1.5" />
+                    <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
+                </svg>
+                <span>{{ isMarkActive ? 'Remove Highlight' : 'Highlight' }}</span>
+                <span class="ml-auto text-xs text-gray-400">Ctrl+H</span>
+            </button>
+            <button @click="handleContextMenuAction('comment')"
+                class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M7 9H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    <path d="M7 12H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <span>Add Comment</span>
+                <span class="ml-auto text-xs text-gray-400">Ctrl+Shift+C</span>
+            </button>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
-import Button from '../ui/Button.vue';
+import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
@@ -48,12 +49,20 @@ const props = defineProps({
 const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment']);
 
 const isMarkActive = ref(false);
+const showContextMenu = ref(false);
+const contextMenuPosition = ref({ x: 0, y: 0 });
 const route = useRoute();
 const { createMark, isLoading: isMarkLoading } = useMarkCreate();
 const { deleteMark } = useMarkDelete();
 const { marks, loadMarks } = useMarks();
 const { updateMark } = useMarkUpdate();
 const markContentMap = ref<Map<string, string>>(new Map());
+
+// Computed style for context menu positioning
+const contextMenuStyle = computed(() => ({
+    top: `${contextMenuPosition.value.y}px`,
+    left: `${contextMenuPosition.value.x}px`,
+}));
 
 const checkIfMarkActive = () => {
     if (!props.editor || !props.editor.state) return false;
@@ -69,6 +78,60 @@ const checkIfMarkActive = () => {
 
 const handleAddComment = () => {
     emit('add-comment');
+};
+
+const handleContextMenuAction = (action: 'highlight' | 'comment') => {
+    showContextMenu.value = false;
+
+    if (action === 'highlight') {
+        handleAddMark();
+    } else if (action === 'comment') {
+        handleAddComment();
+    }
+};
+
+const handleContextMenu = (event: MouseEvent) => {
+    const selection = window.getSelection();
+
+    // Check if there's a text selection
+    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+        showContextMenu.value = false;
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Update mark active status before showing menu
+    updateMarkActiveStatus();
+
+    // Position the context menu at the cursor
+    contextMenuPosition.value = {
+        x: event.clientX,
+        y: event.clientY
+    };
+
+    showContextMenu.value = true;
+};
+
+const closeContextMenu = () => {
+    showContextMenu.value = false;
+};
+
+const handleKeyboardShortcut = (event: KeyboardEvent) => {
+    // Ctrl+H for Highlight
+    if (event.ctrlKey && event.key === 'h' && !event.shiftKey) {
+        event.preventDefault();
+        handleAddMark();
+        return;
+    }
+
+    // Ctrl+Shift+C for Comment
+    if (event.ctrlKey && event.shiftKey && event.key === 'C') {
+        event.preventDefault();
+        handleAddComment();
+        return;
+    }
 };
 
 const updateMarkActiveStatus = () => {
@@ -294,6 +357,11 @@ onMounted(async () => {
         updateMarkActiveStatus();
         await loadDocumentMarks();
     }
+
+    // Add event listeners for context menu and keyboard shortcuts
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('click', closeContextMenu);
+    document.addEventListener('keydown', handleKeyboardShortcut);
 });
 
 onBeforeUnmount(() => {
@@ -301,6 +369,11 @@ onBeforeUnmount(() => {
         props.editor.off('selectionUpdate', updateMarkActiveStatus);
         props.editor.off('update', handleEditorUpdate);
     }
+
+    // Remove event listeners
+    document.removeEventListener('contextmenu', handleContextMenu);
+    document.removeEventListener('click', closeContextMenu);
+    document.removeEventListener('keydown', handleKeyboardShortcut);
 });
 
 </script>

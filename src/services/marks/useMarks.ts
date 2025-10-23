@@ -6,14 +6,14 @@ export const useMarks = () => {
     const isLoading = ref(false);
     const error = ref<Error | null>(null);
 
-    const loadMarks = async (docId: string): Promise<any[]> => {
-        if (!docId) return [];
+    const loadMarks = async (resourceId: string): Promise<any[]> => {
+        if (!resourceId) return [];
 
         isLoading.value = true;
         error.value = null;
 
         try {
-            const response = await apiClient.get(`/marks/doc/${docId}`);
+            const response = await apiClient.get(`/marks/resource/${resourceId}`);
             marks.value = response.data;
             return response.data;
         } catch (e) {
