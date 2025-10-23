@@ -755,12 +755,8 @@ const getLanguageSetting = async (): Promise<string> => {
 
 const handleSummarizeJob = async () => {
     try {
-        const content = displayMode.value === 'extracted' ? resource.value.content : resource.value.translatedContent;
-        const sourceLanguage = displayMode.value === 'extracted' ? resource.value.language || 'en' : 'es';
         const language = await getLanguageSetting();
         await apiClient.post('/model/summarize', {
-            content: content,
-            sourceLanguage: sourceLanguage,
             targetLanguage: language,
             resourceId: resourceId.value,
         });

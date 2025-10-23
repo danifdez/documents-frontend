@@ -1,43 +1,40 @@
 <template>
     <div class="mb-3 flex justify-between">
-        <div class="flex gap-2">
-            <Button @click="emit('ask')" title="Ask Assistant">
+        <div class="mb-2.5 flex gap-2">
+            <Button @click="emit('ask')" size="small" title="Ask Assistant">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 10h.01M12 14h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" />
                 </svg>
-                Ask
             </Button>
-            <Button @click="emit('summarize')" title="Summarize Resource">
+            <Button @click="emit('summarize')" size="small" title="Summarize Resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Summarize
             </Button>
-            <Button @click="emit('translate')" title="Translate Resource">
+            <Button @click="emit('translate')" size="small" title="Translate Resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Translate
             </Button>
-            <Button @click="emit('download')">
+            <Button @click="emit('download')" size="small" title="Download Resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
             </Button>
-            <Button @click="emit('createDocument')" title="Create new document from this resource">
+            <Button @click="emit('createDocument')" size="small" title="Create new document from this resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
             </Button>
-            <Button v-if="!isEditMode && actualDisplayMode !== 'raw'" @click="emit('startEdit')">
+            <Button v-if="!isEditMode && actualDisplayMode !== 'raw'" size="small" @click="emit('startEdit')">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -45,22 +42,23 @@
                 </svg>
             </Button>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="mb-2.5 flex items-center gap-2">
             <ButtonGroup v-if="!isEditMode">
-                <Button v-if="hasExtractedContent" variant="secondary" :active="actualDisplayMode === 'extracted'"
-                    @click="changeDisplayMode('extracted')" type="button">
+                <Button v-if="hasExtractedContent" size="small" variant="secondary"
+                    :active="actualDisplayMode === 'extracted'" @click="changeDisplayMode('extracted')" type="button">
                     Extracted Content
                 </Button>
-                <Button v-if="hasTranslatedContent" variant="secondary" :active="actualDisplayMode === 'translated'"
-                    @click="changeDisplayMode('translated')" type="button">
+                <Button v-if="hasTranslatedContent" size="small" variant="secondary"
+                    :active="actualDisplayMode === 'translated'" @click="changeDisplayMode('translated')" type="button">
                     Translated
                 </Button>
-                <Button variant="secondary" :active="actualDisplayMode === 'raw'" @click="changeDisplayMode('raw')">
+                <Button size="small" variant="secondary" :active="actualDisplayMode === 'raw'"
+                    @click="changeDisplayMode('raw')">
                     Original
                 </Button>
             </ButtonGroup>
             <div v-if="isEditMode" class="flex gap-2">
-                <Button @click="emit('saveEdit')" :disabled="isSaving">
+                <Button @click="emit('saveEdit')" size="small" :disabled="isSaving">
                     <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
@@ -71,7 +69,7 @@
                     </svg>
                     {{ isSaving ? 'Saving...' : 'Save' }}
                 </Button>
-                <Button @click="emit('cancelEdit')" :disabled="isSaving">
+                <Button @click="emit('cancelEdit')" size="small" :disabled="isSaving">
                     Cancel
                 </Button>
             </div>
