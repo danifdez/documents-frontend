@@ -2,15 +2,32 @@ import { ref } from "vue";
 import apiClient from "../api";
 
 export function useResource() {
-    const error = ref(null);
+    const error = ref<string | null>(null);
     const isLoading = ref(false);
 
-    const loadResource = async (id: string): Promise<object> => {
+    const loadResource = async (id: string): Promise<any> => {
         isLoading.value = true;
-        const response = await apiClient.get(`/resources/${id}`);
+        error.value = null;
 
-        isLoading.value = false;
-        return response.data;
+        try {
+            // Fetch metadata and content in parallel
+            const [metaRes, contentRes] = await Promise.all([
+                apiClient.get(`/resources/${id}`),
+                apiClient.get(`/resources/${id}/content`),
+            ]);
+
+            const resource = metaRes.data || {};
+            // content endpoint returns { id, content }
+            const contentPayload = contentRes?.data || {};
+            resource.content = contentPayload.content ?? resource.content ?? null;
+
+            return resource;
+        } catch (err: any) {
+            error.value = err?.message || 'Failed to load resource';
+            throw err;
+        } finally {
+            isLoading.value = false;
+        }
     };
 
     const updateResource = async (id: string, resourceData: any) => {

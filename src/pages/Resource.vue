@@ -374,6 +374,39 @@ const loadResourceDetails = async () => {
     try {
         const data = await loadResource(resourceId.value);
         resource.value = data;
+        // Load related entities from the new endpoint and normalize results
+        try {
+            const entitiesRes = await apiClient.get(`/resources/${resourceId.value}/entities`);
+            const entitiesData = entitiesRes.data || [];
+            // If backend returned raw rows (getRawMany), normalize keys to id/name/type
+            resource.value.entities = entitiesData.map((row: any) => {
+                // raw row from getRawMany may be like { entity_id: 1, entity_name: 'Name', entity_type: 'Type' }
+                if (row.entity_id || row.entity_name) {
+                    return {
+                        id: row.entity_id ?? row.id,
+                        name: row.entity_name ?? row.name,
+                        type: row.entity_type ?? row.type,
+                    };
+                }
+
+                // If backend returned full EntityEntity objects with entityType relation
+                if (row.entityType) {
+                    return {
+                        id: row.id,
+                        name: row.name,
+                        type: row.entityType?.name ?? null,
+                        translations: row.translations,
+                        aliases: row.aliases,
+                    };
+                }
+
+                return row;
+            });
+        } catch (e) {
+            // don't block resource loading if entities fail
+            console.warn('Failed to load entities for resource', resourceId.value, e);
+            resource.value.entities = resource.value.entities || [];
+        }
 
         if (!data.content || data.content.trim().length === 0) {
             displayMode.value = 'raw';
@@ -778,10 +811,38 @@ const handleEntityMerged = (sourceEntityId: number, targetEntity: any) => {
     }
 };
 
-const handleEntityHighlight = (entityName: string, aliases: string[]) => {
-    // Call the HtmlContent component's highlightEntity method
+const handleEntityHighlight = async (entity: any) => {
+    // Determine which name to search for based on current display mode (extracted vs translated)
+    let nameToHighlight = '';
+    let aliasValues: string[] = [];
+
+    try {
+        if (displayMode.value === 'translated' && resource.value.translatedContent) {
+            // Prefer translated name if available in entity.translations for the UI/target language
+            const uiLang = await getLanguageSetting();
+            if (entity.translations && entity.translations[uiLang]) {
+                nameToHighlight = entity.translations[uiLang];
+            } else if (entity.translations && entity.translations['es']) {
+                nameToHighlight = entity.translations['es'];
+            } else {
+                nameToHighlight = entity.name;
+            }
+        } else {
+            // extracted or raw content: use original name or translation matching resource language
+            nameToHighlight = entity.name || '';
+            if (entity.translations && resource.value.language && entity.translations[resource.value.language]) {
+                nameToHighlight = entity.translations[resource.value.language];
+            }
+        }
+
+        aliasValues = (entity.aliases || []).map((a: any) => a.value || '');
+    } catch (e) {
+        nameToHighlight = entity.name || '';
+        aliasValues = (entity.aliases || []).map((a: any) => a.value || '');
+    }
+
     if (extractedContent.value && extractedContent.value.highlightEntity) {
-        extractedContent.value.highlightEntity(entityName, aliases);
+        extractedContent.value.highlightEntity(nameToHighlight, aliasValues);
     }
 };
 </script>

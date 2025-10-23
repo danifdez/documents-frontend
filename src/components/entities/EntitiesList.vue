@@ -39,8 +39,8 @@
                             <h4 class="font-medium text-gray-900">{{ displayEntityName(entity) }}</h4>
                             <div class="flex items-center space-x-2 mt-1">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                    :class="getEntityTypeBadgeClass(entity.entityType.name)">
-                                    {{ entity.entityType.name }}
+                                    :class="getEntityTypeBadgeClass(displayEntityType(entity))">
+                                    {{ displayEntityType(entity) }}
                                 </span>
                             </div>
                             <div v-if="entity.aliases && entity.aliases.length > 0" class="mt-2">
@@ -58,14 +58,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
-                        Merge
                     </Button>
                     <Button @click="removeEntity(entity)" title="Remove entity from resource">
                         <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        Remove
                     </Button>
                 </div>
             </div>
@@ -105,7 +103,7 @@
                     <div class="p-2 text-xs text-gray-500 border-b">Found {{ searchResults.length }} entities</div>
                     <Button v-for="result in searchResults" :key="result.id" @click="selectTargetEntity(result)">
                         <div class="font-medium">{{ displayEntityName(result) }}</div>
-                        <div class="text-sm text-gray-500">{{ result.entityType.name }}</div>
+                        <div class="text-sm text-gray-500">{{ displayEntityType(result) }}</div>
                     </Button>
                 </div>
 
@@ -143,7 +141,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
     'entity:removed': [entityId: number];
     'entity:merged': [sourceEntityId: number, targetEntity: Entity];
-    'entity:highlight': [entityName: string, aliases: string[]];
+    'entity:highlight': [entity: Entity];
 }>();
 
 const formatAliases = (aliases: EntityAlias[]): string => {
@@ -159,6 +157,12 @@ const displayEntityName = (entity: Entity | null): string => {
     } catch (e) {
         return entity.name;
     }
+};
+
+const displayEntityType = (entity: Entity | null): string => {
+    if (!entity) return '';
+    // entity may have an entityType relation or a flat 'type' property
+    return (entity.entityType && (entity.entityType.name as string)) || ((entity as any).type as string) || '';
 };
 
 const getAliasValues = (aliases: EntityAlias[] | null): string[] => {
@@ -199,7 +203,8 @@ const displayedEntities = computed(() => {
         }
 
         // entity type
-        if (entity.entityType && (entity.entityType.name || '').toLowerCase().includes(q)) return true;
+        const typeName = displayEntityType(entity).toLowerCase();
+        if (typeName.includes(q)) return true;
 
         return false;
     });
@@ -321,6 +326,6 @@ const performMerge = async () => {
 
 const highlightEntityInContent = (entity: Entity) => {
     selectedHighlightEntity.value = entity;
-    emit('entity:highlight', displayEntityName(entity), getAliasValues(entity.aliases));
+    emit('entity:highlight', entity);
 };
 </script>
