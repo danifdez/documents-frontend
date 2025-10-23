@@ -9,13 +9,7 @@
             <input v-if="isSearching && !collapsed" ref="searchInput" v-model="searchTerm" @blur="endSearch"
                 @keyup.escape="endSearch" type="text" placeholder="Search resources..."
                 class="text-sm border-0 outline-none bg-transparent w-full font-semibold text-gray-700" @click.stop>
-            <Button v-if="collapsed" @click="expandSidebar">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-            </Button>
+            <!-- Expand button removed to avoid duplicate small buttons when main sidebar is collapsed -->
         </div>
 
         <div v-if="!collapsed" class="mt-1 overflow-y-auto max-h-48">

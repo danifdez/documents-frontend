@@ -28,7 +28,9 @@
                 </svg>
                 <span v-if="!collapsed" class="ml-3 font-medium">Projects</span>
             </router-link>
-            <Button v-if="hasProjectSelected" @click="openBrowser">
+            <Button v-if="hasProjectSelected" borderless @click="openBrowser"
+                class="flex items-center p-3 mb-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-all duration-200"
+                :class="collapsed ? '!justify-center' : '!justify-start'">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
