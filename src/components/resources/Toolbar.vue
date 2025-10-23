@@ -1,7 +1,7 @@
 <template>
     <div class="mb-3 flex justify-between">
         <div class="mb-2.5 flex gap-2">
-            <Button @click="emit('ask')" size="small" title="Ask Assistant">
+            <Button v-if="!hasSummary" @click="emit('ask')" size="small" title="Ask Assistant">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -46,11 +46,15 @@
             <ButtonGroup v-if="!isEditMode">
                 <Button v-if="hasExtractedContent" size="small" variant="secondary"
                     :active="actualDisplayMode === 'extracted'" @click="changeDisplayMode('extracted')" type="button">
-                    Extracted Content
+                    Content
                 </Button>
                 <Button v-if="hasTranslatedContent" size="small" variant="secondary"
                     :active="actualDisplayMode === 'translated'" @click="changeDisplayMode('translated')" type="button">
                     Translated
+                </Button>
+                <Button v-if="hasSummary" size="small" variant="secondary" :active="actualDisplayMode === 'summary'"
+                    @click="changeDisplayMode('summary')" type="button">
+                    Summary
                 </Button>
                 <Button size="small" variant="secondary" :active="actualDisplayMode === 'raw'"
                     @click="changeDisplayMode('raw')">
@@ -87,6 +91,7 @@ const props = defineProps({
     displayMode: { type: String, values: ['extracted', 'translated', 'raw'] },
     hasExtractedContent: { type: Boolean },
     hasTranslatedContent: { type: Boolean },
+    hasSummary: { type: Boolean, default: false },
 });
 
 const actualDisplayMode = ref(props.displayMode || 'extracted');

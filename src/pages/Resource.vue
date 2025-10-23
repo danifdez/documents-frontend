@@ -36,8 +36,9 @@
                             Remove
                         </Button>
                     </div>
-                    <Toolbar v-if="!isImageFile" @download="downloadResource" @startEdit="startEdit"
-                        @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
+                    <Toolbar v-if="!isImageFile" :has-summary="resource.summary" :display-mode="displayMode"
+                        @download="downloadResource" @startEdit="startEdit" @saveEdit="saveEdit"
+                        @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
                         :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" @ask="showChat = true"
                         :extractedContent="resource.content" :translatedContent="resource.translatedContent"
@@ -56,6 +57,11 @@
                                 ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)" />
                             <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
                                 v-html="resource.translatedContent"></div>
+                            <div v-else-if="displayMode === 'summary'"
+                                class="w-full min-h-[600px] prose max-w-none p-6">
+                                <div v-if="resource.summary" class="whitespace-pre-wrap">{{ resource.summary }}</div>
+                                <div v-else class="text-gray-500 italic">No summary available</div>
+                            </div>
                             <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
                                 :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
                             </iframe>
@@ -134,10 +140,6 @@
                     <div class="bg-white p-4 shadow rounded-lg">
                         <div class="flex items-center justify-between mb-4">
                             <ButtonGroup>
-                                <Button v-if="resource.summary" variant="secondary" :active="viewSideBar === 'summary'"
-                                    @click="viewSideBar = 'summary'">
-                                    Summary
-                                </Button>
                                 <Button variant="secondary" :active="viewSideBar === 'properties'"
                                     @click="viewSideBar = 'properties'">
                                     Properties
@@ -154,7 +156,6 @@
                                     :active="viewSideBar === 'entities'" @click="viewSideBar = 'entities'">
                                     Entities
                                 </Button>
-
                             </ButtonGroup>
                         </div>
                     </div>
@@ -173,9 +174,6 @@
                                 class="text-blue-600 hover:underline">{{ item.text }}</a>
                         </li>
                     </ul>
-                </div>
-                <div v-else-if="viewSideBar === 'summary'" class="bg-white p-4 shadow rounded-lg">
-                    {{ resource.summary || 'No summary available' }}
                 </div>
                 <EntitiesList v-else-if="viewSideBar === 'entities'" :resource-id="resourceId"
                     :entities="resource.entities || []" @entity:removed="handleEntityRemoved"
@@ -235,7 +233,7 @@ const resource = ref<any>({});
 const projectStore = useProjectStore();
 const notification = useNotification();
 const rawHtmlContent = ref<string>('');
-const displayMode = ref<'extracted' | 'raw' | 'translated'>('extracted');
+const displayMode = ref<'extracted' | 'raw' | 'translated' | 'summary'>('extracted');
 const showCreateDocumentModal = ref(false);
 const splitViewActive = ref(false);
 const splitDocument = ref<any>(null);
@@ -246,7 +244,7 @@ const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL;
 const editorContentRef = ref();
 const splitEditor = ref();
-const viewSideBar = ref<'properties' | 'comments' | 'index' | 'summary' | 'entities'>('properties');
+const viewSideBar = ref<'properties' | 'comments' | 'index' | 'entities'>('properties');
 
 const isEditMode = ref(false);
 const editContent = ref('');
@@ -339,7 +337,7 @@ const activeContents = computed(() => {
     return contents;
 });
 
-const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated') => {
+const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated' | 'summary') => {
     displayMode.value = mode;
 };
 
@@ -442,6 +440,14 @@ watch(() => resource.value.content, (newContent, oldContent) => {
     // If we're in raw mode because there was no content, and content becomes available
     if (displayMode.value === 'raw' && newContent && newContent.trim().length > 0 && (!oldContent || oldContent.trim().length === 0)) {
         displayMode.value = 'extracted';
+    }
+});
+
+// Watch for summary becoming available and switch to summary view
+watch(() => resource.value.summary, (newSummary, oldSummary) => {
+    // If summary becomes available for the first time, switch to summary view
+    if (newSummary && newSummary.trim().length > 0 && (!oldSummary || oldSummary.trim().length === 0)) {
+        displayMode.value = 'summary';
     }
 });
 
