@@ -21,6 +21,15 @@
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
             </Button>
+            <Button v-if="!hasEntities" @click="emit('extractEntities')" size="small" title="Extract Entities">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        opacity="0.2" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 12a3 3 0 100-6 3 3 0 000 6zm10 6a3 3 0 100-6 3 3 0 000 6zM7 12l10 6" />
+                </svg>
+            </Button>
             <Button @click="emit('download')" size="small" title="Download Resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -92,11 +101,12 @@ const props = defineProps({
     hasExtractedContent: { type: Boolean },
     hasTranslatedContent: { type: Boolean },
     hasSummary: { type: Boolean, default: false },
+    hasEntities: { type: Boolean, default: false },
 });
 
 const actualDisplayMode = ref(props.displayMode || 'extracted');
 
-const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'createDocument', 'ask', 'summarize', 'translate']);
+const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'createDocument', 'ask', 'summarize', 'translate', 'extractEntities']);
 
 const changeDisplayMode = (mode: string) => {
     emit('changeDisplayMode', mode);

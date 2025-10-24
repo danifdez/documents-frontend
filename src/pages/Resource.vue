@@ -1,20 +1,23 @@
 <template>
-    <div v-bind="$attrs">
-        <Breadcrumb :items="breadcrumbItems" />
-        <div v-if="isLoading" class="flex justify-center items-center h-64">
+    <div v-bind="$attrs" class="h-full flex flex-col overflow-hidden">
+        <div class="flex-shrink-0">
+            <Breadcrumb :items="breadcrumbItems" />
+        </div>
+
+        <div v-if="isLoading" class="flex justify-center items-center flex-1">
             <p class="text-gray-500">Loading resource details...</p>
         </div>
 
-        <div v-else-if="error" class="flex justify-center items-center h-64">
+        <div v-else-if="error" class="flex justify-center items-center flex-1">
             <p class="text-red-500">Error: {{ error }}</p>
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-6"
+        <div v-else class="grid grid-cols-1 gap-6 flex-1 overflow-hidden min-h-0"
             :class="[splitViewActive ? 'lg:grid-cols-2' : 'md:grid-cols-3', { 'drag-over': isDragOver }]"
             @dragover="onDragOver" @dragenter="onDragEnter" @dragleave="onDragLeave" @drop="onDrop">
-            <div class="space-y-6"
+            <div class="flex flex-col overflow-hidden min-h-0"
                 :class="[splitViewActive ? 'lg:col-span-1' : 'md:col-span-2', { 'split-view-active': splitViewActive }]">
-                <div class="bg-white p-4 shadow rounded-lg">
+                <div class="bg-white p-4 shadow rounded-lg flex-shrink-0">
                     <div class="flex items-center mb-4">
                         <IconType :mimeType="resource.mimeType" />
                         <div class="flex items-center flex-grow">
@@ -43,40 +46,41 @@
                         :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" @ask="showChat = true"
                         :extractedContent="resource.content" :translatedContent="resource.translatedContent"
                         :sourceLanguage="resource.language || ''" @summarize="handleSummarizeJob"
-                        @translate="handleTranslate" />
+                        @translate="handleTranslate" @extractEntities="handleExtractEntities"
+                        :hasEntities="resource.entities && resource.entities.length > 0" />
+                </div>
 
-
-
-                    <div class="border border-gray-200 rounded-md px-5 py-0 overflow-auto">
-                        <div v-if="isEditMode" class="w-full min-h-[600px]">
-                            <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
-                                :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
-                        </div>
-                        <div v-else>
-                            <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
-                                ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)" />
-                            <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
-                                :content="resource.translatedContent" :resource-id="String(resource.id)" />
-                            <HtmlContent v-else-if="displayMode === 'summary'" ref="summaryContent"
-                                :content="resource.summary" :resource-id="String(resource.id)" />
-                            <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
-                                :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
-                            </iframe>
-                            <iframe v-else-if="isPdfFile && displayMode === 'raw'" class="w-full min-h-[600px]"
-                                :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
-                                type="application/pdf" :title="resource.originalName || 'PDF Preview'">
-                            </iframe>
-                            <img v-else-if="isImageFile" class="w-full object-contain"
-                                :src="`${apiBaseUrl}/resources/${resourceId}/view`"
-                                :alt="resource.originalName || 'Image Preview'" />
-                        </div>
+                <div
+                    class="border border-gray-200 rounded-lg px-5 py-4 overflow-y-auto flex-1 min-h-0 bg-white mt-4 shadow">
+                    <div v-if="isEditMode" class="w-full">
+                        <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
+                            :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
+                    </div>
+                    <div v-else>
+                        <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
+                            ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)" />
+                        <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
+                            :content="resource.translatedContent" :resource-id="String(resource.id)" />
+                        <HtmlContent v-else-if="displayMode === 'summary'" ref="summaryContent"
+                            :content="resource.summary" :resource-id="String(resource.id)" />
+                        <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full h-full min-h-[500px]"
+                            :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
+                        </iframe>
+                        <iframe v-else-if="isPdfFile && displayMode === 'raw'" class="w-full h-full min-h-[500px]"
+                            :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
+                            type="application/pdf" :title="resource.originalName || 'PDF Preview'">
+                        </iframe>
+                        <img v-else-if="isImageFile" class="w-full object-contain max-h-full"
+                            :src="`${apiBaseUrl}/resources/${resourceId}/view`"
+                            :alt="resource.originalName || 'Image Preview'" />
                     </div>
                 </div>
             </div>
 
             <!-- Split View Document Area -->
-            <div v-if="splitViewActive && splitDocument" class="lg:col-span-1 space-y-6 split-document-panel">
-                <div class="bg-white p-4 shadow rounded-lg">
+            <div v-if="splitViewActive && splitDocument"
+                class="lg:col-span-1 flex flex-col overflow-hidden min-h-0 split-document-panel">
+                <div class="bg-white p-4 shadow rounded-lg flex-shrink-0">
                     <div class="flex items-center justify-between mb-4">
                         <input v-model="splitDocument.name" @input="handleDocumentNameChange" type="text"
                             class="text-2xl font-bold bg-transparent border-none outline-none focus:bg-gray-50 focus:px-2 focus:py-1 rounded w-full"
@@ -123,58 +127,59 @@
                             Saved
                         </div>
                     </div>
+                </div>
 
-                    <div class="h-[600px]">
-                        <EditorContent ref="splitEditor" :content="splitDocument.content || ''"
-                            :is-saving="isDocumentSaving" :saved-successfully="documentSavedSuccessfully"
-                            @content-change="handleDocumentContentChange" />
-                    </div>
+                <div class="overflow-y-auto flex-1 min-h-0 bg-white mt-4 shadow rounded-lg p-4">
+                    <EditorContent ref="splitEditor" :content="splitDocument.content || ''"
+                        :is-saving="isDocumentSaving" :saved-successfully="documentSavedSuccessfully"
+                        @content-change="handleDocumentContentChange" />
                 </div>
             </div>
 
-            <div v-if="!splitViewActive">
-                <div class="md:col-span-1 space-y-6">
-                    <div class="bg-white p-4 shadow rounded-lg">
-                        <div class="flex items-center justify-between mb-4">
-                            <ButtonGroup>
-                                <Button variant="secondary" :active="viewSideBar === 'properties'"
-                                    @click="viewSideBar = 'properties'">
-                                    Properties
-                                </Button>
-                                <Button v-if="hasExtractedContent" variant="secondary" :active="viewSideBar === 'index'"
-                                    @click="(viewSideBar = 'index', refreshTocFromChild())">
-                                    Index
-                                </Button>
-                                <Button v-if="!isImageFile" variant="secondary" :active="viewSideBar === 'comments'"
-                                    @click="viewSideBar = 'comments'">
-                                    Comments
-                                </Button>
-                                <Button v-if="resource.entities && resource.entities.length > 0" variant="secondary"
-                                    :active="viewSideBar === 'entities'" @click="viewSideBar = 'entities'">
-                                    Entities
-                                </Button>
-                            </ButtonGroup>
+            <div v-if="!splitViewActive" class="md:col-span-1 flex flex-col overflow-hidden min-h-0">
+                <div class="bg-white p-4 shadow rounded-lg flex-shrink-0">
+                    <div class="flex items-center justify-between mb-4">
+                        <ButtonGroup>
+                            <Button variant="secondary" :active="viewSideBar === 'properties'"
+                                @click="viewSideBar = 'properties'">
+                                Properties
+                            </Button>
+                            <Button v-if="hasExtractedContent" variant="secondary" :active="viewSideBar === 'index'"
+                                @click="(viewSideBar = 'index', refreshTocFromChild())">
+                                Index
+                            </Button>
+                            <Button v-if="!isImageFile" variant="secondary" :active="viewSideBar === 'comments'"
+                                @click="viewSideBar = 'comments'">
+                                Comments
+                            </Button>
+                            <Button v-if="resource.entities && resource.entities.length > 0" variant="secondary"
+                                :active="viewSideBar === 'entities'" @click="viewSideBar = 'entities'">
+                                Entities
+                            </Button>
+                        </ButtonGroup>
+                    </div>
+                </div>
+
+                <div class="overflow-y-auto flex-1 min-h-0 mt-4">
+                    <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
+                    <CommentSidebar v-else-if="viewSideBar === 'comments'" :doc-id="resource.id" />
+                    <div v-else-if="viewSideBar === 'index'" class="bg-white p-4 shadow rounded-lg">
+                        <div class="mb-2">
+                            <strong class="text-sm text-gray-700">Table of Contents</strong>
                         </div>
+                        <div v-if="!tocItems.length">No headings found in this resource.</div>
+                        <ul v-else class="space-y-1">
+                            <li v-for="item in tocItems" :key="item.id"
+                                :style="{ marginLeft: (item.level - 1) * 12 + 'px' }">
+                                <a href="#" @click.prevent="scrollToHeadingFromSidebar(item.id)"
+                                    class="text-blue-600 hover:underline">{{ item.text }}</a>
+                            </li>
+                        </ul>
                     </div>
+                    <EntitiesList v-else-if="viewSideBar === 'entities'" :resource-id="resourceId"
+                        :entities="resource.entities || []" @entity:removed="handleEntityRemoved"
+                        @entity:merged="handleEntityMerged" @entity:highlight="handleEntityHighlight" />
                 </div>
-                <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
-                <CommentSidebar v-else-if="viewSideBar === 'comments'" :doc-id="resource.id" />
-                <div v-else-if="viewSideBar === 'index'" class="bg-white p-4 shadow rounded-lg">
-                    <div class="mb-2">
-                        <strong class="text-sm text-gray-700">Table of Contents</strong>
-                    </div>
-                    <div v-if="!tocItems.length">No headings found in this resource.</div>
-                    <ul v-else class="space-y-1">
-                        <li v-for="item in tocItems" :key="item.id"
-                            :style="{ marginLeft: (item.level - 1) * 12 + 'px' }">
-                            <a href="#" @click.prevent="scrollToHeadingFromSidebar(item.id)"
-                                class="text-blue-600 hover:underline">{{ item.text }}</a>
-                        </li>
-                    </ul>
-                </div>
-                <EntitiesList v-else-if="viewSideBar === 'entities'" :resource-id="resourceId"
-                    :entities="resource.entities || []" @entity:removed="handleEntityRemoved"
-                    @entity:merged="handleEntityMerged" @entity:highlight="handleEntityHighlight" />
             </div>
         </div>
 
@@ -796,6 +801,17 @@ const handleTranslate = async () => {
     }
 }
 
+const handleExtractEntities = async () => {
+    if (!resourceId.value) return;
+    try {
+        await apiClient.post('/model/extract-entities', { resourceId: Number(resourceId.value) });
+        notification.success('Entity extraction job created successfully');
+        await loadResourceDetails();
+    } catch (error) {
+        notification.error('Failed to create entity extraction job');
+    }
+};
+
 const handleEntityRemoved = (entityId: number) => {
     // Remove the entity from the local resource object
     if (resource.value.entities) {
@@ -854,7 +870,7 @@ const handleEntityHighlight = async (entity: any) => {
 };
 </script>
 
-<style>
+<style scoped>
 .resource-detail h1 {
     font-size: 1.5rem;
     font-weight: bold;
