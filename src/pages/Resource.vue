@@ -372,6 +372,18 @@ const loadResourceDetails = async () => {
     try {
         const data = await loadResource(resourceId.value);
         resource.value = data;
+        // Fetch translated content from the new backend endpoint if available
+        try {
+            const translatedRes = await apiClient.get(`/resources/${resourceId.value}/translated-content`);
+            const translatedPayload = translatedRes?.data || {};
+            resource.value.translatedContent = translatedPayload.translatedContent ?? resource.value.translatedContent ?? null;
+        } catch (e) {
+            // Ignore not found or other errors retrieving translated content — it's optional
+            if (e?.response?.status && e.response.status !== 404) {
+                console.warn('Failed to load translated content for resource', resourceId.value, e);
+            }
+            resource.value.translatedContent = resource.value.translatedContent ?? null;
+        }
         // Load related entities from the new endpoint and normalize results
         try {
             const entitiesRes = await apiClient.get(`/resources/${resourceId.value}/entities`);
