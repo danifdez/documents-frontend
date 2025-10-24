@@ -55,13 +55,10 @@
                         <div v-else>
                             <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
                                 ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)" />
-                            <div v-if="displayMode === 'translated'" class="w-full min-h-[600px] resource-detail"
-                                v-html="resource.translatedContent"></div>
-                            <div v-else-if="displayMode === 'summary'"
-                                class="w-full min-h-[600px] prose max-w-none p-6">
-                                <div v-if="resource.summary" class="whitespace-pre-wrap">{{ resource.summary }}</div>
-                                <div v-else class="text-gray-500 italic">No summary available</div>
-                            </div>
+                            <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
+                                :content="resource.translatedContent" :resource-id="String(resource.id)" />
+                            <HtmlContent v-else-if="displayMode === 'summary'" ref="summaryContent"
+                                :content="resource.summary" :resource-id="String(resource.id)" />
                             <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full min-h-[600px]"
                                 :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
                             </iframe>
