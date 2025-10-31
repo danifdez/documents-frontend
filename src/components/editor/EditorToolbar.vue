@@ -117,8 +117,8 @@
       </svg>
     </Button>
     <!-- Add Comment Button -->
-    <div class="h-6 w-px bg-gray-300 mx-1"></div>
-    <Button @click="handleAddComment" title="Add Comment" size="small" borderless>
+    <div v-if="context !== 'resource'" class="h-6 w-px bg-gray-300 mx-1"></div>
+    <Button v-if="context !== 'resource'" @click="handleAddComment" title="Add Comment" size="small" borderless>
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
@@ -128,14 +128,15 @@
       </svg>
     </Button>
     <!-- Add Mark Button -->
-    <Button @click="handleAddMark" title="Add/Remove Highlight Mark" size="small" :active="isMarkActive" borderless>
+    <Button v-if="context !== 'resource'" @click="handleAddMark" title="Add/Remove Highlight Mark" size="small"
+      :active="isMarkActive" borderless>
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="2" y="5" width="16" height="10" rx="1" stroke="currentColor" stroke-width="2" />
         <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFC107" />
       </svg>
     </Button>
     <!-- Reference Button -->
-    <Button @click="handleAddReference" title="Add Reference" size="small" borderless>
+    <Button v-if="context !== 'resource'" @click="handleAddReference" title="Add Reference" size="small" borderless>
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M9 8L14 3M14 3H10M14 3V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round" />
@@ -144,7 +145,8 @@
       </svg>
     </Button>
     <!-- Toggle Comments Sidebar Button -->
-    <Button @click="toggleComments" title="Toggle Comments Sidebar" size="small" :active="showComments" borderless>
+    <Button v-if="context !== 'resource'" @click="toggleComments" title="Toggle Comments Sidebar" size="small"
+      :active="showComments" borderless>
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
@@ -154,7 +156,8 @@
       </svg>
     </Button>
     <!-- Toggle TOC Sidebar Button -->
-    <Button @click="toggleToc" title="Toggle Table of Contents" size="small" :active="showToc" borderless>
+    <Button v-if="context !== 'resource'" @click="toggleToc" title="Toggle Table of Contents" size="small"
+      :active="showToc" borderless>
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="3" y="3.5" width="14" height="2.5" rx="1" fill="currentColor" />
         <rect x="3" y="7.5" width="10" height="2.5" rx="1" fill="currentColor" />
@@ -225,6 +228,10 @@ const props = defineProps({
   showToc: {
     type: Boolean,
     default: false
+  },
+  context: {
+    type: String,
+    default: 'document' // 'document' or 'resource'
   }
 });
 

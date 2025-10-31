@@ -72,7 +72,8 @@
                             <h3 class="text-lg font-semibold mb-2">Extracted Content (Editable)</h3>
                             <div class="flex-1 overflow-hidden">
                                 <EditorContent ref="editorContentRef" :content="resource.content" :is-saving="isSaving"
-                                    :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
+                                    :saved-successfully="savedSuccessfully" context="resource"
+                                    @content-change="handleEditContentChange" />
                             </div>
                         </div>
                         <div class="flex flex-col h-full border-l pl-4 overflow-hidden">
@@ -154,7 +155,8 @@
                     class="border border-gray-200 rounded-lg px-5 py-4 overflow-y-auto flex-1 min-h-0 bg-white mt-4 shadow">
                     <div v-if="isEditMode" class="w-full">
                         <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
-                            :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
+                            :saved-successfully="savedSuccessfully" context="resource"
+                            @content-change="handleEditContentChange" />
                     </div>
                     <div v-else>
                         <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"

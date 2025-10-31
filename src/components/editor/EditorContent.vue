@@ -1,9 +1,9 @@
 <template>
     <div class="editor-container">
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
-            :show-comments="showComments" :show-toc="showToc" @toggle-comments="toggleComments" @toggle-toc="toggleToc"
-            @add-comment="handleAddCommentRequest" @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
-            @add-reference="showReferenceModal = true" />
+            :show-comments="showComments" :show-toc="showToc" :context="context" @toggle-comments="toggleComments"
+            @toggle-toc="toggleToc" @add-comment="handleAddCommentRequest" @add-mark="handleAddMarkRequest"
+            @remove-mark="handleRemoveMark" @add-reference="showReferenceModal = true" />
         <div class="editor-scroll-wrapper">
             <div class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content"
                 spellcheck="false" autocorrect="off" autocomplete="off" data-gramm="false" data-enable-grammarly="false"
@@ -66,6 +66,10 @@ const props = defineProps({
     showToc: {
         type: Boolean,
         default: false
+    },
+    context: {
+        type: String,
+        default: 'document' // 'document' or 'resource'
     }
 });
 
