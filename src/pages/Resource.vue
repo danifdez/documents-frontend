@@ -132,7 +132,8 @@
                         :sourceLanguage="resource.language || ''" :defaultLanguage="defaultLanguage"
                         @summarize="handleSummarizeJob" @translate="handleTranslate"
                         @extractEntities="handleExtractEntities"
-                        :hasEntities="resource.entities && resource.entities.length > 0" />
+                        :hasEntities="resource.entities && resource.entities.length > 0"
+                        :isConfirmed="!isPendingConfirmation" />
                     <!-- Show extraction message when extracting -->
                     <div v-else-if="isExtracting && !isImageFile"
                         class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -352,7 +353,7 @@ const viewSideBar = ref<'properties' | 'comments' | 'index' | 'entities'>('prope
 
 const isEditMode = ref(false);
 const editContent = ref('');
-const editType = ref<'content' | 'translatedContent'>('content');
+const editType = ref<'content' | 'translatedContent' | 'summary'>('content');
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
 
@@ -737,6 +738,9 @@ const startEdit = () => {
     } else if (displayMode.value === 'translated' && resource.value.translatedContent) {
         editType.value = 'translatedContent';
         editContent.value = resource.value.translatedContent;
+    } else if (displayMode.value === 'summary' && resource.value.summary) {
+        editType.value = 'summary';
+        editContent.value = resource.value.summary;
     }
     isEditMode.value = true;
     savedSuccessfully.value = false;
@@ -764,13 +768,27 @@ const saveEdit = async () => {
     savedSuccessfully.value = false;
 
     try {
-        const updateData = {
-            content: contentToSave
-        };
+        const updateData: any = {};
+
+        // Determine which field to update based on editType
+        if (editType.value === 'content') {
+            updateData.content = contentToSave;
+        } else if (editType.value === 'translatedContent') {
+            updateData.translatedContent = contentToSave;
+        } else if (editType.value === 'summary') {
+            updateData.summary = contentToSave;
+        }
 
         await updateResource(resourceId.value, updateData);
 
-        resource.value.content = contentToSave;
+        // Update the resource object with the new content
+        if (editType.value === 'content') {
+            resource.value.content = contentToSave;
+        } else if (editType.value === 'translatedContent') {
+            resource.value.translatedContent = contentToSave;
+        } else if (editType.value === 'summary') {
+            resource.value.summary = contentToSave;
+        }
 
         savedSuccessfully.value = true;
 
