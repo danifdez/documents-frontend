@@ -12,6 +12,88 @@
             <p class="text-red-500">Error: {{ error }}</p>
         </div>
 
+        <!-- Pending Confirmation View: Full width, no sidebar -->
+        <div v-else-if="isPendingConfirmation" class="flex-1 overflow-hidden min-h-0 flex flex-col">
+            <div class="bg-white p-4 shadow rounded-lg flex-shrink-0">
+                <div class="flex items-center mb-4">
+                    <IconType :mimeType="resource.mimeType" />
+                    <div class="flex items-center flex-grow">
+                        <h1 class="text-2xl font-bold mr-3 px-2 py-1">{{ resource.name }}</h1>
+                    </div>
+                </div>
+                <!-- Warning banner when pending confirmation -->
+                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600 mr-2"
+                                viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-sm font-medium text-yellow-800">Resource pending confirmation - Review and
+                                confirm the extracted content</span>
+                        </div>
+                        <Button @click="confirmResourceExtraction" :disabled="isConfirming" variant="primary"
+                            class="ml-4">
+                            <svg v-if="isConfirming" class="animate-spin h-4 w-4 mr-2 inline-block"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            {{ isConfirming ? 'Confirming...' : 'Confirm Extraction' }}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Split view content for pending confirmation -->
+            <div
+                class="border border-gray-200 rounded-lg px-5 py-4 flex-1 min-h-0 bg-white mt-4 shadow overflow-hidden">
+                <div class="h-full flex flex-col">
+                    <div class="flex justify-end mb-2 gap-2">
+                        <Button @click="saveEdit" :disabled="isSaving" variant="primary">
+                            <svg v-if="isSaving" class="animate-spin h-4 w-4 mr-2 inline-block"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            {{ isSaving ? 'Saving...' : savedSuccessfully ? '✓ Saved' : 'Save Changes' }}
+                        </Button>
+                    </div>
+                    <div class="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
+                        <div class="flex flex-col h-full overflow-hidden">
+                            <h3 class="text-lg font-semibold mb-2">Extracted Content (Editable)</h3>
+                            <div class="flex-1 overflow-hidden">
+                                <EditorContent ref="editorContentRef" :content="resource.content" :is-saving="isSaving"
+                                    :saved-successfully="savedSuccessfully" @content-change="handleEditContentChange" />
+                            </div>
+                        </div>
+                        <div class="flex flex-col h-full border-l pl-4 overflow-hidden">
+                            <h3 class="text-lg font-semibold mb-2">Original Document</h3>
+                            <div class="flex-1 overflow-auto">
+                                <iframe v-if="isHtmlFile" class="w-full h-full min-h-[500px]" :srcdoc="rawHtmlContent"
+                                    sandbox="allow-same-origin" title="HTML Preview">
+                                </iframe>
+                                <iframe v-else-if="isPdfFile" class="w-full h-full min-h-[500px]"
+                                    :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
+                                    type="application/pdf" :title="resource.originalName || 'PDF Preview'">
+                                </iframe>
+                                <div v-else class="text-gray-500">Preview not available for this file type</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Normal View: with sidebar -->
         <div v-else class="grid grid-cols-1 gap-6 flex-1 overflow-hidden min-h-0"
             :class="[splitViewActive ? 'lg:grid-cols-2' : 'md:grid-cols-3', { 'drag-over': isDragOver }]"
             @dragover="onDragOver" @dragenter="onDragEnter" @dragleave="onDragLeave" @drop="onDrop">
@@ -39,9 +121,10 @@
                             Remove
                         </Button>
                     </div>
-                    <Toolbar v-if="!isImageFile" :has-summary="resource.summary" :display-mode="displayMode"
-                        @download="downloadResource" @startEdit="startEdit" @saveEdit="saveEdit"
-                        @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
+                    <!-- Toolbar (not shown for images or during extraction) -->
+                    <Toolbar v-if="!isImageFile && !isExtracting" :has-summary="resource.summary"
+                        :display-mode="displayMode" @download="downloadResource" @startEdit="startEdit"
+                        @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
                         :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" @ask="showChat = true"
                         :extractedContent="resource.content" :translatedContent="resource.translatedContent"
@@ -49,6 +132,22 @@
                         @summarize="handleSummarizeJob" @translate="handleTranslate"
                         @extractEntities="handleExtractEntities"
                         :hasEntities="resource.entities && resource.entities.length > 0" />
+                    <!-- Show extraction message when extracting -->
+                    <div v-else-if="isExtracting && !isImageFile"
+                        class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center">
+                            <svg class="animate-spin h-5 w-5 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg"
+                                fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            <span class="text-sm font-medium text-blue-800">Extracting content... Only original view is
+                                available.</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div
@@ -265,6 +364,12 @@ const isCancelingNameEdit = ref(false);
 const extractedContent = ref<any>(null);
 const tocItems = ref<{ id: string; text: string; level: number }[]>([]);
 const defaultLanguage = ref<string>('en');
+const isConfirming = ref(false);
+
+// Computed properties for resource status
+const isPendingConfirmation = computed(() => resource.value.confirmationStatus === 'pending');
+const isExtracting = computed(() => !resource.value.content || resource.value.content.trim().length === 0);
+const canInteract = computed(() => !isPendingConfirmation.value && !isExtracting.value);
 
 const refreshTocFromChild = () => {
     // HtmlContent exposes `toc` and `scrollToHeading`
@@ -376,6 +481,12 @@ const loadResourceDetails = async () => {
     try {
         const data = await loadResource(resourceId.value);
         resource.value = data;
+
+        // If pending confirmation, always load raw HTML content for comparison
+        if (data.confirmationStatus === 'pending') {
+            await loadRawHtmlContent();
+        }
+
         // Fetch translated content from the new backend endpoint if available
         try {
             const translatedRes = await apiClient.get(`/resources/${resourceId.value}/translated-content`);
@@ -630,11 +741,19 @@ const startEdit = () => {
 };
 
 const handleEditContentChange = (content: string) => {
-    editContent.value = content;
+    if (isPendingConfirmation.value) {
+        // When in pending confirmation mode, update resource content directly
+        resource.value.content = content;
+    } else {
+        // Normal edit mode
+        editContent.value = content;
+    }
 };
 
 const saveEdit = async () => {
-    if (!editContent.value.trim()) {
+    const contentToSave = isPendingConfirmation.value ? resource.value.content : editContent.value;
+
+    if (!contentToSave || !contentToSave.trim()) {
         notification.error('Content cannot be empty');
         return;
     }
@@ -644,15 +763,18 @@ const saveEdit = async () => {
 
     try {
         const updateData = {
-            [editType.value]: editContent.value
+            content: contentToSave
         };
 
         await updateResource(resourceId.value, updateData);
 
-        resource.value[editType.value] = editContent.value;
+        resource.value.content = contentToSave;
 
         savedSuccessfully.value = true;
-        isEditMode.value = false;
+
+        if (!isPendingConfirmation.value) {
+            isEditMode.value = false;
+        }
 
         notification.success('Content updated successfully');
 
@@ -878,6 +1000,36 @@ const handleEntityHighlight = async (entity: any) => {
         extractedContent.value.highlightEntity(nameToHighlight, aliasValues);
     }
 };
+
+const confirmResourceExtraction = async () => {
+    if (!isPendingConfirmation.value) {
+        return;
+    }
+
+    isConfirming.value = true;
+
+    try {
+        await apiClient.post(`/resources/${resourceId.value}/confirm`);
+        notification.success('Resource confirmed successfully. Language detection job created.');
+
+        // Update local state
+        resource.value.confirmationStatus = 'confirmed';
+
+        // Exit edit mode if active
+        if (isEditMode.value) {
+            isEditMode.value = false;
+        }
+
+        // Reload resource details to get updated data
+        await loadResourceDetails();
+    } catch (error) {
+        notification.error('Failed to confirm resource');
+        console.error('Error confirming resource:', error);
+    } finally {
+        isConfirming.value = false;
+    }
+};
+
 </script>
 
 <style scoped>
