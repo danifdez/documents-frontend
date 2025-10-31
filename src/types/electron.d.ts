@@ -1,5 +1,10 @@
 export interface ElectronAPI {
-    getSettings: () => Promise<{ language?: string }>;
+    getSettings: () => Promise<{
+        language?: string;
+        fontSize?: number;
+        fontFamily?: string;
+        paragraphSpacing?: number;
+    }>;
     setSettings: (settings: any) => Promise<void>;
     platform: string;
     versions: {

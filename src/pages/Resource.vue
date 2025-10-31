@@ -45,8 +45,9 @@
                         @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
                         :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" @ask="showChat = true"
                         :extractedContent="resource.content" :translatedContent="resource.translatedContent"
-                        :sourceLanguage="resource.language || ''" @summarize="handleSummarizeJob"
-                        @translate="handleTranslate" @extractEntities="handleExtractEntities"
+                        :sourceLanguage="resource.language || ''" :defaultLanguage="defaultLanguage"
+                        @summarize="handleSummarizeJob" @translate="handleTranslate"
+                        @extractEntities="handleExtractEntities"
                         :hasEntities="resource.entities && resource.entities.length > 0" />
                 </div>
 
@@ -263,6 +264,7 @@ const nameInput = ref<HTMLInputElement | null>(null);
 const isCancelingNameEdit = ref(false);
 const extractedContent = ref<any>(null);
 const tocItems = ref<{ id: string; text: string; level: number }[]>([]);
+const defaultLanguage = ref<string>('en');
 
 const refreshTocFromChild = () => {
     // HtmlContent exposes `toc` and `scrollToHeading`
@@ -750,8 +752,13 @@ const saveResourceName = async () => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
     loadResourceDetails();
+    // Load default language from settings
+    if (window.electronAPI && window.electronAPI.getSettings) {
+        const settings = await window.electronAPI.getSettings();
+        defaultLanguage.value = settings?.language || 'en';
+    }
 });
 
 const { showSearch } = useGlobalKeyboard();

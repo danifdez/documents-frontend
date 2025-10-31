@@ -14,7 +14,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
             </Button>
-            <Button v-if="!hasTranslatedContent" @click="emit('translate')" size="small" title="Translate Resource">
+            <Button v-if="shouldShowTranslateButton" @click="emit('translate')" size="small" title="Translate Resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref } from 'vue';
+import { defineProps, defineEmits, ref, computed } from 'vue';
 import Button from '../ui/Button.vue';
 import ButtonGroup from '../ui/ButtonGroup.vue';
 const props = defineProps({
@@ -102,11 +102,30 @@ const props = defineProps({
     hasTranslatedContent: { type: Boolean },
     hasSummary: { type: Boolean, default: false },
     hasEntities: { type: Boolean, default: false },
+    sourceLanguage: { type: String, default: '' },
+    defaultLanguage: { type: String, default: 'en' },
 });
 
 const actualDisplayMode = ref(props.displayMode || 'extracted');
 
 const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'createDocument', 'ask', 'summarize', 'translate', 'extractEntities']);
+
+// Only show translate button if:
+// 1. Resource doesn't have translated content already
+// 2. Resource language is different from default language
+const shouldShowTranslateButton = computed(() => {
+    if (props.hasTranslatedContent) {
+        return false;
+    }
+
+    // If sourceLanguage is not set or empty, assume we should show the button
+    if (!props.sourceLanguage || props.sourceLanguage.trim() === '') {
+        return true;
+    }
+
+    // Show button only if languages are different
+    return props.sourceLanguage.toLowerCase() !== props.defaultLanguage.toLowerCase();
+});
 
 const changeDisplayMode = (mode: string) => {
     emit('changeDisplayMode', mode);

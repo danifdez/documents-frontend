@@ -195,7 +195,8 @@ app.whenReady().then(() => {
     return store.get('settings', {
       fontSize: 16,
       fontFamily: 'sans-serif',
-      paragraphSpacing: 1.5
+      paragraphSpacing: 1.5,
+      language: 'en'
     });
   });
 
