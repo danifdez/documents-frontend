@@ -6,10 +6,13 @@ export function useCommentList() {
     const error = ref(null);
     const isLoading = ref(false);
 
-    const loadComments = async (docId: string) => {
+    const loadComments = async (entityId: string, entityType: 'doc' | 'resource' = 'doc') => {
         isLoading.value = true;
         try {
-            const response = await apiClient.get(`/comments/doc/${docId}`);
+            const endpoint = entityType === 'doc'
+                ? `/comments/doc/${entityId}`
+                : `/comments/resource/${entityId}`;
+            const response = await apiClient.get(endpoint);
             comments.value = response.data;
         } catch (err) {
             error.value = err;

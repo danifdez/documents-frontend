@@ -1,48 +1,71 @@
 <template>
-  <div class="comment-sidebar bg-gray-50 border-l border-gray-300 w-80 p-4 overflow-y-auto">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-medium">Comments</h3>
-    </div>
-
-    <div v-if="isLoading" class="text-center py-4">
-      <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-blue-600">
+  <div class="comment-sidebar bg-white shadow rounded-lg h-full flex flex-col">
+    <div v-if="isLoading" class="flex items-center justify-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600">
       </div>
     </div>
 
-    <div v-else-if="error" class="text-red-500 p-2">
-      Error loading comments
+    <div v-else-if="error" class="flex items-center justify-center py-8 px-4">
+      <div class="text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-400 mx-auto mb-2" fill="none"
+          viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="text-red-600 font-medium">Error loading comments</p>
+        <p class="text-sm text-gray-500 mt-1">Please try again later</p>
+      </div>
     </div>
 
-    <div v-else-if="comments.length === 0" class="text-gray-500 text-center py-4">
-      No comments yet
+    <div v-else-if="comments.length === 0" class="flex items-center justify-center py-8 px-4">
+      <div class="text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mx-auto mb-3" fill="none"
+          viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        <p class="text-gray-500 font-medium">No comments yet</p>
+        <p class="text-sm text-gray-400 mt-1">Be the first to add a comment</p>
+      </div>
     </div>
 
-    <div v-else class="space-y-4">
+    <div v-else class="flex-1 overflow-y-auto p-4 space-y-3">
       <div v-for="comment in sortedComments" :key="comment.id" :id="`comment-${comment.id}`"
-        class="p-3 bg-white rounded-md shadow-sm transition-all duration-200 hover:bg-gray-50"
-        :class="{ 'bg-yellow-50 border border-yellow-400': highlightedCommentId === comment.id }">
-        <div class="flex justify-between items-start">
-          <div class="text-gray-700 text-sm whitespace-pre-wrap cursor-pointer flex-grow"
-            @click="handleCommentClick(comment.id)">{{ comment.content }}</div>
-          <div class="flex items-center">
-            <Button @click.stop="editComment(comment)">
+        class="bg-white border border-gray-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:border-blue-300 cursor-pointer"
+        :class="{ 'bg-yellow-50 border-yellow-400 shadow-lg': highlightedCommentId === comment.id }"
+        @click="handleCommentClick(comment.id)">
+        <div class="flex justify-between items-start gap-3 mb-2">
+          <div class="flex-1 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words">
+            {{ comment.content }}
+          </div>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button @click.stop="editComment(comment)"
+              class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              title="Edit comment">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
-            </Button>
-            <Button @click.stop="deleteComment(comment)" title="Delete comment">
+            </button>
+            <button @click.stop="deleteComment(comment)"
+              class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+              title="Delete comment">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-            </Button>
+            </button>
           </div>
         </div>
-        <div class="mt-1 text-xs text-gray-500">
-          {{ formatDate(comment.createdAt) }}
+        <div class="flex items-center gap-2 text-xs text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ formatDate(comment.createdAt) }}</span>
         </div>
       </div>
     </div>
@@ -58,12 +81,15 @@ import { useCommentList } from '../../services/comments/useCommentList';
 import { useCommentUpdate } from '../../services/comments/useCommentUpdate';
 import { useCommentDelete } from '../../services/comments/useCommentDelete';
 import CommentEditModal from './CommentEditModal.vue';
-import Button from '../ui/Button.vue';
 
 const props = defineProps({
   docId: {
     type: String,
-    required: true
+    required: false
+  },
+  resourceId: {
+    type: String,
+    required: false
   },
 });
 
@@ -72,6 +98,10 @@ const emit = defineEmits(['comment-added', 'comment-clicked', 'comment-updated',
 const { comments, error, isLoading, loadComments } = useCommentList();
 const { updateComment, } = useCommentUpdate();
 const { deleteComment: deleteCommentAPI } = useCommentDelete();
+
+// Determine which ID to use
+const entityId = computed(() => props.docId || props.resourceId);
+const entityType = computed(() => props.docId ? 'doc' : 'resource');
 
 const sortedComments = computed(() => {
   return [...comments.value].sort((a, b) =>
@@ -159,14 +189,14 @@ defineExpose({
 });
 
 onMounted(() => {
-  if (props.docId) {
-    loadComments(props.docId);
+  if (entityId.value) {
+    loadComments(entityId.value, entityType.value);
   }
 });
 
-watch(() => props.docId, (newId) => {
-  if (newId) {
-    loadComments(newId);
+watch(() => [props.docId, props.resourceId], () => {
+  if (entityId.value) {
+    loadComments(entityId.value, entityType.value);
   }
 });
 </script>

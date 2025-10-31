@@ -264,7 +264,7 @@
 
                 <div class="overflow-y-auto flex-1 min-h-0 mt-4">
                     <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
-                    <CommentSidebar v-else-if="viewSideBar === 'comments'" :doc-id="resource.id" />
+                    <CommentSidebar v-else-if="viewSideBar === 'comments'" :resource-id="String(resource.id)" />
                     <div v-else-if="viewSideBar === 'index'" class="bg-white p-4 shadow rounded-lg">
                         <div class="mb-2">
                             <strong class="text-sm text-gray-700">Table of Contents</strong>
