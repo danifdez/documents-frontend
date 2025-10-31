@@ -459,8 +459,9 @@ watch(() => resource.value.content, (newContent, oldContent) => {
 
 // Watch for summary becoming available and switch to summary view
 watch(() => resource.value.summary, (newSummary, oldSummary) => {
-    // If summary becomes available for the first time, switch to summary view
-    if (newSummary && newSummary.trim().length > 0 && (!oldSummary || oldSummary.trim().length === 0)) {
+    // If summary becomes available after the resource was already loaded (oldSummary === null or ''),
+    // switch to summary view. Don't switch on initial load (oldSummary === undefined).
+    if (newSummary && newSummary.trim().length > 0 && oldSummary !== undefined && (!oldSummary || oldSummary.trim().length === 0)) {
         displayMode.value = 'summary';
     }
 });
