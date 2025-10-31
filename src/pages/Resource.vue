@@ -448,6 +448,8 @@ const downloadResource = async () => {
 };
 
 watch(resourceId, () => {
+    // Reset displayMode to 'extracted' when navigating to a new resource
+    displayMode.value = 'extracted';
     loadResourceDetails();
 });
 
