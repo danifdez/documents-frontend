@@ -729,6 +729,54 @@ defineExpose({
     margin: calc(var(--paragraph-spacing) * 0.5em);
 }
 
+/* Ensure lists show bullets/numbers and proper indentation inside resource content */
+:deep(.resource-detail ul),
+:deep(.resource-detail ol) {
+    margin-top: calc(var(--paragraph-spacing) * 0.5em);
+    margin-bottom: calc(var(--paragraph-spacing) * 0.75em);
+    padding-left: 2rem;
+    /* increase indentation from container */
+    /* Use outside so marker doesn't wrap into its own line */
+    list-style-position: outside;
+}
+
+:deep(.resource-detail ul) {
+    list-style-type: disc;
+}
+
+:deep(.resource-detail ol) {
+    list-style-type: decimal;
+}
+
+:deep(.resource-detail ul ul),
+:deep(.resource-detail ol ul),
+:deep(.resource-detail ul ol),
+:deep(.resource-detail ol ol) {
+    padding-left: 1.25rem;
+    /* nested lists increase indentation */
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Try to reduce the visual gap between marker and text */
+:deep(.resource-detail li) {
+    margin-bottom: calc(var(--paragraph-spacing) * 0.25em);
+}
+
+/* Make sure paragraphs inside list items don't create extra line breaks */
+:deep(.resource-detail li > p) {
+    display: inline;
+    margin: 0;
+}
+
+:deep(.resource-detail li::marker) {
+    /* Slightly reduce marker font size so it sits closer to the text */
+    font-size: 0.95em;
+    opacity: 0.95;
+    /* Add a small right margin to keep marker near text */
+    margin-right: 0.35rem;
+}
+
 :deep(.resource-detail ul li) {
     font-size: calc(var(--font-size-p) * 1px);
 }
