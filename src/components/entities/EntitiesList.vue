@@ -134,9 +134,16 @@ import Button from '../ui/Button.vue';
 interface Props {
     resourceId: string;
     entities: Entity[];
+    displayMode?: 'extracted' | 'translated' | 'summary' | 'raw';
+    resourceLanguage?: string;
+    targetLanguage?: string;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    displayMode: 'extracted',
+    resourceLanguage: 'en',
+    targetLanguage: 'es'
+});
 
 const emit = defineEmits<{
     'entity:removed': [entityId: number];
@@ -148,12 +155,31 @@ const formatAliases = (aliases: EntityAlias[]): string => {
     return aliases.map(alias => `${alias.value} (${alias.locale})`).join(', ');
 };
 
+/**
+ * Get the display text for an entity based on current display mode.
+ * Since entities are ALWAYS extracted from working_content (English),
+ * entity.name is always in English and translations contain other languages.
+ */
 const displayEntityName = (entity: Entity | null): string => {
     if (!entity) return '';
     try {
-        // Prefer Spanish translation when available, fallback to original name
-        const translations = entity.translations as Record<string, string> | undefined;
-        return (translations && translations['es']) || entity.name;
+        if (props.displayMode === 'translated') {
+            const translations = entity.translations as Record<string, string> | undefined;
+            if (translations && translations[props.targetLanguage]) {
+                return translations[props.targetLanguage];
+            }
+        } else {
+            if (props.resourceLanguage === 'en') {
+                return entity.name;
+            } else {
+                const translations = entity.translations as Record<string, string> | undefined;
+                if (translations && translations[props.resourceLanguage]) {
+                    return translations[props.resourceLanguage];
+                }
+            }
+        }
+
+        return entity.name;
     } catch (e) {
         return entity.name;
     }

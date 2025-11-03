@@ -152,24 +152,27 @@
                     </div>
                 </div>
 
-                <div
-                    class="border border-gray-200 rounded-lg px-5 py-4 overflow-y-auto flex-1 min-h-0 bg-white mt-4 shadow">
-                    <div v-if="isEditMode" class="w-full">
+                <div class="border border-gray-200 rounded-lg bg-white mt-4 shadow flex-1 min-h-0 flex flex-col overflow-hidden"
+                    :class="displayMode === 'raw' ? 'p-0' : 'px-5 py-4'">
+                    <div v-if="isEditMode" class="w-full flex-1 overflow-y-auto">
                         <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
                             :saved-successfully="savedSuccessfully" context="resource"
                             @content-change="handleEditContentChange" />
                     </div>
-                    <div v-else>
+                    <div v-else class="flex-1 min-h-0" :class="displayMode === 'raw' ? 'h-full' : 'overflow-y-auto'">
                         <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
-                            ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)" />
+                            ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)"
+                            :display-mode="displayMode" />
                         <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
-                            :content="resource.translatedContent" :resource-id="String(resource.id)" />
+                            :content="resource.translatedContent" :resource-id="String(resource.id)"
+                            :display-mode="displayMode" />
                         <HtmlContent v-else-if="displayMode === 'summary'" ref="summaryContent"
-                            :content="resource.summary" :resource-id="String(resource.id)" />
-                        <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full h-full min-h-[500px]"
+                            :content="resource.summary" :resource-id="String(resource.id)"
+                            :display-mode="displayMode" />
+                        <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full h-full border-0"
                             :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
                         </iframe>
-                        <iframe v-else-if="isPdfFile && displayMode === 'raw'" class="w-full h-full min-h-[500px]"
+                        <iframe v-else-if="isPdfFile && displayMode === 'raw'" class="w-full h-full border-0"
                             :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
                             type="application/pdf" :title="resource.originalName || 'PDF Preview'">
                         </iframe>
@@ -255,9 +258,16 @@
                                 @click="viewSideBar = 'comments'">
                                 Comments
                             </Button>
-                            <Button v-if="resource.entities && resource.entities.length > 0" variant="secondary"
-                                :active="viewSideBar === 'entities'" @click="viewSideBar = 'entities'">
-                                Entities
+                            <Button v-if="hasPendingEntities || (resource.entities && resource.entities.length > 0)"
+                                variant="secondary" :active="viewSideBar === 'entities'"
+                                @click="viewSideBar = 'entities'">
+                                <span class="flex items-center">
+                                    Entities
+                                    <span v-if="hasPendingEntities"
+                                        class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        Pending
+                                    </span>
+                                </span>
                             </Button>
                         </ButtonGroup>
                     </div>
@@ -279,9 +289,16 @@
                             </li>
                         </ul>
                     </div>
-                    <EntitiesList v-else-if="viewSideBar === 'entities'" :resource-id="resourceId"
-                        :entities="resource.entities || []" @entity:removed="handleEntityRemoved"
-                        @entity:merged="handleEntityMerged" @entity:highlight="handleEntityHighlight" />
+                    <div v-else-if="viewSideBar === 'entities'">
+                        <PendingEntitiesValidator v-if="hasPendingEntities" :resource-id="resourceId"
+                            :display-mode="displayMode" :resource-language="resource.language"
+                            :target-language="defaultLanguage" @entities:confirmed="handleEntitiesConfirmed"
+                            @entity:highlight="handleEntityHighlight" />
+                        <EntitiesList v-else :resource-id="resourceId" :entities="resource.entities || []"
+                            :display-mode="displayMode" :resource-language="resource.language"
+                            :target-language="defaultLanguage" @entity:removed="handleEntityRemoved"
+                            @entity:merged="handleEntityMerged" @entity:highlight="handleEntityHighlight" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -320,6 +337,7 @@ import HtmlContent from '../components/contents/HtmlContent.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import ChatSidebar from '../components/ui/ChatSidebar.vue';
 import EntitiesList from '../components/entities/EntitiesList.vue';
+import PendingEntitiesValidator from '../components/entities/PendingEntitiesValidator.vue';
 import Button from '../components/ui/Button.vue';
 import ButtonGroup from '../components/ui/ButtonGroup.vue';
 
@@ -364,10 +382,14 @@ const nameSavedSuccessfully = ref(false);
 const nameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const nameInput = ref<HTMLInputElement | null>(null);
 const isCancelingNameEdit = ref(false);
+const showChat = ref(false);
 const extractedContent = ref<any>(null);
+const translatedContent = ref<any>(null);
+const summaryContent = ref<any>(null);
 const tocItems = ref<{ id: string; text: string; level: number }[]>([]);
 const defaultLanguage = ref<string>('en');
 const isConfirming = ref(false);
+const hasPendingEntities = ref(false);
 
 // Computed properties for resource status
 const isPendingConfirmation = computed(() => resource.value.confirmationStatus === 'pending');
@@ -535,6 +557,8 @@ const loadResourceDetails = async () => {
             console.warn('Failed to load entities for resource', resourceId.value, e);
             resource.value.entities = resource.value.entities || [];
         }
+
+        await checkPendingEntities();
 
         if (!data.content || data.content.trim().length === 0) {
             displayMode.value = 'raw';
@@ -907,7 +931,6 @@ onMounted(async () => {
 
 const { showSearch } = useGlobalKeyboard();
 
-const showChat = ref(false);
 const chatMessages = ref<{ role: 'user' | 'assistant'; text: string }[]>([]);
 
 function handleSendMessage(msg: string) {
@@ -987,26 +1010,25 @@ const handleEntityMerged = (sourceEntityId: number, targetEntity: any) => {
 };
 
 const handleEntityHighlight = async (entity: any) => {
-    // Determine which name to search for based on current display mode (extracted vs translated)
     let nameToHighlight = '';
     let aliasValues: string[] = [];
+    let translations = entity.translations || null;
 
     try {
         if (displayMode.value === 'translated' && resource.value.translatedContent) {
-            // Prefer translated name if available in entity.translations for the UI/target language
-            const uiLang = await getLanguageSetting();
-            if (entity.translations && entity.translations[uiLang]) {
-                nameToHighlight = entity.translations[uiLang];
-            } else if (entity.translations && entity.translations['es']) {
-                nameToHighlight = entity.translations['es'];
+            const targetLang = await getLanguageSetting();
+            if (entity.translations && entity.translations[targetLang]) {
+                nameToHighlight = entity.translations[targetLang];
             } else {
                 nameToHighlight = entity.name;
             }
         } else {
-            // extracted or raw content: use original name or translation matching resource language
-            nameToHighlight = entity.name || '';
-            if (entity.translations && resource.value.language && entity.translations[resource.value.language]) {
+            if (resource.value.language === 'en') {
+                nameToHighlight = entity.name;
+            } else if (entity.translations && resource.value.language && entity.translations[resource.value.language]) {
                 nameToHighlight = entity.translations[resource.value.language];
+            } else {
+                nameToHighlight = entity.name;
             }
         }
 
@@ -1017,7 +1039,11 @@ const handleEntityHighlight = async (entity: any) => {
     }
 
     if (extractedContent.value && extractedContent.value.highlightEntity) {
-        extractedContent.value.highlightEntity(nameToHighlight, aliasValues);
+        extractedContent.value.highlightEntity(nameToHighlight, aliasValues, translations);
+    }
+
+    if (translatedContent.value && translatedContent.value.highlightEntity) {
+        translatedContent.value.highlightEntity(nameToHighlight, aliasValues, translations);
     }
 };
 
@@ -1048,6 +1074,22 @@ const confirmResourceExtraction = async () => {
     } finally {
         isConfirming.value = false;
     }
+};
+
+const checkPendingEntities = async () => {
+    try {
+        const response = await apiClient.get(`/pending-entities/resource/${resourceId.value}`);
+        hasPendingEntities.value = response.data && response.data.length > 0;
+    } catch (error) {
+        console.warn('Failed to check pending entities:', error);
+        hasPendingEntities.value = false;
+    }
+};
+
+const handleEntitiesConfirmed = async () => {
+    hasPendingEntities.value = false;
+    await loadResourceDetails();
+    notification.success('Entities confirmed successfully');
 };
 
 </script>

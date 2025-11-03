@@ -63,6 +63,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    displayMode: {
+        type: String as () => 'extracted' | 'translated' | 'summary' | 'raw',
+        default: 'extracted',
+    },
 });
 
 const emit = defineEmits(['content-updated', 'highlight-comment']);
@@ -216,14 +220,22 @@ const clearEntityHighlights = () => {
     });
 };
 
-const highlightEntity = (entityName: string, aliases: string[] = []) => {
+const highlightEntity = (entityName: string, aliases: string[] = [], translations?: { [locale: string]: string }) => {
     if (!extractedContent.value) return;
 
     // Clear previous entity highlights
     clearEntityHighlights();
 
-    // Create array of all terms to highlight (entity name + aliases)
-    const termsToHighlight = [entityName, ...(aliases || [])].filter(term => term && term.trim());
+    let primaryTerm = entityName;
+
+    if (props.displayMode === 'translated' && translations) {
+        const translatedTerm = translations['es'] || translations['it'] || translations['pt'] || translations['de'] || translations['fr'];
+        if (translatedTerm) {
+            primaryTerm = translatedTerm;
+        }
+    }
+
+    const termsToHighlight = [primaryTerm, ...(aliases || [])].filter(term => term && term.trim());
 
     if (termsToHighlight.length === 0) return;
 
