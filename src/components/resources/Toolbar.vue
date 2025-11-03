@@ -37,12 +37,6 @@
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
             </Button>
-            <Button @click="emit('createDocument')" size="small" title="Create new document from this resource">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-            </Button>
             <Button v-if="!isEditMode && (actualDisplayMode === 'translated' || actualDisplayMode === 'summary')"
                 size="small" @click="emit('startEdit')">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
@@ -110,7 +104,7 @@ const props = defineProps({
 
 const actualDisplayMode = ref(props.displayMode || 'extracted');
 
-const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'createDocument', 'ask', 'summarize', 'translate', 'extractEntities']);
+const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'ask', 'summarize', 'translate', 'extractEntities']);
 
 // Only show translate button if:
 // 1. Resource doesn't have translated content already

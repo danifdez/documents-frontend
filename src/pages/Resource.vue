@@ -126,11 +126,10 @@
                     <Toolbar v-if="!isImageFile && !isExtracting" :has-summary="resource.summary"
                         :display-mode="displayMode" @download="downloadResource" @startEdit="startEdit"
                         @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
-                        @create-document="showCreateDocumentModal = true" :hasExtractedContent="hasExtractedContent"
-                        :hasTranslatedContent="hasTranslatedContent" :is-edit-mode="isEditMode" @ask="showChat = true"
-                        :extractedContent="resource.content" :translatedContent="resource.translatedContent"
-                        :sourceLanguage="resource.language || ''" :defaultLanguage="defaultLanguage"
-                        @summarize="handleSummarizeJob" @translate="handleTranslate"
+                        :hasExtractedContent="hasExtractedContent" :hasTranslatedContent="hasTranslatedContent"
+                        :is-edit-mode="isEditMode" @ask="showChat = true" :extractedContent="resource.content"
+                        :translatedContent="resource.translatedContent" :sourceLanguage="resource.language || ''"
+                        :defaultLanguage="defaultLanguage" @summarize="handleSummarizeJob" @translate="handleTranslate"
                         @extractEntities="handleExtractEntities"
                         :hasEntities="resource.entities && resource.entities.length > 0"
                         :isConfirmed="!isPendingConfirmation" />
@@ -303,9 +302,7 @@
             </div>
         </div>
 
-        <CreateDocumentModal v-model="showCreateDocumentModal" :project-id="String(projectStore.currentProject.id)"
-            :resource-content="getResourceContentForDocument()" :resource-name="resource.name"
-            :navigate-after-create="false" @document:created="onDocumentCreated" />
+        <!-- CreateDocumentModal removed: document creation from resource disabled -->
 
         <FloatingSearchBox :active-contents="activeContents" v-model="showSearch" />
 
@@ -321,7 +318,6 @@ import { useResource } from '../services/resources/useResource';
 import { useResourceIcon } from '../composables/useResourceIcon';
 import { useDocument } from '../services/documents/useDocument';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
-import CreateDocumentModal from '../components/documents/CreateDocumentModal.vue';
 import EditorContent from '../components/editor/EditorContent.vue';
 import axios from 'axios';
 import { useProjectStore } from '../store/projectStore';
@@ -357,7 +353,6 @@ const projectStore = useProjectStore();
 const notification = useNotification();
 const rawHtmlContent = ref<string>('');
 const displayMode = ref<'extracted' | 'raw' | 'translated' | 'summary'>('extracted');
-const showCreateDocumentModal = ref(false);
 const splitViewActive = ref(false);
 const splitDocument = ref<any>(null);
 const isDocumentSaving = ref(false);
