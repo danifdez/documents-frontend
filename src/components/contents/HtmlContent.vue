@@ -1,7 +1,7 @@
 <template>
     <div>
         <Toolbar :editor="null" :resourceId="resourceId" @add-mark="handleAddMark" @remove-mark="handleRemoveMark"
-            @add-comment="handleAddComment" />
+            @add-comment="handleAddComment" @send-selection-to-workspace="onToolbarSendSelection" />
         <div class="relative">
             <div v-if="savedSuccessfully"
                 class="absolute top-2 right-2 bg-green-100 text-green-800 px-3 py-1 rounded-md shadow-sm z-10">
@@ -69,7 +69,18 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['content-updated', 'highlight-comment']);
+const emit = defineEmits(['content-updated', 'highlight-comment', 'send-selection-to-workspace']);
+
+const onToolbarSendSelection = (text: string) => {
+    // Forward the event up to parent components (Resource.vue)
+    try {
+        if (text && text.trim()) {
+            emit('send-selection-to-workspace', text);
+        }
+    } catch (e) {
+        console.error('Failed to forward send-selection-to-workspace event', e);
+    }
+};
 
 const settings = ref({ fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 });
 

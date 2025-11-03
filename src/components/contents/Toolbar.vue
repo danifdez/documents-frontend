@@ -25,6 +25,13 @@
                 <span>Add Comment</span>
                 <span class="ml-auto text-xs text-gray-400">Ctrl+Shift+C</span>
             </button>
+            <button @click="handleContextMenuAction('send')"
+                class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 10l8-6v4h6v4h-6v4l-8-6z" fill="currentColor" />
+                </svg>
+                <span>Sent to workspace</span>
+            </button>
         </div>
     </div>
 </template>
@@ -46,7 +53,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment']);
+const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment', 'send-selection-to-workspace']);
 
 const isMarkActive = ref(false);
 const showContextMenu = ref(false);
@@ -80,13 +87,26 @@ const handleAddComment = () => {
     emit('add-comment');
 };
 
-const handleContextMenuAction = (action: 'highlight' | 'comment') => {
+const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send') => {
     showContextMenu.value = false;
 
     if (action === 'highlight') {
         handleAddMark();
     } else if (action === 'comment') {
         handleAddComment();
+    } else if (action === 'send') {
+        // get selection and emit to parent
+        try {
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed) return;
+            const text = selection.toString().trim();
+            if (!text) return;
+            emit('send-selection-to-workspace', text);
+            // clear native selection
+            selection.removeAllRanges();
+        } catch (e) {
+            console.error('Failed to capture selection for send action', e);
+        }
     }
 };
 

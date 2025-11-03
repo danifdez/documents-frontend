@@ -132,6 +132,7 @@
                         :translatedContent="resource.translatedContent" :sourceLanguage="resource.language || ''"
                         :defaultLanguage="defaultLanguage" @summarize="handleSummarizeJob" @translate="handleTranslate"
                         @extractEntities="handleExtractEntities" @createWorkspace="handleCreateWorkspace"
+                        @send-selection-to-workspace="handleToolbarSendSelection"
                         :hasEntities="resource.entities && resource.entities.length > 0"
                         :isConfirmed="!isPendingConfirmation" />
                     <!-- Show extraction message when extracting -->
@@ -204,13 +205,13 @@
                     <div v-else class="flex-1 min-h-0" :class="displayMode === 'raw' ? 'h-full' : 'overflow-y-auto'">
                         <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
                             ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)"
-                            :display-mode="displayMode" />
+                            :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection" />
                         <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
                             :content="resource.translatedContent" :resource-id="String(resource.id)"
-                            :display-mode="displayMode" />
+                            :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection" />
                         <HtmlContent v-else-if="displayMode === 'summary'" ref="summaryContent"
-                            :content="resource.summary" :resource-id="String(resource.id)"
-                            :display-mode="displayMode" />
+                            :content="resource.summary" :resource-id="String(resource.id)" :display-mode="displayMode"
+                            @send-selection-to-workspace="handleToolbarSendSelection" />
                         <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full h-full border-0"
                             :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
                         </iframe>
@@ -1260,6 +1261,35 @@ const handleWorkspaceNameChange = async () => {
     }, 1000);
 };
 
+const escapeHtml = (unsafe: string) => {
+    return unsafe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+};
+
+
+// Handler invoked when Toolbar emits selection to send to workspace
+const handleToolbarSendSelection = async (text: string) => {
+    if (!workspaceDocument.value || !workspaceDocument.value.id || !text || !text.trim()) return;
+
+    try {
+        const existing = workspaceDocument.value.content || '';
+        const paragraph = `<p>${escapeHtml(text.trim())}</p>`;
+        const newContent = existing + paragraph;
+
+        await saveDocument(workspaceDocument.value.id, { content: newContent });
+        workspaceDocument.value.content = newContent;
+
+        notification.success('Selection added to workspace document');
+    } catch (error) {
+        console.error('Failed to append selection to workspace', error);
+        notification.error('Failed to add selection to workspace');
+    }
+};
+
 </script>
 
 <style scoped>
@@ -1344,3 +1374,25 @@ const handleWorkspaceNameChange = async () => {
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.04);
 }
 </style>
+
+/* Selection menu styles */
+.selection-menu {
+position: fixed;
+z-index: 10000;
+background: white;
+border: 1px solid rgba(0,0,0,0.08);
+box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+border-radius: 6px;
+padding: 6px 8px;
+}
+.selection-menu button {
+background: transparent;
+border: none;
+padding: 6px 10px;
+width: 100%;
+text-align: left;
+cursor: pointer;
+}
+.selection-menu button:hover {
+background: rgba(0,0,0,0.04);
+}
