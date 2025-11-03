@@ -1,5 +1,5 @@
 <template>
-    <div v-if="currentProjectId && documents.length > 0" class="documents-sidebar border-t border-gray-200 pt-3">
+    <div v-if="currentProjectId && documents.length > 0" class="documents-sidebar pt-3">
         <div class="px-3 mb-2 flex items-center justify-between">
             <h3 v-if="!isSearching" @click="startSearch"
                 class="text-sm font-semibold text-gray-700 cursor-pointer hover:text-gray-900"

@@ -37,6 +37,14 @@
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
             </Button>
+            <Button v-if="!hasWorkspace && !hideWorkspace" @click="emit('createWorkspace')" size="small"
+                title="Create Workspace">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </Button>
             <Button v-if="!isEditMode && (actualDisplayMode === 'translated' || actualDisplayMode === 'summary')"
                 size="small" @click="emit('startEdit')">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
@@ -59,6 +67,10 @@
                 <Button v-if="hasSummary" size="small" variant="secondary" :active="actualDisplayMode === 'summary'"
                     @click="changeDisplayMode('summary')" type="button">
                     Summary
+                </Button>
+                <Button v-if="hasWorkspace && !hideWorkspace" size="small" variant="secondary"
+                    :active="actualDisplayMode === 'workspace'" @click="changeDisplayMode('workspace')" type="button">
+                    Workspace
                 </Button>
                 <Button size="small" variant="secondary" :active="actualDisplayMode === 'raw'"
                     @click="changeDisplayMode('raw')">
@@ -86,16 +98,18 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, computed } from 'vue';
+import { defineProps, defineEmits, ref, computed, watch } from 'vue';
 import Button from '../ui/Button.vue';
 import ButtonGroup from '../ui/ButtonGroup.vue';
 const props = defineProps({
     isEditMode: { type: Boolean },
     isSaving: { type: Boolean },
-    displayMode: { type: String, values: ['extracted', 'translated', 'raw'] },
+    displayMode: { type: String, values: ['extracted', 'translated', 'raw', 'workspace'] },
     hasExtractedContent: { type: Boolean },
     hasTranslatedContent: { type: Boolean },
     hasSummary: { type: Boolean, default: false },
+    hasWorkspace: { type: Boolean, default: false },
+    hideWorkspace: { type: Boolean, default: false },
     hasEntities: { type: Boolean, default: false },
     sourceLanguage: { type: String, default: '' },
     defaultLanguage: { type: String, default: 'en' },
@@ -104,7 +118,20 @@ const props = defineProps({
 
 const actualDisplayMode = ref(props.displayMode || 'extracted');
 
-const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'ask', 'summarize', 'translate', 'extractEntities']);
+// Keep internal actualDisplayMode in sync with parent prop changes
+watch(() => props.displayMode, (val) => {
+    actualDisplayMode.value = val || 'extracted';
+});
+
+// If the workspace tab gets hidden (e.g. because it's shown in split), and the toolbar
+// was showing the 'workspace' active, switch it to 'extracted' so Content stays active.
+watch(() => props.hideWorkspace, (hidden) => {
+    if (hidden && actualDisplayMode.value === 'workspace') {
+        actualDisplayMode.value = 'extracted';
+    }
+});
+
+const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'ask', 'summarize', 'translate', 'extractEntities', 'createWorkspace']);
 
 // Only show translate button if:
 // 1. Resource doesn't have translated content already

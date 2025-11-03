@@ -96,11 +96,11 @@
 
         <!-- Normal View: with sidebar -->
         <div v-else class="grid grid-cols-1 gap-6 flex-1 overflow-hidden min-h-0"
-            :class="[splitViewActive ? 'lg:grid-cols-2' : 'md:grid-cols-3', { 'drag-over': isDragOver }]"
+            :class="[splitViewActive ? 'lg:grid-cols-2' : showSidebar ? 'md:grid-cols-3' : 'md:grid-cols-1', { 'drag-over': isDragOver }]"
             @dragover="onDragOver" @dragenter="onDragEnter" @dragleave="onDragLeave" @drop="onDrop">
             <div class="flex flex-col overflow-hidden min-h-0"
-                :class="[splitViewActive ? 'lg:col-span-1' : 'md:col-span-2', { 'split-view-active': splitViewActive }]">
-                <div class="bg-white p-4 shadow rounded-lg flex-shrink-0">
+                :class="[splitViewActive ? 'lg:col-span-1' : showSidebar ? 'md:col-span-2' : 'md:col-span-1', { 'split-view-active': splitViewActive }]">
+                <div class="bg-white p-4 flex-shrink-0">
                     <div class="flex items-center mb-4">
                         <IconType :mimeType="resource.mimeType" />
                         <div class="flex items-center flex-grow">
@@ -127,10 +127,11 @@
                         :display-mode="displayMode" @download="downloadResource" @startEdit="startEdit"
                         @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         :hasExtractedContent="hasExtractedContent" :hasTranslatedContent="hasTranslatedContent"
+                        :hasWorkspace="!!workspaceDocument" :hide-workspace="isWorkspaceShownInSplit"
                         :is-edit-mode="isEditMode" @ask="showChat = true" :extractedContent="resource.content"
                         :translatedContent="resource.translatedContent" :sourceLanguage="resource.language || ''"
                         :defaultLanguage="defaultLanguage" @summarize="handleSummarizeJob" @translate="handleTranslate"
-                        @extractEntities="handleExtractEntities"
+                        @extractEntities="handleExtractEntities" @createWorkspace="handleCreateWorkspace"
                         :hasEntities="resource.entities && resource.entities.length > 0"
                         :isConfirmed="!isPendingConfirmation" />
                     <!-- Show extraction message when extracting -->
@@ -151,12 +152,54 @@
                     </div>
                 </div>
 
-                <div class="border border-gray-200 rounded-lg bg-white mt-4 shadow flex-1 min-h-0 flex flex-col overflow-hidden"
-                    :class="displayMode === 'raw' ? 'p-0' : 'px-5 py-4'">
+                <div class=" bg-white mt-4 flex-1 min-h-0 flex flex-col overflow-hidden"
+                    :class="(displayMode === 'raw' || displayMode === 'workspace') ? 'p-0' : 'px-5 py-4'">
                     <div v-if="isEditMode" class="w-full flex-1 overflow-y-auto">
                         <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
                             :saved-successfully="savedSuccessfully" context="resource"
                             @content-change="handleEditContentChange" />
+                    </div>
+                    <div v-else-if="displayMode === 'workspace' && workspaceDocument"
+                        class="flex flex-col h-full w-full min-w-0">
+                        <div class="flex justify-between items-center mb-4">
+                            <div
+                                class="text-xl font-semibold bg-transparent border-none outline-none focus:bg-gray-50 focus:px-2 focus:py-1 rounded w-full">
+                                Workspace</div>
+                            <div class="flex gap-2 ml-2">
+                                <Button @click="activateWorkspaceSplitView" size="small" title="Open in split view">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7h12M8 12h12m-7 5h7M3 7h.01M3 12h.01M3 17h.01" />
+                                    </svg>
+                                </Button>
+                            </div>
+                        </div>
+                        <div v-if="isDocumentSaving" class="flex items-center text-sm text-gray-500 mb-2">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            Saving...
+                        </div>
+                        <div v-else-if="documentSavedSuccessfully"
+                            class="flex items-center text-sm text-green-600 mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                            Saved
+                        </div>
+                        <div class="flex-1 overflow-y-auto min-w-0 w-full overflow-x-hidden">
+                            <EditorContent ref="workspaceEditor" :content="workspaceDocument.content || ''"
+                                :is-saving="isDocumentSaving" :saved-successfully="documentSavedSuccessfully"
+                                context="workspace" @content-change="handleWorkspaceContentChange" />
+                        </div>
                     </div>
                     <div v-else class="flex-1 min-h-0" :class="displayMode === 'raw' ? 'h-full' : 'overflow-y-auto'">
                         <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
@@ -185,7 +228,7 @@
             <!-- Split View Document Area -->
             <div v-if="splitViewActive && splitDocument"
                 class="lg:col-span-1 flex flex-col overflow-hidden min-h-0 split-document-panel">
-                <div class="bg-white p-4 shadow rounded-lg flex-shrink-0">
+                <div class="bg-white p-4 flex-shrink-0">
                     <div class="flex items-center justify-between mb-4">
                         <input v-model="splitDocument.name" @input="handleDocumentNameChange" type="text"
                             class="text-2xl font-bold bg-transparent border-none outline-none focus:bg-gray-50 focus:px-2 focus:py-1 rounded w-full"
@@ -200,18 +243,6 @@
                     </div>
 
                     <div class="mb-3 flex justify-between items-center">
-                        <div class="flex gap-2">
-                            <a :href="`/document/${splitDocument.id}`"
-                                class="inline-flex items-center px-4 py-1 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                            </a>
-                        </div>
                         <div v-if="isDocumentSaving" class="flex items-center text-sm text-gray-500">
                             <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -241,8 +272,8 @@
                 </div>
             </div>
 
-            <div v-if="!splitViewActive" class="md:col-span-1 flex flex-col overflow-hidden min-h-0">
-                <div class="bg-white p-4 shadow rounded-lg flex-shrink-0">
+            <div v-if="!splitViewActive && showSidebar" class="md:col-span-1 flex flex-col overflow-hidden min-h-0">
+                <div class="bg-white p-4 flex-shrink-0">
                     <div class="flex items-center justify-between mb-4">
                         <ButtonGroup>
                             <Button variant="secondary" :active="viewSideBar === 'properties'"
@@ -290,11 +321,11 @@
                     </div>
                     <div v-else-if="viewSideBar === 'entities'">
                         <PendingEntitiesValidator v-if="hasPendingEntities" :resource-id="resourceId"
-                            :display-mode="displayMode" :resource-language="resource.language"
+                            :display-mode="displayModeForEntities" :resource-language="resource.language"
                             :target-language="defaultLanguage" @entities:confirmed="handleEntitiesConfirmed"
                             @entity:highlight="handleEntityHighlight" />
                         <EntitiesList v-else :resource-id="resourceId" :entities="resource.entities || []"
-                            :display-mode="displayMode" :resource-language="resource.language"
+                            :display-mode="displayModeForEntities" :resource-language="resource.language"
                             :target-language="defaultLanguage" @entity:removed="handleEntityRemoved"
                             @entity:merged="handleEntityMerged" @entity:highlight="handleEntityHighlight" />
                     </div>
@@ -352,7 +383,7 @@ const resource = ref<any>({});
 const projectStore = useProjectStore();
 const notification = useNotification();
 const rawHtmlContent = ref<string>('');
-const displayMode = ref<'extracted' | 'raw' | 'translated' | 'summary'>('extracted');
+const displayMode = ref<'extracted' | 'raw' | 'translated' | 'summary' | 'workspace'>('extracted');
 const splitViewActive = ref(false);
 const splitDocument = ref<any>(null);
 const isDocumentSaving = ref(false);
@@ -362,6 +393,7 @@ const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL;
 const editorContentRef = ref();
 const splitEditor = ref();
+const workspaceEditor = ref();
 const viewSideBar = ref<'properties' | 'comments' | 'index' | 'entities'>('properties');
 
 const isEditMode = ref(false);
@@ -385,11 +417,22 @@ const tocItems = ref<{ id: string; text: string; level: number }[]>([]);
 const defaultLanguage = ref<string>('en');
 const isConfirming = ref(false);
 const hasPendingEntities = ref(false);
+const workspaceDocument = ref<any>(null);
+const isLoadingWorkspace = ref(false);
+const isWorkspaceShownInSplit = ref(false);
 
 // Computed properties for resource status
 const isPendingConfirmation = computed(() => resource.value.confirmationStatus === 'pending');
 const isExtracting = computed(() => !resource.value.content || resource.value.content.trim().length === 0);
 const canInteract = computed(() => !isPendingConfirmation.value && !isExtracting.value);
+const isWorkspaceSplitView = computed(() => splitViewActive.value && splitDocument.value?.id === workspaceDocument.value?.id);
+const showSidebar = computed(() => !isWorkspaceSplitView.value);
+const displayModeForEntities = computed<'extracted' | 'raw' | 'translated' | 'summary'>(() => {
+    if (displayMode.value === 'workspace') {
+        return 'extracted'; // Default mode for entities when in workspace
+    }
+    return displayMode.value;
+});
 
 const refreshTocFromChild = () => {
     // HtmlContent exposes `toc` and `scrollToHeading`
@@ -463,12 +506,26 @@ const activeContents = computed(() => {
         });
     }
 
+    if (workspaceDocument.value && displayMode.value === 'workspace') {
+        contents.push({
+            type: 'edit',
+            content: workspaceEditor,
+        });
+    }
+
     return contents;
 });
 
-const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated' | 'summary') => {
+const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated' | 'summary' | 'workspace') => {
     displayMode.value = mode;
 };
+
+// When split view state changes, clear the workspace-split flag if split closed
+watch(splitViewActive, (val) => {
+    if (!val) {
+        isWorkspaceShownInSplit.value = false;
+    }
+});
 
 const hasExtractedContent = computed(() => {
     return resource.value.content && resource.value.content.trim().length > 0;
@@ -584,6 +641,8 @@ watch(resourceId, () => {
     // Reset displayMode to 'extracted' when navigating to a new resource
     displayMode.value = 'extracted';
     loadResourceDetails();
+    // Reload workspace document for the new resource
+    loadWorkspaceDocument();
 });
 
 // Watch for content becoming available and switch from raw to extracted view
@@ -622,6 +681,8 @@ const onDocumentCreated = (document: any) => {
 const closeSplitView = () => {
     splitViewActive.value = false;
     splitDocument.value = null;
+    // If we closed a split that was showing the workspace, clear the flag
+    isWorkspaceShownInSplit.value = false;
 };
 
 const handleDocumentContentChange = async (content: string) => {
@@ -917,6 +978,7 @@ const saveResourceName = async () => {
 
 onMounted(async () => {
     loadResourceDetails();
+    loadWorkspaceDocument();
     // Load default language from settings
     if (window.electronAPI && window.electronAPI.getSettings) {
         const settings = await window.electronAPI.getSettings();
@@ -1085,6 +1147,117 @@ const handleEntitiesConfirmed = async () => {
     hasPendingEntities.value = false;
     await loadResourceDetails();
     notification.success('Entities confirmed successfully');
+};
+
+const loadWorkspaceDocument = async () => {
+    if (!resourceId.value) return;
+
+    isLoadingWorkspace.value = true;
+    try {
+        const response = await apiClient.get(`/docs/resource/${resourceId.value}`);
+        workspaceDocument.value = response.data;
+    } catch (error: any) {
+        if (error?.response?.status !== 404) {
+            console.error('Error loading workspace document:', error);
+        }
+        workspaceDocument.value = null;
+    } finally {
+        isLoadingWorkspace.value = false;
+    }
+};
+
+const handleCreateWorkspace = async () => {
+    if (workspaceDocument.value) {
+        // If workspace already exists, switch to it
+        displayMode.value = 'workspace';
+        return;
+    }
+
+    try {
+        const newDoc = await apiClient.post('/docs', {
+            name: `${resource.value.name} - Workspace`,
+            content: '',
+            resource: { id: Number(resourceId.value) },
+            project: resource.value.project ? { id: resource.value.project.id } : null,
+        });
+
+        workspaceDocument.value = newDoc.data;
+        notification.success('Workspace created successfully');
+
+        // Switch to workspace view
+        displayMode.value = 'workspace';
+    } catch (error) {
+        console.error('Error creating workspace:', error);
+        notification.error('Failed to create workspace');
+    }
+};
+
+const activateWorkspaceSplitView = () => {
+    if (workspaceDocument.value) {
+        splitDocument.value = workspaceDocument.value;
+        // When opening the workspace in split, switch back to resource 'Content' view
+        // and mark that workspace is shown in split so toolbar can hide the workspace tab
+        displayMode.value = 'extracted';
+        splitViewActive.value = true;
+        isWorkspaceShownInSplit.value = true;
+    }
+};
+
+const handleWorkspaceContentChange = async (content: string) => {
+    if (!workspaceDocument.value || !workspaceDocument.value.id) {
+        return;
+    }
+
+    if (documentSaveTimeout.value) {
+        clearTimeout(documentSaveTimeout.value);
+    }
+
+    isDocumentSaving.value = true;
+    documentSavedSuccessfully.value = false;
+
+    documentSaveTimeout.value = setTimeout(async () => {
+        try {
+            await saveDocument(workspaceDocument.value.id, { content });
+            workspaceDocument.value.content = content;
+            documentSavedSuccessfully.value = true;
+
+            setTimeout(() => {
+                documentSavedSuccessfully.value = false;
+            }, 3000);
+        } catch (error) {
+            notification.error('Failed to save workspace content');
+        } finally {
+            isDocumentSaving.value = false;
+        }
+    }, 1000);
+};
+
+const handleWorkspaceNameChange = async () => {
+    if (!workspaceDocument.value || !workspaceDocument.value.id || !workspaceDocument.value.name.trim()) {
+        return;
+    }
+
+    if (documentNameSaveTimeout.value) {
+        clearTimeout(documentNameSaveTimeout.value);
+    }
+
+    isDocumentSaving.value = true;
+    documentSavedSuccessfully.value = false;
+
+    documentNameSaveTimeout.value = setTimeout(async () => {
+        try {
+            await saveDocument(workspaceDocument.value.id, { name: workspaceDocument.value.name.trim() });
+            documentSavedSuccessfully.value = true;
+
+            setTimeout(() => {
+                documentSavedSuccessfully.value = false;
+            }, 3000);
+        } catch (error) {
+            notification.error('Failed to save workspace name');
+        } finally {
+            isDocumentSaving.value = false;
+        }
+    }, 1000);
 };
 
 </script>

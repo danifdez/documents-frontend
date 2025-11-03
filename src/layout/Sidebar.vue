@@ -1,5 +1,5 @@
 <template>
-    <div class="sidebar h-screen transition-all duration-300 flex flex-col border-r border-gray-200 bg-white shadow-sm"
+    <div class="sidebar h-screen transition-all duration-300 flex flex-col bg-white shadow-sm"
         :class="{ 'w-16': collapsed, 'w-60': !collapsed }">
         <div class="flex justify-end p-2">
             <Button @click="toggleCollapse">
