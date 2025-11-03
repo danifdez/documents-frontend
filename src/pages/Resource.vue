@@ -205,7 +205,9 @@
                     <div v-else class="flex-1 min-h-0" :class="displayMode === 'raw' ? 'h-full' : 'overflow-y-auto'">
                         <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
                             ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)"
-                            :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection" />
+                            :display-mode="displayMode" :has-workspace="!!workspaceDocument"
+                            @send-selection-to-workspace="handleToolbarSendSelection"
+                            @summarize-selection="handleSummarizeSelection" />
                         <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
                             :content="resource.translatedContent" :resource-id="String(resource.id)"
                             :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection" />
@@ -1287,6 +1289,40 @@ const handleToolbarSendSelection = async (text: string) => {
     } catch (error) {
         console.error('Failed to append selection to workspace', error);
         notification.error('Failed to add selection to workspace');
+    }
+};
+
+// Handle summarize action from selection: create a summarize job that targets the workspace document
+const handleSummarizeSelection = async (text: string) => {
+    if (!text || !text.trim()) return;
+
+    try {
+        // Ensure workspace exists
+        if (!workspaceDocument.value) {
+            // create workspace document
+            const newDoc = await apiClient.post('/docs', {
+                name: `${resource.value.name} - Workspace`,
+                content: '',
+                resource: { id: Number(resourceId.value) },
+                project: resource.value.project ? { id: resource.value.project.id } : null,
+            });
+            workspaceDocument.value = newDoc.data;
+            notification.success('Workspace created to receive summary');
+        }
+
+        // Create a summarize job including the selected text and target document id
+        await apiClient.post('/model/summarize', {
+            text: text.trim(),
+            sourceLanguage: resource.value.language || defaultLanguage.value,
+            targetLanguage: await getLanguageSetting(),
+            targetDocId: workspaceDocument.value.id,
+            type: 'workspace-selection',
+        });
+
+        notification.success('Summarization job created for selected text');
+    } catch (error) {
+        console.error('Failed to create summarize job for selection', error);
+        notification.error('Failed to create summarization job');
     }
 };
 

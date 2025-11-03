@@ -1,7 +1,8 @@
 <template>
     <div>
-        <Toolbar :editor="null" :resourceId="resourceId" @add-mark="handleAddMark" @remove-mark="handleRemoveMark"
-            @add-comment="handleAddComment" @send-selection-to-workspace="onToolbarSendSelection" />
+        <Toolbar :editor="null" :resourceId="resourceId" :hasWorkspace="hasWorkspace" @add-mark="handleAddMark"
+            @remove-mark="handleRemoveMark" @add-comment="handleAddComment"
+            @send-selection-to-workspace="onToolbarSendSelection" @summarize-selection="onToolbarSummarizeSelection" />
         <div class="relative">
             <div v-if="savedSuccessfully"
                 class="absolute top-2 right-2 bg-green-100 text-green-800 px-3 py-1 rounded-md shadow-sm z-10">
@@ -63,13 +64,17 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    hasWorkspace: {
+        type: Boolean,
+        default: false,
+    },
     displayMode: {
         type: String as () => 'extracted' | 'translated' | 'summary' | 'raw',
         default: 'extracted',
     },
 });
 
-const emit = defineEmits(['content-updated', 'highlight-comment', 'send-selection-to-workspace']);
+const emit = defineEmits(['content-updated', 'highlight-comment', 'send-selection-to-workspace', 'summarize-selection']);
 
 const onToolbarSendSelection = (text: string) => {
     // Forward the event up to parent components (Resource.vue)
@@ -79,6 +84,16 @@ const onToolbarSendSelection = (text: string) => {
         }
     } catch (e) {
         console.error('Failed to forward send-selection-to-workspace event', e);
+    }
+};
+
+const onToolbarSummarizeSelection = (text: string) => {
+    try {
+        if (text && text.trim()) {
+            emit('summarize-selection', text);
+        }
+    } catch (e) {
+        console.error('Failed to forward summarize-selection event', e);
     }
 };
 

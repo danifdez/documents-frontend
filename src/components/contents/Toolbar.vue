@@ -32,6 +32,14 @@
                 </svg>
                 <span>Sent to workspace</span>
             </button>
+            <button v-if="hasWorkspace" @click="handleContextMenuAction('summarize')"
+                class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6h16v2H4zM4 11h10v2H4zM4 16h8v2H4z" fill="currentColor" />
+                </svg>
+                <span>Summarize selection</span>
+                <span class="ml-auto text-xs text-gray-400">Ctrl+Alt+S</span>
+            </button>
         </div>
     </div>
 </template>
@@ -50,10 +58,14 @@ const props = defineProps({
     },
     resourceId: {
         type: String,
+    },
+    hasWorkspace: {
+        type: Boolean,
+        default: false,
     }
 });
 
-const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment', 'send-selection-to-workspace']);
+const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment', 'send-selection-to-workspace', 'summarize-selection']);
 
 const isMarkActive = ref(false);
 const showContextMenu = ref(false);
@@ -87,7 +99,7 @@ const handleAddComment = () => {
     emit('add-comment');
 };
 
-const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send') => {
+const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send' | 'summarize') => {
     showContextMenu.value = false;
 
     if (action === 'highlight') {
@@ -106,6 +118,18 @@ const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send') => {
             selection.removeAllRanges();
         } catch (e) {
             console.error('Failed to capture selection for send action', e);
+        }
+    }
+    else if (action === 'summarize') {
+        try {
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed) return;
+            const text = selection.toString().trim();
+            if (!text) return;
+            emit('summarize-selection', text);
+            selection.removeAllRanges();
+        } catch (e) {
+            console.error('Failed to capture selection for summarize action', e);
         }
     }
 };
@@ -150,6 +174,13 @@ const handleKeyboardShortcut = (event: KeyboardEvent) => {
     if (event.ctrlKey && event.shiftKey && event.key === 'C') {
         event.preventDefault();
         handleAddComment();
+        return;
+    }
+
+    // Ctrl+Alt+S for Summarize selection
+    if (event.ctrlKey && event.altKey && (event.key === 's' || event.key === 'S')) {
+        event.preventDefault();
+        handleContextMenuAction('summarize');
         return;
     }
 };
