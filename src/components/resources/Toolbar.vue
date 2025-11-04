@@ -66,7 +66,7 @@
                 </Button>
                 <Button v-if="hasSummary" size="small" variant="secondary" :active="actualDisplayMode === 'summary'"
                     @click="changeDisplayMode('summary')" type="button">
-                    Summary
+                    Overview
                 </Button>
                 <Button v-if="hasWorkspace && !hideWorkspace" size="small" variant="secondary"
                     :active="actualDisplayMode === 'workspace'" @click="changeDisplayMode('workspace')" type="button">
