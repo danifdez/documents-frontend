@@ -30,6 +30,13 @@
                         d="M7 12a3 3 0 100-6 3 3 0 000 6zm10 6a3 3 0 100-6 3 3 0 000 6zM7 12l10 6" />
                 </svg>
             </Button>
+            <Button v-if="!hasKeyPoints" size="small" @click="emit('keyPoints')" title="Key Points">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 13l4 4L19 7M3 5h18M3 10h18M3 15h18" />
+                </svg>
+            </Button>
             <Button @click="emit('download')" size="small" title="Download Resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -64,8 +71,8 @@
                     :active="actualDisplayMode === 'translated'" @click="changeDisplayMode('translated')" type="button">
                     Translated
                 </Button>
-                <Button v-if="hasSummary" size="small" variant="secondary" :active="actualDisplayMode === 'summary'"
-                    @click="changeDisplayMode('summary')" type="button">
+                <Button v-if="hasSummary || hasKeyPoints" size="small" variant="secondary"
+                    :active="actualDisplayMode === 'overview'" @click="changeDisplayMode('overview')" type="button">
                     Overview
                 </Button>
                 <Button v-if="hasWorkspace && !hideWorkspace" size="small" variant="secondary"
@@ -108,6 +115,7 @@ const props = defineProps({
     hasExtractedContent: { type: Boolean },
     hasTranslatedContent: { type: Boolean },
     hasSummary: { type: Boolean, default: false },
+    hasKeyPoints: { type: Boolean, default: false },
     hasWorkspace: { type: Boolean, default: false },
     hideWorkspace: { type: Boolean, default: false },
     hasEntities: { type: Boolean, default: false },
@@ -131,7 +139,7 @@ watch(() => props.hideWorkspace, (hidden) => {
     }
 });
 
-const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'ask', 'summarize', 'translate', 'extractEntities', 'createWorkspace']);
+const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'ask', 'summarize', 'translate', 'extractEntities', 'createWorkspace', 'keyPoints']);
 
 // Only show translate button if:
 // 1. Resource doesn't have translated content already

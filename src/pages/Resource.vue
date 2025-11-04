@@ -124,6 +124,7 @@
                     </div>
                     <!-- Toolbar (not shown for images or during extraction) -->
                     <Toolbar v-if="!isImageFile && !isExtracting" :has-summary="resource.summary"
+                        :has-key-points="resource.keyPoints && resource.keyPoints.length > 0"
                         :display-mode="displayMode" @download="downloadResource" @startEdit="startEdit"
                         @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         :hasExtractedContent="hasExtractedContent" :hasTranslatedContent="hasTranslatedContent"
@@ -132,7 +133,7 @@
                         :translatedContent="resource.translatedContent" :sourceLanguage="resource.language || ''"
                         :defaultLanguage="defaultLanguage" @summarize="handleSummarizeJob" @translate="handleTranslate"
                         @extractEntities="handleExtractEntities" @createWorkspace="handleCreateWorkspace"
-                        @send-selection-to-workspace="handleToolbarSendSelection"
+                        @keyPoints="handleKeyPointsJob" @send-selection-to-workspace="handleToolbarSendSelection"
                         :hasEntities="resource.entities && resource.entities.length > 0"
                         :isConfirmed="!isPendingConfirmation" />
                     <!-- Show extraction message when extracting -->
@@ -211,9 +212,26 @@
                         <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
                             :content="resource.translatedContent" :resource-id="String(resource.id)"
                             :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection" />
-                        <HtmlContent v-else-if="displayMode === 'summary'" ref="summaryContent"
-                            :content="resource.summary" :resource-id="String(resource.id)" :display-mode="displayMode"
-                            @send-selection-to-workspace="handleToolbarSendSelection" />
+                        <div v-else-if="displayMode === 'overview'" class="space-y-4">
+                            <div v-if="resource.summary">
+                                <details class="bg-white p-4 rounded shadow">
+                                    <summary class="cursor-pointer font-semibold">Summary</summary>
+                                    <div class="mt-2 prose max-w-none" v-html="resource.summary"></div>
+                                </details>
+                            </div>
+
+                            <div v-if="resource.keyPoints && resource.keyPoints.length">
+                                <details class="bg-white p-4 rounded shadow">
+                                    <summary class="cursor-pointer font-semibold">Key Points</summary>
+                                    <div class="mt-2">
+                                        <ul class="list-disc list-inside space-y-2">
+                                            <li v-for="(kp, idx) in resource.keyPoints" :key="idx"
+                                                class="text-sm text-gray-700">{{ kp }}</li>
+                                        </ul>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
                         <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full h-full border-0"
                             :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
                         </iframe>
@@ -386,7 +404,7 @@ const resource = ref<any>({});
 const projectStore = useProjectStore();
 const notification = useNotification();
 const rawHtmlContent = ref<string>('');
-const displayMode = ref<'extracted' | 'raw' | 'translated' | 'summary' | 'workspace'>('extracted');
+const displayMode = ref<'extracted' | 'raw' | 'translated' | 'overview' | 'workspace'>('extracted');
 const splitViewActive = ref(false);
 const splitDocument = ref<any>(null);
 const isDocumentSaving = ref(false);
@@ -430,7 +448,7 @@ const isExtracting = computed(() => !resource.value.content || resource.value.co
 const canInteract = computed(() => !isPendingConfirmation.value && !isExtracting.value);
 const isWorkspaceSplitView = computed(() => splitViewActive.value && splitDocument.value?.id === workspaceDocument.value?.id);
 const showSidebar = computed(() => !isWorkspaceSplitView.value);
-const displayModeForEntities = computed<'extracted' | 'raw' | 'translated' | 'summary'>(() => {
+const displayModeForEntities = computed<'extracted' | 'raw' | 'translated' | 'overview'>(() => {
     if (displayMode.value === 'workspace') {
         return 'extracted'; // Default mode for entities when in workspace
     }
@@ -519,7 +537,7 @@ const activeContents = computed(() => {
     return contents;
 });
 
-const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated' | 'summary' | 'workspace') => {
+const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated' | 'overview' | 'workspace') => {
     displayMode.value = mode;
 };
 
@@ -659,9 +677,9 @@ watch(() => resource.value.content, (newContent, oldContent) => {
 // Watch for summary becoming available and switch to summary view
 watch(() => resource.value.summary, (newSummary, oldSummary) => {
     // If summary becomes available after the resource was already loaded (oldSummary === null or ''),
-    // switch to summary view. Don't switch on initial load (oldSummary === undefined).
+    // switch to overview view. Don't switch on initial load (oldSummary === undefined).
     if (newSummary && newSummary.trim().length > 0 && oldSummary !== undefined && (!oldSummary || oldSummary.trim().length === 0)) {
-        displayMode.value = 'summary';
+        displayMode.value = 'overview';
     }
 });
 
@@ -821,8 +839,8 @@ const startEdit = () => {
     } else if (displayMode.value === 'translated' && resource.value.translatedContent) {
         editType.value = 'translatedContent';
         editContent.value = resource.value.translatedContent;
-    } else if (displayMode.value === 'summary' && resource.value.summary) {
-        editType.value = 'summary';
+    } else if (displayMode.value === 'overview') {
+        editType.value = 'overview';
         editContent.value = resource.value.summary;
     }
     isEditMode.value = true;
@@ -1035,6 +1053,19 @@ const handleTranslate = async () => {
         notification.error('Failed to create translation job');
     }
 }
+
+const handleKeyPointsJob = async () => {
+    try {
+        const language = await getLanguageSetting();
+        await apiClient.post('/model/key-points', {
+            resourceId: resourceId.value,
+            targetLanguage: language,
+        });
+        notification.success('Key points job created successfully');
+    } catch (error) {
+        notification.error('Failed to create key points job');
+    }
+};
 
 const handleExtractEntities = async () => {
     if (!resourceId.value) return;
