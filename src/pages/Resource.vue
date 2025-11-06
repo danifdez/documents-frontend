@@ -215,14 +215,14 @@
                             :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection" />
                         <div v-else-if="displayMode === 'overview'" class="space-y-4">
                             <div v-if="resource.summary">
-                                <details class="bg-white p-4 rounded shadow">
+                                <details open class="bg-white p-4 rounded shadow">
                                     <summary class="cursor-pointer font-semibold">Summary</summary>
                                     <div class="mt-2 prose max-w-none" v-html="resource.summary"></div>
                                 </details>
                             </div>
 
                             <div v-if="resource.keyPoints && resource.keyPoints.length">
-                                <details class="bg-white p-4 rounded shadow">
+                                <details open class="bg-white p-4 rounded shadow">
                                     <summary class="cursor-pointer font-semibold">Key Points</summary>
                                     <div class="mt-2">
                                         <ul class="list-disc list-inside space-y-2">
@@ -233,7 +233,7 @@
                                 </details>
                             </div>
                             <div v-if="resource.keywords && resource.keywords.length">
-                                <details class="bg-white p-4 rounded shadow">
+                                <details open class="bg-white p-4 rounded shadow">
                                     <summary class="cursor-pointer font-semibold">Keywords</summary>
                                     <div class="mt-2">
                                         <ul class="flex flex-wrap gap-2">
@@ -461,11 +461,22 @@ const isExtracting = computed(() => !resource.value.content || resource.value.co
 const canInteract = computed(() => !isPendingConfirmation.value && !isExtracting.value);
 const isWorkspaceSplitView = computed(() => splitViewActive.value && splitDocument.value?.id === workspaceDocument.value?.id);
 const showSidebar = computed(() => !isWorkspaceSplitView.value);
-const displayModeForEntities = computed<'extracted' | 'raw' | 'translated' | 'overview'>(() => {
+const displayModeForEntities = computed<'extracted' | 'raw' | 'translated' | 'summary'>(() => {
+    // Child components expect 'summary' instead of 'overview'.
     if (displayMode.value === 'workspace') {
         return 'extracted'; // Default mode for entities when in workspace
     }
-    return displayMode.value;
+
+    if (displayMode.value === 'overview') {
+        return 'summary';
+    }
+
+    // Ensure value is one of the allowed ones
+    if (displayMode.value === 'extracted' || displayMode.value === 'raw' || displayMode.value === 'translated') {
+        return displayMode.value;
+    }
+
+    return 'extracted';
 });
 
 const refreshTocFromChild = () => {
@@ -853,7 +864,7 @@ const startEdit = () => {
         editType.value = 'translatedContent';
         editContent.value = resource.value.translatedContent;
     } else if (displayMode.value === 'overview') {
-        editType.value = 'overview';
+        editType.value = 'summary';
         editContent.value = resource.value.summary;
     }
     isEditMode.value = true;
