@@ -157,10 +157,109 @@
 
                 <div class=" bg-white mt-4 flex-1 min-h-0 flex flex-col overflow-hidden"
                     :class="(displayMode === 'raw' || displayMode === 'workspace') ? 'p-0' : 'px-5 py-4'">
-                    <div v-if="isEditMode" class="w-full flex-1 overflow-y-auto">
+                    <div v-if="isEditMode && editType !== 'overview'" class="w-full flex-1 overflow-y-auto">
                         <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
                             :saved-successfully="savedSuccessfully" context="resource"
                             @content-change="handleEditContentChange" />
+                    </div>
+                    <div v-else-if="isEditMode && editType === 'overview'"
+                        class="w-full flex-1 overflow-y-auto space-y-6">
+                        <!-- Summary Editor -->
+                        <div class="bg-white p-4 rounded shadow">
+                            <h3 class="font-semibold mb-3 text-lg">Summary</h3>
+                            <div class="max-h-[300px] overflow-y-auto border border-gray-200 rounded">
+                                <EditorContent ref="editorContentRef" :content="editSummary" :is-saving="false"
+                                    :saved-successfully="false" context="resource"
+                                    @content-change="(content) => editSummary = content" />
+                            </div>
+                        </div>
+
+                        <!-- Key Points Editor -->
+                        <div class="bg-white p-4 rounded shadow">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="font-semibold text-lg">Key Points</h3>
+                                <Button size="small" @click="addKeyPoint">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add
+                                </Button>
+                            </div>
+                            <div class="space-y-2">
+                                <div v-for="(kp, idx) in editKeyPoints" :key="idx" class="flex items-center gap-2">
+                                    <button @click="moveKeyPointUp(idx)" :disabled="idx === 0"
+                                        class="p-1 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 15l7-7 7 7" />
+                                        </svg>
+                                    </button>
+                                    <button @click="moveKeyPointDown(idx)" :disabled="idx === editKeyPoints.length - 1"
+                                        class="p-1 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+                                    <input v-model="editKeyPoints[idx]" type="text"
+                                        class="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Enter key point..." />
+                                    <button @click="removeKeyPoint(idx)"
+                                        class="p-2 text-red-600 hover:bg-red-50 rounded">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <p v-if="editKeyPoints.length === 0" class="text-gray-500 text-sm italic">No key points.
+                                    Click "Add" to create one.</p>
+                            </div>
+                        </div>
+
+                        <!-- Keywords Editor -->
+                        <div class="bg-white p-4 rounded shadow">
+                            <h3 class="font-semibold mb-3 text-lg">Keywords</h3>
+                            <div
+                                class="flex flex-wrap gap-2 items-center p-2 border border-gray-300 rounded min-h-[50px]">
+                                <!-- Existing keywords as editable chips -->
+                                <div v-for="(kw, idx) in editKeywords" :key="idx"
+                                    class="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm group">
+                                    <input v-model="editKeywords[idx]" type="text"
+                                        class="keyword-input bg-transparent border-none outline-none w-auto min-w-[60px] max-w-[200px] focus:bg-blue-50 rounded px-1"
+                                        :style="{ width: (editKeywords[idx].length * 8 + 20) + 'px' }"
+                                        placeholder="keyword..." @keydown.enter="addKeyword"
+                                        @keydown.backspace="handleKeywordBackspace(idx, $event)" />
+                                    <button @click="removeKeyword(idx)"
+                                        class="text-blue-600 hover:text-red-600 hover:bg-red-50 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <!-- Add new keyword button -->
+                                <button @click="addKeyword"
+                                    class="flex items-center gap-1 text-gray-500 hover:text-blue-600 px-2 py-1 rounded-full text-sm border border-dashed border-gray-300 hover:border-blue-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add
+                                </button>
+                            </div>
+                            <p v-if="editKeywords.length === 0" class="text-gray-500 text-sm italic mt-2">
+                                No keywords. Click "Add" to create one.
+                            </p>
+                        </div>
                     </div>
                     <div v-else-if="displayMode === 'workspace' && workspaceDocument"
                         class="flex flex-col h-full w-full min-w-0">
@@ -432,9 +531,14 @@ const viewSideBar = ref<'properties' | 'comments' | 'index' | 'entities'>('prope
 
 const isEditMode = ref(false);
 const editContent = ref('');
-const editType = ref<'content' | 'translatedContent' | 'summary'>('content');
+const editType = ref<'content' | 'translatedContent' | 'summary' | 'overview'>('content');
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
+
+// Overview edit state
+const editSummary = ref('');
+const editKeyPoints = ref<string[]>([]);
+const editKeywords = ref<string[]>([]);
 
 const isEditingName = ref(false);
 const editResourceName = ref('');
@@ -864,8 +968,10 @@ const startEdit = () => {
         editType.value = 'translatedContent';
         editContent.value = resource.value.translatedContent;
     } else if (displayMode.value === 'overview') {
-        editType.value = 'summary';
-        editContent.value = resource.value.summary;
+        editType.value = 'overview';
+        editSummary.value = resource.value.summary || '';
+        editKeyPoints.value = [...(resource.value.keyPoints || [])];
+        editKeywords.value = [...(resource.value.keywords || [])];
     }
     isEditMode.value = true;
     savedSuccessfully.value = false;
@@ -882,37 +988,57 @@ const handleEditContentChange = (content: string) => {
 };
 
 const saveEdit = async () => {
-    const contentToSave = isPendingConfirmation.value ? resource.value.content : editContent.value;
-
-    if (!contentToSave || !contentToSave.trim()) {
-        notification.error('Content cannot be empty');
-        return;
-    }
-
     isSaving.value = true;
     savedSuccessfully.value = false;
 
     try {
         const updateData: any = {};
 
-        // Determine which field to update based on editType
-        if (editType.value === 'content') {
-            updateData.content = contentToSave;
-        } else if (editType.value === 'translatedContent') {
-            updateData.translatedContent = contentToSave;
-        } else if (editType.value === 'summary') {
-            updateData.summary = contentToSave;
-        }
+        // Handle overview mode separately
+        if (editType.value === 'overview') {
+            // Filter out empty values
+            const filteredKeyPoints = editKeyPoints.value.filter(kp => kp.trim().length > 0);
+            const filteredKeywords = editKeywords.value.filter(kw => kw.trim().length > 0);
 
-        await updateResource(resourceId.value, updateData);
+            updateData.summary = editSummary.value;
+            updateData.keyPoints = filteredKeyPoints;
+            updateData.keywords = filteredKeywords;
 
-        // Update the resource object with the new content
-        if (editType.value === 'content') {
-            resource.value.content = contentToSave;
-        } else if (editType.value === 'translatedContent') {
-            resource.value.translatedContent = contentToSave;
-        } else if (editType.value === 'summary') {
-            resource.value.summary = contentToSave;
+            await updateResource(resourceId.value, updateData);
+
+            // Update the resource object
+            resource.value.summary = editSummary.value;
+            resource.value.keyPoints = filteredKeyPoints;
+            resource.value.keywords = filteredKeywords;
+        } else {
+            // Handle regular content editing
+            const contentToSave = isPendingConfirmation.value ? resource.value.content : editContent.value;
+
+            if (!contentToSave || !contentToSave.trim()) {
+                notification.error('Content cannot be empty');
+                isSaving.value = false;
+                return;
+            }
+
+            // Determine which field to update based on editType
+            if (editType.value === 'content') {
+                updateData.content = contentToSave;
+            } else if (editType.value === 'translatedContent') {
+                updateData.translatedContent = contentToSave;
+            } else if (editType.value === 'summary') {
+                updateData.summary = contentToSave;
+            }
+
+            await updateResource(resourceId.value, updateData);
+
+            // Update the resource object with the new content
+            if (editType.value === 'content') {
+                resource.value.content = contentToSave;
+            } else if (editType.value === 'translatedContent') {
+                resource.value.translatedContent = contentToSave;
+            } else if (editType.value === 'summary') {
+                resource.value.summary = contentToSave;
+            }
         }
 
         savedSuccessfully.value = true;
@@ -936,7 +1062,69 @@ const saveEdit = async () => {
 const cancelEdit = () => {
     isEditMode.value = false;
     editContent.value = '';
+    editSummary.value = '';
+    editKeyPoints.value = [];
+    editKeywords.value = [];
     savedSuccessfully.value = false;
+};
+
+// Helper functions for editing key points
+const addKeyPoint = () => {
+    editKeyPoints.value.push('');
+};
+
+const removeKeyPoint = (index: number) => {
+    editKeyPoints.value.splice(index, 1);
+};
+
+const moveKeyPointUp = (index: number) => {
+    if (index > 0) {
+        const temp = editKeyPoints.value[index];
+        editKeyPoints.value[index] = editKeyPoints.value[index - 1];
+        editKeyPoints.value[index - 1] = temp;
+    }
+};
+
+const moveKeyPointDown = (index: number) => {
+    if (index < editKeyPoints.value.length - 1) {
+        const temp = editKeyPoints.value[index];
+        editKeyPoints.value[index] = editKeyPoints.value[index + 1];
+        editKeyPoints.value[index + 1] = temp;
+    }
+};
+
+// Helper functions for editing keywords
+const addKeyword = () => {
+    editKeywords.value.push('');
+    // Focus on the newly added keyword input
+    setTimeout(() => {
+        const inputs = document.querySelectorAll('.keyword-input');
+        if (inputs.length > 0) {
+            (inputs[inputs.length - 1] as HTMLInputElement).focus();
+        }
+    }, 0);
+};
+
+const removeKeyword = (index: number) => {
+    editKeywords.value.splice(index, 1);
+};
+
+const handleKeywordBackspace = (index: number, event: KeyboardEvent) => {
+    const input = event.target as HTMLInputElement;
+    // If the input is empty and backspace is pressed, remove the keyword
+    if (input.value === '' && editKeywords.value.length > 0) {
+        event.preventDefault();
+        removeKeyword(index);
+        // Focus on the previous keyword if it exists
+        if (index > 0) {
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('.keyword-input');
+                if (inputs[index - 1]) {
+                    (inputs[index - 1] as HTMLInputElement).focus();
+                }
+            }, 0);
+        }
+    }
 };
 
 const startNameEdit = () => {
