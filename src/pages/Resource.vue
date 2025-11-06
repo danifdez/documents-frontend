@@ -125,8 +125,9 @@
                     <!-- Toolbar (not shown for images or during extraction) -->
                     <Toolbar v-if="!isImageFile && !isExtracting" :has-summary="resource.summary"
                         :has-key-points="resource.keyPoints && resource.keyPoints.length > 0"
-                        :display-mode="displayMode" @download="downloadResource" @startEdit="startEdit"
-                        @saveEdit="saveEdit" @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
+                        :has-keywords="resource.keywords && resource.keywords.length > 0" :display-mode="displayMode"
+                        @download="downloadResource" @startEdit="startEdit" @saveEdit="saveEdit"
+                        @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         :hasExtractedContent="hasExtractedContent" :hasTranslatedContent="hasTranslatedContent"
                         :hasWorkspace="!!workspaceDocument" :hide-workspace="isWorkspaceShownInSplit"
                         :is-edit-mode="isEditMode" @ask="showChat = true" :extractedContent="resource.content"
@@ -134,7 +135,7 @@
                         :defaultLanguage="defaultLanguage" @summarize="handleSummarizeJob" @translate="handleTranslate"
                         @extractEntities="handleExtractEntities" @createWorkspace="handleCreateWorkspace"
                         @keyPoints="handleKeyPointsJob" @send-selection-to-workspace="handleToolbarSendSelection"
-                        :hasEntities="resource.entities && resource.entities.length > 0"
+                        @keywords="handleKeywordsJob" :hasEntities="resource.entities && resource.entities.length > 0"
                         :isConfirmed="!isPendingConfirmation" />
                     <!-- Show extraction message when extracting -->
                     <div v-else-if="isExtracting && !isImageFile"
@@ -227,6 +228,18 @@
                                         <ul class="list-disc list-inside space-y-2">
                                             <li v-for="(kp, idx) in resource.keyPoints" :key="idx"
                                                 class="text-sm text-gray-700">{{ kp }}</li>
+                                        </ul>
+                                    </div>
+                                </details>
+                            </div>
+                            <div v-if="resource.keywords && resource.keywords.length">
+                                <details class="bg-white p-4 rounded shadow">
+                                    <summary class="cursor-pointer font-semibold">Keywords</summary>
+                                    <div class="mt-2">
+                                        <ul class="flex flex-wrap gap-2">
+                                            <li v-for="(kw, idx) in resource.keywords" :key="idx"
+                                                class="text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">{{ kw }}
+                                            </li>
                                         </ul>
                                     </div>
                                 </details>
@@ -1064,6 +1077,21 @@ const handleKeyPointsJob = async () => {
         notification.success('Key points job created successfully');
     } catch (error) {
         notification.error('Failed to create key points job');
+    }
+};
+
+const handleKeywordsJob = async () => {
+    try {
+        const language = await getLanguageSetting();
+        await apiClient.post('/model/keywords', {
+            resourceId: resourceId.value,
+            targetLanguage: language,
+        });
+        notification.success('Keywords job created successfully');
+        // Optionally reload resource details to pick up new keywords when available
+        await loadResourceDetails();
+    } catch (error) {
+        notification.error('Failed to create keywords job');
     }
 };
 

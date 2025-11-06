@@ -37,6 +37,12 @@
                         d="M5 13l4 4L19 7M3 5h18M3 10h18M3 15h18" />
                 </svg>
             </Button>
+            <Button v-if="!hasKeywords" size="small" @click="emit('keywords')" title="Generate Keywords">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </Button>
             <Button @click="emit('download')" size="small" title="Download Resource">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -71,7 +77,7 @@
                     :active="actualDisplayMode === 'translated'" @click="changeDisplayMode('translated')" type="button">
                     Translated
                 </Button>
-                <Button v-if="hasSummary || hasKeyPoints" size="small" variant="secondary"
+                <Button v-if="hasSummary || hasKeyPoints || hasKeywords" size="small" variant="secondary"
                     :active="actualDisplayMode === 'overview'" @click="changeDisplayMode('overview')" type="button">
                     Overview
                 </Button>
@@ -116,6 +122,7 @@ const props = defineProps({
     hasTranslatedContent: { type: Boolean },
     hasSummary: { type: Boolean, default: false },
     hasKeyPoints: { type: Boolean, default: false },
+    hasKeywords: { type: Boolean, default: false },
     hasWorkspace: { type: Boolean, default: false },
     hideWorkspace: { type: Boolean, default: false },
     hasEntities: { type: Boolean, default: false },
@@ -139,7 +146,7 @@ watch(() => props.hideWorkspace, (hidden) => {
     }
 });
 
-const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'ask', 'summarize', 'translate', 'extractEntities', 'createWorkspace', 'keyPoints']);
+const emit = defineEmits(['download', 'startEdit', 'saveEdit', 'cancelEdit', 'changeDisplayMode', 'ask', 'summarize', 'translate', 'extractEntities', 'createWorkspace', 'keyPoints', 'keywords']);
 
 // Only show translate button if:
 // 1. Resource doesn't have translated content already
