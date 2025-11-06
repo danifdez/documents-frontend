@@ -53,6 +53,7 @@ const createBrowserWindow = (projectId: string) => {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      partition: `persist:browser-${projectId}`, // Persistencia de datos por proyecto
     },
   });
 
@@ -61,12 +62,25 @@ const createBrowserWindow = (projectId: string) => {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      partition: `persist:browser-${projectId}`, // Mismo partition para compartir sesión
     },
   });
   toolbarView.webContents.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#/browser-toolbar`);
   win.contentView.addChildView(toolbarView);
 
-  const browserView = new WebContentsView();
+  const browserView = new WebContentsView({
+    webPreferences: {
+      partition: `persist:browser-${projectId}`, // Mismo partition para compartir sesión
+      contextIsolation: true,
+      nodeIntegration: false,
+      // Habilitar características del navegador
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      // Habilitar plugins y características web estándar
+      plugins: true,
+      enableWebSQL: false,
+    },
+  });
   browserView.webContents.loadURL('https://github.com/electron/electron');
 
   // Open DevTools for browser view
