@@ -38,6 +38,12 @@
                         placeholder="Entity name" />
                 </div>
                 <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                    <textarea v-model="newEntity.description" rows="2"
+                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        placeholder="Optional description of the entity"></textarea>
+                </div>
+                <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Entity Type</label>
                     <select v-model="newEntity.entityTypeId"
                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
@@ -75,19 +81,58 @@
                     ? 'border-green-300 bg-green-50'
                     : 'border-gray-200 hover:bg-gray-50'
             ]">
-                <!-- If entity is confirmed show compact view -->
+                <!-- If entity is confirmed show editable or compact view -->
                 <template v-if="entity.isConfirmed">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-4">
-                            <div class="text-sm font-medium">{{ getEntityDisplayText(entity) }}</div>
-                            <div class="text-xs text-gray-600 px-2 py-1 bg-white rounded border">{{
-                                entity.entityType?.name || '—' }}</div>
-                            <div class="text-xs text-gray-600 px-2 py-1 bg-white rounded border">{{ entity.scope }}
+                    <!-- Edit mode for confirmed entities -->
+                    <div v-if="editingConfirmedEntity === entity.id" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Entity Name</label>
+                            <input v-model="entity.name" type="text" @input="scheduleSave(entity)"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                placeholder="Entity name" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                            <textarea v-model="entity.description" @input="scheduleSave(entity)" rows="2"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                placeholder="Optional description of the entity"></textarea>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="h-8 flex items-center">
+                                <svg v-if="isSaving === entity.id" class="animate-spin h-3 w-3 text-gray-600 mr-2"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                <span v-if="isSaving === entity.id" class="text-xs text-gray-500">Saving...</span>
+                            </div>
+                            <Button @click="editingConfirmedEntity = null" size="small" variant="secondary">
+                                Done
+                            </Button>
+                        </div>
+                    </div>
+                    <!-- Compact view for confirmed entities -->
+                    <div v-else class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-4 mb-2">
+                                <div class="text-sm font-medium">{{ getEntityDisplayText(entity) }}</div>
+                                <div class="text-xs text-gray-600 px-2 py-1 bg-white rounded border">{{
+                                    entity.entityType?.name || '—' }}</div>
+                                <div class="text-xs text-gray-600 px-2 py-1 bg-white rounded border">{{ entity.scope }}
+                                </div>
+                            </div>
+                            <div v-if="entity.description" class="text-xs text-gray-600 italic">
+                                {{ entity.description }}
                             </div>
                         </div>
                         <div class="ml-4 flex items-center space-x-2">
-                            <Button @click="deleteEntity(entity.id, entity.isConfirmed)" size="small"
-                                :variant="entity.isConfirmed ? 'danger' : 'secondary'">
+                            <Button @click="editingConfirmedEntity = entity.id" size="small" variant="secondary">
+                                Edit
+                            </Button>
+                            <Button @click="deleteEntity(entity.id, entity.isConfirmed)" size="small" variant="danger">
                                 Remove
                             </Button>
                             <Button @click.stop.prevent="highlightEntity(entity)" size="small" variant="secondary">
@@ -125,6 +170,14 @@
                                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                                         placeholder="Entity name" />
                                 </template>
+                            </div>
+
+                            <!-- Entity Description (only show if not merged) -->
+                            <div v-if="entity.status !== 'merged'" class="mb-3">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                                <textarea v-model="entity.description" @input="scheduleSave(entity)" rows="2"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                    placeholder="Optional description of the entity"></textarea>
                             </div>
 
                             <!-- Entity Type -->
@@ -209,6 +262,7 @@ import { ref, onMounted, watch } from 'vue';
 import Button from '../ui/Button.vue';
 import MergeEntityModal from './MergeEntityModal.vue';
 import { usePendingEntities, type PendingEntity, type EntityAlias, type EntityScope } from '../../services/entities/usePendingEntities';
+import { useEntities } from '../../services/entities/useEntities';
 import apiClient from '../../services/api';
 
 export interface EntityType {
@@ -268,8 +322,10 @@ const entityTypes = ref<EntityType[]>([]);
 const isSaving = ref<number | null>(null);
 const isConfirming = ref(false);
 const showAddEntityForm = ref(false);
+const editingConfirmedEntity = ref<number | null>(null); // Track which confirmed entity is being edited
 const newEntity = ref({
     name: '',
+    description: '',
     entityTypeId: undefined as number | undefined,
     scope: 'document' as 'document'
 });
@@ -279,6 +335,7 @@ const showMergeModal = ref(false);
 const entityToMerge = ref<PendingEntity | null>(null);
 
 const { fetchPendingEntitiesByResourceId, updatePendingEntity, deletePendingEntity, confirmEntities, createPendingEntity } = usePendingEntities();
+const { updateEntity } = useEntities();
 
 const fetchEntityTypes = async (): Promise<EntityType[]> => {
     try {
@@ -409,7 +466,13 @@ const scheduleSave = (entity: PendingEntity, isTranslation = false) => {
 const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
     isSaving.value = entity.id;
     try {
-        if (isTranslation) {
+        if (entity.isConfirmed) {
+            // For confirmed entities, update the entity directly
+            await updateEntity(entity.id, {
+                name: entity.name,
+                description: entity.description || undefined,
+            });
+        } else if (isTranslation) {
             // Prepare translations object for target language
             const locale = props.targetLanguage || 'en';
             const translations = entity.translations ? { ...entity.translations } : {};
@@ -423,6 +486,7 @@ const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
         } else {
             await updatePendingEntity(entity.id, {
                 name: entity.name,
+                description: entity.description || undefined,
                 entityTypeId: entity.entityType?.id,
                 scope: entity.scope,
                 aliases: entity.aliases?.filter(a => a.value.trim() !== '')
@@ -502,6 +566,7 @@ const cancelAddEntity = () => {
     showAddEntityForm.value = false;
     newEntity.value = {
         name: '',
+        description: '',
         entityTypeId: undefined,
         scope: 'document'
     };

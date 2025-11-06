@@ -13,6 +13,7 @@ export interface EntityAlias {
 export interface Entity {
     id: number;
     name: string;
+    description?: string | null;
     translations?: EntityTranslation | null;
     aliases?: EntityAlias[] | null;
     entityType: {
@@ -100,6 +101,21 @@ export const useEntities = () => {
         }
     };
 
+    const updateEntity = async (entityId: number, data: { name?: string; description?: string; entityTypeId?: number }): Promise<Entity> => {
+        isLoading.value = true;
+        error.value = null;
+
+        try {
+            const response = await apiClient.patch(`/entities/${entityId}`, data);
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to update entity';
+            throw err;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
     return {
         isLoading,
         error,
@@ -107,5 +123,6 @@ export const useEntities = () => {
         mergeEntities,
         searchEntities,
         getAllEntities,
+        updateEntity,
     };
 };

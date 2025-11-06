@@ -33,10 +33,12 @@
                                         : ''
                                 ]">
                                 <div class="flex items-center justify-between">
-                                    <div>
+                                    <div class="flex-1">
                                         <div class="text-sm font-medium">{{ entity.name }}</div>
                                         <div class="text-xs text-gray-600">{{ entity.entityType?.name }} · {{
                                             entity.scope }}</div>
+                                        <div v-if="entity.description" class="text-xs text-gray-500 italic mt-1">{{
+                                            entity.description }}</div>
                                     </div>
                                     <div v-if="selectedTarget?.type === 'pending' && selectedTarget.id === entity.id"
                                         class="text-blue-600">
@@ -63,9 +65,11 @@
                                         : ''
                                 ]">
                                 <div class="flex items-center justify-between">
-                                    <div>
+                                    <div class="flex-1">
                                         <div class="text-sm font-medium">{{ entity.name }}</div>
                                         <div class="text-xs text-gray-600">{{ entity.entityType?.name }}</div>
+                                        <div v-if="entity.description" class="text-xs text-gray-500 italic mt-1">{{
+                                            entity.description }}</div>
                                     </div>
                                     <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
                                         class="text-blue-600">
@@ -153,6 +157,7 @@ import type { PendingEntity, EntityScope } from '../../services/entities/usePend
 interface ConfirmedEntity {
     id: number;
     name: string;
+    description?: string | null;
     entityType?: {
         id: number;
         name: string;

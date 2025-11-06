@@ -24,6 +24,7 @@ export interface PendingEntity {
     id: number;
     resourceId: number;
     name: string;
+    description?: string | null;
     aliases: EntityAlias[] | null;
     translations: EntityTranslation | null;
     language?: string | null;
@@ -49,6 +50,7 @@ export interface PendingEntity {
 export interface CreatePendingEntityDto {
     resourceId: number;
     name: string;
+    description?: string;
     entityTypeId?: number;
     aliases?: EntityAlias[];
     scope?: EntityScope;
@@ -57,6 +59,7 @@ export interface CreatePendingEntityDto {
 
 export interface UpdatePendingEntityDto {
     name?: string;
+    description?: string;
     entityTypeId?: number;
     aliases?: EntityAlias[];
     scope?: EntityScope;

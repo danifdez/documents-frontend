@@ -27,44 +27,94 @@
             <div v-if="displayedEntities.length === 0" class="text-center py-8 text-gray-500">
                 No entities match your search
             </div>
-            <div v-for="entity in displayedEntities" :key="entity.id" @click="highlightEntityInContent(entity)"
-                class="flex items-center justify-between p-3 border rounded-md transition-colors cursor-pointer" :class="[
+            <div v-for="entity in displayedEntities" :key="entity.id" class="p-3 border rounded-md transition-colors"
+                :class="[
                     selectedHighlightEntity?.id === entity.id
                         ? 'border-blue-300 bg-blue-50'
                         : 'border-gray-200 hover:bg-gray-50'
-                ]" :title="`Click to highlight ${displayEntityName(entity)} in the document`">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-1">
-                            <h4 class="font-medium text-gray-900">{{ displayEntityName(entity) }}</h4>
-                            <div class="flex items-center space-x-2 mt-1">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                    :class="getEntityTypeBadgeClass(displayEntityType(entity))">
-                                    {{ displayEntityType(entity) }}
-                                </span>
-                            </div>
-                            <div v-if="entity.aliases && entity.aliases.length > 0" class="mt-2">
-                                <p class="text-xs text-gray-500">
-                                    Aliases: {{ formatAliases(entity.aliases) }}
-                                </p>
-                            </div>
+                ]">
+                <!-- Edit Mode -->
+                <div v-if="editingEntityId === entity.id" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Entity Name</label>
+                        <input v-model="entity.name" type="text"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            placeholder="Entity name" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                        <textarea :value="entity.description || ''" @input="(e) => {
+                            entity.description = (e.target as HTMLTextAreaElement).value;
+                        }" rows="2"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            placeholder="Optional description of the entity"></textarea>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <svg v-if="isSaving === entity.id" class="animate-spin h-3 w-3 text-gray-600 mr-2"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            <span v-if="isSaving === entity.id" class="text-xs text-gray-500">Saving...</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <Button @click="saveAndStopEditing(entity)" size="small" variant="primary" 
+                                :disabled="isSaving === entity.id">
+                                Done
+                            </Button>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-2" @click.stop>
-                    <Button @click="showMergeModal(entity)" title="Merge with another entity">
-                        <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                    </Button>
-                    <Button @click="removeEntity(entity)" title="Remove entity from resource">
-                        <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </Button>
+                <!-- View Mode -->
+                <div v-else class="flex items-start justify-between gap-3">
+                    <div @click="highlightEntityInContent(entity)" class="flex-1 cursor-pointer"
+                        :title="`Click to highlight ${displayEntityName(entity)} in the document`">
+                        <h4 class="font-medium text-gray-900">{{ displayEntityName(entity) }}</h4>
+                        <div v-if="entity.description" class="text-xs text-gray-600 italic mt-1">
+                            {{ entity.description }}
+                        </div>
+                        <div class="flex items-center space-x-2 mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                :class="getEntityTypeBadgeClass(displayEntityType(entity))">
+                                {{ displayEntityType(entity) }}
+                            </span>
+                        </div>
+                        <div v-if="entity.aliases && entity.aliases.length > 0" class="mt-2">
+                            <p class="text-xs text-gray-500">
+                                Aliases: {{ formatAliases(entity.aliases) }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2" @click.stop>
+                        <div class="flex gap-2">
+                            <Button @click="startEditing(entity)" size="small" variant="secondary" title="Edit entity">
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </Button>
+                            <Button @click="showMergeModal(entity)" size="small" variant="secondary"
+                                title="Merge with another entity">
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                            </Button>
+                        </div>
+                        <Button @click="removeEntity(entity)" size="small" variant="danger"
+                            title="Remove entity from resource" class="w-full">
+                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,8 +152,12 @@
                 <div v-else-if="searchResults.length > 0" class="max-h-40 overflow-y-auto border rounded-md mb-4">
                     <div class="p-2 text-xs text-gray-500 border-b">Found {{ searchResults.length }} entities</div>
                     <Button v-for="result in searchResults" :key="result.id" @click="selectTargetEntity(result)">
-                        <div class="font-medium">{{ displayEntityName(result) }}</div>
-                        <div class="text-sm text-gray-500">{{ displayEntityType(result) }}</div>
+                        <div>
+                            <div class="font-medium">{{ displayEntityName(result) }}</div>
+                            <div v-if="result.description" class="text-xs text-gray-500 italic">{{ result.description
+                                }}</div>
+                            <div class="text-sm text-gray-500">{{ displayEntityType(result) }}</div>
+                        </div>
                     </Button>
                 </div>
 
@@ -236,9 +290,11 @@ const displayedEntities = computed(() => {
     });
 });
 
-const { removeEntityFromResource, mergeEntities, searchEntities, getAllEntities, isLoading } = useEntities();
+const { removeEntityFromResource, mergeEntities, searchEntities, getAllEntities, isLoading, updateEntity } = useEntities();
 const notification = useNotification();
 
+const editingEntityId = ref<number | null>(null);
+const isSaving = ref<number | null>(null);
 const showMerge = ref(false);
 const selectedEntity = ref<Entity | null>(null);
 const selectedTargetEntity = ref<Entity | null>(null);
@@ -289,6 +345,71 @@ const getEntityTypeBadgeClass = (typeName: string) => {
     };
 
     return typeColorMap[typeName] || 'bg-purple-100 text-purple-800';
+};
+
+// Auto-save functionality for entity editing
+const saveTimers = new Map<number, NodeJS.Timeout>();
+const DEBOUNCE_MS = 800;
+
+const scheduleSave = (entity: Entity) => {
+    if (!entity || !entity.id) return;
+
+    // Clear existing timer
+    const existing = saveTimers.get(entity.id);
+    if (existing) {
+        clearTimeout(existing);
+    }
+
+    const timer = setTimeout(async () => {
+        saveTimers.delete(entity.id);
+        try {
+            await saveEntity(entity);
+        } catch (err) {
+            console.error('Auto-save failed for entity', entity.id, err);
+            notification.error('Failed to save entity changes');
+        }
+    }, DEBOUNCE_MS);
+
+    saveTimers.set(entity.id, timer);
+};
+
+const saveEntity = async (entity: Entity) => {
+    isSaving.value = entity.id;
+    try {
+        const updateData: { name: string; description?: string } = {
+            name: entity.name,
+        };
+        
+        // Only include description if it has a value
+        if (entity.description !== null && entity.description !== undefined && entity.description.trim() !== '') {
+            updateData.description = entity.description;
+        }
+        
+        await updateEntity(entity.id, updateData);
+        notification.success('Entity updated successfully');
+    } catch (error) {
+        console.error('Failed to save entity:', error);
+        throw error;
+    } finally {
+        isSaving.value = null;
+    }
+};
+
+const startEditing = (entity: Entity) => {
+    editingEntityId.value = entity.id;
+};
+
+const stopEditing = () => {
+    editingEntityId.value = null;
+};
+
+const saveAndStopEditing = async (entity: Entity) => {
+    try {
+        await saveEntity(entity);
+        editingEntityId.value = null;
+    } catch (error) {
+        // Error already handled in saveEntity
+    }
 };
 
 const removeEntity = async (entity: Entity) => {

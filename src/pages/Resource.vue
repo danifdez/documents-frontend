@@ -736,6 +736,7 @@ const loadResourceDetails = async () => {
                     return {
                         id: row.entity_id ?? row.id,
                         name: row.entity_name ?? row.name,
+                        description: row.entity_description ?? row.description ?? null,
                         type: row.entity_type ?? row.type,
                     };
                 }
@@ -745,6 +746,7 @@ const loadResourceDetails = async () => {
                     return {
                         id: row.id,
                         name: row.name,
+                        description: row.description ?? null,
                         type: row.entityType?.name ?? null,
                         translations: row.translations,
                         aliases: row.aliases,
@@ -754,8 +756,6 @@ const loadResourceDetails = async () => {
                 return row;
             });
         } catch (e) {
-            // don't block resource loading if entities fail
-            console.warn('Failed to load entities for resource', resourceId.value, e);
             resource.value.entities = resource.value.entities || [];
         }
 
