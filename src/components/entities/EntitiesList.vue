@@ -62,7 +62,7 @@
                             <span v-if="isSaving === entity.id" class="text-xs text-gray-500">Saving...</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <Button @click="saveAndStopEditing(entity)" size="small" variant="primary" 
+                            <Button @click="saveAndStopEditing(entity)" size="small" variant="primary"
                                 :disabled="isSaving === entity.id">
                                 Done
                             </Button>
@@ -155,7 +155,7 @@
                         <div>
                             <div class="font-medium">{{ displayEntityName(result) }}</div>
                             <div v-if="result.description" class="text-xs text-gray-500 italic">{{ result.description
-                                }}</div>
+                            }}</div>
                             <div class="text-sm text-gray-500">{{ displayEntityType(result) }}</div>
                         </div>
                     </Button>
@@ -379,12 +379,12 @@ const saveEntity = async (entity: Entity) => {
         const updateData: { name: string; description?: string } = {
             name: entity.name,
         };
-        
+
         // Only include description if it has a value
         if (entity.description !== null && entity.description !== undefined && entity.description.trim() !== '') {
             updateData.description = entity.description;
         }
-        
+
         await updateEntity(entity.id, updateData);
         notification.success('Entity updated successfully');
     } catch (error) {
