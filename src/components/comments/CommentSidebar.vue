@@ -72,6 +72,12 @@
 
     <CommentEditModal v-model:show="showEditModal" :comment="currentEditComment" @save="handleEditSave"
       @cancel="handleEditCancel" />
+
+    <!-- Confirm Modal -->
+    <ConfirmModal :is-open="showDeleteCommentModal" title="Delete Comment"
+      :message="`Are you sure you want to delete this comment: &quot;${commentToDelete?.content.substring(0, 30)}${commentToDelete?.content.length > 30 ? '...' : ''}&quot;?`"
+      confirm-text="Delete" cancel-text="Cancel" confirm-variant="danger" @confirm="handleDeleteCommentConfirm"
+      @cancel="handleDeleteCommentCancel" />
   </div>
 </template>
 
@@ -81,6 +87,7 @@ import { useCommentList } from '../../services/comments/useCommentList';
 import { useCommentUpdate } from '../../services/comments/useCommentUpdate';
 import { useCommentDelete } from '../../services/comments/useCommentDelete';
 import CommentEditModal from './CommentEditModal.vue';
+import ConfirmModal from '../ui/ConfirmModal.vue';
 
 const props = defineProps({
   docId: {
@@ -102,6 +109,10 @@ const { deleteComment: deleteCommentAPI } = useCommentDelete();
 // Determine which ID to use
 const entityId = computed(() => props.docId || props.resourceId);
 const entityType = computed(() => props.docId ? 'doc' : 'resource');
+
+// Confirm Modal state
+const showDeleteCommentModal = ref(false);
+const commentToDelete = ref(null);
 
 const sortedComments = computed(() => {
   return [...comments.value].sort((a, b) =>
@@ -169,19 +180,34 @@ const handleEditCancel = () => {
 };
 
 const deleteComment = async (comment) => {
-  if (confirm(`Are you sure you want to delete this comment: "${comment.content.substring(0, 30)}${comment.content.length > 30 ? '...' : ''}"?`)) {
-    try {
-      await deleteCommentAPI(comment.id);
-      const index = comments.value.findIndex(c => c.id === comment.id);
-      if (index !== -1) {
-        comments.value.splice(index, 1);
-      }
+  commentToDelete.value = comment;
+  showDeleteCommentModal.value = true;
+};
 
-      emit('comment-deleted', comment.id);
-    } catch (error) {
-      console.error('Error deleting comment:', error);
+const handleDeleteCommentConfirm = async () => {
+  const comment = commentToDelete.value;
+  showDeleteCommentModal.value = false;
+
+  if (!comment) return;
+
+  try {
+    await deleteCommentAPI(comment.id);
+    const index = comments.value.findIndex(c => c.id === comment.id);
+    if (index !== -1) {
+      comments.value.splice(index, 1);
     }
+
+    emit('comment-deleted', comment.id);
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+  } finally {
+    commentToDelete.value = null;
   }
+};
+
+const handleDeleteCommentCancel = () => {
+  showDeleteCommentModal.value = false;
+  commentToDelete.value = null;
 };
 
 defineExpose({

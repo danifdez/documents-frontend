@@ -155,7 +155,7 @@
                         <div>
                             <div class="font-medium">{{ displayEntityName(result) }}</div>
                             <div v-if="result.description" class="text-xs text-gray-500 italic">{{ result.description
-                            }}</div>
+                                }}</div>
                             <div class="text-sm text-gray-500">{{ displayEntityType(result) }}</div>
                         </div>
                     </Button>
@@ -176,6 +176,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- Confirm Modals -->
+        <ConfirmModal :is-open="showRemoveEntityModal" title="Remove Entity"
+            :message="`Are you sure you want to remove &quot;${displayEntityName(entityToRemove)}&quot; from this resource?`"
+            confirm-text="Remove" cancel-text="Cancel" confirm-variant="danger" @confirm="handleRemoveEntityConfirm"
+            @cancel="handleRemoveEntityCancel" />
+
+        <ConfirmModal :is-open="showMergeEntityModal" title="Merge Entity"
+            :message="`Are you sure you want to merge &quot;${displayEntityName(selectedEntity)}&quot; into &quot;${displayEntityName(selectedTargetEntity)}&quot;? This action cannot be undone.`"
+            confirm-text="Merge" cancel-text="Cancel" confirm-variant="warning" @confirm="handleMergeEntityConfirm"
+            @cancel="handleMergeEntityCancel" />
     </div>
 </template>
 
@@ -184,6 +195,7 @@ import { ref, defineEmits, computed } from 'vue';
 import { useEntities, type Entity, type EntityAlias, type EntityTranslation } from '../../services/entities/useEntities';
 import { useNotification } from '../../composables/useNotification';
 import Button from '../ui/Button.vue';
+import ConfirmModal from '../ui/ConfirmModal.vue';
 
 interface Props {
     resourceId: string;
@@ -250,6 +262,11 @@ const getAliasValues = (aliases: EntityAlias[] | null): string[] => {
 };
 
 const selectedHighlightEntity = ref<Entity | null>(null);
+
+// Confirm Modal state
+const showRemoveEntityModal = ref(false);
+const entityToRemove = ref<Entity | null>(null);
+const showMergeEntityModal = ref(false);
 
 // Search/filter state
 const filterTerm = ref('');
@@ -413,9 +430,15 @@ const saveAndStopEditing = async (entity: Entity) => {
 };
 
 const removeEntity = async (entity: Entity) => {
-    if (!confirm(`Are you sure you want to remove "${displayEntityName(entity)}" from this resource?`)) {
-        return;
-    }
+    entityToRemove.value = entity;
+    showRemoveEntityModal.value = true;
+};
+
+const handleRemoveEntityConfirm = async () => {
+    const entity = entityToRemove.value;
+    showRemoveEntityModal.value = false;
+
+    if (!entity) return;
 
     try {
         await removeEntityFromResource(props.resourceId, entity.id);
@@ -423,7 +446,14 @@ const removeEntity = async (entity: Entity) => {
         notification.success(`Entity "${displayEntityName(entity)}" removed from resource`);
     } catch (error) {
         notification.error('Failed to remove entity from resource');
+    } finally {
+        entityToRemove.value = null;
     }
+};
+
+const handleRemoveEntityCancel = () => {
+    showRemoveEntityModal.value = false;
+    entityToRemove.value = null;
 };
 
 const showMergeModal = async (entity: Entity) => {
@@ -454,7 +484,13 @@ const performMerge = async () => {
         return;
     }
 
-    if (!confirm(`Are you sure you want to merge "${displayEntityName(selectedEntity.value)}" into "${displayEntityName(selectedTargetEntity.value)}"? This action cannot be undone.`)) {
+    showMergeEntityModal.value = true;
+};
+
+const handleMergeEntityConfirm = async () => {
+    showMergeEntityModal.value = false;
+
+    if (!selectedEntity.value || !selectedTargetEntity.value) {
         return;
     }
 
@@ -469,6 +505,10 @@ const performMerge = async () => {
     } finally {
         isMerging.value = false;
     }
+};
+
+const handleMergeEntityCancel = () => {
+    showMergeEntityModal.value = false;
 };
 
 const highlightEntityInContent = (entity: Entity) => {

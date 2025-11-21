@@ -421,9 +421,8 @@
                                 @click="viewSideBar = 'comments'">
                                 Comments
                             </Button>
-                            <Button v-if="hasPendingEntities || (resource.entities && resource.entities.length > 0)"
-                                variant="secondary" :active="viewSideBar === 'entities'"
-                                @click="viewSideBar = 'entities'">
+                            <Button v-if="shouldShowEntitiesTab" variant="secondary"
+                                :active="viewSideBar === 'entities'" @click="viewSideBar = 'entities'">
                                 <span class="flex items-center">
                                     Entities
                                     <span v-if="hasPendingEntities"
@@ -471,6 +470,12 @@
         <FloatingSearchBox :active-contents="activeContents" v-model="showSearch" />
 
         <ChatSidebar :show="showChat" :messages="chatMessages" @close="showChat = false" @send="handleSendMessage" />
+
+        <!-- Confirm Modals -->
+        <ConfirmModal :is-open="showRemoveResourceModal" title="Remove Resource"
+            message="Are you sure you want to remove this resource? This action cannot be undone." confirm-text="Remove"
+            cancel-text="Cancel" confirm-variant="danger" @confirm="handleRemoveResourceConfirm"
+            @cancel="handleRemoveResourceCancel" />
     </div>
 </template>
 
@@ -500,6 +505,7 @@ import EntitiesList from '../components/entities/EntitiesList.vue';
 import PendingEntitiesValidator from '../components/entities/PendingEntitiesValidator.vue';
 import Button from '../components/ui/Button.vue';
 import ButtonGroup from '../components/ui/ButtonGroup.vue';
+import ConfirmModal from '../components/ui/ConfirmModal.vue';
 
 defineOptions({
     inheritAttrs: false
@@ -560,9 +566,14 @@ const isLoadingWorkspace = ref(false);
 const isWorkspaceShownInSplit = ref(false);
 
 // Computed properties for resource status
-const isPendingConfirmation = computed(() => resource.value.confirmationStatus === 'pending');
+const isPendingConfirmation = computed(() => resource.value.status === 'extracted');
 const isExtracting = computed(() => !resource.value.content || resource.value.content.trim().length === 0);
 const canInteract = computed(() => !isPendingConfirmation.value && !isExtracting.value);
+const shouldShowEntitiesTab = computed(() =>
+    resource.value.status === 'entities' ||
+    hasPendingEntities.value ||
+    (resource.value.entities && resource.value.entities.length > 0)
+);
 const isWorkspaceSplitView = computed(() => splitViewActive.value && splitDocument.value?.id === workspaceDocument.value?.id);
 const showSidebar = computed(() => !isWorkspaceSplitView.value);
 const displayModeForEntities = computed<'extracted' | 'raw' | 'translated' | 'summary'>(() => {
@@ -608,6 +619,9 @@ const scrollToHeadingFromSidebar = (id: string) => {
 
 
 const { isPdfFile, isHtmlFile, isImageFile } = useResourceIcon(computed(() => resource.value.mimeType));
+
+// Confirm Modal state
+const showRemoveResourceModal = ref(false);
 
 const {
     isDragOver,
@@ -708,8 +722,8 @@ const loadResourceDetails = async () => {
         const data = await loadResource(resourceId.value);
         resource.value = data;
 
-        // If pending confirmation, always load raw HTML content for comparison
-        if (data.confirmationStatus === 'pending') {
+        // If pending confirmation (status = 'extracted'), always load raw HTML content for comparison
+        if (data.status === 'extracted') {
             await loadRawHtmlContent();
         }
 
@@ -811,6 +825,14 @@ watch(() => resource.value.summary, (newSummary, oldSummary) => {
     }
 });
 
+// Watch for resource status becoming 'entities' and switch to entities tab
+watch(() => resource.value.status, (newStatus, oldStatus) => {
+    // If status changes to 'entities', automatically open the entities sidebar
+    if (newStatus === 'entities' && oldStatus !== 'entities') {
+        viewSideBar.value = 'entities';
+    }
+});
+
 const getResourceContentForDocument = (): string => {
     if (resource.value.content) {
         return resource.value.content;
@@ -903,9 +925,16 @@ const removeResource = async () => {
 };
 
 const confirmRemoveResource = () => {
-    if (window.confirm('Are you sure you want to remove this resource? This action cannot be undone.')) {
-        removeResource();
-    }
+    showRemoveResourceModal.value = true;
+};
+
+const handleRemoveResourceConfirm = () => {
+    showRemoveResourceModal.value = false;
+    removeResource();
+};
+
+const handleRemoveResourceCancel = () => {
+    showRemoveResourceModal.value = false;
 };
 
 const onDrop = async (event: DragEvent) => {
@@ -1377,7 +1406,7 @@ const confirmResourceExtraction = async () => {
         notification.success('Resource confirmed successfully. Language detection job created.');
 
         // Update local state
-        resource.value.confirmationStatus = 'confirmed';
+        resource.value.status = 'confirmed_extraction';
 
         // Exit edit mode if active
         if (isEditMode.value) {
@@ -1397,7 +1426,7 @@ const confirmResourceExtraction = async () => {
 const checkPendingEntities = async () => {
     try {
         const response = await apiClient.get(`/pending-entities/resource/${resourceId.value}`);
-        hasPendingEntities.value = response.data && response.data.length > 0;
+        hasPendingEntities.value = resource.value.status === 'entities' || (response.data && response.data.count > 0);
     } catch (error) {
         console.warn('Failed to check pending entities:', error);
         hasPendingEntities.value = false;

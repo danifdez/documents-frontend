@@ -52,12 +52,74 @@
                             </div>
                         </div>
 
-                        <!-- Confirmed entities section -->
-                        <div v-if="filteredConfirmedEntities.length > 0">
-                            <div class="bg-gray-50 px-3 py-2 text-xs font-medium text-gray-700">
+                        <!-- Confirmed entities section - Document scope -->
+                        <div v-if="confirmedEntitiesByScope.document.length > 0" class="border-b">
+                            <div class="bg-green-50 px-3 py-2 text-xs font-medium text-green-800">
+                                Confirmed Entities (this document)
+                            </div>
+                            <div v-for="entity in confirmedEntitiesByScope.document" :key="'confirmed-doc-' + entity.id"
+                                @click="selectTargetEntity('confirmed', entity)" :class="[
+                                    'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
+                                    selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
+                                        ? 'bg-blue-100'
+                                        : ''
+                                ]">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="text-sm font-medium">{{ entity.name }}</div>
+                                        <div class="text-xs text-gray-600">{{ entity.entityType?.name }}</div>
+                                        <div v-if="entity.description" class="text-xs text-gray-500 italic mt-1">{{
+                                            entity.description }}</div>
+                                    </div>
+                                    <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
+                                        class="text-blue-600">
+                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Confirmed entities section - Project scope -->
+                        <div v-if="confirmedEntitiesByScope.project.length > 0" class="border-b">
+                            <div class="bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
+                                Confirmed Entities (this project)
+                            </div>
+                            <div v-for="entity in confirmedEntitiesByScope.project" :key="'confirmed-proj-' + entity.id"
+                                @click="selectTargetEntity('confirmed', entity)" :class="[
+                                    'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
+                                    selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
+                                        ? 'bg-blue-100'
+                                        : ''
+                                ]">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="text-sm font-medium">{{ entity.name }}</div>
+                                        <div class="text-xs text-gray-600">{{ entity.entityType?.name }}</div>
+                                        <div v-if="entity.description" class="text-xs text-gray-500 italic mt-1">{{
+                                            entity.description }}</div>
+                                    </div>
+                                    <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
+                                        class="text-blue-600">
+                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Confirmed entities section - Global scope -->
+                        <div v-if="confirmedEntitiesByScope.global.length > 0">
+                            <div class="bg-purple-50 px-3 py-2 text-xs font-medium text-purple-800">
                                 Confirmed Entities (global)
                             </div>
-                            <div v-for="entity in filteredConfirmedEntities" :key="'confirmed-' + entity.id"
+                            <div v-for="entity in confirmedEntitiesByScope.global" :key="'confirmed-glob-' + entity.id"
                                 @click="selectTargetEntity('confirmed', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
@@ -84,7 +146,7 @@
                         </div>
 
                         <!-- No results -->
-                        <div v-if="filteredPendingEntities.length === 0 && filteredConfirmedEntities.length === 0"
+                        <div v-if="filteredPendingEntities.length === 0 && totalConfirmedEntities === 0"
                             class="px-3 py-4 text-center text-sm text-gray-500">
                             No entities found
                         </div>
@@ -181,9 +243,17 @@ const emit = defineEmits<Emits>();
 
 const searchTerm = ref('');
 const selectedTarget = ref<{ type: 'pending' | 'confirmed', id: number } | null>(null);
-const aliasScope = ref<EntityScope>('global');
+const aliasScope = ref<EntityScope>('document');
 const isProcessing = ref(false);
-const confirmedEntities = ref<ConfirmedEntity[]>([]);
+const confirmedEntitiesByScope = ref<{
+    document: ConfirmedEntity[];
+    project: ConfirmedEntity[];
+    global: ConfirmedEntity[];
+}>({
+    document: [],
+    project: [],
+    global: []
+});
 
 // Filter pending entities (exclude source entity)
 const filteredPendingEntities = computed(() => {
@@ -193,44 +263,42 @@ const filteredPendingEntities = computed(() => {
         .filter(e => !term || e.name.toLowerCase().includes(term) || e.entityType?.name.toLowerCase().includes(term));
 });
 
-// Filter confirmed entities
-const filteredConfirmedEntities = computed(() => {
-    const term = searchTerm.value.toLowerCase();
-    return confirmedEntities.value
-        .filter(e => !term || e.name.toLowerCase().includes(term) || e.entityType?.name.toLowerCase().includes(term));
+// Calculate total confirmed entities
+const totalConfirmedEntities = computed(() => {
+    return confirmedEntitiesByScope.value.document.length +
+        confirmedEntitiesByScope.value.project.length +
+        confirmedEntitiesByScope.value.global.length;
 });
 
 // Load confirmed entities when modal opens
 watch(() => props.isOpen, async (isOpen) => {
     if (isOpen) {
+        // Reset all modal state when opening
+        isProcessing.value = false;
         selectedTarget.value = null;
         searchTerm.value = '';
-        aliasScope.value = 'global';
+        aliasScope.value = 'document';
+        confirmedEntitiesByScope.value = { document: [], project: [], global: [] };
+        // Load confirmed entities immediately
         await loadConfirmedEntities();
     }
 });
 
 const loadConfirmedEntities = async () => {
     try {
-        if (searchTerm.value.trim()) {
-            const response = await apiClient.get(`/entities/search?term=${encodeURIComponent(searchTerm.value)}`);
-            confirmedEntities.value = response.data;
-        } else {
-            // Don't load all entities by default, wait for search
-            confirmedEntities.value = [];
-        }
+        const term = searchTerm.value.trim();
+        const url = `/entities/by-resource/${props.resourceId}${term ? `?term=${encodeURIComponent(term)}` : ''}`;
+        const response = await apiClient.get(url);
+        confirmedEntitiesByScope.value = response.data;
     } catch (error) {
         console.error('Failed to load confirmed entities:', error);
+        confirmedEntitiesByScope.value = { document: [], project: [], global: [] };
     }
 };
 
 const onSearchChange = () => {
-    // Debounce search
-    if (searchTerm.value.trim().length >= 2) {
-        loadConfirmedEntities();
-    } else {
-        confirmedEntities.value = [];
-    }
+    // Debounce search - reload confirmed entities with search term
+    loadConfirmedEntities();
 };
 
 const selectTargetEntity = (type: 'pending' | 'confirmed', entity: PendingEntity | ConfirmedEntity) => {
@@ -250,6 +318,12 @@ const confirmMerge = () => {
 
 const close = () => {
     if (!isProcessing.value) {
+        // Reset state before emitting close
+        selectedTarget.value = null;
+        searchTerm.value = '';
+        aliasScope.value = 'document';
+        isProcessing.value = false;
+        confirmedEntitiesByScope.value = { document: [], project: [], global: [] };
         emit('close');
     }
 };

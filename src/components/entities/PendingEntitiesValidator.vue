@@ -12,8 +12,7 @@
                     </svg>
                     Add Entity
                 </Button>
-                <Button @click="confirmAllEntities" :disabled="isConfirming || pendingEntities.length === 0"
-                    variant="primary">
+                <Button @click="confirmAllEntities" :disabled="isConfirming" variant="primary">
                     <svg v-if="isConfirming" class="animate-spin h-4 w-4 mr-2 inline-block"
                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
@@ -121,8 +120,6 @@
                                 <div class="text-sm font-medium">{{ getEntityDisplayText(entity) }}</div>
                                 <div class="text-xs text-gray-600 px-2 py-1 bg-white rounded border">{{
                                     entity.entityType?.name || '—' }}</div>
-                                <div class="text-xs text-gray-600 px-2 py-1 bg-white rounded border">{{ entity.scope }}
-                                </div>
                             </div>
                             <div v-if="entity.description" class="text-xs text-gray-600 italic">
                                 {{ entity.description }}
@@ -157,19 +154,34 @@
 
                             <!-- Entity Name -->
                             <div class="mb-3">
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Entity Name</label>
-                                <!-- If current display mode is translated, allow editing the translation for the target locale -->
-                                <template v-if="props.displayMode === 'translated'">
-                                    <input v-model="entity._editedTranslation" type="text"
-                                        @input="scheduleSave(entity, true)"
-                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                                        :placeholder="`Translation (${props.targetLanguage})`" />
-                                </template>
-                                <template v-else>
-                                    <input v-model="entity.name" type="text" @input="scheduleSave(entity)"
-                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                                        placeholder="Entity name" />
-                                </template>
+                                <!-- Always show English name (editable) -->
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Entity Name
+                                    (English)</label>
+                                <input v-model="entity.name" type="text" @input="scheduleSave(entity)"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                    placeholder="Entity name in English" />
+                            </div>
+
+                            <!-- Show translation as editable if in translated mode -->
+                            <div v-if="props.displayMode === 'translated' && props.targetLanguage !== 'en'"
+                                class="mb-3">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Translation ({{
+                                    props.targetLanguage }})</label>
+                                <input v-model="(entity as any)._editedTranslation" type="text"
+                                    @input="scheduleSave(entity, true)"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                    :placeholder="`Translation in ${props.targetLanguage}`" />
+                            </div>
+
+                            <!-- Show translation for resource language if different from English and not in translated mode -->
+                            <div v-else-if="props.displayMode === 'extracted' && props.resourceLanguage !== 'en'"
+                                class="mb-3">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Translation ({{
+                                    props.resourceLanguage }})</label>
+                                <input v-model="(entity as any)._editedTranslation" type="text"
+                                    @input="scheduleSave(entity, true)"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                    :placeholder="`Translation in ${props.resourceLanguage}`" />
                             </div>
 
                             <!-- Entity Description (only show if not merged) -->
@@ -230,6 +242,10 @@
                                     </path>
                                 </svg>
                             </div>
+                            <Button v-if="entity.status !== 'merged'" @click="confirmSingleEntity(entity)" size="small"
+                                variant="primary">
+                                Confirm
+                            </Button>
                             <Button v-if="entity.status !== 'merged'" @click="openMergeModal(entity)" size="small"
                                 variant="secondary">
                                 Merge
@@ -254,13 +270,53 @@
         <!-- Merge Entity Modal -->
         <MergeEntityModal :is-open="showMergeModal" :source-entity="entityToMerge" :pending-entities="pendingEntities"
             :resource-id="resourceId" @close="closeMergeModal" @merge="handleMerge" />
+
+        <!-- Duplicate Warning Modal -->
+        <div v-if="duplicateWarningModal.isOpen"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div class="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-xl max-w-md w-full mx-4">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Duplicate Entity Detected</h3>
+                </div>
+
+                <!-- Body -->
+                <div class="px-6 py-4">
+                    <p class="text-sm text-gray-700 mb-3">
+                        An entity with the name <strong>"{{ duplicateWarningModal.newName }}"</strong> already exists
+                        {{ duplicateWarningModal.duplicateEntity?.isConfirmed ?
+                            'as a confirmed entity' :
+                            'as a pending entity' }}.
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        You can either merge this entity with the existing one or cancel the change.
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                    <Button @click="closeDuplicateWarning" variant="secondary">
+                        Cancel
+                    </Button>
+                    <Button @click="handleMergeFromDuplicate" variant="primary">
+                        Merge Entities
+                    </Button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Modal -->
+        <ConfirmModal :is-open="confirmModal.isOpen" :title="confirmModal.title" :message="confirmModal.message"
+            :confirm-text="confirmModal.confirmText" :cancel-text="confirmModal.cancelText"
+            :confirm-variant="confirmModal.variant" @confirm="confirmModal.onConfirm" @cancel="closeConfirmModal" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import Button from '../ui/Button.vue';
 import MergeEntityModal from './MergeEntityModal.vue';
+import ConfirmModal from '../ui/ConfirmModal.vue';
 import { usePendingEntities, type PendingEntity, type EntityAlias, type EntityScope } from '../../services/entities/usePendingEntities';
 import { useEntities } from '../../services/entities/useEntities';
 import apiClient from '../../services/api';
@@ -296,6 +352,11 @@ const highlightEntity = (entity: PendingEntity) => {
 };
 
 const pendingEntities = ref<PendingEntityWithEdit[]>([]);
+
+// Computed: count entities that are not merged
+const confirmableEntitiesCount = computed(() => {
+    return pendingEntities.value.filter(e => e.status !== 'merged').length;
+});
 
 /**
  * Get the display text for an entity based on current display mode.
@@ -333,6 +394,80 @@ const newEntity = ref({
 // Merge modal state
 const showMergeModal = ref(false);
 const entityToMerge = ref<PendingEntity | null>(null);
+
+// Store original entity names for position recalculation
+const originalEntityNames = new Map<number, string>();
+
+// Duplicate warning modal state
+const duplicateWarningModal = ref({
+    isOpen: false,
+    currentEntity: null as PendingEntity | null,
+    duplicateEntity: null as PendingEntity | null,
+    newName: ''
+});
+
+const closeDuplicateWarning = () => {
+    // Restore original name
+    if (duplicateWarningModal.value.currentEntity) {
+        const originalName = originalEntityNames.get(duplicateWarningModal.value.currentEntity.id);
+        if (originalName) {
+            duplicateWarningModal.value.currentEntity.name = originalName;
+        }
+    }
+    duplicateWarningModal.value.isOpen = false;
+    duplicateWarningModal.value.currentEntity = null;
+    duplicateWarningModal.value.duplicateEntity = null;
+    duplicateWarningModal.value.newName = '';
+};
+
+const handleMergeFromDuplicate = () => {
+    if (duplicateWarningModal.value.currentEntity && duplicateWarningModal.value.duplicateEntity) {
+        entityToMerge.value = duplicateWarningModal.value.currentEntity;
+        showMergeModal.value = true;
+        duplicateWarningModal.value.isOpen = false;
+        // Don't clear duplicateWarningModal data yet - it might be needed for context
+    }
+};
+
+// Confirmation modal state
+const confirmModal = ref({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    variant: 'primary' as 'primary' | 'danger',
+    onConfirm: () => { }
+});
+
+// Confirmation modal helpers
+const openConfirmModal = (config: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: 'primary' | 'danger';
+    onConfirm: () => void;
+}) => {
+    confirmModal.value = {
+        isOpen: true,
+        title: config.title,
+        message: config.message,
+        confirmText: config.confirmText || 'Confirm',
+        cancelText: config.cancelText || 'Cancel',
+        variant: config.variant || 'primary',
+        onConfirm: config.onConfirm
+    };
+};
+
+const closeConfirmModal = () => {
+    confirmModal.value.isOpen = false;
+};
+
+const handleConfirmModalConfirm = () => {
+    confirmModal.value.onConfirm();
+    closeConfirmModal();
+};
 
 const { fetchPendingEntitiesByResourceId, updatePendingEntity, deletePendingEntity, confirmEntities, createPendingEntity } = usePendingEntities();
 const { updateEntity } = useEntities();
@@ -373,6 +508,12 @@ const loadData = async () => {
             // helper for translation editing in UI
             _editedTranslation: (e.translations && e.translations[props.targetLanguage]) || ''
         }));
+
+        // Store original names for position recalculation
+        pendingEntities.value.forEach(e => {
+            originalEntityNames.set(e.id, e.name);
+        });
+
         // Resolve merged target names/types for any already-merged items
         await Promise.all(pendingEntities.value.map((e) => e.status === 'merged' ? resolveMergedInfo(e) : Promise.resolve()));
         entityTypes.value = types;
@@ -444,7 +585,6 @@ const DEBOUNCE_MS = 800;
 
 const scheduleSave = (entity: PendingEntity, isTranslation = false) => {
     if (!entity || !entity.id) return;
-    // clear existing timer
     const key = `${entity.id}:${isTranslation ? 't' : 'n'}`;
     const existing = saveTimers.get(key);
     if (existing) {
@@ -463,6 +603,41 @@ const scheduleSave = (entity: PendingEntity, isTranslation = false) => {
     saveTimers.set(key, t);
 };
 
+// Check if an entity with the same name already exists
+const checkForDuplicates = async (entity: PendingEntity, newName: string): Promise<PendingEntity | null> => {
+    // Check in pending entities (excluding the current entity)
+    const duplicatePending = pendingEntities.value.find(
+        e => e.id !== entity.id &&
+            e.name.toLowerCase() === newName.toLowerCase() &&
+            e.status !== 'merged'
+    );
+
+    if (duplicatePending) {
+        return duplicatePending;
+    }
+
+    // Check in confirmed entities via API
+    try {
+        const response = await apiClient.get(`/entities/search/exact`, {
+            params: {
+                name: newName
+            }
+        });
+
+        if (response.data) {
+            // Return a confirmed entity marker
+            return {
+                ...response.data,
+                isConfirmed: true
+            };
+        }
+    } catch (error) {
+        console.error('Failed to check for duplicate entities:', error);
+    }
+
+    return null;
+};
+
 const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
     isSaving.value = entity.id;
     try {
@@ -473,17 +648,43 @@ const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
                 description: entity.description || undefined,
             });
         } else if (isTranslation) {
-            // Prepare translations object for target language
-            const locale = props.targetLanguage || 'en';
+            // Save translation only
+            const locale = props.displayMode === 'extracted' ? props.resourceLanguage : props.targetLanguage;
             const translations = entity.translations ? { ...entity.translations } : {};
             translations[locale] = (entity as any)._editedTranslation || '';
 
             await updatePendingEntity(entity.id, {
                 translations
             } as any);
-            // Update local copy
             (entity as any).translations = translations;
         } else {
+            // Check if name changed
+            const originalName = originalEntityNames.get(entity.id);
+            let nameChanged = false;
+
+            if (originalName && originalName !== entity.name) {
+                nameChanged = true;
+
+                // Check for duplicates before saving
+                const duplicate = await checkForDuplicates(entity, entity.name);
+
+                if (duplicate) {
+                    // Show duplicate warning modal
+                    duplicateWarningModal.value = {
+                        isOpen: true,
+                        currentEntity: entity,
+                        duplicateEntity: duplicate,
+                        newName: entity.name
+                    };
+                    isSaving.value = null;
+                    return; // Don't save, wait for user action
+                }
+
+                // Update the stored original name
+                originalEntityNames.set(entity.id, entity.name);
+            }
+
+            // Update the entity
             await updatePendingEntity(entity.id, {
                 name: entity.name,
                 description: entity.description || undefined,
@@ -491,6 +692,30 @@ const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
                 scope: entity.scope,
                 aliases: entity.aliases?.filter(a => a.value.trim() !== '')
             });
+
+            // If name changed, trigger retranslation
+            if (nameChanged) {
+                try {
+                    await apiClient.post(`/pending-entities/${entity.id}/retranslate`, {
+                        newName: entity.name,
+                        currentLanguage: 'en', // Name is always in English
+                        resourceLanguage: props.resourceLanguage,
+                        targetLanguage: props.targetLanguage
+                    });
+
+                    // Reload the entity to get updated translations
+                    const updatedEntities = await fetchPendingEntitiesByResourceId(props.resourceId);
+                    const updatedEntity = updatedEntities.find(e => e.id === entity.id);
+                    if (updatedEntity) {
+                        // Update local entity with new translations
+                        entity.translations = updatedEntity.translations;
+                        (entity as any)._editedTranslation = (updatedEntity.translations && updatedEntity.translations[props.targetLanguage]) || '';
+                    }
+                } catch (error) {
+                    console.error('Failed to trigger retranslation:', error);
+                    // Continue even if retranslation fails
+                }
+            }
         }
     } catch (error) {
         console.error('Failed to save entity:', error);
@@ -504,38 +729,71 @@ const deleteEntity = async (id: number, isConfirmed?: boolean) => {
         ? 'This will remove the entity association from this document only. The entity will remain in other documents. Continue?'
         : 'Are you sure you want to delete this pending entity?';
 
-    if (!confirm(message)) return;
+    openConfirmModal({
+        title: 'Delete Entity',
+        message,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        variant: 'danger',
+        onConfirm: async () => {
+            try {
+                await deletePendingEntity(id);
+                pendingEntities.value = pendingEntities.value.filter(e => e.id !== id);
+            } catch (error) {
+                console.error('Failed to delete entity:', error);
+            }
+        }
+    });
+};
 
-    try {
-        await deletePendingEntity(id);
-        pendingEntities.value = pendingEntities.value.filter(e => e.id !== id);
-    } catch (error) {
-        console.error('Failed to delete entity:', error);
-    }
+const confirmSingleEntity = async (entity: PendingEntity) => {
+    openConfirmModal({
+        title: 'Confirm Entity',
+        message: `Confirm entity "${entity.name}"? This will move it to the confirmed entities.`,
+        confirmText: 'Confirm',
+        cancelText: 'Cancel',
+        variant: 'primary',
+        onConfirm: async () => {
+            try {
+                const response = await apiClient.post(`/pending-entities/${entity.id}/confirm`);
+                if (response.data.success) {
+                    // Remove the entity from the pending list
+                    pendingEntities.value = pendingEntities.value.filter(e => e.id !== entity.id);
+                    emit('entities:confirmed');
+                } else {
+                    alert(`Failed to confirm entity: ${response.data.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Failed to confirm entity:', error);
+            }
+        }
+    });
 };
 
 const confirmAllEntities = async () => {
-    if (!confirm(`Confirm all ${pendingEntities.value.length} entities? This will move them to the entities table.`)) {
-        return;
-    }
-
-    isConfirming.value = true;
-    try {
-        const result = await confirmEntities(props.resourceId);
-        if (result.errors && result.errors.length > 0) {
-            console.error('Some entities failed to confirm:', result.errors);
-            alert(`Confirmed ${result.confirmed} entities. ${result.errors.length} errors occurred. Check console for details.`);
-        } else {
-            alert(`Successfully confirmed ${result.confirmed} entities!`);
+    const count = confirmableEntitiesCount.value;
+    openConfirmModal({
+        title: 'Confirm All Entities',
+        message: `Confirm all ${count} ${count === 1 ? 'entity' : 'entities'}? This will move them to the entities table and change the resource status to 'confirmed'.`,
+        confirmText: 'Confirm All',
+        cancelText: 'Cancel',
+        variant: 'primary',
+        onConfirm: async () => {
+            isConfirming.value = true;
+            try {
+                const result = await confirmEntities(props.resourceId);
+                if (result.errors && result.errors.length > 0) {
+                    console.error('Some entities failed to confirm:', result.errors);
+                }
+                emit('entities:confirmed');
+                await loadData();
+            } catch (error) {
+                console.error('Failed to confirm entities:', error);
+            } finally {
+                isConfirming.value = false;
+            }
         }
-        emit('entities:confirmed');
-        await loadData();
-    } catch (error) {
-        console.error('Failed to confirm entities:', error);
-        alert('Failed to confirm entities. Please try again.');
-    } finally {
-        isConfirming.value = false;
-    }
+    });
 };
 
 const addNewEntity = async () => {
@@ -558,7 +816,6 @@ const addNewEntity = async () => {
         cancelAddEntity();
     } catch (error) {
         console.error('Failed to add entity:', error);
-        alert('Failed to add entity. Please try again.');
     }
 };
 
@@ -581,6 +838,12 @@ const openMergeModal = (entity: PendingEntity) => {
 const closeMergeModal = () => {
     showMergeModal.value = false;
     entityToMerge.value = null;
+    // Also clear duplicate warning modal state if it was triggered from there
+    if (duplicateWarningModal.value.currentEntity) {
+        duplicateWarningModal.value.currentEntity = null;
+        duplicateWarningModal.value.duplicateEntity = null;
+        duplicateWarningModal.value.newName = '';
+    }
 };
 
 const handleMerge = async (payload: { targetType: 'pending' | 'confirmed', targetId: number, aliasScope: EntityScope }) => {
@@ -607,34 +870,37 @@ const handleMerge = async (payload: { targetType: 'pending' | 'confirmed', targe
 
         // Close modal
         closeMergeModal();
-
-        alert('Entity merged successfully!');
     } catch (error) {
         console.error('Failed to merge entity:', error);
-        alert('Failed to merge entity. Please try again.');
     }
 };
 
 const cancelMerge = async (entity: PendingEntity) => {
-    if (!confirm('Cancel merge? This will remove the alias from the target entity and restore this pending entity.')) return;
-    try {
-        const resp = await apiClient.post(`/pending-entities/${entity.id}/cancel-merge`);
-        if (resp.data && resp.data.success) {
-            // Reload the single pending entity to get fresh state
-            const refreshed = await apiClient.get(`/pending-entities/${entity.id}`);
-            const updated = refreshed.data;
-            const idx = pendingEntities.value.findIndex(e => e.id === updated.id);
-            if (idx !== -1) {
-                pendingEntities.value[idx] = { ...pendingEntities.value[idx], ...updated };
-                await resolveMergedInfo(pendingEntities.value[idx]);
+    openConfirmModal({
+        title: 'Cancel Merge',
+        message: 'Cancel merge? This will remove the alias from the target entity and restore this pending entity.',
+        confirmText: 'Yes, Cancel Merge',
+        cancelText: 'No, Keep Merge',
+        variant: 'danger',
+        onConfirm: async () => {
+            try {
+                const resp = await apiClient.post(`/pending-entities/${entity.id}/cancel-merge`);
+                if (resp.data && resp.data.success) {
+                    // Reload the single pending entity to get fresh state
+                    const refreshed = await apiClient.get(`/pending-entities/${entity.id}`);
+                    const updated = refreshed.data;
+                    const idx = pendingEntities.value.findIndex(e => e.id === updated.id);
+                    if (idx !== -1) {
+                        pendingEntities.value[idx] = { ...pendingEntities.value[idx], ...updated };
+                        await resolveMergedInfo(pendingEntities.value[idx]);
+                    }
+                } else {
+                    alert('Failed to cancel merge: ' + (resp.data?.message || 'unknown'));
+                }
+            } catch (error) {
+                console.error('Failed to cancel merge:', error);
             }
-            alert('Merge cancelled');
-        } else {
-            alert('Failed to cancel merge: ' + (resp.data?.message || 'unknown'));
         }
-    } catch (error) {
-        console.error('Failed to cancel merge:', error);
-        alert('Failed to cancel merge.');
-    }
+    });
 };
 </script>

@@ -21,6 +21,11 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirm Modal -->
+    <ConfirmModal :is-open="showRemoveDocModal" title="Remove Document"
+      message="Are you sure you want to remove this document?" confirm-text="Remove" cancel-text="Cancel"
+      confirm-variant="danger" @confirm="handleRemoveDocConfirm" @cancel="handleRemoveDocCancel" />
   </div>
 </template>
 
@@ -35,6 +40,7 @@ import { useProjectStore } from '../store/projectStore';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import TableOfContents from '../components/editor/TableOfContents.vue';
 import Button from '../components/ui/Button.vue';
+import ConfirmModal from '../components/ui/ConfirmModal.vue';
 
 const htmlContent = ref('');
 const editorContentRef = ref(null);
@@ -52,6 +58,7 @@ const isNewDocument = computed(() => route.params.id === 'new');
 const showComments = ref(false);
 const showToc = ref(true);
 const tocRef = ref(null);
+const showRemoveDocModal = ref(false);
 
 const toggleComments = (value) => {
   showComments.value = value !== undefined ? value : !showComments.value;
@@ -260,19 +267,26 @@ const removeCommentMark = (commentId) => {
 
 const removeDoc = async () => {
   if (!docData.value.id) return;
-  if (confirm('Are you sure you want to remove this document?')) {
-    try {
-      await removeDocument(docData.value.id);
-      if (thread.value) {
-        router.push(`/thread/${thread.value.id}`);
-      } else {
-        router.push(`/project/${projectStore.currentProject.id}`);
-      }
-    } catch (error) {
-      console.error('Error removing document:', error);
-      alert('Failed to remove document.');
+  showRemoveDocModal.value = true;
+};
+
+const handleRemoveDocConfirm = async () => {
+  showRemoveDocModal.value = false;
+  if (!docData.value.id) return;
+  try {
+    await removeDocument(docData.value.id);
+    if (thread.value) {
+      router.push(`/thread/${thread.value.id}`);
+    } else {
+      router.push(`/project/${projectStore.currentProject.id}`);
     }
+  } catch (error) {
+    console.error('Failed to remove document:', error);
   }
+};
+
+const handleRemoveDocCancel = () => {
+  showRemoveDocModal.value = false;
 };
 
 const scrollToPosition = (position) => {
