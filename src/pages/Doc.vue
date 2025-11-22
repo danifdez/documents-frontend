@@ -104,7 +104,7 @@ onMounted(async () => {
   }
 
   let threadId = route.query.threadId || docData.value?.thread;
-  let projectId = projectStore.currentProject.id;
+  let projectId = route.query.projectId || projectStore.currentProject.id;
 
   try {
     if (threadId) {
