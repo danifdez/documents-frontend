@@ -1,6 +1,5 @@
 <template>
-    <div v-if="show" class="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-5"
-        @mousedown.self="close">
+    <div v-if="show" class="fixed inset-0 z-50 flex items-start justify-center bg-black/60" @mousedown.self="close">
         <input ref="inputRef" type="text" v-model="searchValue" :placeholder="placeholder"
             class="mt-4 px-6 py-4 text-2xl border border-gray-300 rounded-md shadow-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white z-50 w-[40rem]" />
     </div>
