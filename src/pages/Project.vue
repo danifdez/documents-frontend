@@ -64,20 +64,9 @@
       </div>
     </div>
 
-    <div v-if="showDeleteDialog" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-10">
-      <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-        <h3 class="text-lg font-bold mb-4">Delete Project</h3>
-        <p>Are you sure you want to delete this project? This action cannot be undone.</p>
-        <div class="flex justify-end mt-6 space-x-2">
-          <Button @click="showDeleteDialog = false">
-            Cancel
-          </Button>
-          <Button @click="deleteProjectHandler">
-            Delete
-          </Button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal :isOpen="showDeleteDialog" title="Delete Project"
+      message="Are you sure you want to delete this project? This action cannot be undone." confirmText="Delete"
+      cancelText="Cancel" confirmVariant="danger" @confirm="deleteProjectHandler" @cancel="showDeleteDialog = false" />
 
     <ProjectEditModal v-model="showEditModal" :project-id="route.params.id" @project:updated="handleProjectUpdated" />
 
@@ -103,6 +92,7 @@ import DropdownItem from '../components/ui/DropdownItem.vue';
 import ProjectEditModal from '../components/projects/ProjectEditModal.vue';
 import ThreadCreateModal from '../components/threads/ThreadCreateModal.vue';
 import ImportDocumentModal from '../components/documents/ImportDocumentModal.vue';
+import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import SearchInput from '../components/search/SearchInput.vue';
 import Card from '../components/ui/Card.vue';
 import { useNotification } from '../composables/useNotification';
