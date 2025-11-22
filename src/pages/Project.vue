@@ -37,10 +37,7 @@
         </div>
       </div>
 
-      <div v-if="filterActive" class="mt-2 flex items-center gap-3 text-sm">
-        <span class="px-2 py-1 rounded bg-yellow-50 text-yellow-800">Filtered by "{{ filterSummary.term }}"</span>
-        <Button size="small" variant="secondary" className="ml-2" @click="clearFilter">Clear</Button>
-      </div>
+      <FilterBadge v-if="filterActive" :term="filterSummary.term" @clear="clearFilter" />
       <div v-if="selectedFile" class="mt-2 p-2 bg-gray-50 rounded">
         <div class="flex items-center">
           <span v-if="selectedFile" class="text-sm text-gray-600">
@@ -104,7 +101,7 @@
 
     <ImportDocumentModal v-model="showImportDocumentModal" :project-id="route.params.id"
       @documents:imported="handleDocumentsImported" />
-    <SearchInput :show="showSearch" @search="filterThreadsAndDocuments" @close="showSearch = false"
+    <SearchInput :show="showSearch" :value="searchTerm" @search="filterThreadsAndDocuments" @close="showSearch = false"
       placeholder="Search threads and documents..." />
   </div>
 </template>
@@ -124,6 +121,7 @@ import ThreadCreateModal from '../components/threads/ThreadCreateModal.vue';
 import ImportDocumentModal from '../components/documents/ImportDocumentModal.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import SearchInput from '../components/search/SearchInput.vue';
+import FilterBadge from '../components/search/FilterBadge.vue';
 import Card from '../components/ui/Card.vue';
 import { useNotification } from '../composables/useNotification';
 import { useProjectStore } from '../store/projectStore';

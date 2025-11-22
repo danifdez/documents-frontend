@@ -5,11 +5,12 @@
       <Button @click="openProjectModal" class="px-3 py-2 rounded-full text-base">
         +
       </Button>
+      <FilterBadge v-if="filterActive" :term="searchTerm" @clear="clearFilter" />
     </div>
     <ProjectList ref="projectsComponent" :search-term="searchTerm" />
 
     <ProjectAddModal v-model="showProjectModal" @project:created="onNewProject" />
-    <SearchInput :show="showSearch" @search="searchProjects" @close="showSearch = false"
+    <SearchInput :show="showSearch" :value="searchTerm" @search="searchProjects" @close="showSearch = false"
       placeholder="Search projects..." />
   </div>
 </template>
@@ -19,6 +20,7 @@ import { ref, computed, onMounted } from 'vue';
 import ProjectList from '../components/projects/ProjectList.vue';
 import ProjectAddModal from '../components/projects/ProjectAddModal.vue';
 import SearchInput from '../components/search/SearchInput.vue';
+import FilterBadge from '../components/search/FilterBadge.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import Button from '../components/ui/Button.vue';
 import { useProjectStore } from '../store/projectStore';
@@ -27,6 +29,15 @@ import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 const projectsComponent = ref(null);
 const showProjectModal = ref(false);
 const searchTerm = ref('');
+const filterActive = computed(() => !!(searchTerm.value && String(searchTerm.value).trim().length > 0));
+
+const clearFilter = () => {
+  searchTerm.value = '';
+  if (projectsComponent.value && projectsComponent.value.loadProjects) {
+    // ensure the list shows full projects
+    projectsComponent.value.filterProjects('');
+  }
+};
 const projectStore = useProjectStore();
 
 const { showSearch } = useGlobalKeyboard();

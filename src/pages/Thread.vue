@@ -9,6 +9,7 @@
         <Button @click="createNewDocument" class="px-3 py-2 rounded-full text-base">
           +
         </Button>
+        <FilterBadge v-if="filterActive" :term="searchQuery" @clear="clearFilter" />
       </div>
     </div>
 
@@ -21,7 +22,7 @@
         <p class="text-gray-500">No documents found in this thread.</p>
       </div>
     </div>
-    <SearchInput :show="showSearch" @search="handleSearch" @close="showSearch = false"
+    <SearchInput :show="showSearch" :value="searchQuery" @search="handleSearch" @close="showSearch = false"
       placeholder="Search threads..." />
   </div>
 </template>
@@ -34,6 +35,7 @@ import Button from '../components/ui/Button.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import Card from '../components/ui/Card.vue';
 import SearchInput from '../components/search/SearchInput.vue';
+import FilterBadge from '../components/search/FilterBadge.vue';
 import { useThread } from '../services/threads/useThread';
 import { useProjectStore } from '../store/projectStore';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
@@ -46,6 +48,11 @@ const { showSearch } = useGlobalKeyboard();
 const thread = ref(null);
 const projectStore = useProjectStore();
 const searchQuery = ref('');
+const filterActive = computed(() => !!(searchQuery.value && String(searchQuery.value).trim().length > 0));
+
+const clearFilter = () => {
+  searchQuery.value = '';
+};
 
 const filteredDocuments = computed(() => {
   if (!searchQuery.value.trim()) {
