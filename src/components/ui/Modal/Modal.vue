@@ -1,7 +1,7 @@
 <template>
     <Teleport to="body">
         <Transition name="modal" appear>
-            <div v-if="modelValue" class="modal-overlay"
+            <div v-if="modelValue" class="modal-overlay" v-on="$attrs"
                 @click="closeOnBackdrop ? $emit('update:modelValue', false) : null">
                 <div class="modal-container" @click.stop>
                     <div class="modal-header">
