@@ -1,6 +1,6 @@
 <template>
-    <div class="toc-sidebar bg-gray-50 border-l border-gray-300 flex flex-col min-w-[250px] max-w-[300px] h-full">
-        <div class="flex items-center justify-between p-4 pb-2 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+    <div class="toc-sidebar flex flex-col min-w-[250px] max-w-[300px] h-full">
+        <div class="flex items-center justify-start gap-2 p-4 pb-2 flex-shrink-0">
             <h3 class="text-lg font-semibold text-gray-800">Table of Contents</h3>
             <Button @click="extractHeadings" title="Refresh TOC">
                 ↻
@@ -14,12 +14,11 @@
                 <ul class="space-y-1">
                     <li v-for="(heading, index) in headings" :key="index">
                         <Button @click="scrollToHeading(heading)" :class-name="[
-                            'block w-full text-left py-2 px-3 rounded text-sm hover:bg-gray-200 transition-colors duration-200',
-                            `toc-level-${heading.level}`,
-                            { 'bg-blue-100 text-blue-800 border-l-4 border-blue-500': heading.id === activeHeadingId }
-                        ].flat().filter(v => typeof v === 'string').join(' ')"
-                            :style="{ paddingLeft: `${(heading.level - 1) * 12 + 12}px` }" :title="heading.text">
-                            <span class="truncate block">{{ heading.text }}</span>
+                            'inline-flex items-start justify-start w-full text-left py-2 px-3 text-sm leading-normal',
+                            `toc-level-${heading.level}`
+                        ].join(' ')" :style="{ paddingLeft: `${(heading.level - 1) * 12 + 12}px` }"
+                            :title="heading.text">
+                            <span class="block whitespace-normal break-words">{{ heading.text }}</span>
                         </Button>
                     </li>
                 </ul>
@@ -265,6 +264,8 @@ onBeforeUnmount(() => {
 .toc-sidebar {
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 #f1f5f9;
+    background: transparent;
+    border: 0;
 }
 
 .toc-sidebar::-webkit-scrollbar {
@@ -281,29 +282,54 @@ onBeforeUnmount(() => {
 }
 
 .toc-level-1 {
-    font-weight: 600;
+    font-weight: 700;
+    /* bold */
     color: #1f2937;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
+    /* slightly larger */
 }
 
 .toc-level-2 {
-    font-weight: 500;
+    font-weight: 400;
+    /* not bold */
     color: #374151;
-    font-size: 0.85rem;
+    font-size: 1.1rem;
+    /* same size as h1 */
 }
 
 .toc-level-3 {
     font-weight: 400;
+    /* not bold */
     color: #6b7280;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
+    /* normal */
 }
 
 .toc-sidebar button:hover {
-    background-color: #f3f4f6;
-    transform: translateX(2px);
+    background: transparent !important;
+    transform: none !important;
 }
 
 .toc-sidebar button:active {
-    transform: translateX(1px);
+    transform: none !important;
+}
+
+.toc-sidebar button {
+    text-align: left;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    appearance: none;
+}
+
+.toc-sidebar ul {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.toc-sidebar ul li {
+    margin-bottom: 0;
+    /* use `space-y` for spacing only; remove extra gap */
 }
 </style>
