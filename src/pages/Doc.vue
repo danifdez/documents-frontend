@@ -12,12 +12,26 @@
           <div class="flex flex-col flex-grow">
             <EditorContent ref="editorContentRef" :content="docData?.content" :isSaving="isSaving"
               :savedSuccessfully="savedSuccessfully" :show-toc="showToc" @content-change="handleEditorContentChange"
-              @toggle-comments="toggleComments" @toggle-toc="toggleToc" @highlight-comment="highlightComment" />
+              @toggle-comments="toggleComments" @highlight-comment="highlightComment" />
           </div>
-          <CommentSidebar ref="commentSidebarRef" v-if="!isNewDocument && showComments" :doc-id="route.params.id"
-            @comment-clicked="findAndHighlightCommentMark" @comment-deleted="removeCommentMark" />
-          <TableOfContents v-if="!isNewDocument && showToc" ref="tocRef" :editor="editorContentRef?.editor"
-            @scroll-to="scrollToPosition" />
+          <div v-if="!isNewDocument" class="ml-4 flex-shrink-0 w-[300px] min-w-[250px]">
+            <div class="flex justify-end mb-2">
+              <ButtonGroup>
+                <Button variant="secondary" :active="viewSideBar === 'toc'"
+                  @click="(viewSideBar = 'toc', refreshTocFromChild())">
+                  TOC
+                </Button>
+                <Button variant="secondary" :active="viewSideBar === 'comments'" @click="viewSideBar = 'comments'">
+                  Comments
+                </Button>
+              </ButtonGroup>
+            </div>
+
+            <CommentSidebar v-if="viewSideBar === 'comments'" ref="commentSidebarRef" :doc-id="String(route.params.id)"
+              @comment-clicked="findAndHighlightCommentMark" @comment-deleted="removeCommentMark" />
+            <TableOfContents v-else-if="viewSideBar === 'toc'" ref="tocRef" :editor="editorContentRef?.editor"
+              @scroll-to="scrollToPosition" />
+          </div>
         </div>
       </div>
     </div>
@@ -29,10 +43,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useDocument } from '../services/documents/useDocument';
 import { useThread } from '../services/threads/useThread';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import EditorContent from '../components/editor/EditorContent.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
@@ -40,11 +54,12 @@ import { useProjectStore } from '../store/projectStore';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import TableOfContents from '../components/editor/TableOfContents.vue';
 import Button from '../components/ui/Button.vue';
+import ButtonGroup from '../components/ui/ButtonGroup.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 
 const htmlContent = ref('');
-const editorContentRef = ref(null);
-const docData = ref({ name: '', content: '' });
+const editorContentRef = ref<any>(null);
+const docData = ref<any>({ name: '', content: '' });
 const route = useRoute();
 const router = useRouter();
 const isSaving = ref(false);
@@ -55,18 +70,32 @@ const { loadThread } = useThread();
 const thread = ref(null);
 const projectStore = useProjectStore();
 const isNewDocument = computed(() => route.params.id === 'new');
-const showComments = ref(false);
-const showToc = ref(true);
+const viewSideBar = ref<'toc' | 'comments' | 'hidden'>(isNewDocument.value ? 'hidden' : 'toc');
+const showToc = computed(() => viewSideBar.value === 'toc');
 const tocRef = ref(null);
 const showRemoveDocModal = ref(false);
 
-const toggleComments = (value) => {
-  showComments.value = value !== undefined ? value : !showComments.value;
+const toggleComments = (value?: boolean) => {
+  if (typeof value === 'boolean') {
+    viewSideBar.value = value ? 'comments' : 'hidden';
+  } else {
+    viewSideBar.value = viewSideBar.value === 'comments' ? 'hidden' : 'comments';
+  }
 };
 
-const toggleToc = () => {
-  showToc.value = !showToc.value;
+const refreshTocFromChild = () => {
+  try {
+    if (tocRef.value && typeof tocRef.value.extractHeadings === 'function') {
+      tocRef.value.extractHeadings();
+    }
+  } catch (e) {
+    // ignore
+  }
 };
+
+watch(viewSideBar, (newVal) => {
+  if (newVal === 'toc') refreshTocFromChild();
+});
 
 const breadcrumbItems = computed(() => {
   const items = [];
@@ -100,11 +129,11 @@ onMounted(async () => {
   const id = route.params.id;
 
   if (!isNewDocument.value) {
-    docData.value = await loadDocument(id);
+    docData.value = await loadDocument(String(id));
   }
 
-  let threadId = route.query.threadId || docData.value?.thread;
-  let projectId = route.query.projectId || projectStore.currentProject.id;
+  let threadId: any = route.query.threadId || docData.value?.thread;
+  let projectId: any = route.query.projectId || projectStore.currentProject.id;
 
   try {
     if (threadId) {
@@ -130,7 +159,7 @@ onMounted(async () => {
   htmlContent.value = docData.value.content;
 });
 
-const handleEditorContentChange = (content) => {
+const handleEditorContentChange = (content: string) => {
   if (!docData.value.name) {
     return;
   }
@@ -172,26 +201,26 @@ const handleEditorContentChange = (content) => {
 
 const commentSidebarRef = ref(null);
 
-const highlightComment = (commentId) => {
+const highlightComment = (commentId: string) => {
   if (commentSidebarRef.value) {
     commentSidebarRef.value.highlightComment(commentId);
   }
 };
 
-const findAndHighlightCommentMark = (commentId) => {
+const findAndHighlightCommentMark = (commentId: string) => {
   if (!editorContentRef.value || !editorContentRef.value.editor) return;
 
   const editor = editorContentRef.value.editor;
   const doc = editor.state.doc;
 
-  const findCommentMarkPosition = (doc) => {
-    let result = null;
+  const findCommentMarkPosition = (doc: any): { from: number; to: number } | null => {
+    let result: { from: number; to: number } | null = null;
 
-    doc.descendants((node, pos) => {
+    doc.descendants((node: any, pos: number) => {
       if (result) return false;
 
-      const marks = node.marks.filter(
-        mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
+      const marks = (node.marks as any[]).filter(
+        (mark: any) => mark.type.name === 'comment' && mark.attrs.commentId === commentId
       );
 
       if (marks.length > 0) {
@@ -214,7 +243,7 @@ const findAndHighlightCommentMark = (commentId) => {
     editor.commands.setTextSelection(position);
     editor.chain().focus().run();
 
-    const commentMark = document.querySelector(`span[data-comment-id="${commentId}"]`);
+    const commentMark = document.querySelector(`span[data-comment-id="${commentId}"]`) as HTMLElement | null;
     if (commentMark) {
       commentMark.style.backgroundColor = 'rgba(255, 215, 0, 0.6)';
       commentMark.style.transition = 'background-color 0.5s ease';
@@ -226,20 +255,20 @@ const findAndHighlightCommentMark = (commentId) => {
   }
 };
 
-const removeCommentMark = (commentId) => {
+const removeCommentMark = (commentId: string) => {
   if (!editorContentRef.value || !editorContentRef.value.editor) return;
 
   const editor = editorContentRef.value.editor;
   const doc = editor.state.doc;
 
-  const findCommentMarkPosition = (doc) => {
-    let result = null;
+  const findCommentMarkPosition = (doc: any): { from: number; to: number } | null => {
+    let result: { from: number; to: number } | null = null;
 
-    doc.descendants((node, pos) => {
+    doc.descendants((node: any, pos: number) => {
       if (result) return false;
 
-      const marks = node.marks.filter(
-        mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
+      const marks = (node.marks as any[]).filter(
+        (mark: any) => mark.type.name === 'comment' && mark.attrs.commentId === commentId
       );
 
       if (marks.length > 0) {
@@ -289,7 +318,7 @@ const handleRemoveDocCancel = () => {
   showRemoveDocModal.value = false;
 };
 
-const scrollToPosition = (position) => {
+const scrollToPosition = (position: number) => {
   if (editorContentRef.value && editorContentRef.value.scrollToPosition) {
     editorContentRef.value.scrollToPosition(position);
   }

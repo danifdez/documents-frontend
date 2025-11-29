@@ -144,27 +144,6 @@
           stroke-linejoin="round" />
       </svg>
     </Button>
-    <!-- Toggle Comments Sidebar Button -->
-    <Button v-if="context !== 'resource'" @click="toggleComments" title="Toggle Comments Sidebar" size="small"
-      :active="showComments" borderless>
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        <rect x="6" y="7.5" width="8" height="1.5" rx="0.75" fill="currentColor" />
-        <rect x="6" y="11" width="6" height="1.5" rx="0.75" fill="currentColor" />
-      </svg>
-    </Button>
-    <!-- Toggle TOC Sidebar Button -->
-    <Button v-if="context !== 'resource'" @click="toggleToc" title="Toggle Table of Contents" size="small"
-      :active="showToc" borderless>
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="3.5" width="14" height="2.5" rx="1" fill="currentColor" />
-        <rect x="3" y="7.5" width="10" height="2.5" rx="1" fill="currentColor" />
-        <rect x="3" y="11.5" width="12" height="2.5" rx="1" fill="currentColor" />
-        <rect x="3" y="15.5" width="8" height="2.5" rx="1" fill="currentColor" />
-      </svg>
-    </Button>
     <!-- Undo Button -->
     <Button @click="handleUndo" title="Undo" size="small" borderless>
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -235,20 +214,12 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['toggle-comments', 'toggle-toc', 'add-comment', 'add-mark', 'remove-mark', 'add-reference']);
+const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference']);
 
 const showLinkForm = ref(false);
 const linkUrl = ref('');
 const linkUrlInput = ref(null);
 const isMarkActive = ref(false);
-
-const toggleComments = () => {
-  emit('toggle-comments');
-};
-
-const toggleToc = () => {
-  emit('toggle-toc');
-};
 
 const insertTable = () => {
   if (props.editor) {

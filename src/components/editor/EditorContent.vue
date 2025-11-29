@@ -1,9 +1,9 @@
 <template>
     <div class="editor-container">
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
-            :show-comments="showComments" :show-toc="showToc" :context="context" @toggle-comments="toggleComments"
-            @toggle-toc="toggleToc" @add-comment="handleAddCommentRequest" @add-mark="handleAddMarkRequest"
-            @remove-mark="handleRemoveMark" @add-reference="showReferenceModal = true" />
+            :show-comments="showComments" :show-toc="showToc" :context="context" @add-comment="handleAddCommentRequest"
+            @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
+            @add-reference="showReferenceModal = true" />
         <div class="editor-scroll-wrapper">
             <div class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content"
                 spellcheck="false" autocorrect="off" autocomplete="off" data-gramm="false" data-enable-grammarly="false"
@@ -76,7 +76,6 @@ const props = defineProps({
 const emit = defineEmits([
     'content-change',
     'toggle-comments',
-    'toggle-toc',
     'highlight-comment',
     'highlight-mark'
 ]);
@@ -121,10 +120,6 @@ function createSearchDecorationPlugin(getDecorations) {
 const toggleComments = () => {
     showComments.value = !showComments.value;
     emit('toggle-comments', showComments.value);
-};
-
-const toggleToc = () => {
-    emit('toggle-toc');
 };
 
 const handleAddCommentRequest = (selection: { text: string; from: number; to: number }) => {
