@@ -1,105 +1,63 @@
-# documents-frontend
+# Documents Frontend
 
-Electron + Vue desktop application for the intelligent document processing system. Allows uploading, viewing, annotating, and processing documents with AI capabilities.
+> **WARNING:** This project is in ALPHA — features are experimental and may change without notice. Use at your own risk.
+
+## What Is This?
+
+**Documents Frontend** is an Electron desktop application for researchers, writers, and knowledge workers who need to collect, process, and connect large amounts of documents and information. It provides a single workspace where you can import documents from disk or the web, run AI-powered processing jobs (extraction, summarization, translation), and organize everything into projects, knowledge entries, threads, timelines, and canvases.
+
+Under the hood, the app talks to a [NestJS backend](../backend/README.md) (document storage, jobs, users) and a [Python models service](../models/README.md) (NLP, embeddings, AI processing). All three services are run together through Docker Compose.
+
+## Key Features
+
+### Document & Resource Management
+
+- Import documents from disk (PDF, Word, TXT, HTML, images) or extract directly from web pages using the built-in browser
+- View, annotate, and organize documents across multiple projects
+- Add comments and marks to specific parts of a document
+- Full-text and semantic search across all your content
+
+### AI Processing Jobs
+
+- **Extraction** — extract structured entities, topics, and references from a document
+- **Summarization** — generate concise summaries of long documents
+- **Translation** — translate document content to other languages
+- Real-time job status notifications via WebSocket
+
+### Knowledge & Research Tools
+
+- **Knowledge Base** — curate and link knowledge entries backed by source documents
+- **Entities** — review, merge, and confirm extracted entities (two-phase workflow)
+- **Bibliography** — manage and export bibliographic references
+- **Threads** — discussion threads linked to documents or projects
+- **Timeline** — plot events and milestones from extracted data
+- **Canvas** — free-form visual workspace for arranging and connecting ideas
+- **Datasets** — create and manage structured datasets from your documents
+
+### Workspace & Collaboration
+
+- Multi-project workspace with a collapsible sidebar
+- User management and role-based access control
+- Configurable editor settings (font, spacing, language) stored locally via `electron-store`
+- Offline mode with sync indicator
 
 ## Tech Stack
 
-- **Desktop**: Electron 38 (Electron Forge)
-- **UI**: Vue 3.5, Vue Router, Pinia
-- **Build**: Vite 7
-- **Styling**: Tailwind CSS v4, PostCSS
-- **Editor**: TipTap 3.4 (rich-text)
-- **HTTP**: Axios
-- **Real-time**: Socket.io-client
-- **Local Storage**: electron-store
-- **Testing**: Vitest + Playwright
+| Layer | Technology |
+|-------|-----------|
+| Desktop shell | Electron 38 (Electron Forge) |
+| UI Framework | Vue 3.5 (Composition API) + TypeScript 5.9 |
+| Build tool | Vite 7 |
+| State management | Pinia 3 |
+| Routing | Vue Router 4 |
+| Rich text editor | TipTap 3.4 (ProseMirror) |
+| HTTP client | Axios 1.12 |
+| Real-time | Socket.io-client 4.8 |
+| Styling | Tailwind CSS v4 |
+| Unit tests | Vitest 3.2 + Vue Test Utils 2.4 |
+| E2E tests | Playwright 1.55 |
 
-## Features
-
-### Document Management
-- Upload documents in multiple formats (PDF, DOC, DOCX, TXT, HTML, images)
-- View extracted, translated, and original content
-- Organize documents into projects and threads
-- Global search with `Ctrl+Shift+F`
-
-### Rich-Text Editor (TipTap)
-- Full formatting: headings (h1-h3), tables, links, images, alignment
-- **Comments**: yellow highlights with interactive click handling
-- **Marks**: orange highlights for bookmarks
-- **References**: insertable nodes linking to other documents/entities
-- Auto-save with visual indicator
-- Auto-generated table of contents
-
-### AI Processing
-- Content extraction and normalization
-- Automatic summarization
-- Multi-language translation
-- Language detection
-- Named entity extraction (persons, organizations, locations)
-- Key point and keyword extraction
-- Question answering (RAG)
-- Semantic search
-
-### Embedded Browser
-- Web navigation within the application
-- Extract webpage content as resources
-- Isolated sessions per project (`partition: persist:browser-{projectId}`)
-
-### Real-Time Notifications
-- WebSocket connection to the backend
-- Interactive toasts with direct links to processed resources
-
-### Persistent Settings
-- Font size and family
-- Paragraph spacing
-- Interface language
-- Stored in `~/.config/documents-frontend`
-
-## Structure
-
-```
-src/
-├── main.ts                    # Electron main process
-├── preload.ts                 # Electron ↔ Renderer bridge
-├── App.vue                    # Root component + WebSocket
-├── router/                    # Application routes
-├── store/                     # Pinia store (projectStore)
-├── pages/                     # Main views
-│   ├── Dashboard.vue          # Project listing
-│   ├── Project.vue            # Project detail
-│   ├── Thread.vue             # Discussion thread
-│   ├── Doc.vue                # Document editor
-│   ├── Resource.vue           # Resource viewer
-│   └── Settings.vue           # Settings
-├── components/
-│   ├── ui/                    # Reusable components (Button, Card, Modal, etc.)
-│   └── editor/                # TipTap editor and custom extensions
-├── services/                  # API services (Vue 3 composables)
-│   ├── api.ts                 # Base Axios client
-│   ├── notifications/         # Socket.io + toasts
-│   └── ...                    # projects, documents, comments, marks, etc.
-└── composables/               # Reusable hooks (keyboard, notifications, icons)
-```
-
-### Custom TipTap Extensions
-
-| Extension | Description |
-|-----------|-------------|
-| **CommentExtension** | Yellow highlights with `commentId`, click handler |
-| **MarkExtension** | Orange highlights with `markId`, click handler |
-| **ReferenceExtension** | Reference nodes with `referenceId`, `referenceType` |
-
-## Installation
-
-### With Docker (recommended)
-
-From the repository root:
-
-```bash
-docker compose up frontend
-```
-
-### Local
+## Quick Start
 
 ```bash
 cd frontend
@@ -107,47 +65,55 @@ npm install
 npm start
 ```
 
-### Available Scripts
+See [Getting Started](docs/getting-started.md) for full setup, environment variables, and debugging tips.
 
-| Script | Description |
-|--------|-------------|
-| `npm start` | Development with Electron Forge |
-| `npm run package` | Package application |
-| `npm run make` | Build distribution (Squirrel, ZIP, RPM, DEB) |
-| `npm run test` | Unit tests (Vitest) |
-| `npm run test:watch` | Tests in watch mode |
-| `npm run test:coverage` | Test coverage |
-| `npm run test:e2e` | End-to-end tests (Playwright) |
-| `npm run lint` | Lint with ESLint |
+## Documentation
 
-## Testing
+| Document | Description |
+|----------|-------------|
+| [Getting Started](docs/getting-started.md) | Installation, setup, available scripts, build configuration, and debugging |
+| [Features](docs/features.md) | Detailed walkthrough of all application features and pages |
+| [Architecture](docs/architecture.md) | Electron process model, Vue app structure, and key design patterns |
+| [Electron Integration](docs/electron-integration.md) | IPC channels, preload bridge, file upload flow, and security configuration |
 
-### Unit Tests (Vitest)
-- Environment: happy-dom
-- Automatic cleanup setup in `tests/setup.ts`
-- Coverage for UI components, editor, and composables
+## Building Distributables
 
-### End-to-End Tests (Playwright)
-- Full workflow: Project → Thread → Document → Editor
-- Runs with `xvfb` for headless environment in Docker
-- Timeout: 600 seconds
-- Screenshots on failure
+### Linux
 
-## Environment Variables
+Produces `.deb` and `.rpm` packages.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VITE_API_URL` | `http://localhost:3000` | Backend API URL |
+**Prerequisites:**
 
-## Keyboard Shortcuts
+```bash
+sudo apt-get install -y rpm   # required for RPM builds
+```
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+F` | Search in document |
-| `Ctrl+Shift+F` | Global search |
-| `Ctrl+Shift+I` | Open DevTools |
-| `Escape` | Close search modal |
+**Build:**
+
+```bash
+npm run make
+```
+
+Output is placed in `out/make/`.
+
+### Windows
+
+Uses `@electron-forge/maker-squirrel` to produce a `.exe` installer. **Cross-compilation from Linux is not supported** — build on Windows or use CI/CD.
+
+```powershell
+npm install
+npm run make
+```
+
+### macOS
+
+Uses `@electron-forge/maker-zip` to produce a `.zip` archive. **Cross-compilation from Linux is not supported** — build on macOS or use CI/CD.
+
+```bash
+npm install
+npm run make
+```
 
 ## License
 
-Apache License, Version 2.0. See the LICENSE file for details.
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
