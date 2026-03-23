@@ -2,7 +2,8 @@
     <div>
         <Toolbar :editor="null" :resourceId="resourceId" :hasWorkspace="hasWorkspace" @add-mark="handleAddMark"
             @remove-mark="handleRemoveMark" @add-comment="handleAddComment"
-            @send-selection-to-workspace="onToolbarSendSelection" @summarize-selection="onToolbarSummarizeSelection" />
+            @send-selection-to-workspace="onToolbarSendSelection" @send-selection-to-doc="onToolbarSendToDoc"
+            @summarize-selection="onToolbarSummarizeSelection" />
         <div class="relative">
             <div v-if="savedSuccessfully"
                 class="absolute top-2 right-2 bg-green-100 text-green-800 px-3 py-1 rounded-md shadow-sm z-10">
@@ -15,9 +16,9 @@
             @save="saveComment" @cancel="cancelComment" />
         <div v-if="showContextMenu"
             :style="{ position: 'fixed', left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px', zIndex: 10000 }"
-            class="bg-white border rounded shadow-lg">
+            class="bg-surface-elevated border-border border rounded shadow-lg">
             <ul class="py-1">
-                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer" @click="saveImageAsResource">Save image as
+                <li class="px-4 py-2 hover:bg-surface-hover cursor-pointer" @click="saveImageAsResource">Save image as
                     resource</li>
             </ul>
         </div>
@@ -74,7 +75,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['content-updated', 'highlight-comment', 'send-selection-to-workspace', 'summarize-selection']);
+const emit = defineEmits(['content-updated', 'highlight-comment', 'send-selection-to-workspace', 'send-selection-to-doc', 'summarize-selection']);
 
 const onToolbarSendSelection = (text: string) => {
     // Forward the event up to parent components (Resource.vue)
@@ -84,6 +85,16 @@ const onToolbarSendSelection = (text: string) => {
         }
     } catch (e) {
         console.error('Failed to forward send-selection-to-workspace event', e);
+    }
+};
+
+const onToolbarSendToDoc = (text: string) => {
+    try {
+        if (text && text.trim()) {
+            emit('send-selection-to-doc', text);
+        }
+    } catch (e) {
+        console.error('Failed to forward send-selection-to-doc event', e);
     }
 };
 
@@ -246,96 +257,129 @@ const clearEntityHighlights = () => {
     });
 };
 
-const highlightEntity = (entityName: string, aliases: string[] = [], translations?: { [locale: string]: string }) => {
-    if (!extractedContent.value) return;
-
-    // Clear previous entity highlights
-    clearEntityHighlights();
-
-    let primaryTerm = entityName;
-
-    if (props.displayMode === 'translated' && translations) {
-        const translatedTerm = translations['es'] || translations['it'] || translations['pt'] || translations['de'] || translations['fr'];
-        if (translatedTerm) {
-            primaryTerm = translatedTerm;
+/**
+ * Build a mapping from normalized (accent-free) string positions back to original string positions.
+ * Returns { normalized, map } where map[i] = index in original string for position i in normalized.
+ */
+const buildNormalizedMap = (original: string): { normalized: string; map: number[] } => {
+    const map: number[] = [];
+    let normalized = '';
+    for (let i = 0; i < original.length; i++) {
+        const nfd = original[i].normalize('NFD');
+        for (const ch of nfd) {
+            // Skip combining diacritical marks (U+0300–U+036F)
+            if (ch.charCodeAt(0) >= 0x0300 && ch.charCodeAt(0) <= 0x036f) continue;
+            normalized += ch;
+            map.push(i);
         }
     }
+    // Add end sentinel so we can slice correctly
+    map.push(original.length);
+    return { normalized, map };
+};
 
-    const termsToHighlight = [primaryTerm, ...(aliases || [])].filter(term => term && term.trim());
+const highlightEntity = (entityName: string, aliases: string[] = []) => {
+    if (!extractedContent.value) return;
 
+    clearEntityHighlights();
+
+    const termsToHighlight = [entityName, ...(aliases || [])].filter(term => term && term.trim());
     if (termsToHighlight.length === 0) return;
-
-    // Create a combined regex pattern for all terms
-    const escapedTerms = termsToHighlight.map(term => escapeRegExp(term.trim()));
-    const pattern = new RegExp(`\\b(${escapedTerms.join('|')})\\b`, 'gi');
 
     const walker = document.createTreeWalker(
         extractedContent.value,
         NodeFilter.SHOW_TEXT,
         {
             acceptNode: (node) => {
-                // Skip text nodes that are already inside highlights, marks, or comments
                 const parent = node.parentElement;
                 if (!parent) return NodeFilter.FILTER_REJECT;
-
                 const tagName = parent.tagName.toLowerCase();
                 if (tagName === 'mark' || tagName === 'script' || tagName === 'style') {
                     return NodeFilter.FILTER_REJECT;
                 }
-
                 if (parent.classList.contains('search-highlight') ||
                     parent.classList.contains('entity-highlight') ||
                     parent.classList.contains('comment-mark') ||
                     parent.classList.contains('text-mark')) {
                     return NodeFilter.FILTER_REJECT;
                 }
-
                 return NodeFilter.FILTER_ACCEPT;
             }
         }
     );
 
-    const nodesToProcess = [];
+    const nodesToProcess: Text[] = [];
     let node;
     while (node = walker.nextNode()) {
-        nodesToProcess.push(node);
+        nodesToProcess.push(node as Text);
     }
 
+    // Normalize search terms (remove accents for matching)
+    const normalizedTerms = termsToHighlight.map(t => escapeRegExp(t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()));
+    const termsPattern = normalizedTerms.join('|');
+
+    let totalHighlighted = 0;
+
     nodesToProcess.forEach(textNode => {
-        const text = textNode.textContent;
-        if (!text || !pattern.test(text)) return;
+        const originalText = textNode.textContent;
+        if (!originalText) return;
+
+        // Build normalized text with position mapping back to original
+        const { normalized, map } = buildNormalizedMap(originalText);
+
+        // Try with Unicode-aware word boundaries first
+        let pattern = new RegExp(`(?<![\\p{L}\\p{N}])(${termsPattern})(?![\\p{L}\\p{N}])`, 'giu');
+        let matches: { origStart: number; origEnd: number }[] = [];
+        let match;
+
+        while ((match = pattern.exec(normalized)) !== null) {
+            const normStart = match.index;
+            const normEnd = normStart + match[0].length;
+            matches.push({ origStart: map[normStart], origEnd: map[normEnd] });
+        }
+
+        // Fallback: if no matches with word boundaries, try without boundaries (simple substring)
+        if (matches.length === 0) {
+            const fallbackPattern = new RegExp(`(${termsPattern})`, 'giu');
+            while ((match = fallbackPattern.exec(normalized)) !== null) {
+                const normStart = match.index;
+                const normEnd = normStart + match[0].length;
+                matches.push({ origStart: map[normStart], origEnd: map[normEnd] });
+            }
+        }
+
+        if (matches.length === 0) return;
 
         const parent = textNode.parentNode;
         const fragment = document.createDocumentFragment();
         let lastIndex = 0;
-        let match;
 
-        // Reset regex to start from beginning
-        pattern.lastIndex = 0;
-
-        while ((match = pattern.exec(text)) !== null) {
-            // Add text before the match
-            if (match.index > lastIndex) {
-                fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+        for (const m of matches) {
+            if (m.origStart > lastIndex) {
+                fragment.appendChild(document.createTextNode(originalText.slice(lastIndex, m.origStart)));
             }
-
-            // Create highlight for the match
             const highlight = document.createElement('mark');
             highlight.className = 'entity-highlight';
-            highlight.textContent = match[0];
+            highlight.textContent = originalText.slice(m.origStart, m.origEnd);
             fragment.appendChild(highlight);
-
-            lastIndex = match.index + match[0].length;
+            lastIndex = m.origEnd;
+            totalHighlighted++;
         }
 
-        // Add remaining text
-        if (lastIndex < text.length) {
-            fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+        if (lastIndex < originalText.length) {
+            fragment.appendChild(document.createTextNode(originalText.slice(lastIndex)));
         }
 
-        // Replace the original text node with the fragment
-        parent.replaceChild(fragment, textNode);
+        parent?.replaceChild(fragment, textNode);
     });
+
+    // Scroll to first highlight
+    if (totalHighlighted > 0) {
+        const firstHighlight = extractedContent.value.querySelector('.entity-highlight');
+        if (firstHighlight) {
+            firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
 };
 
 const saveModifiedContent = async () => {
@@ -844,29 +888,29 @@ defineExpose({
     display: block;
     overflow-x: auto;
     margin: 1em 0;
-    background: #fff;
+    background: var(--color-surface-elevated);
     font-size: calc(var(--font-size-p) * 1px);
 }
 
 :deep(.resource-detail th),
 :deep(.resource-detail td) {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     padding: 0.75em 1em;
     text-align: left;
 }
 
 :deep(.resource-detail th) {
-    background: #f3f4f6;
+    background: var(--color-surface-hover);
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-secondary);
 }
 
 :deep(.resource-detail tr:nth-child(even)) {
-    background: #f9fafb;
+    background: var(--color-surface-hover);
 }
 
 :deep(.resource-detail tr:hover) {
-    background: #f1f5f9;
+    background: var(--color-surface-hover);
 }
 
 /* highlight when navigated from TOC */

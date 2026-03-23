@@ -1,20 +1,20 @@
 <template>
-    <div class="bg-white py-2">
+    <div class="bg-surface-elevated py-2">
         <!-- Context menu for text selection -->
         <div v-if="showContextMenu" :style="contextMenuStyle"
-            class="fixed z-50 bg-white shadow-lg rounded-md border border-gray-200 py-1 min-w-[160px]" @click.stop>
+            class="fixed z-50 bg-surface-elevated shadow-lg rounded-md border border-border py-1 min-w-[160px]" @click.stop>
             <button @click="handleContextMenuAction('highlight')"
-                class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm"
-                :class="{ 'bg-gray-50': isMarkActive }">
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm"
+                :class="{ 'bg-surface-hover': isMarkActive }">
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="2" y="5" width="16" height="10" rx="1" stroke="currentColor" stroke-width="1.5" />
                     <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
                 </svg>
                 <span>{{ isMarkActive ? 'Remove Highlight' : 'Highlight' }}</span>
-                <span class="ml-auto text-xs text-gray-400">Ctrl+H</span>
+                <span class="ml-auto text-xs text-text-muted">Ctrl+H</span>
             </button>
             <button @click="handleContextMenuAction('comment')"
-                class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
@@ -23,22 +23,30 @@
                     <path d="M7 12H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                 </svg>
                 <span>Add Comment</span>
-                <span class="ml-auto text-xs text-gray-400">Ctrl+Shift+C</span>
+                <span class="ml-auto text-xs text-text-muted">Ctrl+Shift+C</span>
             </button>
             <button @click="handleContextMenuAction('send')"
-                class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M2 10l8-6v4h6v4h-6v4l-8-6z" fill="currentColor" />
                 </svg>
-                <span>Sent to workspace</span>
+                <span>Send to workspace</span>
+            </button>
+            <button @click="handleContextMenuAction('send-to-doc')"
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2z" stroke="currentColor" stroke-width="1.5" fill="none" />
+                    <path d="M8 7h4M8 10h4M8 13h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <span>Send to document</span>
             </button>
             <button v-if="hasWorkspace" @click="handleContextMenuAction('summarize')"
-                class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M4 6h16v2H4zM4 11h10v2H4zM4 16h8v2H4z" fill="currentColor" />
                 </svg>
                 <span>Summarize selection</span>
-                <span class="ml-auto text-xs text-gray-400">Ctrl+Alt+S</span>
+                <span class="ml-auto text-xs text-text-muted">Ctrl+Alt+S</span>
             </button>
         </div>
     </div>
@@ -65,7 +73,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment', 'send-selection-to-workspace', 'summarize-selection']);
+const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment', 'send-selection-to-workspace', 'send-selection-to-doc', 'summarize-selection']);
 
 const isMarkActive = ref(false);
 const showContextMenu = ref(false);
@@ -118,6 +126,18 @@ const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send' | 'sum
             selection.removeAllRanges();
         } catch (e) {
             console.error('Failed to capture selection for send action', e);
+        }
+    }
+    else if (action === 'send-to-doc') {
+        try {
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed) return;
+            const text = selection.toString().trim();
+            if (!text) return;
+            emit('send-selection-to-doc', text);
+            selection.removeAllRanges();
+        } catch (e) {
+            console.error('Failed to capture selection for send-to-doc action', e);
         }
     }
     else if (action === 'summarize') {
@@ -335,19 +355,19 @@ const handleAddMark = async () => {
     }
 };
 
-const checkForMarkChanges = (editor: any) => {
+const checkForMarkChanges = (editor: Record<string, any>) => {
     if (markContentMap.value.size === 0) return;
 
     const doc = editor.state.doc;
     const markChanges = new Map<string, string>();
 
-    const processNode = (node: any, pos: number) => {
-        const marks = node.marks.filter((mark: any) => mark.type.name === 'textMark');
+    const processNode = (node: Record<string, any>, pos: number) => {
+        const marks = node.marks.filter((mark: Record<string, any>) => mark.type.name === 'textMark');
 
         if (marks.length > 0) {
             const content = node.text;
 
-            marks.forEach((mark: any) => {
+            marks.forEach((mark: Record<string, any>) => {
                 const markId = mark.attrs.markId;
                 const originalContent = markContentMap.value.get(markId);
 
@@ -358,7 +378,7 @@ const checkForMarkChanges = (editor: any) => {
         }
     };
 
-    doc.descendants((node: any, pos: number) => {
+    doc.descendants((node: Record<string, any>, pos: number) => {
         if (node.isText) {
             processNode(node, pos);
         }
@@ -397,7 +417,7 @@ watch(() => props.editor, async (newEditor, oldEditor) => {
     }
 }, { immediate: false });
 
-const handleEditorUpdate = ({ editor }: { editor: any }) => {
+const handleEditorUpdate = ({ editor }: { editor: Record<string, any> }) => {
     checkForMarkChanges(editor);
 };
 
