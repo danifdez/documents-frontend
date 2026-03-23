@@ -1,5 +1,7 @@
 export interface Project {
-    id: string;
+    id: number;
     name: string;
-    description?: string;
+    description: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
