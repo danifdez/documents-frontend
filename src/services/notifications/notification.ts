@@ -1,5 +1,15 @@
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 
-const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000'); // replace with your NestJS backend URL
+let socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000');
+
+export function reconnectSocket(url: string) {
+    socket.disconnect();
+    socket = io(url);
+    socket.connect();
+}
+
+export function getSocket(): Socket {
+    return socket;
+}
 
 export default socket;
