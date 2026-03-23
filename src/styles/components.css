@@ -1,0 +1,58 @@
+/* Common component classes extracted from repeated Tailwind patterns */
+
+/* Buttons */
+.btn-primary {
+  @apply inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 cursor-pointer;
+}
+
+.btn-danger {
+  @apply inline-flex items-center gap-1.5 px-3.5 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center gap-1.5 px-3 py-2 text-text-secondary hover:bg-surface-hover rounded-lg transition-colors cursor-pointer;
+}
+
+/* Form fields */
+.input-field {
+  @apply w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all;
+}
+
+.input-label {
+  @apply block text-sm font-medium text-text-secondary mb-1.5;
+}
+
+/* Navigation */
+.nav-link {
+  @apply flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200 hover:bg-surface-hover cursor-pointer w-full;
+}
+
+.nav-link-active {
+  @apply !bg-accent-subtle !text-accent-dark font-medium;
+}
+
+/* Cards */
+.card {
+  @apply bg-surface-elevated rounded-xl border border-border p-5;
+}
+
+.card-hover {
+  @apply hover:border-accent/30 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+}
+
+/* Section headers */
+.section-title {
+  @apply text-xs font-semibold text-text-primary uppercase tracking-wider mb-4;
+}
+
+.page-title {
+  @apply text-2xl font-semibold text-text-primary tracking-tight;
+}
+
+.page-subtitle {
+  @apply mt-1 text-sm text-text-muted;
+}
