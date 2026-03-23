@@ -1,10 +1,10 @@
 <template>
     <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="bg-surface-elevated rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
             <!-- Header -->
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Merge Entity as Alias</h3>
-                <p class="text-sm text-gray-600 mt-1">
+            <div class="px-6 py-4 border-b border-border">
+                <h3 class="text-lg font-semibold text-text-primary">Merge Entity as Alias</h3>
+                <p class="text-sm text-text-muted mt-1">
                     Convert "<span class="font-medium">{{ sourceEntity?.name }}</span>" into an alias of another entity
                 </p>
             </div>
@@ -13,16 +13,16 @@
             <div class="px-6 py-4 overflow-y-auto flex-1">
                 <!-- Target Entity Selection -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Target Entity</label>
+                    <label class="block text-sm font-medium text-text-secondary mb-2">Target Entity</label>
                     <input v-model="searchTerm" type="text" placeholder="Search for entity..."
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm mb-2"
+                        class="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-accent text-sm mb-2"
                         @input="onSearchChange" />
 
                     <!-- Entity list -->
                     <div class="border rounded-md max-h-60 overflow-y-auto">
                         <!-- Pending entities section -->
                         <div v-if="filteredPendingEntities.length > 0" class="border-b">
-                            <div class="bg-gray-50 px-3 py-2 text-xs font-medium text-gray-700">
+                            <div class="bg-surface-hover px-3 py-2 text-xs font-medium text-text-secondary">
                                 Pending Entities (this document)
                             </div>
                             <div v-for="entity in filteredPendingEntities" :key="'pending-' + entity.id"
@@ -35,9 +35,9 @@
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <div class="text-sm font-medium">{{ entity.name }}</div>
-                                        <div class="text-xs text-gray-600">{{ entity.entityType?.name }} · {{
+                                        <div class="text-xs text-text-muted">{{ entity.entityType?.name }} · {{
                                             entity.scope }}</div>
-                                        <div v-if="entity.description" class="text-xs text-gray-500 italic mt-1">{{
+                                        <div v-if="entity.description" class="text-xs text-text-muted italic mt-1">{{
                                             entity.description }}</div>
                                     </div>
                                     <div v-if="selectedTarget?.type === 'pending' && selectedTarget.id === entity.id"
@@ -67,8 +67,8 @@
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <div class="text-sm font-medium">{{ entity.name }}</div>
-                                        <div class="text-xs text-gray-600">{{ entity.entityType?.name }}</div>
-                                        <div v-if="entity.description" class="text-xs text-gray-500 italic mt-1">{{
+                                        <div class="text-xs text-text-muted">{{ entity.entityType?.name }}</div>
+                                        <div v-if="entity.description" class="text-xs text-text-muted italic mt-1">{{
                                             entity.description }}</div>
                                     </div>
                                     <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
@@ -98,8 +98,8 @@
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <div class="text-sm font-medium">{{ entity.name }}</div>
-                                        <div class="text-xs text-gray-600">{{ entity.entityType?.name }}</div>
-                                        <div v-if="entity.description" class="text-xs text-gray-500 italic mt-1">{{
+                                        <div class="text-xs text-text-muted">{{ entity.entityType?.name }}</div>
+                                        <div v-if="entity.description" class="text-xs text-text-muted italic mt-1">{{
                                             entity.description }}</div>
                                     </div>
                                     <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
@@ -129,8 +129,8 @@
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <div class="text-sm font-medium">{{ entity.name }}</div>
-                                        <div class="text-xs text-gray-600">{{ entity.entityType?.name }}</div>
-                                        <div v-if="entity.description" class="text-xs text-gray-500 italic mt-1">{{
+                                        <div class="text-xs text-text-muted">{{ entity.entityType?.name }}</div>
+                                        <div v-if="entity.description" class="text-xs text-text-muted italic mt-1">{{
                                             entity.description }}</div>
                                     </div>
                                     <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
@@ -147,7 +147,7 @@
 
                         <!-- No results -->
                         <div v-if="filteredPendingEntities.length === 0 && totalConfirmedEntities === 0"
-                            class="px-3 py-4 text-center text-sm text-gray-500">
+                            class="px-3 py-4 text-center text-sm text-text-muted">
                             No entities found
                         </div>
                     </div>
@@ -155,14 +155,14 @@
 
                 <!-- Alias Scope Selection -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Alias Scope</label>
+                    <label class="block text-sm font-medium text-text-secondary mb-2">Alias Scope</label>
                     <select v-model="aliasScope"
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        class="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-accent text-sm">
                         <option value="global">Global - Available in all projects</option>
                         <option value="project">Project - Available only in this project</option>
                         <option value="document">Document - Available only in this document</option>
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">
+                    <p class="text-xs text-text-muted mt-1">
                         This determines where the alias will be recognized
                     </p>
                 </div>
@@ -190,7 +190,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <div class="px-6 py-4 border-t border-border flex justify-end space-x-3">
                 <Button @click="close" variant="secondary" :disabled="isProcessing">
                     Cancel
                 </Button>

@@ -1,68 +1,65 @@
 <template>
-    <div class="bg-white p-4 shadow rounded-lg">
-        <div class="mb-4 flex items-center justify-between">
-            <h3 class="text-lg font-medium text-gray-900">Entities</h3>
-            <span class="text-sm text-gray-500">{{ displayedEntities.length }} of {{ entities.length }} entities
-                found</span>
+    <div class="bg-surface-elevated rounded-xl border border-border">
+        <div class="px-4 py-3 border-b border-border-light flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-text-primary">Entities</h3>
+            <span class="text-xs text-text-muted">{{ displayedEntities.length }}/{{ entities.length }}</span>
         </div>
 
-        <div class="mb-3">
-            <input v-model="filterTerm" type="text" placeholder="Search entities by name or alias..."
-                class="block w-full rounded-md border border-gray-200 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+        <div class="px-4 py-3 border-b border-border-light">
+            <input v-model="filterTerm" type="text" placeholder="Search entities..."
+                class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
         </div>
 
-        <div v-if="entities.length === 0" class="text-center py-8">
-            <div class="text-gray-400">
-                <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                <p class="text-gray-500">No entities found in this resource</p>
-                <p class="text-sm text-gray-400">Entities are automatically extracted when you process documents</p>
-            </div>
+        <div v-if="entities.length === 0" class="text-center py-10 px-4">
+            <svg class="mx-auto h-8 w-8 text-text-muted mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <p class="text-sm text-text-secondary">No entities found</p>
+            <p class="text-xs text-text-muted mt-1">Entities are extracted automatically when processing documents</p>
         </div>
 
-        <!-- Make the list itself scrollable so the sidebar can fit in viewport -->
-        <div v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-            <div v-if="displayedEntities.length === 0" class="text-center py-8 text-gray-500">
+        <div v-else class="max-h-[60vh] overflow-y-auto">
+            <div v-if="displayedEntities.length === 0" class="text-center py-8 text-sm text-text-muted">
                 No entities match your search
             </div>
-            <div v-for="entity in displayedEntities" :key="entity.id" class="p-3 border rounded-md transition-colors"
+
+            <div v-for="entity in displayedEntities" :key="entity.id"
+                class="border-b border-border-light last:border-b-0 transition-colors"
                 :class="[
                     selectedHighlightEntity?.id === entity.id
-                        ? 'border-blue-300 bg-blue-50'
-                        : 'border-gray-200 hover:bg-gray-50'
+                        ? 'bg-accent-subtle'
+                        : 'hover:bg-surface-hover'
                 ]">
                 <!-- Edit Mode -->
-                <div v-if="editingEntityId === entity.id" class="space-y-3">
+                <div v-if="editingEntityId === entity.id" class="p-4 space-y-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Entity Name</label>
+                        <label class="block text-xs font-medium text-text-secondary mb-1">Name</label>
                         <input v-model="entity.name" type="text"
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                             placeholder="Entity name" />
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                        <label class="block text-xs font-medium text-text-secondary mb-1">Description</label>
                         <textarea :value="entity.description || ''" @input="(e) => {
                             entity.description = (e.target as HTMLTextAreaElement).value;
                         }" rows="2"
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                            placeholder="Optional description of the entity"></textarea>
+                            class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
+                            placeholder="Optional description"></textarea>
                     </div>
                     <div class="flex justify-between items-center">
-                        <div class="flex items-center">
-                            <svg v-if="isSaving === entity.id" class="animate-spin h-3 w-3 text-gray-600 mr-2"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                </path>
-                            </svg>
-                            <span v-if="isSaving === entity.id" class="text-xs text-gray-500">Saving...</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <Button @click="saveAndStopEditing(entity)" size="small" variant="primary"
+                        <span v-if="isSaving === entity.id" class="text-xs text-text-muted flex items-center gap-1.5">
+                            <LoadingSpinner size="xs" />
+                            Saving...
+                        </span>
+                        <span v-else></span>
+                        <div class="flex items-center gap-2">
+                            <button @click="cancelEditing(entity)"
+                                class="text-xs text-red-400 hover:text-red-500 cursor-pointer">
+                                Cancel
+                            </button>
+                            <Button @click="saveAndStopEditing(entity)" size="small" variant="info"
                                 :disabled="isSaving === entity.id">
                                 Done
                             </Button>
@@ -70,108 +67,91 @@
                     </div>
                 </div>
 
-                <!-- View Mode -->
-                <div v-else class="flex items-start justify-between gap-3">
-                    <div @click="highlightEntityInContent(entity)" class="flex-1 cursor-pointer"
+                <!-- View Mode (compact) -->
+                <div v-else class="group px-4 py-2.5 flex items-center gap-3">
+                    <div @click="highlightEntityInContent(entity)" class="flex-1 min-w-0 cursor-pointer flex items-center gap-2.5"
                         :title="`Click to highlight ${displayEntityName(entity)} in the document`">
-                        <h4 class="font-medium text-gray-900">{{ displayEntityName(entity) }}</h4>
-                        <div v-if="entity.description" class="text-xs text-gray-600 italic mt-1">
-                            {{ entity.description }}
-                        </div>
-                        <div class="flex items-center space-x-2 mt-1">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                :class="getEntityTypeBadgeClass(displayEntityType(entity))">
-                                {{ displayEntityType(entity) }}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider shrink-0"
+                            :class="getEntityTypeBadgeClass(displayEntityType(entity))">
+                            {{ displayEntityType(entity) }}
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <span class="text-sm font-medium text-text-primary truncate block">{{ displayEntityName(entity) }}</span>
+                            <span v-if="entity.aliases && entity.aliases.length > 0" class="text-[11px] text-text-muted truncate block">
+                                {{ entity.aliases.map(a => a.value).join(', ') }}
                             </span>
-                        </div>
-                        <div v-if="entity.aliases && entity.aliases.length > 0" class="mt-2">
-                            <p class="text-xs text-gray-500">
-                                Aliases: {{ formatAliases(entity.aliases) }}
-                            </p>
                         </div>
                     </div>
 
-                    <div class="flex flex-col gap-2" @click.stop>
-                        <div class="flex gap-2">
-                            <Button @click="startEditing(entity)" size="small" variant="secondary" title="Edit entity">
-                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </Button>
-                            <Button @click="showMergeModal(entity)" size="small" variant="secondary"
-                                title="Merge with another entity">
-                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                </svg>
-                            </Button>
-                        </div>
-                        <Button @click="removeEntity(entity)" size="small" variant="danger"
-                            title="Remove entity from resource" class="w-full">
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" @click.stop>
+                        <button @click="startEditing(entity)"
+                            class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface transition-colors cursor-pointer"
+                            title="Edit">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </button>
+                        <button @click="showMergeModal(entity)"
+                            class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface transition-colors cursor-pointer"
+                            title="Merge">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                        </button>
+                        <button @click="removeEntity(entity)"
+                            class="p-1 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Remove">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                        </Button>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Merge Modal -->
-        <div v-if="showMerge" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">
-                    Merge Entity: {{ selectedEntity ? displayEntityName(selectedEntity) : '' }}
+        <div v-if="showMerge" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-surface-elevated rounded-xl border border-border shadow-2xl shadow-black/10 p-6 w-full max-w-md mx-4">
+                <h3 class="text-base font-semibold text-text-primary mb-4">
+                    Merge: {{ selectedEntity ? displayEntityName(selectedEntity) : '' }}
                 </h3>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Search for target entity:
-                    </label>
+                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Search target entity</label>
                     <input v-model="searchTerm" @input="debouncedSearch" type="text"
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                         placeholder="Type entity name..." />
                 </div>
 
                 <div v-if="isSearching" class="text-center py-4">
-                    <div class="inline-flex items-center">
-                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg"
-                            fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                            </circle>
-                            <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                            </path>
-                        </svg>
+                    <div class="inline-flex items-center gap-2 text-sm text-text-muted">
+                        <LoadingSpinner size="sm" />
                         Searching...
                     </div>
                 </div>
 
-                <div v-else-if="searchResults.length > 0" class="max-h-40 overflow-y-auto border rounded-md mb-4">
-                    <div class="p-2 text-xs text-gray-500 border-b">Found {{ searchResults.length }} entities</div>
-                    <Button v-for="result in searchResults" :key="result.id" @click="selectTargetEntity(result)">
-                        <div>
-                            <div class="font-medium">{{ displayEntityName(result) }}</div>
-                            <div v-if="result.description" class="text-xs text-gray-500 italic">{{ result.description
-                                }}</div>
-                            <div class="text-sm text-gray-500">{{ displayEntityType(result) }}</div>
-                        </div>
-                    </Button>
+                <div v-else-if="searchResults.length > 0" class="max-h-40 overflow-y-auto border border-border rounded-lg mb-4">
+                    <div class="px-3 py-1.5 text-[11px] text-text-muted border-b border-border-light font-medium uppercase tracking-wider">{{ searchResults.length }} found</div>
+                    <button v-for="result in searchResults" :key="result.id" @click="selectTargetEntity(result)"
+                        class="w-full text-left px-3 py-2 hover:bg-surface-hover transition-colors cursor-pointer border-b border-border-light last:border-b-0"
+                        :class="selectedTargetEntity?.id === result.id ? 'bg-accent-subtle' : ''">
+                        <div class="text-sm font-medium text-text-primary">{{ displayEntityName(result) }}</div>
+                        <div class="text-xs text-text-muted">{{ displayEntityType(result) }}</div>
+                    </button>
                 </div>
 
-                <div v-else-if="searchTerm && !isSearching" class="text-center py-4 text-gray-500">
+                <div v-else-if="searchTerm && !isSearching" class="text-center py-4 text-sm text-text-muted">
                     No entities found
                 </div>
 
-                <div class="flex justify-end space-x-3">
-                    <Button @click="closeMergeModal">
-                        Cancel
-                    </Button>
-                    <Button @click="performMerge" :disabled="!selectedTargetEntity || isMerging">
-                        <span v-if="isMerging">Merging...</span>
-                        <span v-else>Merge</span>
+                <div class="flex justify-end gap-2">
+                    <Button @click="closeMergeModal" variant="secondary">Cancel</Button>
+                    <Button @click="performMerge" variant="warning" :disabled="!selectedTargetEntity || isMerging">
+                        {{ isMerging ? 'Merging...' : 'Merge' }}
                     </Button>
                 </div>
             </div>
@@ -192,6 +172,7 @@
 
 <script setup lang="ts">
 import { ref, defineEmits, computed } from 'vue';
+import LoadingSpinner from '../ui/LoadingSpinner.vue';
 import { useEntities, type Entity, type EntityAlias, type EntityTranslation } from '../../services/entities/useEntities';
 import { useNotification } from '../../composables/useNotification';
 import Button from '../ui/Button.vue';
@@ -311,6 +292,7 @@ const { removeEntityFromResource, mergeEntities, searchEntities, getAllEntities,
 const notification = useNotification();
 
 const editingEntityId = ref<number | null>(null);
+const editSnapshot = ref<{ name: string; description: string | undefined } | null>(null);
 const isSaving = ref<number | null>(null);
 const showMerge = ref(false);
 const selectedEntity = ref<Entity | null>(null);
@@ -358,7 +340,7 @@ const getEntityTypeBadgeClass = (typeName: string) => {
         'PERSON': 'bg-blue-100 text-blue-800',
         'ORGANIZATION': 'bg-green-100 text-green-800',
         'LOCATION': 'bg-yellow-100 text-yellow-800',
-        'MISC': 'bg-gray-100 text-gray-800',
+        'MISC': 'bg-surface-hover text-text-primary',
     };
 
     return typeColorMap[typeName] || 'bg-purple-100 text-purple-800';
@@ -413,16 +395,28 @@ const saveEntity = async (entity: Entity) => {
 };
 
 const startEditing = (entity: Entity) => {
+    editSnapshot.value = { name: entity.name, description: entity.description };
     editingEntityId.value = entity.id;
 };
 
 const stopEditing = () => {
+    editSnapshot.value = null;
+    editingEntityId.value = null;
+};
+
+const cancelEditing = (entity: Entity) => {
+    if (editSnapshot.value) {
+        entity.name = editSnapshot.value.name;
+        entity.description = editSnapshot.value.description;
+    }
+    editSnapshot.value = null;
     editingEntityId.value = null;
 };
 
 const saveAndStopEditing = async (entity: Entity) => {
     try {
         await saveEntity(entity);
+        editSnapshot.value = null;
         editingEntityId.value = null;
     } catch (error) {
         // Error already handled in saveEntity

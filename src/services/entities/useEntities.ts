@@ -25,6 +25,22 @@ export interface Entity {
     updatedAt: string;
 }
 
+export interface EntityResource {
+    id: number;
+    name: string;
+    type?: string | null;
+    status?: string;
+    project?: {
+        id: number;
+        name: string;
+    } | null;
+}
+
+export interface EntityDetail extends Entity {
+    resources?: EntityResource[];
+    projects?: { id: number; name: string }[];
+}
+
 export interface EntityMergeTarget {
     id: number;
     name: string;
@@ -116,6 +132,50 @@ export const useEntities = () => {
         }
     };
 
+    const deleteEntity = async (entityId: number): Promise<void> => {
+        isLoading.value = true;
+        error.value = null;
+
+        try {
+            await apiClient.delete(`/entities/${entityId}`);
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to delete entity';
+            throw err;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    const getEntityById = async (entityId: number): Promise<EntityDetail> => {
+        isLoading.value = true;
+        error.value = null;
+
+        try {
+            const response = await apiClient.get(`/entities/${entityId}/detailed`);
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to fetch entity';
+            throw err;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    const createEntity = async (data: { name: string; entityTypeId: number; description?: string }): Promise<Entity> => {
+        isLoading.value = true;
+        error.value = null;
+
+        try {
+            const response = await apiClient.post('/entities', data);
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to create entity';
+            throw err;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
     return {
         isLoading,
         error,
@@ -124,5 +184,8 @@ export const useEntities = () => {
         searchEntities,
         getAllEntities,
         updateEntity,
+        deleteEntity,
+        createEntity,
+        getEntityById,
     };
 };
