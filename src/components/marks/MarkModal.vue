@@ -3,7 +3,7 @@
         <div class="p-4">
             <div class="mb-4">
                 <p class="font-medium mb-2">Selected Text:</p>
-                <div class="bg-gray-100 p-2 rounded border border-gray-300">
+                <div class="bg-surface-hover p-2 rounded border border-border">
                     {{ selectedText }}
                 </div>
             </div>
