@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, WebContentsView, screen, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, dialog, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -6,6 +6,37 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import FormData from 'form-data';
 import Store from 'electron-store';
+import { registerOfflineHandlers } from './main-offline';
+
+const MIME_MAP: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.html': 'text/html', '.htm': 'text/html',
+  '.txt': 'text/plain', '.md': 'text/plain', '.csv': 'text/csv',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.odt': 'application/vnd.oasis.opendocument.text',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+  '.bmp': 'image/bmp', '.tiff': 'image/tiff', '.tif': 'image/tiff',
+  '.json': 'application/json', '.xml': 'application/xml',
+  '.eml': 'message/rfc822',
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
+  '.flac': 'audio/flac', '.aac': 'audio/aac', '.m4a': 'audio/mp4',
+  '.wma': 'audio/x-ms-wma', '.opus': 'audio/opus',
+  '.aiff': 'audio/aiff', '.aif': 'audio/aiff',
+  '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime',
+  '.avi': 'video/x-msvideo', '.mkv': 'video/x-matroska',
+  '.webm': 'video/webm', '.wmv': 'video/x-ms-wmv',
+};
+
+function getMimeType(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  return MIME_MAP[ext] || 'application/octet-stream';
+}
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -15,10 +46,20 @@ if (require('electron-squirrel-startup')) {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let activeBrowserView: WebContentsView | null = null;
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const store = new Store();
+
+// Ensure workspaces key exists
+if (!store.get('workspaces')) {
+  store.set('workspaces', []);
+}
+
+function getApiUrl(): string {
+  const activeId = store.get('activeWorkspaceId') as string;
+  const workspaces = store.get('workspaces', []) as any[];
+  const active = workspaces.find((w: any) => w.id === activeId);
+  return active?.url || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+}
 
 const createWindow = () => {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -38,11 +79,13 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
+  mainWindow.maximize();
+
   // Open the DevTools.
   //mainWindow.webContents.openDevTools();
 };
 
-const createBrowserWindow = (projectId: string) => {
+const createBrowserWindow = (projectId?: string) => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
 
@@ -51,81 +94,31 @@ const createBrowserWindow = (projectId: string) => {
     height,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      partition: `persist:browser-${projectId}`, // Persistencia de datos por proyecto
+      webviewTag: true,
     },
   });
 
-  const toolbarView = new WebContentsView({
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      partition: `persist:browser-${projectId}`, // Mismo partition para compartir sesión
-    },
-  });
-  toolbarView.webContents.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#/browser-toolbar`);
-  win.contentView.addChildView(toolbarView);
+  win.maximize();
 
-  const browserView = new WebContentsView({
-    webPreferences: {
-      partition: `persist:browser-${projectId}`, // Mismo partition para compartir sesión
-      contextIsolation: true,
-      nodeIntegration: false,
-      // Habilitar características del navegador
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-      // Habilitar plugins y características web estándar
-      plugins: true,
-      enableWebSQL: false,
-    },
-  });
-  browserView.webContents.loadURL('https://github.com/electron/electron');
+  const hash = projectId ? `/browser/${projectId}` : '/browser';
 
-  // Open DevTools for browser view
-  //browserView.webContents.openDevTools();
-
-  browserView.webContents.on('did-navigate', (event, url) => {
-    toolbarView.webContents.send('url-changed', url);
-    toolbarView.webContents.send('project-id', projectId);
-  });
-  win.contentView.addChildView(browserView);
-
-  const marginHeight = 70;
-
-  toolbarView.setBounds({ x: 0, y: 0, width: width, height: marginHeight });
-  browserView.setBounds({ x: 0, y: marginHeight, width: width, height: height - marginHeight });
-
-  activeBrowserView = browserView;
-
-  //toolbarView.webContents.openDevTools();
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${hash}`);
+  } else {
+    win.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      { hash }
+    );
+  }
 };
 
 app.whenReady().then(() => {
-  ipcMain.handle('open-external-browser', (_, projectId: string) => {
+  ipcMain.handle('open-external-browser', (_, projectId?: string) => {
     createBrowserWindow(projectId);
   });
 
-  ipcMain.handle('navigate-to', (_, url) => {
-    if (activeBrowserView && activeBrowserView.webContents) {
-      activeBrowserView.webContents.loadURL(url);
-      return true;
-    }
-    return false;
-  });
-
-  ipcMain.handle("extract-content", async (_, idProject) => {
-    if (!activeBrowserView || !activeBrowserView.webContents) {
-      console.error("Error: activeBrowserView is not initialized.");
-      return;
-    }
-
+  ipcMain.handle("extract-webpage", async (_, { content, title, url, projectId }) => {
     try {
-      const content = await activeBrowserView.webContents.executeJavaScript(`document.documentElement.outerHTML`);
-      const title = await activeBrowserView.webContents.executeJavaScript(`document.title`);
-      const url = await activeBrowserView.webContents.executeJavaScript(`window.location.href`);
-
       const tempDir = path.join(os.tmpdir(), 'document-manager');
       if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir, { recursive: true });
@@ -137,11 +130,13 @@ app.whenReady().then(() => {
       const fileStream = fs.createReadStream(tempFilePath);
       formData.append('file', fileStream);
       formData.append('name', title);
-      formData.append('projectId', idProject);
+      if (projectId) {
+        formData.append('projectId', projectId);
+      }
       formData.append('type', 'webpage');
       formData.append('url', url);
 
-      const uploadResponse = await axios.post(`${API_URL}/resources/upload`, formData, {
+      const uploadResponse = await axios.post(`${getApiUrl()}/resources/upload`, formData, {
         headers: {
           ...formData.getHeaders(),
         },
@@ -168,12 +163,15 @@ app.whenReady().then(() => {
       const formData = new FormData();
       const fileStream = fs.createReadStream(filePath);
       const fileName = path.basename(filePath);
+      const mimeType = getMimeType(filePath);
 
-      formData.append('file', fileStream);
+      formData.append('file', fileStream, { filename: fileName, contentType: mimeType });
       formData.append('name', fileName);
-      formData.append('projectId', idProject);
+      if (idProject) {
+        formData.append('projectId', idProject);
+      }
 
-      const uploadResponse = await axios.post(`${API_URL}/resources/upload`, formData, {
+      const uploadResponse = await axios.post(`${getApiUrl()}/resources/upload`, formData, {
         headers: {
           ...formData.getHeaders(),
         },
@@ -191,7 +189,11 @@ app.whenReady().then(() => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'Allowed Files', extensions: ['pdf', 'doc', 'docx', 'txt', 'htm', 'html', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'] }
+        { name: 'All Supported Files', extensions: ['pdf', 'doc', 'docx', 'odt', 'txt', 'htm', 'html', 'eml', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'opus'] },
+        { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'odt', 'txt', 'htm', 'html', 'eml'] },
+        { name: 'Video', extensions: ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv'] },
+        { name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'opus'] },
+        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'] }
       ]
     });
 
@@ -210,7 +212,9 @@ app.whenReady().then(() => {
       fontSize: 16,
       fontFamily: 'sans-serif',
       paragraphSpacing: 1.5,
-      language: 'en'
+      language: 'en',
+      theme: 'system',
+      defaultBrowserUrl: 'https://github.com/electron/electron'
     });
   });
 
@@ -218,6 +222,70 @@ app.whenReady().then(() => {
     store.set('settings', settings);
     return true;
   });
+
+  // ── Workspace IPC handlers ──
+  ipcMain.handle('workspace:list', () => {
+    return store.get('workspaces', []);
+  });
+
+  ipcMain.handle('workspace:add', (_, workspace: { id: string; name: string; url: string }) => {
+    const workspaces = store.get('workspaces', []) as any[];
+    workspaces.push(workspace);
+    store.set('workspaces', workspaces);
+    return workspace;
+  });
+
+  ipcMain.handle('workspace:update', (_, workspace: { id: string; name: string; url: string }) => {
+    const workspaces = store.get('workspaces', []) as any[];
+    const index = workspaces.findIndex((w: any) => w.id === workspace.id);
+    if (index >= 0) {
+      workspaces[index] = workspace;
+      store.set('workspaces', workspaces);
+    }
+    return workspace;
+  });
+
+  ipcMain.handle('workspace:remove', (_, id: string) => {
+    let workspaces = store.get('workspaces', []) as any[];
+    workspaces = workspaces.filter((w: any) => w.id !== id);
+    store.set('workspaces', workspaces);
+    const activeId = store.get('activeWorkspaceId');
+    if (activeId === id && workspaces.length > 0) {
+      store.set('activeWorkspaceId', workspaces[0].id);
+    }
+    return true;
+  });
+
+  ipcMain.handle('workspace:get-active', () => {
+    const activeId = store.get('activeWorkspaceId') as string;
+    const workspaces = store.get('workspaces', []) as any[];
+    return workspaces.find((w: any) => w.id === activeId) || workspaces[0] || null;
+  });
+
+  ipcMain.handle('workspace:set-active', (_, id: string) => {
+    store.set('activeWorkspaceId', id);
+    const workspaces = store.get('workspaces', []) as any[];
+    return workspaces.find((w: any) => w.id === id) || null;
+  });
+
+  ipcMain.handle('show-selection-context-menu', (event) => {
+    return new Promise((resolve) => {
+      const menu = Menu.buildFromTemplate([
+        {
+          label: 'Send to document',
+          click: () => resolve('send-to-doc'),
+        },
+      ]);
+      const win = BrowserWindow.fromWebContents(event.sender);
+      menu.popup({
+        window: win ?? undefined,
+        callback: () => resolve(null),
+      });
+    });
+  });
+
+  // Register offline filesystem handlers
+  registerOfflineHandlers();
 
   createWindow();
 });
