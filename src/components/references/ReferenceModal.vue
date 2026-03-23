@@ -2,20 +2,20 @@
     <Modal v-model="isOpen" title="Add Reference">
         <div class="p-4">
             <input type="text" v-model="searchQuery" placeholder="Search for resources or marks..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent" />
 
             <div class="mt-4 max-h-60 overflow-y-auto">
                 <div v-if="isLoading" class="text-center">
                     <p>Loading...</p>
                 </div>
                 <ul v-else-if="results.length > 0">
-                    <li v-for="item in results" :key="item.id" class="p-2 hover:bg-gray-100 cursor-pointer rounded-md"
+                    <li v-for="item in results" :key="item.id" class="p-2 hover:bg-surface-hover cursor-pointer rounded-md"
                         @click="selectItem(item)">
                         <div class="font-semibold">{{ item.name || item.content }}</div>
-                        <div class="text-sm text-gray-500">{{ item.type }}</div>
+                        <div class="text-sm text-text-muted">{{ item.type }}</div>
                     </li>
                 </ul>
-                <div v-else class="text-center text-gray-500">
+                <div v-else class="text-center text-text-muted">
                     <p>No results found.</p>
                 </div>
             </div>
