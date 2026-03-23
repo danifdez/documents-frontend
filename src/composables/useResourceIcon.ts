@@ -5,7 +5,10 @@ interface ResourceIconResult {
     isPdfFile: ComputedRef<boolean>;
     isHtmlFile: ComputedRef<boolean>;
     isTextFile: ComputedRef<boolean>;
-    isImageFile: ComputedRef<boolean>; // Added
+    isImageFile: ComputedRef<boolean>;
+    isVideoFile: ComputedRef<boolean>;
+    isAudioFile: ComputedRef<boolean>;
+    isEmailFile: ComputedRef<boolean>;
 }
 
 export function useResourceIcon(mimeType?: string | Ref<string> | ComputedRef<string>): ResourceIconResult {
@@ -52,11 +55,32 @@ export function useResourceIcon(mimeType?: string | Ref<string> | ComputedRef<st
         return mime.startsWith('image/');
     });
 
+    const isVideoFile = computed(() => {
+        const mime = unref(mimeType);
+        if (!mime) return false;
+        return mime.startsWith('video/');
+    });
+
+    const isAudioFile = computed(() => {
+        const mime = unref(mimeType);
+        if (!mime) return false;
+        return mime.startsWith('audio/');
+    });
+
+    const isEmailFile = computed(() => {
+        const mime = unref(mimeType);
+        if (!mime) return false;
+        return mime === 'message/rfc822' || mime === 'application/octet-stream';
+    });
+
     return {
         isDocumentFile,
         isPdfFile,
         isHtmlFile,
         isTextFile,
         isImageFile,
+        isVideoFile,
+        isAudioFile,
+        isEmailFile,
     };
 }

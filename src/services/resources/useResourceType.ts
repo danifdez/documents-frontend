@@ -30,12 +30,12 @@ export function useResourceType() {
     };
 
     const getResourceTypeName = (typeId: string): string => {
-        const resourceType = resourceTypes.value.find(rt => rt.id === typeId);
+        const resourceType = resourceTypes.value.find(rt => String(rt.id) === String(typeId));
         return resourceType ? resourceType.name : typeId;
     };
 
     const getResourceTypeAbbreviation = (typeId: string): string => {
-        const resourceType = resourceTypes.value.find(rt => rt.id === typeId);
+        const resourceType = resourceTypes.value.find(rt => String(rt.id) === String(typeId));
         return resourceType ? resourceType.abbreviation : typeId;
     };
 

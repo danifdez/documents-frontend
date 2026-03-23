@@ -1,186 +1,119 @@
 <template>
-    <div class="space-y-6 md:col-span-1">
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Type</strong>
-            <br />
-            <div class="mt-1">
+    <div class="divide-y divide-border-light">
+        <!-- Editable properties -->
+        <div class="grid grid-cols-[6rem_1fr] items-start gap-x-2 px-3 py-2">
+            <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider pt-1">Project</span>
+            <div>
+                <select v-if="isEditingProject" v-model="editProjectId" @change="handleProjectChange"
+                    @keyup.escape="cancelProjectEdit"
+                    class="w-full bg-surface border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    ref="projectDropdown">
+                    <option value="">No project (pending)</option>
+                    <option v-for="project in allProjects" :key="project.id" :value="String(project.id)">
+                        {{ project.name }}
+                    </option>
+                </select>
+                <div v-else @dblclick="startProjectEdit" class="cursor-pointer hover:bg-surface-hover px-2 py-1 rounded text-sm min-h-[24px]" title="Double-click to edit">
+                    <span v-if="resource.project && resource.project.name" class="text-text-primary">{{ resource.project.name }}</span>
+                    <span v-else class="text-amber-500 italic text-xs">Pending (unassigned)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-[6rem_1fr] items-start gap-x-2 px-3 py-2">
+            <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider pt-1">Type</span>
+            <div>
                 <select v-if="isEditingType" v-model="editResourceType" @change="handleTypeChange"
                     @keyup.escape="cancelTypeEdit"
-                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full bg-surface border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                     ref="typeDropdown">
-                    <option value="">Select a type...</option>
-                    <option v-for="resourceType in resourceTypes" :key="resourceType.id"
-                        :value="String(resourceType.id)">
+                    <option value="">Select...</option>
+                    <option v-for="resourceType in resourceTypes" :key="resourceType.id" :value="String(resourceType.id)">
                         {{ resourceType.name }}
                     </option>
                 </select>
-                <div v-else @dblclick="startTypeEdit"
-                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
-                    title="Double-click to edit">
-                    <span v-if="resource.type">{{ displayTypeName }}</span>
-                    <span v-else class="text-gray-400 italic">No type</span>
+                <div v-else @dblclick="startTypeEdit" class="cursor-pointer hover:bg-surface-hover px-2 py-1 rounded text-sm min-h-[24px]" title="Double-click to edit">
+                    <span v-if="resource.type" class="text-text-primary">{{ displayTypeName }}</span>
+                    <span v-else class="text-text-muted italic text-xs">--</span>
                 </div>
             </div>
         </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Title</strong>
-            <br />
-            <div class="mt-1">
-                <input v-if="isEditingTitle" v-model="editResourceTitle" @blur="handleTitleChange"
-                    @keyup.enter="handleTitleChange" @keyup.escape="cancelTitleEdit"
-                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    ref="titleInput" type="text" placeholder="Enter title...">
-                <div v-else @dblclick="startTitleEdit"
-                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
-                    title="Double-click to edit">
-                    <span v-if="resource.title" class="text-gray-700">{{ resource.title }}</span>
-                    <span v-else class="text-gray-400 italic">No title</span>
-                </div>
-            </div>
-        </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Authors</strong>
-            <br />
-            <div class="mt-1">
-                <!-- Edit mode with autocomplete -->
+
+        <PropertyRow label="Title" :modelValue="resource.title" placeholder="Enter title..."
+            @update:modelValue="handleFieldUpdate('title', $event)" />
+
+        <div class="grid grid-cols-[6rem_1fr] items-start gap-x-2 px-3 py-2">
+            <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider pt-1">Authors</span>
+            <div>
                 <div v-if="isEditingAuthors" class="relative">
                     <input v-model="editResourceAuthors" @input="handleAuthorInput" @blur="handleAuthorsBlur"
                         @keydown.enter="handleAuthorsEnter" @keyup.escape="cancelAuthorsEdit"
                         @keydown.down.prevent="navigateAuthorSuggestions(1)"
                         @keydown.up.prevent="navigateAuthorSuggestions(-1)"
-                        class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        ref="authorsInput" type="text" placeholder="Enter authors (comma-separated)...">
-
-                    <!-- Autocomplete dropdown -->
+                        class="w-full bg-surface border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                        ref="authorsInput" type="text" placeholder="Comma-separated...">
                     <div v-if="showAuthorSuggestions && filteredAuthorSuggestions.length > 0"
-                        class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        class="absolute z-10 w-full mt-1 bg-surface-elevated border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
                         <div v-for="(suggestion, index) in filteredAuthorSuggestions" :key="suggestion.id"
                             @mousedown="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
-                            @click="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }" :class="[
-                                'px-3 py-2 cursor-pointer',
-                                index === selectedSuggestionIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
-                            ]">
+                            @click="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
+                            :class="['px-3 py-1.5 cursor-pointer text-sm', index === selectedSuggestionIndex ? 'bg-accent-subtle' : 'hover:bg-surface-hover']">
                             {{ suggestion.name }}
                         </div>
                     </div>
                 </div>
-
-                <!-- Display mode -->
-                <div v-else @dblclick="startAuthorsEdit"
-                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
-                    title="Double-click to edit">
-                    <span v-if="resource.authors && resource.authors.length > 0" class="text-gray-700">
-                        {{resource.authors.map((a: any) => a.name).join(', ')}}
+                <div v-else @dblclick="startAuthorsEdit" class="cursor-pointer hover:bg-surface-hover px-2 py-1 rounded text-sm min-h-[24px]" title="Double-click to edit">
+                    <span v-if="resource.authors && resource.authors.length > 0" class="text-text-primary">
+                        {{ resource.authors.map((a: any) => a.name).join(', ') }}
                     </span>
-                    <span v-else class="text-gray-400 italic">No authors</span>
+                    <span v-else class="text-text-muted italic text-xs">--</span>
                 </div>
             </div>
         </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Language</strong>
-            <br />
-            <div class="mt-1">
-                <select v-if="isEditingLanguage" v-model="editResourceLanguage" @change="handleLanguageChange"
-                    @keyup.escape="cancelLanguageEdit"
-                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    ref="languageDropdown">
-                    <option value="">Select a language...</option>
-                    <option v-for="(name, code) in languageMap" :key="code" :value="code">
-                        {{ name }}
-                    </option>
-                </select>
-                <div v-else @dblclick="startLanguageEdit"
-                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
-                    title="Double-click to edit">
-                    <span v-if="resource.language">{{ getLanguageName(resource.language) }}</span>
-                    <span v-else class="text-gray-400 italic">No language</span>
-                </div>
-            </div>
+
+        <PropertyRow label="Language" :modelValue="resource.language" type="select"
+            :options="languageOptions" :displayFormat="(v) => v ? getLanguageName(String(v)) : ''"
+            @update:modelValue="handleFieldUpdate('language', $event)" />
+
+        <PropertyRow label="License" :modelValue="resource.license" placeholder="Enter license..."
+            @update:modelValue="handleFieldUpdate('license', $event)" />
+
+        <PropertyRow label="URL" :modelValue="resource.url" placeholder="Enter URL..."
+            @update:modelValue="handleFieldUpdate('url', $event)" />
+
+        <PropertyRow label="Published" :modelValue="resource.publicationDate" type="date"
+            :displayFormat="(v) => v ? new Date(String(v)).toLocaleDateString() : ''"
+            @update:modelValue="handleFieldUpdate('publicationDate', $event)" />
+
+        <!-- Read-only properties -->
+        <div class="grid grid-cols-[6rem_1fr] items-center gap-x-2 px-3 py-2">
+            <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">Size</span>
+            <span class="text-sm text-text-secondary px-2">{{ formatFileSize(resource.fileSize) }}</span>
         </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">License</strong>
-            <br />
-            <div class="mt-1">
-                <input v-if="isEditingLicense" v-model="editResourceLicense" @blur="handleLicenseChange"
-                    @keyup.enter="handleLicenseChange" @keyup.escape="cancelLicenseEdit"
-                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    ref="licenseInput" type="text" placeholder="Enter license...">
-                <div v-else @dblclick="startLicenseEdit"
-                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
-                    title="Double-click to edit">
-                    <span v-if="resource.license" class="text-gray-700">{{ resource.license }}</span>
-                    <span v-else class="text-gray-400 italic">No license</span>
-                </div>
-            </div>
+
+        <div v-if="resource.pages" class="grid grid-cols-[6rem_1fr] items-center gap-x-2 px-3 py-2">
+            <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">Pages</span>
+            <span class="text-sm text-text-secondary px-2">{{ resource.pages }}</span>
         </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">URL</strong>
-            <br />
-            <div class="mt-1">
-                <input v-if="isEditingUrl" v-model="editResourceUrl" @blur="handleUrlChange"
-                    @keyup.enter="handleUrlChange" @keyup.escape="cancelUrlEdit"
-                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    ref="urlInput" type="url" placeholder="Enter URL...">
-                <div v-else @dblclick="startUrlEdit"
-                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
-                    title="Double-click to edit">
-                    <a v-if="resource.url" :href="resource.url" target="_blank" rel="noopener noreferrer"
-                        class="text-blue-600 hover:text-blue-800 underline break-all">
-                        {{ resource.url }}
-                    </a>
-                    <span v-else class="text-gray-400 italic">No URL</span>
-                </div>
-            </div>
+
+        <div class="grid grid-cols-[6rem_1fr] items-center gap-x-2 px-3 py-2">
+            <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">Uploaded</span>
+            <span class="text-sm text-text-secondary px-2">{{ resource.uploadDate ? new Date(resource.uploadDate).toLocaleDateString() : '' }}</span>
         </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Publication Date</strong>
-            <br />
-            <div class="mt-1">
-                <input v-if="isEditingPublicationDate" v-model="editResourcePublicationDate"
-                    @blur="handlePublicationDateChange" @keyup.enter="handlePublicationDateChange"
-                    @keyup.escape="cancelPublicationDateEdit"
-                    class="w-full bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    ref="publicationDateInput" type="datetime-local" placeholder="Enter publication date...">
-                <div v-else @dblclick="startPublicationDateEdit"
-                    class="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[24px]"
-                    title="Double-click to edit">
-                    <span v-if="resource.publicationDate" class="text-gray-700">{{ new
-                        Date(resource.publicationDate).toLocaleString() }}</span>
-                    <span v-else class="text-gray-400 italic">No publication date</span>
-                </div>
-            </div>
+
+        <div class="grid grid-cols-[6rem_1fr] items-start gap-x-2 px-3 py-2">
+            <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider pt-1">File</span>
+            <span class="text-xs text-text-muted px-2 break-all">{{ resource.originalName }}</span>
         </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Size</strong>
-            <br />
-            {{ formatFileSize(resource.fileSize) }}
-        </div>
-        <div v-if="resource.pages" class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Pages</strong>
-            <br />
-            {{ resource.pages }}
-        </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Upload date</strong>
-            <br />
-            {{ resource.uploadDate ? new Date(resource.uploadDate).toLocaleString() : '' }}
-        </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Original name</strong>
-            <br />
-            {{ resource.originalName }}
-        </div>
-        <div class="bg-gray-50 rounded-md">
-            <strong class="text-gray-700">Related To</strong>
-            <br />
-            <div class="mt-1">
-                <template v-if="resource.relatedTo">
-                    <router-link :to="`/resource/${resource.relatedTo}`"
-                        class="text-blue-600 hover:text-blue-800 underline">
-                        {{ resource.relatedTo }}
-                    </router-link>
-                </template>
-                <span v-else class="text-gray-400 italic">No related resource</span>
+
+        <div class="grid grid-cols-[6rem_1fr] items-center gap-x-2 px-3 py-2">
+            <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">Related</span>
+            <div class="px-2">
+                <router-link v-if="resource.relatedTo" :to="`/resource/${resource.relatedTo}`"
+                    class="text-accent hover:text-accent-dark underline underline-offset-2 text-sm">
+                    {{ resource.relatedTo }}
+                </router-link>
+                <span v-else class="text-text-muted italic text-xs">--</span>
             </div>
         </div>
     </div>
@@ -191,10 +124,29 @@ import { onMounted, ref, computed } from 'vue';
 import { useResourceType } from '../../services/resources/useResourceType';
 import { useResource } from '../../services/resources/useResource';
 import { useAuthor, type Author } from '../../services/author/useAuthor';
+import { useResourceList } from '../../services/resources/useResourceList';
+import { useProjectList } from '../../services/projects/useProjectList';
+import PropertyRow from './PropertyRow.vue';
 
 const { loadResourceTypes, getResourceTypeName, resourceTypes } = useResourceType();
 const { updateResource } = useResource();
+
+// Generic field update for PropertyRow components
+const handleFieldUpdate = async (field: string, value: string | number) => {
+    try {
+        await updateResource(props.resource.id, { [field]: value || null });
+        props.resource[field] = value || null;
+    } catch (err) {
+        console.error(`Failed to update ${field}:`, err);
+    }
+};
 const { updateResourceAuthors, loadAuthors } = useAuthor();
+const { assignResourceToProject } = useResourceList();
+const { projects: allProjects, loadProjects } = useProjectList();
+
+const isEditingProject = ref(false);
+const editProjectId = ref('');
+const projectDropdown = ref<HTMLSelectElement | null>(null);
 
 const isEditingType = ref(false);
 const editResourceType = ref('');
@@ -277,6 +229,10 @@ const displayTypeName = computed(() => {
 const getLanguageName = (code: string): string => {
     return languageMap[code as keyof typeof languageMap] || code;
 };
+
+const languageOptions = computed(() =>
+    Object.entries(languageMap).map(([code, name]) => ({ label: name, value: code }))
+);
 
 const languageMap = {
     'en': 'English',
@@ -1003,6 +959,47 @@ const saveResourceLicense = async () => {
         isEditingLicense.value = false;
     } finally {
         isLicenseSaving.value = false;
+    }
+};
+
+const emit = defineEmits(['project:assigned']);
+
+const startProjectEdit = async () => {
+    isEditingProject.value = true;
+    editProjectId.value = props.resource.project?.id ? String(props.resource.project.id) : '';
+    if (allProjects.value.length === 0) {
+        await loadProjects();
+    }
+    setTimeout(() => {
+        projectDropdown.value?.focus();
+    }, 50);
+};
+
+const cancelProjectEdit = () => {
+    isEditingProject.value = false;
+    editProjectId.value = '';
+};
+
+const handleProjectChange = async () => {
+    const currentProjectId = props.resource.project?.id ? String(props.resource.project.id) : '';
+    if (editProjectId.value === currentProjectId) {
+        isEditingProject.value = false;
+        return;
+    }
+
+    try {
+        if (editProjectId.value) {
+            await assignResourceToProject(props.resource.id, editProjectId.value);
+            const project = allProjects.value.find((p: any) => String(p.id) === editProjectId.value);
+            props.resource.project = project ? { id: project.id, name: project.name } : null;
+        } else {
+            await updateResource(props.resource.id, { project: null });
+            props.resource.project = null;
+        }
+        emit('project:assigned', props.resource);
+        isEditingProject.value = false;
+    } catch (error) {
+        isEditingProject.value = false;
     }
 };
 

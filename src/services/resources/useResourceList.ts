@@ -13,10 +13,29 @@ export function useResourceList() {
         return response.data;
     };
 
+    const loadPendingResources = async () => {
+        isLoading.value = true;
+        try {
+            const response = await apiClient.get("/resources/pending");
+            return response.data;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    const assignResourceToProject = async (resourceId: number | string, projectId: number | string) => {
+        const response = await apiClient.patch(`/resources/${resourceId}/assign`, {
+            projectId: Number(projectId),
+        });
+        return response.data;
+    };
+
     return {
         resources,
         error,
         isLoading,
         loadResourcesByProject,
+        loadPendingResources,
+        assignResourceToProject,
     };
 }

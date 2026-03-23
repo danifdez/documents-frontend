@@ -5,7 +5,7 @@
         </div>
 
         <div v-if="isLoading" class="flex justify-center items-center flex-1">
-            <p class="text-gray-500">Loading resource details...</p>
+            <p class="text-text-muted">Loading resource details...</p>
         </div>
 
         <div v-else-if="error" class="flex justify-center items-center flex-1">
@@ -14,15 +14,16 @@
 
         <!-- Pending Confirmation View: Full width, no sidebar -->
         <div v-else-if="isPendingConfirmation" class="flex-1 overflow-hidden min-h-0 flex flex-col">
-            <div class="bg-white p-4 shadow rounded-lg flex-shrink-0">
+            <div class="bg-surface-elevated p-4 shadow rounded-lg flex-shrink-0">
                 <div class="flex items-center mb-4">
                     <IconType :mimeType="resource.mimeType" />
                     <div class="flex items-center flex-grow">
-                        <h1 class="text-2xl font-bold mr-3 px-2 py-1">{{ resource.name }}</h1>
+                        <h1 class="text-2xl font-bold text-text-primary mr-3 px-2 py-1">{{ resource.name }}</h1>
+                        <OfflineToggle v-if="resource?.id" type="resource" :id="resource.id" />
                     </div>
                 </div>
                 <!-- Warning banner when pending confirmation -->
-                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600 mr-2"
@@ -31,7 +32,7 @@
                                     d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                                     clip-rule="evenodd" />
                             </svg>
-                            <span class="text-sm font-medium text-yellow-800">Resource pending confirmation - Review and
+                            <span class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Resource pending confirmation - Review and
                                 confirm the extracted content</span>
                         </div>
                         <Button @click="confirmResourceExtraction" :disabled="isConfirming" variant="primary"
@@ -52,7 +53,7 @@
 
             <!-- Split view content for pending confirmation -->
             <div
-                class="border border-gray-200 rounded-lg px-5 py-4 flex-1 min-h-0 bg-white mt-4 shadow overflow-hidden">
+                class="border border-border rounded-lg px-5 py-4 flex-1 min-h-0 bg-surface-elevated mt-4 shadow overflow-hidden">
                 <div class="h-full flex flex-col">
                     <div class="flex justify-end mb-2 gap-2">
                         <Button @click="saveEdit" :disabled="isSaving" variant="primary">
@@ -69,15 +70,15 @@
                     </div>
                     <div class="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
                         <div class="flex flex-col h-full overflow-hidden">
-                            <h3 class="text-lg font-semibold mb-2">Extracted Content (Editable)</h3>
+                            <h3 class="text-lg font-semibold mb-2 text-text-primary">Extracted Content (Editable)</h3>
                             <div class="flex-1 overflow-hidden">
                                 <EditorContent ref="editorContentRef" :content="resource.content" :is-saving="isSaving"
                                     :saved-successfully="savedSuccessfully" context="resource"
                                     @content-change="handleEditContentChange" />
                             </div>
                         </div>
-                        <div class="flex flex-col h-full border-l pl-4 overflow-hidden">
-                            <h3 class="text-lg font-semibold mb-2">Original Document</h3>
+                        <div class="flex flex-col h-full border-l border-border pl-4 overflow-hidden">
+                            <h3 class="text-lg font-semibold mb-2 text-text-primary">Original Document</h3>
                             <div class="flex-1 overflow-auto">
                                 <iframe v-if="isHtmlFile" class="w-full h-full min-h-[500px]" :srcdoc="rawHtmlContent"
                                     sandbox="allow-same-origin" title="HTML Preview">
@@ -86,7 +87,13 @@
                                     :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
                                     type="application/pdf" :title="resource.originalName || 'PDF Preview'">
                                 </iframe>
-                                <div v-else class="text-gray-500">Preview not available for this file type</div>
+                                <video v-else-if="isVideoFile" class="w-full"
+                                    controls :src="`${apiBaseUrl}/resources/${resourceId}/view`">
+                                </video>
+                                <audio v-else-if="isAudioFile" class="w-full mt-4"
+                                    controls :src="`${apiBaseUrl}/resources/${resourceId}/view`">
+                                </audio>
+                                <div v-else class="text-text-muted">Preview not available for this file type</div>
                             </div>
                         </div>
                     </div>
@@ -95,29 +102,29 @@
         </div>
 
         <!-- Normal View: with sidebar -->
-        <div v-else class="grid grid-cols-1 gap-6 flex-1 overflow-hidden min-h-0"
-            :class="[splitViewActive ? 'lg:grid-cols-2' : showSidebar ? 'md:grid-cols-3' : 'md:grid-cols-1', { 'drag-over': isDragOver }]"
+        <div v-else class="grid grid-cols-1 gap-4 flex-1 overflow-hidden min-h-0"
+            :class="[splitViewActive ? 'lg:grid-cols-2' : showSidebar ? 'md:grid-cols-4' : 'md:grid-cols-1', { 'drag-over': isDragOver }]"
             @dragover="onDragOver" @dragenter="onDragEnter" @dragleave="onDragLeave" @drop="onDrop">
             <div class="flex flex-col overflow-hidden min-h-0"
-                :class="[splitViewActive ? 'lg:col-span-1' : showSidebar ? 'md:col-span-2' : 'md:col-span-1', { 'split-view-active': splitViewActive }]">
-                <div class="bg-white p-4 flex-shrink-0">
+                :class="[splitViewActive ? 'lg:col-span-1' : showSidebar ? 'md:col-span-3' : 'md:col-span-1', { 'split-view-active': splitViewActive }]">
+                <div class="bg-surface-elevated p-4 flex-shrink-0">
                     <div class="flex items-center mb-4">
                         <IconType :mimeType="resource.mimeType" />
                         <div class="flex items-center flex-grow">
                             <input v-if="isEditingName" v-model="editResourceName" @input="handleResourceNameChange"
                                 @keyup.enter="saveResourceName" @keyup.escape="cancelNameEdit" @blur="handleBlur"
                                 type="text"
-                                class="text-2xl font-bold bg-transparent border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mr-3 flex-grow"
+                                class="text-2xl font-bold bg-transparent border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent mr-3 flex-grow text-text-primary"
                                 placeholder="Resource name..." ref="nameInput" />
                             <h1 v-else @dblclick="startNameEdit"
-                                class="text-2xl font-bold mr-3 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
+                                class="text-2xl font-bold mr-3 cursor-pointer hover:bg-surface-hover px-2 py-1 rounded text-text-primary"
                                 title="Double-click to edit">{{ resource.name }}</h1>
                         </div>
-                        <Button @click="confirmRemoveResource" variant="danger" title="Remove Resource">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12" />
+                        <Button @click="confirmRemoveResource" variant="danger" size="small" title="Remove Resource">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                             Remove
                         </Button>
@@ -139,9 +146,9 @@
                         :isConfirmed="!isPendingConfirmation" />
                     <!-- Show extraction message when extracting -->
                     <div v-else-if="isExtracting && !isImageFile"
-                        class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
                         <div class="flex items-center">
-                            <svg class="animate-spin h-5 w-5 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg"
+                            <svg class="animate-spin h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" xmlns="http://www.w3.org/2000/svg"
                                 fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                     stroke-width="4"></circle>
@@ -149,13 +156,13 @@
                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                                 </path>
                             </svg>
-                            <span class="text-sm font-medium text-blue-800">Extracting content... Only original view is
+                            <span class="text-sm font-medium text-blue-800 dark:text-blue-200">Extracting content... Only original view is
                                 available.</span>
                         </div>
                     </div>
                 </div>
 
-                <div class=" bg-white mt-4 flex-1 min-h-0 flex flex-col overflow-hidden"
+                <div class="bg-surface-elevated mt-4 flex-1 min-h-0 flex flex-col overflow-hidden"
                     :class="(displayMode === 'raw' || displayMode === 'workspace') ? 'p-0' : 'px-5 py-4'">
                     <div v-if="isEditMode && editType !== 'overview'" class="w-full flex-1 overflow-y-auto">
                         <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
@@ -165,19 +172,19 @@
                     <div v-else-if="isEditMode && editType === 'overview'"
                         class="w-full flex-1 overflow-y-auto space-y-6">
                         <!-- Summary Editor -->
-                        <div class="bg-white p-4 rounded shadow">
-                            <h3 class="font-semibold mb-3 text-lg">Summary</h3>
-                            <div class="max-h-[300px] overflow-y-auto border border-gray-200 rounded">
+                        <div class="bg-surface-elevated p-4 rounded shadow">
+                            <h3 class="font-semibold mb-3 text-lg text-text-primary">Summary</h3>
+                            <div class="max-h-[300px] overflow-y-auto border border-border rounded">
                                 <EditorContent ref="editorContentRef" :content="editSummary" :is-saving="false"
-                                    :saved-successfully="false" context="resource"
+                                    :saved-successfully="false" context="summary"
                                     @content-change="(content) => editSummary = content" />
                             </div>
                         </div>
 
                         <!-- Key Points Editor -->
-                        <div class="bg-white p-4 rounded shadow">
+                        <div class="bg-surface-elevated p-4 rounded shadow">
                             <div class="flex items-center justify-between mb-3">
-                                <h3 class="font-semibold text-lg">Key Points</h3>
+                                <h3 class="font-semibold text-lg text-text-primary">Key Points</h3>
                                 <Button size="small" @click="addKeyPoint">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
@@ -190,7 +197,7 @@
                             <div class="space-y-2">
                                 <div v-for="(kp, idx) in editKeyPoints" :key="idx" class="flex items-center gap-2">
                                     <button @click="moveKeyPointUp(idx)" :disabled="idx === 0"
-                                        class="p-1 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed">
+                                        class="p-1 hover:bg-surface-hover rounded disabled:opacity-30 disabled:cursor-not-allowed">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -198,7 +205,7 @@
                                         </svg>
                                     </button>
                                     <button @click="moveKeyPointDown(idx)" :disabled="idx === editKeyPoints.length - 1"
-                                        class="p-1 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed">
+                                        class="p-1 hover:bg-surface-hover rounded disabled:opacity-30 disabled:cursor-not-allowed">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -206,7 +213,7 @@
                                         </svg>
                                     </button>
                                     <input v-model="editKeyPoints[idx]" type="text"
-                                        class="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        class="flex-1 px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-accent bg-surface text-text-primary"
                                         placeholder="Enter key point..." />
                                     <button @click="removeKeyPoint(idx)"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded">
@@ -217,26 +224,26 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <p v-if="editKeyPoints.length === 0" class="text-gray-500 text-sm italic">No key points.
+                                <p v-if="editKeyPoints.length === 0" class="text-text-muted text-sm italic">No key points.
                                     Click "Add" to create one.</p>
                             </div>
                         </div>
 
                         <!-- Keywords Editor -->
-                        <div class="bg-white p-4 rounded shadow">
-                            <h3 class="font-semibold mb-3 text-lg">Keywords</h3>
+                        <div class="bg-surface-elevated p-4 rounded shadow">
+                            <h3 class="font-semibold mb-3 text-lg text-text-primary">Keywords</h3>
                             <div
-                                class="flex flex-wrap gap-2 items-center p-2 border border-gray-300 rounded min-h-[50px]">
+                                class="flex flex-wrap gap-2 items-center p-2 border border-border rounded min-h-[50px]">
                                 <!-- Existing keywords as editable chips -->
                                 <div v-for="(kw, idx) in editKeywords" :key="idx"
-                                    class="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm group">
+                                    class="flex items-center gap-1 bg-accent-subtle text-accent-dark px-2 py-1 rounded-full text-sm group">
                                     <input v-model="editKeywords[idx]" type="text"
-                                        class="keyword-input bg-transparent border-none outline-none w-auto min-w-[60px] max-w-[200px] focus:bg-blue-50 rounded px-1"
+                                        class="keyword-input bg-transparent border-none outline-none w-auto min-w-[60px] max-w-[200px] focus:bg-accent-subtle rounded px-1"
                                         :style="{ width: (editKeywords[idx].length * 8 + 20) + 'px' }"
                                         placeholder="keyword..." @keydown.enter="addKeyword"
                                         @keydown.backspace="handleKeywordBackspace(idx, $event)" />
                                     <button @click="removeKeyword(idx)"
-                                        class="text-blue-600 hover:text-red-600 hover:bg-red-50 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        class="text-accent hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -247,7 +254,7 @@
 
                                 <!-- Add new keyword button -->
                                 <button @click="addKeyword"
-                                    class="flex items-center gap-1 text-gray-500 hover:text-blue-600 px-2 py-1 rounded-full text-sm border border-dashed border-gray-300 hover:border-blue-400">
+                                    class="flex items-center gap-1 text-text-muted hover:text-accent px-2 py-1 rounded-full text-sm border border-dashed border-border hover:border-accent">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -256,7 +263,7 @@
                                     Add
                                 </button>
                             </div>
-                            <p v-if="editKeywords.length === 0" class="text-gray-500 text-sm italic mt-2">
+                            <p v-if="editKeywords.length === 0" class="text-text-muted text-sm italic mt-2">
                                 No keywords. Click "Add" to create one.
                             </p>
                         </div>
@@ -265,7 +272,7 @@
                         class="flex flex-col h-full w-full min-w-0">
                         <div class="flex justify-between items-center mb-4">
                             <div
-                                class="text-xl font-semibold bg-transparent border-none outline-none focus:bg-gray-50 focus:px-2 focus:py-1 rounded w-full">
+                                class="text-xl font-semibold bg-transparent border-none outline-none focus:bg-surface-hover focus:px-2 focus:py-1 rounded w-full text-text-primary">
                                 Workspace</div>
                             <div class="flex gap-2 ml-2">
                                 <Button @click="activateWorkspaceSplitView" size="small" title="Open in split view">
@@ -277,8 +284,8 @@
                                 </Button>
                             </div>
                         </div>
-                        <div v-if="isDocumentSaving" class="flex items-center text-sm text-gray-500 mb-2">
-                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500"
+                        <div v-if="isDocumentSaving" class="flex items-center text-sm text-text-muted mb-2">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-text-muted"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                     stroke-width="4"></circle>
@@ -308,52 +315,22 @@
                             ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)"
                             :display-mode="displayMode" :has-workspace="!!workspaceDocument"
                             @send-selection-to-workspace="handleToolbarSendSelection"
+                            @send-selection-to-doc="handleSendToDoc"
                             @summarize-selection="handleSummarizeSelection" />
                         <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
                             :content="resource.translatedContent" :resource-id="String(resource.id)"
-                            :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection" />
-                        <div v-else-if="displayMode === 'overview'" class="space-y-4">
-                            <div v-if="resource.summary">
-                                <details open class="bg-white p-4 rounded shadow">
-                                    <summary class="cursor-pointer font-semibold">Summary</summary>
-                                    <div class="mt-2 prose max-w-none" v-html="resource.summary"></div>
-                                </details>
-                            </div>
-
-                            <div v-if="resource.keyPoints && resource.keyPoints.length">
-                                <details open class="bg-white p-4 rounded shadow">
-                                    <summary class="cursor-pointer font-semibold">Key Points</summary>
-                                    <div class="mt-2">
-                                        <ul class="list-disc list-inside space-y-2">
-                                            <li v-for="(kp, idx) in resource.keyPoints" :key="idx"
-                                                class="text-sm text-gray-700">{{ kp }}</li>
-                                        </ul>
-                                    </div>
-                                </details>
-                            </div>
-                            <div v-if="resource.keywords && resource.keywords.length">
-                                <details open class="bg-white p-4 rounded shadow">
-                                    <summary class="cursor-pointer font-semibold">Keywords</summary>
-                                    <div class="mt-2">
-                                        <ul class="flex flex-wrap gap-2">
-                                            <li v-for="(kw, idx) in resource.keywords" :key="idx"
-                                                class="text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">{{ kw }}
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </details>
-                            </div>
-                        </div>
-                        <iframe v-else-if="isHtmlFile && displayMode === 'raw'" class="w-full h-full border-0"
-                            :srcdoc="rawHtmlContent" sandbox="allow-same-origin" title="HTML Preview">
-                        </iframe>
-                        <iframe v-else-if="isPdfFile && displayMode === 'raw'" class="w-full h-full border-0"
-                            :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
-                            type="application/pdf" :title="resource.originalName || 'PDF Preview'">
-                        </iframe>
-                        <img v-else-if="isImageFile" class="w-full object-contain max-h-full"
-                            :src="`${apiBaseUrl}/resources/${resourceId}/view`"
-                            :alt="resource.originalName || 'Image Preview'" />
+                            :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection"
+                            @send-selection-to-doc="handleSendToDoc" />
+                        <ResourceOverview v-else-if="displayMode === 'overview'"
+                            :summary="resource.summary" :keyPoints="resource.keyPoints"
+                            :keywords="resource.keywords" />
+                        <ResourceMediaPreview v-else-if="displayMode === 'raw' || isImageFile"
+                            :resourceId="resourceId" :mimeType="resource.mimeType"
+                            :originalName="resource.originalName" :content="rawHtmlContent"
+                            :baseUrl="apiBaseUrl" :isHtml="isHtmlFile && displayMode === 'raw'"
+                            :isPdf="isPdfFile && displayMode === 'raw'" :isImage="isImageFile"
+                            :isVideo="isVideoFile && displayMode === 'raw'"
+                            :isAudio="isAudioFile && displayMode === 'raw'" />
                     </div>
                 </div>
             </div>
@@ -361,73 +338,103 @@
             <!-- Split View Document Area -->
             <div v-if="splitViewActive && splitDocument"
                 class="lg:col-span-1 flex flex-col overflow-hidden min-h-0 split-document-panel">
-                <div class="bg-white p-4 flex-shrink-0">
-                    <div class="flex items-center justify-between mb-4">
+                <div class="bg-surface-elevated rounded-xl border border-border p-4 flex-shrink-0">
+                    <div class="flex items-center justify-between mb-3">
                         <input v-model="splitDocument.name" @input="handleDocumentNameChange" type="text"
-                            class="text-2xl font-bold bg-transparent border-none outline-none focus:bg-gray-50 focus:px-2 focus:py-1 rounded w-full"
+                            class="flex-1 px-3 py-1.5 bg-transparent border-0 border-b border-border text-base font-semibold text-text-primary focus:outline-none focus:border-accent transition-colors tracking-tight"
                             placeholder="Document name..." />
-                        <Button @click="closeSplitView">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12" />
+                        <button @click="closeSplitView"
+                            class="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer ml-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                        </Button>
+                        </button>
                     </div>
 
-                    <div class="mb-3 flex justify-between items-center">
-                        <div v-if="isDocumentSaving" class="flex items-center text-sm text-gray-500">
-                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                </path>
-                            </svg>
+                    <div class="flex justify-between items-center">
+                        <div v-if="isDocumentSaving" class="flex items-center gap-1.5 text-xs text-text-muted">
+                            <div class="animate-spin rounded-full h-3 w-3 border-2 border-accent border-t-transparent"></div>
                             Saving...
                         </div>
-                        <div v-else-if="documentSavedSuccessfully" class="flex items-center text-sm text-green-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
+                        <div v-else-if="documentSavedSuccessfully" class="flex items-center gap-1 text-xs text-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                             Saved
                         </div>
                     </div>
                 </div>
 
-                <div class="overflow-y-auto flex-1 min-h-0 bg-white mt-4 shadow rounded-lg p-4">
+                <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-xl border border-border p-4">
                     <EditorContent ref="splitEditor" :content="splitDocument.content || ''"
                         :is-saving="isDocumentSaving" :saved-successfully="documentSavedSuccessfully"
                         @content-change="handleDocumentContentChange" />
                 </div>
             </div>
 
+            <!-- Split View Resource Area -->
+            <div v-if="splitViewActive && splitResource"
+                class="lg:col-span-1 flex flex-col overflow-hidden min-h-0">
+                <div class="bg-surface-elevated rounded-xl border border-border flex-shrink-0">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-border-light">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                            <IconType :mimeType="splitResource.mimeType" />
+                            <span class="text-sm font-semibold text-text-primary truncate">{{ splitResource.name }}</span>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0 ml-2">
+                            <router-link :to="`/resource/${splitResource.id}`"
+                                class="p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors"
+                                title="Open resource">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </router-link>
+                            <button @click="closeSplitView"
+                                class="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-xl border border-border p-4">
+                    <div v-if="splitResource.content" class="prose max-w-none text-sm" v-html="splitResource.content"></div>
+                    <div v-else class="flex items-center justify-center py-12 text-sm text-text-muted">
+                        No extracted content available
+                    </div>
+                </div>
+            </div>
+
             <div v-if="!splitViewActive && showSidebar" class="md:col-span-1 flex flex-col overflow-hidden min-h-0">
-                <div class="bg-white p-4 flex-shrink-0">
-                    <div class="flex items-center justify-between mb-4">
+                <div class="flex-shrink-0 px-1">
+                    <div class="flex items-center gap-1 mb-2">
                         <ButtonGroup>
-                            <Button variant="secondary" :active="viewSideBar === 'properties'"
+                            <Button variant="secondary" size="small" :active="viewSideBar === 'properties'"
                                 @click="viewSideBar = 'properties'">
-                                Properties
+                                Props
                             </Button>
-                            <Button v-if="hasExtractedContent" variant="secondary" :active="viewSideBar === 'index'"
+                            <Button v-if="hasExtractedContent" variant="secondary" size="small" :active="viewSideBar === 'index'"
                                 @click="(viewSideBar = 'index', refreshTocFromChild())">
                                 Index
                             </Button>
-                            <Button v-if="!isImageFile" variant="secondary" :active="viewSideBar === 'comments'"
+                            <Button v-if="!isImageFile" variant="secondary" size="small" :active="viewSideBar === 'comments'"
                                 @click="viewSideBar = 'comments'">
                                 Comments
                             </Button>
-                            <Button v-if="shouldShowEntitiesTab" variant="secondary"
+                            <Button v-if="shouldShowEntitiesTab" variant="secondary" size="small"
                                 :active="viewSideBar === 'entities'" @click="viewSideBar = 'entities'">
-                                <span class="flex items-center">
+                                <span class="flex items-center gap-1">
                                     Entities
                                     <span v-if="hasPendingEntities"
-                                        class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        Pending
+                                        class="inline-flex items-center px-1.5 py-0 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">
+                                        !
                                     </span>
                                 </span>
                             </Button>
@@ -435,19 +442,19 @@
                     </div>
                 </div>
 
-                <div class="overflow-y-auto flex-1 min-h-0 mt-4">
+                <div class="overflow-y-auto flex-1 min-h-0">
                     <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
                     <CommentSidebar v-else-if="viewSideBar === 'comments'" :resource-id="String(resource.id)" />
-                    <div v-else-if="viewSideBar === 'index'" class="bg-white p-4 shadow rounded-lg">
-                        <div class="mb-2">
-                            <strong class="text-sm text-gray-700">Table of Contents</strong>
+                    <div v-else-if="viewSideBar === 'index'" class="bg-surface-elevated rounded-xl border border-border">
+                        <div class="px-4 py-3 border-b border-border-light">
+                            <span class="text-sm font-semibold text-text-primary">Table of Contents</span>
                         </div>
-                        <div v-if="!tocItems.length">No headings found in this resource.</div>
-                        <ul v-else class="space-y-1">
+                        <div v-if="!tocItems.length" class="px-4 py-6 text-sm text-text-muted text-center">No headings found.</div>
+                        <ul v-else class="py-2">
                             <li v-for="item in tocItems" :key="item.id"
-                                :style="{ marginLeft: (item.level - 1) * 12 + 'px' }">
+                                :style="{ paddingLeft: (item.level - 1) * 12 + 16 + 'px' }">
                                 <a href="#" @click.prevent="scrollToHeadingFromSidebar(item.id)"
-                                    class="text-blue-600 hover:underline">{{ item.text }}</a>
+                                    class="block py-1 text-sm text-accent hover:text-accent-dark hover:bg-surface-hover rounded transition-colors">{{ item.text }}</a>
                             </li>
                         </ul>
                     </div>
@@ -469,7 +476,12 @@
 
         <FloatingSearchBox :active-contents="activeContents" v-model="showSearch" />
 
-        <ChatSidebar :show="showChat" :messages="chatMessages" @close="showChat = false" @send="handleSendMessage" />
+        <ChatSidebar :show="showChat" :messages="chatMessages" :project-id="resource?.project?.id || projectStore.currentProject?.id" @close="showChat = false" @send="handleSendMessage" />
+
+        <SendToDocModal :is-open="showSendToDocModal" :selected-text="sendToDocText"
+            :project-id="resource?.project?.id || projectStore.currentProject?.id"
+            @close="showSendToDocModal = false" @send-to-existing="handleSendToExistingDoc"
+            @create-new-doc="handleCreateNewDocFromSelection" />
 
         <!-- Confirm Modals -->
         <ConfirmModal :is-open="showRemoveResourceModal" title="Remove Resource"
@@ -487,6 +499,7 @@ import { useResource } from '../services/resources/useResource';
 import { useResourceIcon } from '../composables/useResourceIcon';
 import { useDocument } from '../services/documents/useDocument';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
+import OfflineToggle from '../components/OfflineToggle.vue';
 import EditorContent from '../components/editor/EditorContent.vue';
 import axios from 'axios';
 import { useProjectStore } from '../store/projectStore';
@@ -499,6 +512,8 @@ import IconType from '../components/resources/IconType.vue';
 import FloatingSearchBox from '../components/ui/FloatingSearchBox.vue';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import HtmlContent from '../components/contents/HtmlContent.vue';
+import ResourceOverview from '../components/resources/ResourceOverview.vue';
+import ResourceMediaPreview from '../components/resources/ResourceMediaPreview.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import ChatSidebar from '../components/ui/ChatSidebar.vue';
 import EntitiesList from '../components/entities/EntitiesList.vue';
@@ -506,6 +521,7 @@ import PendingEntitiesValidator from '../components/entities/PendingEntitiesVali
 import Button from '../components/ui/Button.vue';
 import ButtonGroup from '../components/ui/ButtonGroup.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
+import SendToDocModal from '../components/contents/SendToDocModal.vue';
 
 defineOptions({
     inheritAttrs: false
@@ -518,13 +534,14 @@ const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
 const { loadResource, updateResource, error, isLoading } = useResource();
 const { saveDocument, loadDocument } = useDocument();
-const resource = ref<any>({});
+const resource = ref<Record<string, any>>({});
 const projectStore = useProjectStore();
 const notification = useNotification();
 const rawHtmlContent = ref<string>('');
 const displayMode = ref<'extracted' | 'raw' | 'translated' | 'overview' | 'workspace'>('extracted');
 const splitViewActive = ref(false);
-const splitDocument = ref<any>(null);
+const splitDocument = ref<Record<string, any> | null>(null);
+const splitResource = ref<Record<string, any> | null>(null);
 const isDocumentSaving = ref(false);
 const documentSavedSuccessfully = ref(false);
 const documentSaveTimeout = ref<NodeJS.Timeout | null>(null);
@@ -554,20 +571,23 @@ const nameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const nameInput = ref<HTMLInputElement | null>(null);
 const isCancelingNameEdit = ref(false);
 const showChat = ref(false);
-const extractedContent = ref<any>(null);
-const translatedContent = ref<any>(null);
-const summaryContent = ref<any>(null);
+const extractedContent = ref<string | null>(null);
+const translatedContent = ref<string | null>(null);
+const summaryContent = ref<string | null>(null);
 const tocItems = ref<{ id: string; text: string; level: number }[]>([]);
 const defaultLanguage = ref<string>('en');
 const isConfirming = ref(false);
 const hasPendingEntities = ref(false);
-const workspaceDocument = ref<any>(null);
+const workspaceDocument = ref<Record<string, any> | null>(null);
 const isLoadingWorkspace = ref(false);
 const isWorkspaceShownInSplit = ref(false);
 
 // Computed properties for resource status
 const isPendingConfirmation = computed(() => resource.value.status === 'extracted');
-const isExtracting = computed(() => !resource.value.content || resource.value.content.trim().length === 0);
+const isExtracting = computed(() => {
+    if (isVideoFile.value || isAudioFile.value) return false;
+    return !resource.value.content || resource.value.content.trim().length === 0;
+});
 const canInteract = computed(() => !isPendingConfirmation.value && !isExtracting.value);
 const shouldShowEntitiesTab = computed(() =>
     resource.value.status === 'entities' ||
@@ -618,7 +638,7 @@ const scrollToHeadingFromSidebar = (id: string) => {
 };
 
 
-const { isPdfFile, isHtmlFile, isImageFile } = useResourceIcon(computed(() => resource.value.mimeType));
+const { isPdfFile, isHtmlFile, isImageFile, isVideoFile, isAudioFile } = useResourceIcon(computed(() => resource.value.mimeType));
 
 // Confirm Modal state
 const showRemoveResourceModal = ref(false);
@@ -634,10 +654,22 @@ const {
 const breadcrumbItems = computed(() => {
     const items = [];
 
-    items.push({
-        name: projectStore.currentProject.name,
-        path: `/project/${projectStore.currentProject.id}`
-    });
+    if (resource.value?.project?.id) {
+        items.push({
+            name: resource.value.project.name || projectStore.currentProject?.name || 'Project',
+            path: `/project/${resource.value.project.id}`
+        });
+    } else if (projectStore.currentProject?.id) {
+        items.push({
+            name: projectStore.currentProject.name,
+            path: `/project/${projectStore.currentProject.id}`
+        });
+    } else {
+        items.push({
+            name: 'Pending Resources',
+            path: '/'
+        });
+    }
 
     if (resource.value && resource.value.name) {
         items.push({
@@ -744,7 +776,7 @@ const loadResourceDetails = async () => {
             const entitiesRes = await apiClient.get(`/resources/${resourceId.value}/entities`);
             const entitiesData = entitiesRes.data || [];
             // If backend returned raw rows (getRawMany), normalize keys to id/name/type
-            resource.value.entities = entitiesData.map((row: any) => {
+            resource.value.entities = entitiesData.map((row: Record<string, any>) => {
                 // raw row from getRawMany may be like { entity_id: 1, entity_name: 'Name', entity_type: 'Type' }
                 if (row.entity_id || row.entity_name) {
                     return {
@@ -775,7 +807,8 @@ const loadResourceDetails = async () => {
 
         await checkPendingEntities();
 
-        if (!data.content || data.content.trim().length === 0) {
+        if (!data.content || data.content.trim().length === 0 ||
+            (data.mimeType && (data.mimeType.startsWith('video/') || data.mimeType.startsWith('audio/')))) {
             displayMode.value = 'raw';
         }
 
@@ -812,7 +845,9 @@ watch(resourceId, () => {
 watch(() => resource.value.content, (newContent, oldContent) => {
     // If we're in raw mode because there was no content, and content becomes available
     if (displayMode.value === 'raw' && newContent && newContent.trim().length > 0 && (!oldContent || oldContent.trim().length === 0)) {
-        displayMode.value = 'extracted';
+        if (!isVideoFile.value && !isAudioFile.value) {
+            displayMode.value = 'extracted';
+        }
     }
 });
 
@@ -843,7 +878,7 @@ const getResourceContentForDocument = (): string => {
     return '';
 };
 
-const onDocumentCreated = (document: any) => {
+const onDocumentCreated = (document: Record<string, any>) => {
     notification.success(`Document "${document.name}" created successfully`);
     splitDocument.value = document;
     splitViewActive.value = true;
@@ -852,6 +887,7 @@ const onDocumentCreated = (document: any) => {
 const closeSplitView = () => {
     splitViewActive.value = false;
     splitDocument.value = null;
+    splitResource.value = null;
     // If we closed a split that was showing the workspace, clear the flag
     isWorkspaceShownInSplit.value = false;
 };
@@ -918,7 +954,13 @@ const removeResource = async () => {
         await apiClient.delete(`/resources/${resourceId.value}`);
         notification.success('Resource removed successfully');
 
-        router.push(`/project/${projectStore.currentProject.id}`);
+        if (resource.value?.project?.id) {
+            router.push(`/project/${resource.value.project.id}`);
+        } else if (projectStore.currentProject?.id) {
+            router.push(`/project/${projectStore.currentProject.id}`);
+        } else {
+            router.push('/');
+        }
     } catch (error) {
         notification.error('Failed to remove resource');
     }
@@ -948,11 +990,25 @@ const onDrop = async (event: DragEvent) => {
             const document = droppedData.document;
             if (document && document.id) {
                 const fullDocument = await loadDocument(document.id);
+                splitResource.value = null;
                 splitDocument.value = fullDocument;
                 splitViewActive.value = true;
             }
         } catch (error) {
             notification.error('Failed to load document');
+        }
+    } else if (droppedData && droppedData.type === 'resource') {
+        try {
+            const droppedResource = droppedData.resource;
+            if (droppedResource && droppedResource.id && String(droppedResource.id) !== String(resourceId.value)) {
+                const { loadResource: loadSplitResource } = useResource();
+                const fullResource = await loadSplitResource(String(droppedResource.id));
+                splitDocument.value = null;
+                splitResource.value = fullResource;
+                splitViewActive.value = true;
+            }
+        } catch (error) {
+            notification.error('Failed to load resource');
         }
     } else {
         const dataTransfer = event.dataTransfer;
@@ -1021,7 +1077,7 @@ const saveEdit = async () => {
     savedSuccessfully.value = false;
 
     try {
-        const updateData: any = {};
+        const updateData: Record<string, any> = {};
 
         // Handle overview mode separately
         if (editType.value === 'overview') {
@@ -1337,60 +1393,71 @@ const handleExtractEntities = async () => {
 const handleEntityRemoved = (entityId: number) => {
     // Remove the entity from the local resource object
     if (resource.value.entities) {
-        resource.value.entities = resource.value.entities.filter((entity: any) => entity.id !== entityId);
+        resource.value.entities = resource.value.entities.filter((entity: Record<string, any>) => entity.id !== entityId);
     }
 };
 
-const handleEntityMerged = (sourceEntityId: number, targetEntity: any) => {
+const handleEntityMerged = (sourceEntityId: number, targetEntity: Record<string, any>) => {
     // Remove the source entity and update the target entity in the local resource object
     if (resource.value.entities) {
-        const sourceIndex = resource.value.entities.findIndex((entity: any) => entity.id === sourceEntityId);
+        const sourceIndex = resource.value.entities.findIndex((entity: Record<string, any>) => entity.id === sourceEntityId);
         if (sourceIndex !== -1) {
             resource.value.entities.splice(sourceIndex, 1);
         }
 
-        const targetIndex = resource.value.entities.findIndex((entity: any) => entity.id === targetEntity.id);
+        const targetIndex = resource.value.entities.findIndex((entity: Record<string, any>) => entity.id === targetEntity.id);
         if (targetIndex !== -1) {
             resource.value.entities[targetIndex] = targetEntity;
         }
     }
 };
 
-const handleEntityHighlight = async (entity: any) => {
-    let nameToHighlight = '';
-    let aliasValues: string[] = [];
-    let translations = entity.translations || null;
+const handleEntityHighlight = async (entity: Record<string, any>) => {
+    const translations = entity.translations || {};
+    const aliases = entity.aliases || [];
+    const resLang = resource.value.language || 'en';
 
-    try {
-        if (displayMode.value === 'translated' && resource.value.translatedContent) {
-            const targetLang = await getLanguageSetting();
-            if (entity.translations && entity.translations[targetLang]) {
-                nameToHighlight = entity.translations[targetLang];
-            } else {
-                nameToHighlight = entity.name;
-            }
-        } else {
-            if (resource.value.language === 'en') {
-                nameToHighlight = entity.name;
-            } else if (entity.translations && resource.value.language && entity.translations[resource.value.language]) {
-                nameToHighlight = entity.translations[resource.value.language];
-            } else {
-                nameToHighlight = entity.name;
-            }
-        }
+    // Collect ALL possible names for this entity so we can match regardless of language
+    const allNames = new Set<string>();
 
-        aliasValues = (entity.aliases || []).map((a: any) => a.value || '');
-    } catch (e) {
-        nameToHighlight = entity.name || '';
-        aliasValues = (entity.aliases || []).map((a: any) => a.value || '');
+    // Always include the English name
+    if (entity.name) allNames.add(entity.name);
+
+    // Include all translations
+    for (const lang of Object.keys(translations)) {
+        if (translations[lang]) allNames.add(translations[lang]);
     }
 
+    // Include all aliases
+    for (const alias of aliases) {
+        if (alias.value) allNames.add(alias.value);
+    }
+
+    const allNamesArray = [...allNames].filter(n => n && n.trim());
+
+    // For extracted content: prioritize resource language name, then all others as fallback
+    let primaryForExtracted = entity.name;
+    if (resLang !== 'en' && translations[resLang]) {
+        primaryForExtracted = translations[resLang];
+    }
+    const extOthers = allNamesArray.filter(n => n !== primaryForExtracted);
+
+    // For translated content: prioritize target language name
+    let primaryForTranslated = entity.name;
+    try {
+        const targetLang = await getLanguageSetting();
+        if (translations[targetLang]) {
+            primaryForTranslated = translations[targetLang];
+        }
+    } catch { /* use default */ }
+    const transOthers = allNamesArray.filter(n => n !== primaryForTranslated);
+
     if (extractedContent.value && extractedContent.value.highlightEntity) {
-        extractedContent.value.highlightEntity(nameToHighlight, aliasValues, translations);
+        extractedContent.value.highlightEntity(primaryForExtracted, extOthers);
     }
 
     if (translatedContent.value && translatedContent.value.highlightEntity) {
-        translatedContent.value.highlightEntity(nameToHighlight, aliasValues, translations);
+        translatedContent.value.highlightEntity(primaryForTranslated, transOthers);
     }
 };
 
@@ -1446,8 +1513,8 @@ const loadWorkspaceDocument = async () => {
     try {
         const response = await apiClient.get(`/docs/resource/${resourceId.value}`);
         workspaceDocument.value = response.data;
-    } catch (error: any) {
-        if (error?.response?.status !== 404) {
+    } catch (error: unknown) {
+        if ((error as any)?.response?.status !== 404) {
             console.error('Error loading workspace document:', error);
         }
         workspaceDocument.value = null;
@@ -1560,6 +1627,46 @@ const escapeHtml = (unsafe: string) => {
 };
 
 
+// Send to document modal
+const showSendToDocModal = ref(false);
+const sendToDocText = ref('');
+
+const handleSendToDoc = (text: string) => {
+    sendToDocText.value = text;
+    showSendToDocModal.value = true;
+};
+
+const handleSendToExistingDoc = async (docId: number) => {
+    showSendToDocModal.value = false;
+    try {
+        const doc = await apiClient.get(`/docs/${docId}`);
+        const existing = doc.data.content || '';
+        const paragraph = `<p>${escapeHtml(sendToDocText.value)}</p>`;
+        await apiClient.patch(`/docs/${docId}`, { content: existing + paragraph });
+        notification.success('Selection added to document');
+    } catch (error) {
+        console.error('Failed to send selection to document', error);
+        notification.error('Failed to add selection to document');
+    }
+};
+
+const handleCreateNewDocFromSelection = async () => {
+    showSendToDocModal.value = false;
+    try {
+        const projectId = resource.value?.project?.id || projectStore.currentProject?.id;
+        const paragraph = `<p>${escapeHtml(sendToDocText.value)}</p>`;
+        const newDoc = await apiClient.post('/docs', {
+            name: `Selection from ${resource.value.name || 'Resource'}`,
+            content: paragraph,
+            project: projectId ? { id: projectId } : null,
+        });
+        router.push(`/document/${newDoc.data.id}`);
+    } catch (error) {
+        console.error('Failed to create document from selection', error);
+        notification.error('Failed to create document');
+    }
+};
+
 // Handler invoked when Toolbar emits selection to send to workspace
 const handleToolbarSendSelection = async (text: string) => {
     if (!workspaceDocument.value || !workspaceDocument.value.id || !text || !text.trim()) return;
@@ -1642,23 +1749,23 @@ const handleSummarizeSelection = async (text: string) => {
 }
 
 .split-view-active {
-    border-right: 2px solid #e5e7eb;
+    border-right: 2px solid var(--color-border);
 }
 
 .split-document-panel {
-    border-left: 2px solid #3b82f6;
+    border-left: 2px solid var(--color-accent);
     box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 1024px) {
     .split-view-active {
         border-right: none;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--color-border);
     }
 
     .split-document-panel {
         border-left: none;
-        border-top: 2px solid #3b82f6;
+        border-top: 2px solid var(--color-accent);
         box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 }
