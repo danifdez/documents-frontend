@@ -1,5 +1,5 @@
 <template>
-    <div class="inline-flex bg-gray-100 rounded-lg p-1">
+    <div class="inline-flex bg-surface rounded-lg p-0.5 border border-border-light gap-0.5">
         <slot></slot>
     </div>
 </template>

@@ -1,10 +1,10 @@
 <template>
     <button :class="[
         'inline-flex items-center justify-center',
-        'font-medium rounded-lg transition-all duration-200 ease-in-out cursor-pointer',
-        'focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-opacity-50',
-        'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
-        'active:scale-[0.98]',
+        'font-medium rounded-lg transition-all duration-200 ease-out cursor-pointer',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-accent/50',
+        'disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none',
+        'active:scale-[0.97]',
         active ? activeClasses : variantClasses,
         sizeClasses,
         className
@@ -48,30 +48,28 @@ const props = defineProps({
 });
 
 const activeClasses = computed(() => {
-    // Active state for switch bar style (used within ButtonGroup)
-    // Always show white background with blue text when active
     const borderClass = props.borderless ? 'border-0' : 'border border-transparent';
-    return `text-blue-600 bg-white ${borderClass} shadow-sm hover:shadow-md focus:ring-blue-500`;
+    return `text-accent-dark bg-accent-subtle ${borderClass} shadow-sm hover:shadow-md`;
 });
 
 const variantClasses = computed(() => {
     if (props.borderless) {
         const variants = {
-            primary: 'text-gray-900 bg-white border-0 hover:bg-gray-50 hover:shadow-md focus:ring-gray-400',
-            secondary: 'text-gray-700 bg-transparent border-0 hover:bg-white/50 hover:text-gray-900 focus:ring-gray-400',
-            danger: 'text-white bg-red-600 border-0 hover:bg-red-700 hover:shadow-md focus:ring-red-500',
-            warning: 'text-white bg-amber-600 border-0 hover:bg-amber-700 hover:shadow-md focus:ring-amber-500',
-            info: 'text-white bg-teal-600 border-0 hover:bg-teal-700 hover:shadow-md focus:ring-teal-500'
+            primary: 'text-text-secondary bg-transparent border-0 hover:bg-surface-hover hover:text-text-primary',
+            secondary: 'text-text-muted bg-transparent border-0 hover:bg-surface-hover hover:text-text-secondary',
+            danger: 'text-white bg-red-500 border-0 hover:bg-red-600 shadow-sm',
+            warning: 'text-white bg-amber-500 border-0 hover:bg-amber-600 shadow-sm',
+            info: 'text-white bg-accent border-0 hover:bg-accent-dark shadow-sm'
         };
         return variants[props.variant] || variants.primary;
     }
 
     const variants = {
-        primary: 'text-gray-900 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:shadow-md focus:ring-gray-400',
-        secondary: 'text-gray-700 bg-transparent border border-transparent hover:bg-white/50 hover:text-gray-900 focus:ring-gray-400',
-        danger: 'text-white bg-red-600 border border-red-600 hover:bg-red-700 hover:border-red-700 hover:shadow-md focus:ring-red-500',
-        warning: 'text-white bg-amber-600 border border-amber-600 hover:bg-amber-700 hover:border-amber-700 hover:shadow-md focus:ring-amber-500',
-        info: 'text-white bg-teal-600 border border-teal-600 hover:bg-teal-700 hover:border-teal-700 hover:shadow-md focus:ring-teal-500'
+        primary: 'text-text-primary bg-surface-elevated border border-border hover:border-border hover:bg-surface-hover hover:shadow-sm',
+        secondary: 'text-text-muted bg-transparent border border-transparent hover:bg-surface-hover hover:text-text-secondary',
+        danger: 'text-white bg-red-500 border border-red-500 hover:bg-red-600 hover:border-red-600 shadow-sm',
+        warning: 'text-white bg-amber-500 border border-amber-500 hover:bg-amber-600 hover:border-amber-600 shadow-sm',
+        info: 'text-white bg-accent border border-accent hover:bg-accent-dark hover:border-accent-dark shadow-sm'
     };
 
     return variants[props.variant] || variants.primary;

@@ -1,22 +1,22 @@
 <template>
     <router-link v-if="to" :to="to" :target="newTab ? '_blank' : '_self'"
         :rel="newTab ? 'noopener noreferrer' : undefined" @click="handleClick" :class="[
-            'px-4 py-2 rounded-md transition-colors duration-200 ease-in-out',
-            'text-gray-600 bg-transparent border border-gray-300',
-            'hover:text-white hover:bg-gray-400 hover:border-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50',
-            'inline-block text-center',
+            'px-3 py-1.5 rounded-md transition-colors duration-200 ease-out',
+            'text-text-secondary bg-transparent border border-transparent',
+            'hover:text-accent-dark hover:bg-accent-subtle',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
+            'inline-block text-center text-sm',
             className
         ]">
         <slot></slot>
     </router-link>
     <a v-else :href="href" :target="newTab ? '_blank' : '_self'" :rel="newTab ? 'noopener noreferrer' : undefined"
         @click="handleClick" :class="[
-            'px-4 py-2 rounded-md transition-colors duration-200 ease-in-out',
-            'text-gray-600 bg-transparent border border-gray-300',
-            'hover:text-white hover:bg-gray-400 hover:border-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50',
-            'inline-block text-center',
+            'px-3 py-1.5 rounded-md transition-colors duration-200 ease-out',
+            'text-text-secondary bg-transparent border border-transparent',
+            'hover:text-accent-dark hover:bg-accent-subtle',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
+            'inline-block text-center text-sm',
             className
         ]">
         <slot></slot>

@@ -1,19 +1,19 @@
 <template>
     <Teleport to="body">
         <div v-if="isVisible" class="fixed top-4 right-4 z-50" @click.stop>
-            <div class="bg-white rounded-lg shadow-2xl border border-gray-200 w-96 overflow-hidden animate-in slide-in-from-top-2 duration-200"
+            <div class="bg-surface-elevated rounded-lg shadow-2xl border border-border w-96 overflow-hidden animate-in slide-in-from-top-2 duration-200"
                 @click.stop>
-                <div class="flex items-center px-4 py-3 border-b border-gray-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-3" fill="none"
+                <div class="flex items-center px-4 py-3 border-b border-border">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted mr-3" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input ref="searchInput" v-model="searchQuery" type="text" placeholder="Search..."
-                        class="flex-1 outline-none text-lg text-gray-900 placeholder-gray-500"
+                        class="flex-1 outline-none text-lg text-text-primary placeholder-text-muted"
                         @keydown.escape="closeSearch" @keydown.enter="handleEnterKey" @input="handleSearchInput" />
                     <div v-if="hasResults" class="flex items-center ml-2">
-                        <span class="text-xs text-gray-500 mr-2">{{ currentResultIndex + 1 }}/{{ totalResults }}</span>
+                        <span class="text-xs text-text-muted mr-2">{{ currentResultIndex + 1 }}/{{ totalResults }}</span>
                         <Button @click="previousResult" :disabled="totalResults === 0"
                             title="Previous result (Shift+Enter)">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"

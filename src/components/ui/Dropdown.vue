@@ -4,30 +4,31 @@
             <slot name="trigger">
                 <Button v-if="!showDots">
                     {{ label }}
-                    <span class="ml-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="1.75">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
                 </Button>
-                <Button v-else aria-label="More options">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20"
-                        fill="currentColor">
+                <button v-else aria-label="More options"
+                    class="p-2 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-all duration-200 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path
                             d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
                     </svg>
-                </Button>
+                </button>
             </slot>
         </div>
 
-        <div v-show="isOpen"
-            class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
-            :class="menuClassName" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1">
-            <div class="py-1" role="none">
-                <slot></slot>
+        <Transition name="dropdown">
+            <div v-show="isOpen"
+                class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg shadow-black/8 bg-surface-elevated border border-border overflow-hidden z-10"
+                :class="menuClassName" role="menu" aria-orientation="vertical" aria-labelledby="menu-button"
+                tabindex="-1">
+                <div class="py-1" role="none">
+                    <slot></slot>
+                </div>
             </div>
-        </div>
+        </Transition>
     </div>
 </template>
 
@@ -75,3 +76,23 @@ onUnmounted(() => {
     document.removeEventListener('click', closeDropdown);
 });
 </script>
+
+<style scoped>
+.dropdown-enter-active {
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-leave-active {
+    transition: all 0.1s ease-in;
+}
+
+.dropdown-enter-from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+}
+
+.dropdown-leave-to {
+    opacity: 0;
+    transform: scale(0.97);
+}
+</style>
