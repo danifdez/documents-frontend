@@ -4,19 +4,19 @@
     @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop">
     <div class="space-y-4">
       <div class="flex flex-col">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Select Documents</label>
+        <label class="block text-sm font-medium text-text-secondary mb-1">Select Documents</label>
         <div ref="dropZoneRef"
-          class="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 w-full min-h-28"
+          class="border-2 border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-surface-hover w-full min-h-28"
           :class="{ 'border-blue-500 bg-blue-50': dragging }" @click="selectDocuments"
           @dragenter.prevent="handleDragEnter" @dragover.prevent="handleDragOver" @dragleave.prevent="handleDragLeave"
           @drop.prevent="handleDrop">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24"
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-text-muted" fill="none" viewBox="0 0 24 24"
             stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
-          <p class="mt-2 text-sm text-gray-500">{{ dragging ? 'Drop files here' : 'Click to select documents' }}</p>
-          <p class="text-xs text-gray-400">You can select multiple files</p>
+          <p class="mt-2 text-sm text-text-muted">{{ dragging ? 'Drop files here' : 'Click to select documents' }}</p>
+          <p class="text-xs text-text-muted">You can select multiple files</p>
         </div>
         <!-- Hidden file input fallback for non-electron browsers -->
         <input ref="fileInputRef" type="file" class="hidden" multiple @change="onFileInputChange" />
@@ -28,7 +28,7 @@
           <div v-for="(file, index) in selectedFiles" :key="index"
             class="flex justify-between items-center py-2 border-b last:border-b-0">
             <div class="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24"
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted mr-2" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -46,7 +46,7 @@
       </div>
 
       <div v-if="isImporting" class="flex items-center justify-center space-x-2 py-2">
-        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-text-primary"></div>
         <span class="text-sm">Processing documents... ({{ processedCount }}/{{ selectedFiles.length }})</span>
       </div>
     </div>
@@ -77,7 +77,7 @@ const props = defineProps({
   },
   projectId: {
     type: String,
-    required: true
+    default: ''
   }
 });
 
@@ -94,7 +94,7 @@ const API_URL = 'http://localhost:3000';
 const uploadFile = async (file: any) => {
   // If Electron API is available and we have a path, use it
   if ((window as any).electronAPI?.uploadDocument && (file as any).path) {
-    return (window as any).electronAPI.uploadDocument(props.projectId, (file as any).path);
+    return (window as any).electronAPI.uploadDocument(props.projectId || null, (file as any).path);
   }
 
   // Fallback: browser File -> FormData to API
@@ -103,7 +103,9 @@ const uploadFile = async (file: any) => {
       const fd = new FormData();
       fd.append('file', file as File, (file as any).name || 'file');
       fd.append('name', (file as any).name || 'file');
-      fd.append('projectId', props.projectId);
+      if (props.projectId) {
+        fd.append('projectId', props.projectId);
+      }
       const resp = await fetch(`${API_URL}/resources/upload`, {
         method: 'POST',
         body: fd,
