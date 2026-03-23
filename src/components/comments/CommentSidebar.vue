@@ -1,68 +1,65 @@
 <template>
-  <div class="comment-sidebar bg-white shadow rounded-lg h-full flex flex-col">
+  <div class="comment-sidebar bg-surface-elevated rounded-xl border border-border h-full flex flex-col">
     <div v-if="isLoading" class="flex items-center justify-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600">
-      </div>
+      <LoadingSpinner size="sm" />
     </div>
 
     <div v-else-if="error" class="flex items-center justify-center py-8 px-4">
       <div class="text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-400 mx-auto mb-2" fill="none"
-          viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-400 mx-auto mb-2" fill="none"
+          viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round"
             d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="text-red-600 font-medium">Error loading comments</p>
-        <p class="text-sm text-gray-500 mt-1">Please try again later</p>
+        <p class="text-sm text-red-500 font-medium">Error loading comments</p>
       </div>
     </div>
 
-    <div v-else-if="comments.length === 0" class="flex items-center justify-center py-8 px-4">
+    <div v-else-if="comments.length === 0" class="flex items-center justify-center py-10 px-4">
       <div class="text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mx-auto mb-3" fill="none"
-          viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-text-muted mx-auto mb-2" fill="none"
+          viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round"
             d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
-        <p class="text-gray-500 font-medium">No comments yet</p>
-        <p class="text-sm text-gray-400 mt-1">Be the first to add a comment</p>
+        <p class="text-sm text-text-muted">No comments yet</p>
       </div>
     </div>
 
-    <div v-else class="flex-1 overflow-y-auto p-4 space-y-3">
+    <div v-else class="flex-1 overflow-y-auto">
       <div v-for="comment in sortedComments" :key="comment.id" :id="`comment-${comment.id}`"
-        class="bg-white border border-gray-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:border-blue-300 cursor-pointer"
-        :class="{ 'bg-yellow-50 border-yellow-400 shadow-lg': highlightedCommentId === comment.id }"
+        class="group border-b border-border-light last:border-b-0 px-4 py-3 transition-colors hover:bg-surface-hover cursor-pointer"
+        :class="{ 'bg-amber-50': highlightedCommentId === comment.id }"
         @click="handleCommentClick(comment.id)">
-        <div class="flex justify-between items-start gap-3 mb-2">
-          <div class="flex-1 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words">
+        <div class="flex justify-between items-start gap-2 mb-1.5">
+          <div class="flex-1 text-text-primary text-sm leading-relaxed whitespace-pre-wrap break-words">
             {{ comment.content }}
           </div>
-          <div class="flex items-center gap-1 flex-shrink-0">
+          <div class="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <button @click.stop="editComment(comment)"
-              class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-              title="Edit comment">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              class="p-1 text-text-muted hover:text-accent rounded transition-colors cursor-pointer"
+              title="Edit">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
                   d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
             </button>
             <button @click.stop="deleteComment(comment)"
-              class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-              title="Delete comment">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              class="p-1 text-text-muted hover:text-red-500 rounded transition-colors cursor-pointer"
+              title="Delete">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
           </div>
         </div>
-        <div class="flex items-center gap-2 text-xs text-gray-500">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        <div class="flex items-center gap-1.5 text-[11px] text-text-muted">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span>{{ formatDate(comment.createdAt) }}</span>
@@ -83,6 +80,7 @@
 
 <script setup>
 import { computed, onMounted, watch, ref } from 'vue';
+import LoadingSpinner from '../ui/LoadingSpinner.vue';
 import { useCommentList } from '../../services/comments/useCommentList';
 import { useCommentUpdate } from '../../services/comments/useCommentUpdate';
 import { useCommentDelete } from '../../services/comments/useCommentDelete';
