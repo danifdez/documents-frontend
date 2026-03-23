@@ -3,14 +3,38 @@
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
             :show-comments="showComments" :show-toc="showToc" :context="context" @add-comment="handleAddCommentRequest"
             @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
-            @add-reference="showReferenceModal = true" />
+            @add-reference="showReferenceModal = true" @add-dataset-view="showDatasetViewModal = true"
+            @add-citation="showCitationModal = true"
+            @convert-table-to-dataset="handleConvertTableToDataset"
+            @marker-applied="emit('marker-applied')" />
         <div class="editor-scroll-wrapper">
-            <div class="flex-1 p-2.5 border border-gray-300 rounded overflow-auto bg-white min-h-[300px] outline-none font-sans leading-relaxed editor-content"
+            <div class="flex-1 p-4 border border-border rounded-lg overflow-auto bg-surface-elevated min-h-[300px] outline-none font-sans leading-relaxed editor-content"
+                ref="editorScrollRef"
                 spellcheck="false" autocorrect="off" autocomplete="off" data-gramm="false" data-enable-grammarly="false"
                 data-lt-tmp-id="false" data-lt-active="false" data-lt-autocomplete="off" data-lt-spellcheck="false">
-                <template v-if="editor">
-                    <editor-content :style="cssVars" :editor="editor" />
-                </template>
+                <div class="editor-with-gutter" ref="editorWithGutterRef">
+                    <div class="editor-main">
+                        <template v-if="editor">
+                            <editor-content :style="cssVars" :editor="editor" />
+                        </template>
+                        <BibliographyList
+                            v-if="context === 'document' && editor"
+                            :editor="editor"
+                            :entries="bibliographyEntries"
+                            :citation-format="(props.citationFormat as 'apa' | 'numeric')"
+                        />
+                    </div>
+                    <div v-if="context !== 'summary'" class="marker-gutter">
+                        <div v-for="m in markerPositions" :key="m.id"
+                            class="marker-gutter-icon"
+                            :class="`marker-gutter-icon-${m.type}`"
+                            :style="{ top: m.top + 'px' }"
+                            :title="m.label + ': ' + m.text"
+                            @click="handleMarkerGutterClick(m.id)">
+                            {{ m.icon }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
@@ -18,11 +42,21 @@
         <MarkModal :is-visible="showMarkModal" :selected-text="selectedMarkText" :is-loading="isMarkLoading"
             @save="saveMark" @cancel="cancelMark" />
         <ReferenceModal v-model="showReferenceModal" @select="handleReferenceSelect" />
+        <DatasetViewConfigModal v-model="showDatasetViewModal" @insert="handleDatasetViewInsert" />
+        <TableToDatasetModal v-model="showTableToDatasetModal" :table-data="parsedTableData"
+            :project-id="projectId" @created="handleTableDatasetCreated" />
+        <CitationModal
+            v-model="showCitationModal"
+            :entries="bibliographyEntries"
+            :citation-format="(props.citationFormat as 'apa' | 'numeric')"
+            :existing-entry-ids="citedEntryIds"
+            @select="handleCitationSelect"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import { Decoration, DecorationSet } from 'prosemirror-view'
 import { Plugin } from 'prosemirror-state';
@@ -35,12 +69,19 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import Color from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Highlight from '@tiptap/extension-highlight';
 import CommentExtension from './extensions/CommentExtension';
 import MarkExtension from './extensions/MarkExtension';
+import { MarkerExtension, MARKER_CONFIG } from './extensions/CalloutExtension';
+import type { MarkerType } from './extensions/CalloutExtension';
+import { MathExtension } from './extensions/MathExtension';
+import { VideoExtension } from './extensions/VideoExtension';
 import EditorToolbar from './EditorToolbar.vue';
 import CommentModal from '../comments/CommentModal.vue';
 import MarkModal from '../marks/MarkModal.vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useCommentCreate } from '../../services/comments/useCommentCreate';
 import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
@@ -49,6 +90,17 @@ import { useMarks } from '../../services/marks/useMarks';
 import ReferenceModal from '../../components/references/ReferenceModal.vue';
 import Image from '@tiptap/extension-image';
 import { ReferenceNode } from './extensions/ReferenceExtension';
+import { DatasetViewExtension } from './extensions/DatasetViewExtension';
+import DatasetViewConfigModal from './DatasetViewConfigModal.vue';
+import TableToDatasetModal from './TableToDatasetModal.vue';
+import { parseTableFromEditor, type ParsedTable } from './utils/parseTableFromEditor';
+import { useNotification } from '../../composables/useNotification';
+import { CitationNode } from './extensions/CitationExtension';
+import CitationModal from '../bibliography/CitationModal.vue';
+import BibliographyList from '../bibliography/BibliographyList.vue';
+import { useBibliography } from '../../services/bibliography/useBibliography';
+import type { BibliographyEntry } from '../../types/Bibliography';
+import 'katex/dist/katex.min.css';
 
 const props = defineProps({
     content: {
@@ -70,20 +122,32 @@ const props = defineProps({
     context: {
         type: String,
         default: 'document' // 'document' or 'resource'
-    }
+    },
+    projectId: {
+        type: Number,
+        default: null,
+    },
+    citationFormat: {
+        type: String,
+        default: 'apa',
+    },
 });
 
 const emit = defineEmits([
     'content-change',
     'toggle-comments',
     'highlight-comment',
-    'highlight-mark'
+    'highlight-mark',
+    'comment-created',
+    'marker-applied',
 ]);
 
 const editor = ref(null);
 const isMounted = ref(false);
 const showComments = ref(false);
 const route = useRoute();
+const router = useRouter();
+const notification = useNotification();
 const { createComment, isLoading: isCommentLoading } = useCommentCreate();
 const { createMark, isLoading: isMarkLoading } = useMarkCreate();
 const { updateMark } = useMarkUpdate();
@@ -97,7 +161,73 @@ const selectedMarkText = ref('');
 const currentSelection = ref(null);
 const matches = ref([]);
 const showReferenceModal = ref(false);
+const showDatasetViewModal = ref(false);
+const showTableToDatasetModal = ref(false);
+const parsedTableData = ref<ParsedTable | null>(null);
+const showCitationModal = ref(false);
+const { entries: bibliographyEntries, loadByProject, loadGlobal } = useBibliography();
 let currentDecorations = DecorationSet.empty
+
+// -- Marker gutter --
+const editorScrollRef = ref<HTMLElement | null>(null);
+const editorWithGutterRef = ref<HTMLElement | null>(null);
+const markerPositions = ref<Array<{ id: string; type: string; icon: string; label: string; text: string; top: number }>>([]);
+
+const updateMarkerPositions = () => {
+    if (!editorWithGutterRef.value || !editor.value) {
+        markerPositions.value = [];
+        return;
+    }
+    const container = editorWithGutterRef.value;
+    const scrollEl = editorScrollRef.value;
+    if (!scrollEl) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const spans = container.querySelectorAll('[data-marker-id]');
+    const seen = new Set<string>();
+    const positions: typeof markerPositions.value = [];
+
+    spans.forEach((span) => {
+        const id = span.getAttribute('data-marker-id');
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+
+        const type = (span.getAttribute('data-marker-type') || 'idea') as MarkerType;
+        const config = MARKER_CONFIG[type] || MARKER_CONFIG.idea;
+        const rect = span.getBoundingClientRect();
+        // Position relative to the flex container (which is the gutter's parent)
+        const top = rect.top - containerRect.top;
+
+        positions.push({
+            id,
+            type,
+            icon: config.icon,
+            label: config.label,
+            text: (span.textContent || '').slice(0, 40),
+            top,
+        });
+    });
+
+    markerPositions.value = positions;
+};
+
+const handleMarkerGutterClick = (markerId: string) => {
+    if (!editor.value) return;
+
+    const el = editorWithGutterRef.value?.querySelector(`[data-marker-id="${markerId}"]`) as HTMLElement | null;
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Flash highlight
+        el.style.transition = 'box-shadow 0.3s ease, background-color 0.3s ease';
+        el.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.5)';
+        el.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+        setTimeout(() => {
+            el.style.boxShadow = '';
+            el.style.backgroundColor = '';
+        }, 2000);
+    }
+};
 
 const settings = ref({ fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 });
 
@@ -150,6 +280,8 @@ const saveComment = async (commentText: string) => {
 
         showCommentModal.value = false;
         currentSelection.value = null;
+
+        emit('comment-created');
 
         if (!showComments.value) {
             toggleComments();
@@ -258,13 +390,13 @@ const checkForMarkChanges = (editor: Editor) => {
     const doc = editor.state.doc;
     const markChanges = new Map<string, string>();
 
-    const processNode = (node: any, pos: number) => {
-        const marks = node.marks.filter((mark: any) => mark.type.name === 'textMark');
+    const processNode = (node: Record<string, any>, pos: number) => {
+        const marks = node.marks.filter((mark: Record<string, any>) => mark.type.name === 'textMark');
 
         if (marks.length > 0) {
             const content = node.text;
 
-            marks.forEach((mark: any) => {
+            marks.forEach((mark: Record<string, any>) => {
                 const markId = mark.attrs.markId;
                 const originalContent = markContentMap.value.get(markId);
 
@@ -275,7 +407,7 @@ const checkForMarkChanges = (editor: Editor) => {
         }
     };
 
-    doc.descendants((node: any, pos: number) => {
+    doc.descendants((node: Record<string, any>, pos: number) => {
         if (node.isText) {
             processNode(node, pos);
         }
@@ -296,7 +428,38 @@ const checkForMarkChanges = (editor: Editor) => {
     }
 };
 
-const handleReferenceSelect = (item: any) => {
+const handleDatasetViewInsert = (config: { datasetId: number; datasetName: string; fields: string[]; filters: { field: string; operator: string; value: string }[] }) => {
+    editor.value
+        .chain()
+        .focus()
+        .insertDatasetView(config)
+        .run();
+};
+
+const handleConvertTableToDataset = () => {
+    if (!editor.value) return;
+    const parsed = parseTableFromEditor(editor.value);
+    if (!parsed || parsed.headers.length === 0) return;
+    parsedTableData.value = parsed;
+    showTableToDatasetModal.value = true;
+};
+
+const handleTableDatasetCreated = (info: { datasetId: number; datasetName: string; schema: Record<string, any>[]; replaceTable: boolean }) => {
+    if (info.replaceTable && parsedTableData.value?.tablePos && editor.value) {
+        const { from, to } = parsedTableData.value.tablePos;
+        editor.value.chain().focus()
+            .deleteRange({ from, to })
+            .insertDatasetView({
+                datasetId: info.datasetId,
+                datasetName: info.datasetName,
+                fields: info.schema.map((f: Record<string, any>) => f.key),
+                filters: [],
+            })
+            .run();
+    }
+};
+
+const handleReferenceSelect = (item: Record<string, any>) => {
     const { from, to } = editor.value.state.selection;
     const text = editor.value.state.doc.textBetween(from, to) || item.name || item.content;
 
@@ -310,6 +473,73 @@ const handleReferenceSelect = (item: any) => {
         })
         .run();
 };
+
+const handleCitationSelect = (entry: BibliographyEntry, label: string) => {
+    if (!editor.value) return;
+    // For numeric format, renumber all existing citations after insertion
+    editor.value
+        .chain()
+        .focus()
+        .insertCitation({
+            entryId: entry.id,
+            citeKey: entry.citeKey ?? String(entry.id),
+            label,
+        })
+        .run();
+
+    if (props.citationFormat === 'numeric') {
+        renumberCitations();
+    }
+};
+
+const renumberCitations = () => {
+    if (!editor.value) return;
+    const doc = editor.value.state.doc;
+    const order: number[] = [];
+    const seen = new Set<number>();
+    doc.descendants((node: Record<string, any>) => {
+        if (node.type.name === 'citationNode') {
+            const id = node.attrs['data-entry-id'];
+            if (id != null && !seen.has(id)) {
+                seen.add(id);
+                order.push(id);
+            }
+        }
+    });
+    // Dispatch a transaction to update all data-label attrs
+    const tr = editor.value.state.tr;
+    let changed = false;
+    doc.descendants((node: Record<string, any>, pos: number) => {
+        if (node.type.name === 'citationNode') {
+            const id = node.attrs['data-entry-id'];
+            const idx = order.indexOf(id) + 1;
+            const newLabel = `[${idx}]`;
+            if (node.attrs['data-label'] !== newLabel) {
+                tr.setNodeMarkup(pos, undefined, { ...node.attrs, 'data-label': newLabel });
+                changed = true;
+            }
+        }
+    });
+    if (changed) {
+        editor.value.view.dispatch(tr);
+    }
+};
+
+const citedEntryIds = computed<number[]>(() => {
+    if (!editor.value) return [];
+    const ids: number[] = [];
+    const seen = new Set<number>();
+    editor.value.state.doc.descendants((node: Record<string, any>) => {
+        if (node.type.name === 'citationNode') {
+            const id = node.attrs['data-entry-id'];
+            if (id != null && !seen.has(id)) {
+                seen.add(id);
+                ids.push(id);
+            }
+        }
+    });
+    return ids;
+});
 
 const applySettings = () => {
     cssVars.value = {
@@ -340,10 +570,19 @@ onMounted(async () => {
                 },
                 blockquote: {
                     HTMLAttributes: {
-                        class: 'border-l-4 border-gray-300 pl-4 my-2 text-gray-500',
+                        class: 'border-l-4 border-border pl-4 my-2 text-text-muted',
                     },
                 },
-                // Disable extensions that we're adding separately with custom configuration
+                codeBlock: {
+                    HTMLAttributes: {
+                        class: 'code-block',
+                    },
+                },
+                code: {
+                    HTMLAttributes: {
+                        class: 'inline-code',
+                    },
+                },
                 link: false,
                 underline: false,
             }),
@@ -356,20 +595,27 @@ onMounted(async () => {
             TableRow,
             TableHeader.configure({
                 HTMLAttributes: {
-                    class: 'bg-gray-100 font-semibold',
+                    class: 'bg-surface-hover font-semibold',
                 },
             }),
             TableCell.configure({
                 HTMLAttributes: {
-                    class: 'border border-gray-300 p-2',
+                    class: 'border border-border p-2',
                 },
             }),
             Underline,
+            TextStyle,
+            Color,
+            Highlight.configure({
+                multicolor: true,
+            }),
             TextAlign.configure({
                 types: ['heading', 'paragraph'],
             }),
             Link.configure({
                 openOnClick: false,
+                autolink: true,
+                linkOnPaste: true,
                 HTMLAttributes: {
                     class: 'text-blue-500 underline cursor-pointer',
                     target: '_blank',
@@ -396,8 +642,20 @@ onMounted(async () => {
                 },
                 onMarkClick: onMarkClick,
             }),
+            MarkerExtension.configure({
+                onMarkerClick: (markerId, markerType) => {
+                    emit('highlight-mark', markerId);
+                },
+            }),
+            MathExtension,
+            VideoExtension,
             ReferenceNode,
-            Image, // <-- Add Image extension here
+            CitationNode,
+            DatasetViewExtension,
+            Image.configure({
+                inline: false,
+                allowBase64: true,
+            }),
         ],
         content: props.content || '<p></p>',
         autofocus: true,
@@ -406,6 +664,7 @@ onMounted(async () => {
             const html = editor.getHTML();
             checkForMarkChanges(editor);
             emit('content-change', html);
+            nextTick(() => updateMarkerPositions());
         },
     });
 
@@ -414,11 +673,27 @@ onMounted(async () => {
     }
 
     await loadDocumentMarks();
+    if (props.projectId) {
+        loadByProject(props.projectId);
+    } else {
+        loadGlobal();
+    }
     loadAndApplySettings();
+
+    // Initial marker gutter update
+    nextTick(() => updateMarkerPositions());
+
+    // Update marker gutter on scroll (positions are relative to viewport so need recalc)
+    if (editorScrollRef.value) {
+        editorScrollRef.value.addEventListener('scroll', updateMarkerPositions);
+    }
 });
 
 onBeforeUnmount(() => {
     isMounted.value = false;
+    if (editorScrollRef.value) {
+        editorScrollRef.value.removeEventListener('scroll', updateMarkerPositions);
+    }
     if (editor.value) {
         editor.value.destroy();
     }
@@ -427,6 +702,7 @@ onBeforeUnmount(() => {
 watch(() => props.content, (newContent) => {
     if (editor.value && newContent !== editor.value.getHTML()) {
         editor.value.commands.setContent(newContent || '<p></p>');
+        nextTick(() => updateMarkerPositions());
     }
 }, { deep: true });
 
@@ -635,7 +911,65 @@ const scrollToPosition = (position: number) => {
     max-height: 100%;
     overflow-y: scroll;
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 #f1f5f9;
+    scrollbar-color: var(--color-border) var(--color-surface-hover);
+}
+
+.editor-with-gutter {
+    display: flex;
+    min-height: 100%;
+}
+
+.editor-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.marker-gutter {
+    width: 32px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.marker-gutter-icon {
+    position: absolute;
+    right: 0;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    user-select: none;
+    z-index: 5;
+}
+
+.marker-gutter-icon:hover {
+    transform: scale(1.2);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.marker-gutter-icon-idea {
+    background: rgba(59, 130, 246, 0.1);
+}
+.marker-gutter-icon-idea:hover {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+.marker-gutter-icon-important {
+    background: rgba(239, 68, 68, 0.1);
+}
+.marker-gutter-icon-important:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.marker-gutter-icon-review {
+    background: rgba(245, 158, 11, 0.1);
+}
+.marker-gutter-icon-review:hover {
+    background: rgba(245, 158, 11, 0.2);
 }
 
 .editor-content::-webkit-scrollbar {
@@ -643,12 +977,12 @@ const scrollToPosition = (position: number) => {
 }
 
 .editor-content::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--color-border);
     border-radius: 4px;
 }
 
 .editor-content::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: var(--color-surface-hover);
 }
 
 :deep(.search-highlight) {
@@ -693,7 +1027,7 @@ const scrollToPosition = (position: number) => {
 }
 
 :deep(.ProseMirror p.is-editor-empty:first-child::before) {
-    color: #adb5bd;
+    color: var(--color-text-muted);
     content: attr(data-placeholder);
     float: left;
     height: 0;
@@ -701,8 +1035,8 @@ const scrollToPosition = (position: number) => {
 }
 
 .menu-item {
-    background: white;
-    border: 1px solid #ddd;
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
     border-radius: 0.25rem;
     padding: 0.25rem 0.5rem;
     margin: 0 0.25rem;
@@ -710,11 +1044,11 @@ const scrollToPosition = (position: number) => {
 }
 
 .menu-item:hover {
-    background-color: #f8f9fa;
+    background-color: var(--color-surface-hover);
 }
 
 .menu-item.is-active {
-    background-color: #e9ecef;
+    background-color: var(--color-border);
     font-weight: bold;
 }
 
@@ -725,20 +1059,20 @@ const scrollToPosition = (position: number) => {
 }
 
 :deep(.editor-content th) {
-    background-color: #f1f5f9;
+    background-color: var(--color-surface-hover);
     font-weight: 600;
     text-align: left;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border);
     padding: 0.5rem;
 }
 
 :deep(.editor-content td) {
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border);
     padding: 0.5rem;
 }
 
 :deep(.editor-content tr:nth-child(even)) {
-    background-color: #f9fafb;
+    background-color: var(--color-surface-hover);
 }
 
 :deep(.editor-content ul) {
@@ -775,10 +1109,10 @@ const scrollToPosition = (position: number) => {
 }
 
 :deep(.editor-content blockquote) {
-    border-left: 4px solid #d1d5db;
+    border-left: 4px solid var(--color-border);
     padding-left: 1rem;
     margin: 0.5rem 0;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 :deep(.comment-mark) {
@@ -799,5 +1133,140 @@ const scrollToPosition = (position: number) => {
     border-radius: 0.15rem;
     padding: 0.05rem 0.15rem;
     cursor: pointer;
+}
+
+/* Inline code */
+:deep(.ProseMirror code),
+:deep(.inline-code) {
+    background-color: var(--color-surface-hover);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    font-size: 0.875em;
+    color: #EB5757;
+}
+
+/* Code block */
+:deep(.code-block),
+:deep(.ProseMirror pre) {
+    background-color: #1E1E2E;
+    color: #CDD6F4;
+    border-radius: 8px;
+    padding: 32px 20px 16px 20px;
+    margin: 12px 0;
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    font-size: 0.875em;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+    position: relative;
+}
+
+:deep(.ProseMirror pre)::before {
+    content: attr(data-language);
+    position: absolute;
+    top: 6px;
+    right: 12px;
+    font-size: 0.7em;
+    color: #7F849C;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: system-ui, sans-serif;
+    pointer-events: none;
+}
+
+:deep(.ProseMirror pre code) {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+}
+
+/* Marker highlights */
+:deep(.marker-highlight) {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+:deep(.marker-highlight:hover) {
+    filter: brightness(0.92);
+}
+
+:deep(.marker-idea) {
+    background: rgba(59, 130, 246, 0.12);
+    border-bottom: 2px solid #3B82F6;
+}
+
+:deep(.marker-important) {
+    background: rgba(239, 68, 68, 0.12);
+    border-bottom: 2px solid #EF4444;
+}
+
+:deep(.marker-review) {
+    background: rgba(245, 158, 11, 0.12);
+    border-bottom: 2px solid #F59E0B;
+}
+
+/* Math nodes */
+:deep(.math-node) {
+    display: inline-block;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+:deep(.math-node:hover) {
+    background-color: #EDE9FE !important;
+    border-color: #C4B5FD !important;
+}
+
+/* Video embeds */
+:deep(.video-embed) {
+    margin: 12px 0;
+    text-align: center;
+}
+
+:deep(.video-embed iframe) {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+:deep(.video-embed video) {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+/* Dataset View styling */
+:deep(.dataset-view-wrapper) {
+    margin: 12px 0;
+    user-select: none;
+}
+
+:deep(.dataset-view-wrapper .dataset-view-node) {
+    transition: box-shadow 0.15s ease;
+}
+
+:deep(.ProseMirror .dataset-view-wrapper.ProseMirror-selectednode .dataset-view-node) {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+/* Image styling */
+:deep(.ProseMirror img) {
+    max-width: 100%;
+    height: auto;
+    margin: calc(var(--paragraph-spacing) * 0.5em) 0;
+    border-radius: 6px;
+}
+
+:deep(.ProseMirror img.ProseMirror-selectednode) {
+    outline: 3px solid #3B82F6;
+    outline-offset: 2px;
+}
+
+/* Highlight mark backgrounds */
+:deep(mark) {
+    border-radius: 2px;
+    padding: 1px 2px;
 }
 </style>

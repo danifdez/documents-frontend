@@ -1,5 +1,5 @@
 <template>
-    <div v-show="show" class="absolute bg-white shadow-md rounded border border-gray-200 py-2 z-10 w-48"
+    <div v-show="show" class="absolute bg-surface-elevated shadow-md rounded border border-border py-2 z-10 w-48"
         :style="{ top: position.y + 'px', left: position.x + 'px' }">
         <Button @click="addColumn('before')">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -21,7 +21,7 @@
             </svg>
             Insert Column After
         </Button>
-        <div class="border-t border-gray-200 my-1"></div>
+        <div class="border-t border-border my-1"></div>
         <Button @click="addRow('before')">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -1,25 +1,30 @@
 <template>
-    <div class="toc-sidebar flex flex-col min-w-[250px] max-w-[300px] h-full">
-        <div class="flex items-center justify-start gap-2 p-4 pb-2 flex-shrink-0">
-            <h3 class="text-lg font-semibold text-gray-800">Table of Contents</h3>
-            <Button @click="extractHeadings" title="Refresh TOC">
-                ↻
-            </Button>
+    <div class="toc-sidebar flex flex-col h-full bg-surface-elevated rounded-xl border border-border">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-border-light flex-shrink-0">
+            <h3 class="text-sm font-semibold text-text-primary">Table of Contents</h3>
+            <button @click="extractHeadings" title="Refresh"
+                class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </button>
         </div>
-        <div class="flex-1 overflow-y-auto p-4 pt-2">
-            <div v-if="headings.length === 0" class="text-gray-500 text-sm italic">
+        <div class="flex-1 overflow-y-auto py-2">
+            <div v-if="headings.length === 0" class="text-text-muted text-sm px-4 py-6 text-center">
                 No headings found
             </div>
             <nav v-else>
-                <ul class="space-y-1">
+                <ul>
                     <li v-for="(heading, index) in headings" :key="index">
-                        <Button @click="scrollToHeading(heading)" :class-name="[
-                            'inline-flex items-start justify-start w-full text-left py-2 px-3 text-sm leading-normal',
+                        <button @click="scrollToHeading(heading)" :class="[
+                            'w-full text-left py-1.5 pr-3 transition-colors hover:bg-surface-hover cursor-pointer',
                             `toc-level-${heading.level}`
-                        ].join(' ')" :style="{ paddingLeft: `${(heading.level - 1) * 12 + 12}px` }"
+                        ]" :style="{ paddingLeft: `${(heading.level - 1) * 12 + 16}px` }"
                             :title="heading.text">
-                            <span class="block whitespace-normal break-words">{{ heading.text }}</span>
-                        </Button>
+                            <span class="block whitespace-normal break-words text-sm">{{ heading.text }}</span>
+                        </button>
                     </li>
                 </ul>
             </nav>
@@ -263,7 +268,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .toc-sidebar {
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 #f1f5f9;
+    scrollbar-color: var(--color-border) var(--color-surface-hover);
     background: transparent;
     border: 0;
 }
@@ -273,36 +278,30 @@ onBeforeUnmount(() => {
 }
 
 .toc-sidebar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--color-border);
     border-radius: 3px;
 }
 
 .toc-sidebar::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: var(--color-surface-hover);
 }
 
 .toc-level-1 {
     font-weight: 700;
-    /* bold */
-    color: #1f2937;
+    color: var(--color-text-primary);
     font-size: 1.1rem;
-    /* slightly larger */
 }
 
 .toc-level-2 {
     font-weight: 400;
-    /* not bold */
-    color: #374151;
+    color: var(--color-text-secondary);
     font-size: 1.1rem;
-    /* same size as h1 */
 }
 
 .toc-level-3 {
     font-weight: 400;
-    /* not bold */
-    color: #6b7280;
+    color: var(--color-text-muted);
     font-size: 0.9rem;
-    /* normal */
 }
 
 .toc-sidebar button:hover {
