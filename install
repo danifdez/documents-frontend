@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$SCRIPT_DIR"
+
+# ── Colors ──
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+BOLD='\033[1m'
+DIM='\033[2m'
+
+info()  { printf "${CYAN}[INFO]${NC}  %s\n" "$*"; }
+ok()    { printf "${GREEN}[OK]${NC}    %s\n" "$*"; }
+warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$*"; }
+fail()  { printf "${RED}[ERROR]${NC} %s\n" "$*" >&2; exit 1; }
+
+ask() {
+  local prompt="$1" default="$2"
+  printf "  ${BOLD}%s${NC} ${DIM}[%s]${NC}: " "$prompt" "$default"
+  read -r REPLY
+  REPLY="${REPLY:-$default}"
+}
+
+# ── Check Node.js ──
+command -v node >/dev/null 2>&1 || fail "Node.js is not installed. Version 20.19+ or 22.12+ is required."
+NODE_VERSION=$(node --version 2>&1)
+NODE_MAJOR=$(echo "$NODE_VERSION" | sed 's/^v//' | cut -d. -f1)
+if [ "$NODE_MAJOR" -lt 20 ]; then
+  fail "Node.js $NODE_VERSION is not supported. Version 20.19+ or 22.12+ is required (Vite 7 requirement). Use 'nvm use 22' to switch."
+fi
+info "Node $NODE_VERSION detected"
+
+# ── Configure .env ──
+if [ -f ".env" ]; then
+  ok ".env already exists (skipping)"
+else
+  echo ""
+  printf "${BOLD}${CYAN}── Frontend environment configuration ──${NC}\n"
+  printf "${DIM}  Press Enter to accept the default value shown in brackets.${NC}\n"
+  echo ""
+
+  ask "Backend API URL" "http://localhost:3000"; API_URL="$REPLY"
+
+  cat > ".env" <<EOF
+VITE_API_URL=$API_URL
+EOF
+  ok "Created .env"
+fi
+
+# ── Install dependencies ──
+info "Installing npm dependencies..."
+npm install
+ok "Dependencies installed"
+
+# ── Install rpmbuild if missing (needed by electron-forge maker-rpm) ──
+if ! command -v rpmbuild >/dev/null 2>&1; then
+  info "Installing rpmbuild (required for electron-forge RPM builds)..."
+  sudo apt-get update -qq && sudo apt-get install -y -qq rpm
+  ok "rpmbuild installed"
+else
+  ok "rpmbuild already available"
+fi
+
+# ── Summary ──
+echo ""
+printf "${GREEN}============================================${NC}\n"
+printf "${GREEN}  Frontend installation complete!${NC}\n"
+printf "${GREEN}============================================${NC}\n"
+echo ""
+echo "  Start dev server:  npm start"
+echo ""
