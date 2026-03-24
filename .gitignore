@@ -92,3 +92,4 @@ typings/
 # Electron-Forge
 out/
 test-results/
+playwright-report/

@@ -13,7 +13,8 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/.vite/**',
-      '**/coverage/**'
+      '**/coverage/**',
+      '**/e2e/**'
     ],
   },
   resolve: {

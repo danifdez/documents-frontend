@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test e2e/"
+    "test:e2e": "playwright test",
+    "test:e2e:skip-reset": "SKIP_RESET=1 playwright test"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.9.0",
