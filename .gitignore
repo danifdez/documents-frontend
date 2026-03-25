@@ -93,3 +93,4 @@ typings/
 out/
 test-results/
 playwright-report/
+e2e-failure.png
