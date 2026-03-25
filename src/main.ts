@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen, dialog, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, dialog, Menu, globalShortcut } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -287,10 +287,22 @@ app.whenReady().then(() => {
   // Register offline filesystem handlers
   registerOfflineHandlers();
 
+  // Remove default application menu
+  Menu.setApplicationMenu(null);
+
   createWindow();
+
+  // Toggle DevTools with F12
+  globalShortcut.register('F12', () => {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    if (focusedWindow) {
+      focusedWindow.webContents.toggleDevTools();
+    }
+  });
 });
 
 app.on('window-all-closed', () => {
+  globalShortcut.unregisterAll();
   if (process.platform !== 'darwin') {
     app.quit();
   }
