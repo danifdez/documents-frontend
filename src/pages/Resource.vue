@@ -51,7 +51,7 @@
                 </div>
             </div>
 
-            <!-- Split view content for pending confirmation -->
+            <!-- Content for pending confirmation -->
             <div
                 class="border border-border rounded-lg px-5 py-4 flex-1 min-h-0 bg-surface-elevated mt-4 shadow overflow-hidden">
                 <div class="h-full flex flex-col">
@@ -68,7 +68,22 @@
                             {{ isSaving ? 'Saving...' : savedSuccessfully ? '✓ Saved' : 'Save Changes' }}
                         </Button>
                     </div>
-                    <div class="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
+                    <!-- Audio/Video: player on top, content below -->
+                    <div v-if="isAudioFile || isVideoFile" class="flex-1 flex flex-col overflow-hidden">
+                        <div class="flex-shrink-0 mb-4">
+                            <audio v-if="isAudioFile" class="w-full"
+                                controls :src="`${apiBaseUrl}/resources/${resourceId}/view`" />
+                            <video v-else class="w-full max-h-[300px]"
+                                controls :src="`${apiBaseUrl}/resources/${resourceId}/view`" />
+                        </div>
+                        <div class="flex-1 overflow-hidden">
+                            <EditorContent ref="editorContentRef" :content="resource.content" :is-saving="isSaving"
+                                :saved-successfully="savedSuccessfully" context="resource"
+                                @content-change="handleEditContentChange" />
+                        </div>
+                    </div>
+                    <!-- Other types: split view with editor + original -->
+                    <div v-else class="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
                         <div class="flex flex-col h-full overflow-hidden">
                             <h3 class="text-lg font-semibold mb-2 text-text-primary">Extracted Content (Editable)</h3>
                             <div class="flex-1 overflow-hidden">
@@ -87,12 +102,6 @@
                                     :src="`${apiBaseUrl}/resources/${resourceId}/view#toolbar=0&navpanes=0&scrollbar=0&sidebar=0`"
                                     type="application/pdf" :title="resource.originalName || 'PDF Preview'">
                                 </iframe>
-                                <video v-else-if="isVideoFile" class="w-full"
-                                    controls :src="`${apiBaseUrl}/resources/${resourceId}/view`">
-                                </video>
-                                <audio v-else-if="isAudioFile" class="w-full mt-4"
-                                    controls :src="`${apiBaseUrl}/resources/${resourceId}/view`">
-                                </audio>
                                 <div v-else class="text-text-muted">Preview not available for this file type</div>
                             </div>
                         </div>
@@ -137,6 +146,7 @@
                         @cancelEdit="cancelEdit" @changeDisplayMode="handleDisplayMode"
                         :hasExtractedContent="hasExtractedContent" :hasTranslatedContent="hasTranslatedContent"
                         :hasWorkspace="!!workspaceDocument" :hide-workspace="isWorkspaceShownInSplit"
+                        :hide-original="isAudioFile"
                         :is-edit-mode="isEditMode" @ask="showChat = true" :extractedContent="resource.content"
                         :translatedContent="resource.translatedContent" :sourceLanguage="resource.language || ''"
                         :defaultLanguage="defaultLanguage" @summarize="handleSummarizeJob" @translate="handleTranslate"
@@ -163,7 +173,7 @@
                 </div>
 
                 <div class="bg-surface-elevated mt-4 flex-1 min-h-0 flex flex-col overflow-hidden"
-                    :class="(displayMode === 'raw' || displayMode === 'workspace') ? 'p-0' : 'px-5 py-4'">
+                    :class="(displayMode === 'raw' || displayMode === 'workspace' || isAudioFile) ? 'p-0' : 'px-5 py-4'">
                     <div v-if="isEditMode && editType !== 'overview'" class="w-full flex-1 overflow-y-auto">
                         <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
                             :saved-successfully="savedSuccessfully" context="resource"
@@ -310,8 +320,32 @@
                                 context="workspace" @content-change="handleWorkspaceContentChange" />
                         </div>
                     </div>
-                    <div v-else class="flex-1 min-h-0" :class="displayMode === 'raw' ? 'h-full' : 'overflow-y-auto'">
-                        <HtmlContent v-if="!isImageFile && displayMode === 'extracted' && resource.id"
+                    <div v-else class="flex-1 min-h-0" :class="displayMode === 'raw' && !isAudioFile ? 'h-full' : 'overflow-y-auto'">
+                        <!-- Audio: player on top + content below -->
+                        <div v-if="isAudioFile" class="flex flex-col h-full">
+                            <div class="flex-shrink-0 px-5 pt-4">
+                                <audio class="w-full" controls
+                                    :src="`${apiBaseUrl}/resources/${resourceId}/view`" />
+                            </div>
+                            <div class="flex-1 overflow-y-auto px-5 py-4">
+                                <HtmlContent v-if="displayMode === 'translated'" ref="translatedContent"
+                                    :content="resource.translatedContent" :resource-id="String(resource.id)"
+                                    :display-mode="displayMode"
+                                    @send-selection-to-workspace="handleToolbarSendSelection"
+                                    @send-selection-to-doc="handleSendToDoc" />
+                                <ResourceOverview v-else-if="displayMode === 'overview'"
+                                    :summary="resource.summary" :keyPoints="resource.keyPoints"
+                                    :keywords="resource.keywords" />
+                                <HtmlContent v-else-if="resource.id" ref="extractedContent"
+                                    :content="resource.content" :resource-id="String(resource.id)"
+                                    :display-mode="'extracted'" :has-workspace="!!workspaceDocument"
+                                    @send-selection-to-workspace="handleToolbarSendSelection"
+                                    @send-selection-to-doc="handleSendToDoc"
+                                    @summarize-selection="handleSummarizeSelection" />
+                            </div>
+                        </div>
+                        <!-- Other types: existing behavior -->
+                        <HtmlContent v-else-if="!isImageFile && displayMode === 'extracted' && resource.id"
                             ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)"
                             :display-mode="displayMode" :has-workspace="!!workspaceDocument"
                             @send-selection-to-workspace="handleToolbarSendSelection"
@@ -330,7 +364,7 @@
                             :baseUrl="apiBaseUrl" :isHtml="isHtmlFile && displayMode === 'raw'"
                             :isPdf="isPdfFile && displayMode === 'raw'" :isImage="isImageFile"
                             :isVideo="isVideoFile && displayMode === 'raw'"
-                            :isAudio="isAudioFile && displayMode === 'raw'" />
+                            :isAudio="false" />
                     </div>
                 </div>
             </div>
@@ -808,7 +842,7 @@ const loadResourceDetails = async () => {
         await checkPendingEntities();
 
         if (!data.content || data.content.trim().length === 0 ||
-            (data.mimeType && (data.mimeType.startsWith('video/') || data.mimeType.startsWith('audio/')))) {
+            (data.mimeType && data.mimeType.startsWith('video/'))) {
             displayMode.value = 'raw';
         }
 

@@ -17,19 +17,25 @@
       </div>
     </div>
 
-    <!-- Toolbar + Canvas -->
-    <div class="flex-1 min-h-0 flex flex-col">
-      <CanvasToolbar :is-saving="isSaving" :saved-successfully="savedSuccessfully"
-        :pending-tool="pendingTool?.type || null"
-        @select-tool="onSelectTool" @clear-tool="pendingTool = null"
-        @pick-doc="openDocPicker" @pick-resource="openResourcePicker"
-        @pick-image="openImageModal" @export="handleExport" />
-      <div class="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-        <CanvasEditor ref="canvasEditorRef" :canvas-data="canvasData.canvasData"
-          :pending-tool="pendingTool"
-          @canvas-change="handleCanvasChange" @edit-image="handleEditImage"
-          @node-placed="pendingTool = null" />
+    <!-- Toolbar + Canvas + AI Panel -->
+    <div class="flex-1 min-h-0 flex">
+      <div class="flex-1 min-h-0 flex flex-col">
+        <CanvasToolbar :is-saving="isSaving" :saved-successfully="savedSuccessfully"
+          :pending-tool="pendingTool?.type || null" :ai-panel-open="showAiPanel"
+          @select-tool="onSelectTool" @clear-tool="pendingTool = null"
+          @pick-doc="openDocPicker" @pick-resource="openResourcePicker"
+          @pick-image="openImageModal" @pick-infographic="openInfographicModal"
+          @export="handleExport" @toggle-ai-panel="showAiPanel = !showAiPanel" />
+        <div class="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
+          <CanvasEditor ref="canvasEditorRef" :canvas-data="canvasData.canvasData"
+            :pending-tool="pendingTool"
+            @canvas-change="handleCanvasChange" @edit-image="handleEditImage"
+            @node-placed="pendingTool = null" @node-selected="handleNodeSelected" />
+        </div>
       </div>
+      <AiImagePanel v-if="showAiPanel" :canvas-id="canvasData.id" :project-id="projectStore.currentProject?.id" :selected-image-node="selectedImageNodeForAi"
+        @close="showAiPanel = false" @add-to-canvas="handleAddGeneratedImage"
+        @replace-image="handleReplaceImage" />
     </div>
 
     <!-- Confirm Remove Modal -->
@@ -220,6 +226,207 @@
         <Button size="small" @click="confirmImage" :disabled="!imageUrl.trim()">Add</Button>
       </template>
     </Modal>
+    <!-- Infographic Config Modal -->
+    <Modal v-model="showInfographicModal" :title="infographicModalTitle" :wide="true">
+      <div class="flex flex-col gap-4">
+
+        <!-- StatCard config -->
+        <template v-if="infographicType === 'statCard'">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+              <select v-model="infographicConfig.statMetric"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
+                <option value="resourceCount">Resource Count</option>
+                <option value="docCount">Document Count</option>
+                <option value="entityCount">Entity Count</option>
+                <option value="bibliographyCount">Bibliography Count</option>
+                <option value="noteCount">Note Count</option>
+                <option value="datasetCount">Dataset Count</option>
+                <option value="custom">Custom Value</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Label</label>
+              <input v-model="infographicConfig.label" type="text" placeholder="e.g. Resources"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+            </div>
+          </div>
+          <div v-if="infographicConfig.statMetric === 'custom'" class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Value</label>
+              <input v-model="infographicConfig.customValue" type="text" placeholder="42"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Icon (emoji)</label>
+              <input v-model="infographicConfig.icon" type="text" placeholder="📄"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+            </div>
+          </div>
+        </template>
+
+        <!-- Chart config -->
+        <template v-if="infographicType === 'chart'">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+              <select v-model="infographicConfig.chartSource"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
+                <option value="bibliographyByYear">Bibliography by Year</option>
+                <option value="bibliographyByType">Bibliography by Type</option>
+                <option value="topKeywords">Top Keywords</option>
+                <option value="topEntities">Top Entities</option>
+                <option value="topAuthors">Top Authors</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Chart Type</label>
+              <select v-model="infographicConfig.chartType"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
+                <option value="bar">Bar</option>
+                <option value="line">Line</option>
+                <option value="pie">Pie</option>
+                <option value="doughnut">Doughnut</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input v-model="infographicConfig.title" type="text" placeholder="Chart title"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+          </div>
+        </template>
+
+        <!-- List config -->
+        <template v-if="infographicType === 'list'">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+              <select v-model="infographicConfig.listSource"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
+                <option value="topKeywords">Top Keywords</option>
+                <option value="topEntities">Top Entities</option>
+                <option value="topAuthors">Top Authors</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Max Items</label>
+              <input v-model.number="infographicConfig.maxItems" type="number" min="3" max="20"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input v-model="infographicConfig.showBars" type="checkbox" id="showBars" class="accent-accent" />
+            <label for="showBars" class="text-xs text-text-secondary">Show progress bars</label>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input v-model="infographicConfig.title" type="text" placeholder="List title"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+          </div>
+        </template>
+
+        <!-- WordCloud config -->
+        <template v-if="infographicType === 'wordCloud'">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+              <select v-model="infographicConfig.wordSource"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
+                <option value="topKeywords">Keywords</option>
+                <option value="topEntities">Entities</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-text-secondary mb-1 block">Color Scheme</label>
+              <select v-model="infographicConfig.colorScheme"
+                class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
+                <option value="default">Default</option>
+                <option value="warm">Warm</option>
+                <option value="cool">Cool</option>
+                <option value="mono">Mono</option>
+              </select>
+            </div>
+          </div>
+        </template>
+
+        <!-- Timeline config -->
+        <template v-if="infographicType === 'timeline'">
+          <div>
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+            <select v-model="infographicConfig.timelineSource"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
+              <option value="timelineEvents">Project Timelines</option>
+              <option value="bibliographyByYear">Bibliography by Year</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input v-model="infographicConfig.title" type="text" placeholder="Timeline title"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+          </div>
+        </template>
+
+        <!-- EntityGraph config -->
+        <template v-if="infographicType === 'entityGraph'">
+          <div>
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input v-model="infographicConfig.title" type="text" placeholder="Entity Graph"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+          </div>
+          <p class="text-xs text-text-muted">
+            Shows a co-occurrence graph of entities found across your project's resources.
+          </p>
+        </template>
+
+        <!-- QuoteCard config -->
+        <template v-if="infographicType === 'quoteCard'">
+          <div>
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Source</label>
+            <select v-model="infographicConfig.quoteSource"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
+              <option value="keyPoints">Key Point from Resources</option>
+              <option value="custom">Custom Text</option>
+            </select>
+          </div>
+          <div v-if="infographicConfig.quoteSource === 'keyPoints' && projectStats?.keyPoints?.length">
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Select Key Point</label>
+            <div class="max-h-40 overflow-y-auto space-y-1">
+              <button v-for="(kp, i) in projectStats.keyPoints" :key="i"
+                @click="infographicConfig.selectedKeyPoint = i"
+                class="w-full text-left px-2.5 py-2 rounded-md text-xs transition-colors cursor-pointer"
+                :class="infographicConfig.selectedKeyPoint === i ? 'bg-accent-subtle text-accent' : 'hover:bg-surface-hover text-text-primary'">
+                <span class="line-clamp-2">{{ kp.text }}</span>
+                <span class="text-[10px] text-text-muted block mt-0.5">— {{ kp.source }}</span>
+              </button>
+            </div>
+          </div>
+          <div v-if="infographicConfig.quoteSource === 'custom'">
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Quote Text</label>
+            <textarea v-model="infographicConfig.customText" rows="3"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent resize-none"
+              placeholder="Enter your quote..." />
+            <label class="text-xs font-medium text-text-secondary mb-1 block mt-2">Attribution</label>
+            <input v-model="infographicConfig.customSource" type="text" placeholder="Source name"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+          </div>
+        </template>
+
+        <!-- Loading / stats status -->
+        <div v-if="loadingStats" class="flex items-center gap-2 text-xs text-text-muted">
+          <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          Loading project data...
+        </div>
+      </div>
+      <template #footer>
+        <Button variant="secondary" size="small" @click="showInfographicModal = false">Cancel</Button>
+        <Button size="small" @click="confirmInfographic" :disabled="loadingStats">Add</Button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -235,11 +442,14 @@ import { useResource } from '../services/resources/useResource';
 import { useProjectStore } from '../store/projectStore';
 import CanvasEditor from '../components/canvas/CanvasEditor.vue';
 import CanvasToolbar from '../components/canvas/CanvasToolbar.vue';
+import AiImagePanel from '../components/canvas/AiImagePanel.vue';
+import type { GeneratedImage } from '../services/canvas/useImageGeneration';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import Modal from '../components/ui/Modal/Modal.vue';
 import type { CanvasData } from '../types/canvas';
+import apiClient from '../services/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -263,6 +473,205 @@ const saveTimeout = ref(null);
 const showRemoveModal = ref(false);
 const pendingTool = ref<{ type: string; data: Record<string, any> } | null>(null);
 
+// Infographic state
+const showInfographicModal = ref(false);
+const infographicType = ref('');
+const loadingStats = ref(false);
+const projectStats = ref<Record<string, any> | null>(null);
+const infographicConfig = ref<Record<string, any>>({});
+
+const infographicModalTitle = computed(() => {
+  const titles: Record<string, string> = {
+    statCard: 'Add Stat Card',
+    chart: 'Add Chart',
+    list: 'Add List',
+    wordCloud: 'Add Word Cloud',
+    timeline: 'Add Timeline',
+    entityGraph: 'Add Entity Graph',
+    quoteCard: 'Add Quote Card',
+  };
+  return titles[infographicType.value] || 'Add Infographic';
+});
+
+const fetchProjectStats = async () => {
+  const projectId = projectStore.currentProject?.id;
+  if (!projectId || projectStats.value) return;
+  loadingStats.value = true;
+  try {
+    const response = await fetch(`${apiBaseUrl}/projects/${projectId}/stats`);
+    projectStats.value = await response.json();
+  } catch (e) {
+    console.error('Failed to load project stats:', e);
+    projectStats.value = {};
+  } finally {
+    loadingStats.value = false;
+  }
+};
+
+const openInfographicModal = async (type: string) => {
+  infographicType.value = type;
+  infographicConfig.value = {
+    statMetric: 'resourceCount',
+    label: '',
+    customValue: '',
+    icon: '',
+    chartSource: 'bibliographyByYear',
+    chartType: 'bar',
+    title: '',
+    listSource: 'topKeywords',
+    maxItems: 10,
+    showBars: true,
+    wordSource: 'topKeywords',
+    colorScheme: 'default',
+    timelineSource: 'timelineEvents',
+    quoteSource: 'keyPoints',
+    selectedKeyPoint: 0,
+    customText: '',
+    customSource: '',
+  };
+  showInfographicModal.value = true;
+  await fetchProjectStats();
+};
+
+const buildNodeData = (type: string): Record<string, any> => {
+  const stats = projectStats.value || {};
+  const cfg = infographicConfig.value;
+
+  switch (type) {
+    case 'statCard': {
+      if (cfg.statMetric === 'custom') {
+        return { value: cfg.customValue, label: cfg.label || 'Value', icon: cfg.icon };
+      }
+      const metricLabels: Record<string, string> = {
+        resourceCount: 'Resources', docCount: 'Documents', entityCount: 'Entities',
+        bibliographyCount: 'Bibliography', noteCount: 'Notes', datasetCount: 'Datasets',
+      };
+      return {
+        value: Number(stats[cfg.statMetric]) || 0,
+        label: cfg.label || metricLabels[cfg.statMetric] || cfg.statMetric,
+      };
+    }
+
+    case 'chart': {
+      const sourceData = stats[cfg.chartSource] || [];
+      let labels: string[] = [];
+      let values: number[] = [];
+
+      if (cfg.chartSource === 'bibliographyByYear') {
+        labels = sourceData.map((d: any) => String(d.year));
+        values = sourceData.map((d: any) => d.count);
+      } else if (cfg.chartSource === 'bibliographyByType') {
+        labels = sourceData.map((d: any) => d.type);
+        values = sourceData.map((d: any) => d.count);
+      } else if (cfg.chartSource === 'topKeywords') {
+        const items = sourceData.slice(0, 15);
+        labels = items.map((d: any) => d.word);
+        values = items.map((d: any) => d.count);
+      } else if (cfg.chartSource === 'topEntities') {
+        const items = sourceData.slice(0, 15);
+        labels = items.map((d: any) => d.name);
+        values = items.map((d: any) => d.count);
+      } else if (cfg.chartSource === 'topAuthors') {
+        const items = sourceData.slice(0, 15);
+        labels = items.map((d: any) => d.name);
+        values = items.map((d: any) => d.count);
+      }
+
+      return {
+        chartType: cfg.chartType,
+        title: cfg.title,
+        chartData: {
+          labels,
+          datasets: [{ label: cfg.title || cfg.chartSource, data: values }],
+        },
+      };
+    }
+
+    case 'list': {
+      const sourceData = stats[cfg.listSource] || [];
+      const items = sourceData.slice(0, cfg.maxItems).map((d: any) => ({
+        label: d.word || d.name,
+        value: d.count,
+      }));
+      return {
+        title: cfg.title || cfg.listSource.replace('top', 'Top '),
+        items,
+        showBars: cfg.showBars,
+        maxItems: cfg.maxItems,
+      };
+    }
+
+    case 'wordCloud': {
+      const sourceData = stats[cfg.wordSource] || [];
+      const words = sourceData.map((d: any) => ({
+        text: d.word || d.name,
+        weight: d.count || 1,
+      }));
+      return {
+        words,
+        colorScheme: cfg.colorScheme,
+        title: cfg.title,
+      };
+    }
+
+    case 'timeline': {
+      if (cfg.timelineSource === 'timelineEvents') {
+        return {
+          title: cfg.title || 'Timeline',
+          events: (stats.timelineEvents || []).map((e: any) => ({
+            date: e.date,
+            label: e.label,
+            endDate: e.endDate,
+          })),
+        };
+      } else {
+        // bibliographyByYear as timeline events
+        return {
+          title: cfg.title || 'Bibliography Timeline',
+          events: (stats.bibliographyByYear || []).map((d: any) => ({
+            date: `${d.year}-01-01`,
+            label: `${d.count} publication${d.count !== 1 ? 's' : ''}`,
+          })),
+        };
+      }
+    }
+
+    case 'entityGraph': {
+      const topEnts = (stats.topEntities || []).slice(0, 20);
+      const cooc = stats.entityCooccurrence || [];
+      const entNames = new Set(topEnts.map((e: any) => e.name));
+      const filteredLinks = cooc.filter((l: any) => entNames.has(l.source) && entNames.has(l.target));
+      return {
+        title: cfg.title || 'Entity Network',
+        entities: topEnts.map((e: any) => ({ id: e.name, name: e.name, type: e.type })),
+        links: filteredLinks,
+      };
+    }
+
+    case 'quoteCard': {
+      if (cfg.quoteSource === 'custom') {
+        return { text: cfg.customText, source: cfg.customSource };
+      }
+      const kp = stats.keyPoints?.[cfg.selectedKeyPoint];
+      return {
+        text: kp?.text || 'No key points available',
+        source: kp?.source || '',
+      };
+    }
+
+    default:
+      return {};
+  }
+};
+
+const confirmInfographic = () => {
+  const data = buildNodeData(infographicType.value);
+  if (canvasEditorRef.value) {
+    canvasEditorRef.value.addNode(infographicType.value, data);
+  }
+  showInfographicModal.value = false;
+};
+
 // Picker state
 const showDocPicker = ref(false);
 const showResourcePicker = ref(false);
@@ -272,6 +681,10 @@ const imagePreviewError = ref(false);
 const imageTab = ref<'url' | 'file' | 'project'>('url');
 const imageResources = ref<Record<string, any>[]>([]);
 const editingImageNodeId = ref<string | null>(null);
+
+// AI Image Panel
+const showAiPanel = ref(false);
+const selectedImageNodeForAi = ref<{ id: string; data: Record<string, any> } | null>(null);
 const projectDocs = ref<Record<string, any>[]>([]);
 const projectResources = ref<Record<string, any>[]>([]);
 const pickerSelectedItem = ref<{ id: number; name: string; htmlContent: string; type: 'doc' | 'resource' } | null>(null);
@@ -606,6 +1019,25 @@ const handleFileSelect = (e: Event) => {
 
 const selectImageResource = (res: Record<string, any>) => {
   imageUrl.value = getResourceViewUrl(res.id);
+};
+
+// AI Image Panel handlers
+const handleNodeSelected = (node: { id: string; type: string; data: Record<string, any> } | null) => {
+  if (node && node.type === 'image') {
+    selectedImageNodeForAi.value = { id: node.id, data: node.data };
+  } else {
+    selectedImageNodeForAi.value = null;
+  }
+};
+
+const handleAddGeneratedImage = (image: GeneratedImage) => {
+  apiClient.post(`/resources/${image.resourceId}/promote`).catch(() => {});
+  handleAddNode('image', { src: image.url, alt: image.prompt });
+};
+
+const handleReplaceImage = (nodeId: string, image: GeneratedImage) => {
+  apiClient.post(`/resources/${image.resourceId}/promote`).catch(() => {});
+  canvasEditorRef.value?.updateNodeData(nodeId, { src: image.url, alt: image.prompt });
 };
 
 // Resource picker

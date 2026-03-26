@@ -86,7 +86,7 @@
                     :active="actualDisplayMode === 'workspace'" @click="changeDisplayMode('workspace')" type="button">
                     Workspace
                 </Button>
-                <Button size="small" variant="secondary" :active="actualDisplayMode === 'raw'"
+                <Button v-if="!hideOriginal" size="small" variant="secondary" :active="actualDisplayMode === 'raw'"
                     @click="changeDisplayMode('raw')">
                     Original
                 </Button>
@@ -126,6 +126,7 @@ const props = defineProps({
     hasKeywords: { type: Boolean, default: false },
     hasWorkspace: { type: Boolean, default: false },
     hideWorkspace: { type: Boolean, default: false },
+    hideOriginal: { type: Boolean, default: false },
     hasEntities: { type: Boolean, default: false },
     sourceLanguage: { type: String, default: '' },
     defaultLanguage: { type: String, default: 'en' },

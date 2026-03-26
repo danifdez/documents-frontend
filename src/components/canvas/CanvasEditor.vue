@@ -5,6 +5,7 @@
       fit-view-on-init class="canvas-flow" @nodes-change="onNodesChange"
       @edges-change="onEdgesChange" @connect="onConnect" @viewport-change="onViewportChange"
       @node-double-click="onNodeDoubleClick"
+      @node-click="onNodeClick"
       @pane-click="onPaneClick"
       :class="{ 'cursor-crosshair': !!pendingTool }">
       <Background :gap="15" :size="1" />
@@ -100,8 +101,16 @@ import ShapeNode from './nodes/ShapeNode.vue';
 import ImageNode from './nodes/ImageNode.vue';
 import DocRefNode from './nodes/DocRefNode.vue';
 import ResourceRefNode from './nodes/ResourceRefNode.vue';
+import StatCardNode from './nodes/StatCardNode.vue';
+import ChartNode from './nodes/ChartNode.vue';
+import ListNode from './nodes/ListNode.vue';
+import WordCloudNode from './nodes/WordCloudNode.vue';
+import TimelineNode from './nodes/TimelineNode.vue';
+import EntityGraphNode from './nodes/EntityGraphNode.vue';
+import QuoteCardNode from './nodes/QuoteCardNode.vue';
 
 import type { CanvasData } from '../../types/canvas';
+import apiClient from '../../services/api';
 
 const props = defineProps<{
   canvasData: CanvasData | null;
@@ -112,6 +121,7 @@ const emit = defineEmits<{
   'canvas-change': [data: CanvasData];
   'edit-image': [nodeId: string, currentSrc: string];
   'node-placed': [];
+  'node-selected': [node: { id: string; type: string; data: Record<string, any> } | null];
 }>();
 
 const nodeTypes = {
@@ -121,6 +131,13 @@ const nodeTypes = {
   image: markRaw(ImageNode),
   docRef: markRaw(DocRefNode),
   resourceRef: markRaw(ResourceRefNode),
+  statCard: markRaw(StatCardNode),
+  chart: markRaw(ChartNode),
+  list: markRaw(ListNode),
+  wordCloud: markRaw(WordCloudNode),
+  timeline: markRaw(TimelineNode),
+  entityGraph: markRaw(EntityGraphNode),
+  quoteCard: markRaw(QuoteCardNode),
 };
 
 const nodes = ref<Node[]>([]);
@@ -130,9 +147,20 @@ let skipDataWatch = false;
 
 const { getSelectedNodes, getSelectedEdges, removeNodes, removeEdges, findNode } = useVueFlow();
 
+const cleanupImageResource = (node: Node) => {
+  if (node.type !== 'image') return;
+  const src = node.data?.src as string;
+  if (!src) return;
+  const match = src.match(/\/resources\/(\d+)\/view/);
+  if (match) {
+    apiClient.delete(`/resources/${match[1]}`).catch(() => {});
+  }
+};
+
 const deleteNode = (nodeId: string) => {
   const node = findNode(nodeId);
   if (node) {
+    cleanupImageResource(node);
     removeNodes([node]);
     emitChange();
   }
@@ -163,7 +191,10 @@ const onKeyDown = (e: KeyboardEvent) => {
     const selectedEdges = getSelectedEdges.value;
     if (selectedNodes.length > 0 || selectedEdges.length > 0) {
       e.preventDefault();
-      if (selectedNodes.length > 0) removeNodes(selectedNodes);
+      if (selectedNodes.length > 0) {
+        selectedNodes.forEach(cleanupImageResource);
+        removeNodes(selectedNodes);
+      }
       if (selectedEdges.length > 0) removeEdges(selectedEdges);
       emitChange();
     }
@@ -266,6 +297,10 @@ const onConnect = (connection: Connection) => {
   };
   edges.value = [...edges.value, newEdge];
   emitChange();
+};
+
+const onNodeClick = ({ node }: { node: Node }) => {
+  emit('node-selected', { id: node.id, type: node.type as string, data: node.data });
 };
 
 const onNodeDoubleClick = ({ node }: { node: Node }) => {
@@ -378,6 +413,13 @@ const defaultSizes: Record<string, { width: number; height: number }> = {
   image: { width: 160, height: 120 },
   docRef: { width: 160, height: 36 },
   resourceRef: { width: 160, height: 36 },
+  statCard: { width: 160, height: 100 },
+  chart: { width: 300, height: 220 },
+  list: { width: 200, height: 200 },
+  wordCloud: { width: 260, height: 180 },
+  timeline: { width: 240, height: 200 },
+  entityGraph: { width: 320, height: 260 },
+  quoteCard: { width: 220, height: 120 },
 };
 
 const addNodeAt = (type: string, data: Record<string, any>, x: number, y: number) => {
@@ -413,6 +455,7 @@ const addNode = (type: string, data: Record<string, any> = {}, style?: Record<st
 const { screenToFlowCoordinate } = useVueFlow();
 
 const onPaneClick = (event: MouseEvent) => {
+  emit('node-selected', null);
   if (!props.pendingTool) return;
   const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY });
   addNodeAt(props.pendingTool.type, { ...props.pendingTool.data }, position.x, position.y);
@@ -426,6 +469,13 @@ const miniMapNodeColor = (node: Node) => {
     case 'image': return '#34d399';
     case 'docRef': return '#6366f1';
     case 'resourceRef': return '#10b981';
+    case 'statCard': return '#0ea5e9';
+    case 'chart': return '#f59e0b';
+    case 'list': return '#8b5cf6';
+    case 'wordCloud': return '#ec4899';
+    case 'timeline': return '#14b8a6';
+    case 'entityGraph': return '#f97316';
+    case 'quoteCard': return '#eab308';
     default: return '#94a3b8';
   }
 };

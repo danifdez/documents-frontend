@@ -62,8 +62,8 @@
         <div class="h-4 w-px bg-border mx-0.5"></div>
       </template>
 
-      <!-- Color picker (text, sticky, shape) -->
-      <template v-if="nodeType === 'text' || nodeType === 'sticky' || nodeType === 'shape'">
+      <!-- Color picker (text, sticky, shape, statCard, quoteCard) -->
+      <template v-if="nodeType === 'text' || nodeType === 'sticky' || nodeType === 'shape' || nodeType === 'statCard' || nodeType === 'quoteCard'">
         <div class="relative">
           <button ref="colorBtnRef" @click="toggleColors" title="Color" :class="btnClass">
             <div class="w-3.5 h-3.5 rounded border border-border"
@@ -184,12 +184,17 @@ const stickyColors = ['#FEF08A', '#BBF7D0', '#BFDBFE', '#FBCFE8', '#FED7AA', '#E
 const shapeColors = ['#E0E7FF', '#DBEAFE', '#FEF3C7', '#DCFCE7', '#FCE7F3', '#F3E8FF', '#FEE2E2', '#E0F2FE'];
 const textColors = ['#FFFFFF', '#F1F5F9', '#DBEAFE', '#FEF3C7', '#DCFCE7', '#FCE7F3', '#F3E8FF', '#FEE2E2'];
 
+const infographicColors = ['#F0F9FF', '#EFF6FF', '#F0FDF4', '#FEFCE8', '#FFF7ED', '#FDF2F8', '#FAF5FF', '#F0FDFA'];
+
 const colors = props.nodeType === 'sticky' ? stickyColors
   : props.nodeType === 'shape' ? shapeColors
+  : (props.nodeType === 'statCard' || props.nodeType === 'quoteCard') ? infographicColors
   : textColors;
 
 const defaultColor = props.nodeType === 'sticky' ? '#FEF08A'
   : props.nodeType === 'shape' ? '#E0E7FF'
+  : props.nodeType === 'statCard' ? '#F0F9FF'
+  : props.nodeType === 'quoteCard' ? '#FEFCE8'
   : '#FFFFFF';
 
 const selectColor = (color: string) => {

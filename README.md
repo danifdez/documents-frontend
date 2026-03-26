@@ -12,7 +12,7 @@ Under the hood, the app talks to a [NestJS backend](../backend/README.md) (docum
 
 ### Document & Resource Management
 
-- Import documents from disk (PDF, Word, TXT, HTML, images) or extract directly from web pages using the built-in browser
+- Import documents from disk (PDF, Word, TXT, HTML, audio, video, images) or extract directly from web pages using the built-in browser
 - View, annotate, and organize documents across multiple projects
 - Add comments and marks to specific parts of a document
 - Full-text and semantic search across all your content
@@ -20,8 +20,10 @@ Under the hood, the app talks to a [NestJS backend](../backend/README.md) (docum
 ### AI Processing Jobs
 
 - **Extraction** — extract structured entities, topics, and references from a document
+- **Transcription** — automatically transcribe speech from audio and video files using Whisper AI
 - **Summarization** — generate concise summaries of long documents
 - **Translation** — translate document content to other languages
+- **Image generation** — create and edit images from text prompts using local AI models, directly from the canvas
 - Real-time job status notifications via WebSocket
 
 ### Knowledge & Research Tools
@@ -31,7 +33,7 @@ Under the hood, the app talks to a [NestJS backend](../backend/README.md) (docum
 - **Bibliography** — manage and export bibliographic references
 - **Threads** — discussion threads linked to documents or projects
 - **Timeline** — plot events and milestones from extracted data
-- **Canvas** — free-form visual workspace for arranging and connecting ideas
+- **Canvas** — free-form visual workspace for arranging and connecting ideas, with AI-powered image generation and editing using local Stable Diffusion models
 - **Datasets** — create and manage structured datasets from your documents
 
 ### Workspace & Collaboration
