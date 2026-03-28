@@ -380,6 +380,18 @@
           </p>
         </template>
 
+        <!-- RelationshipGraph config -->
+        <template v-if="infographicType === 'relationshipGraph'">
+          <div>
+            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input v-model="infographicConfig.title" type="text" placeholder="Relationship Graph"
+              class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
+          </div>
+          <p class="text-xs text-text-muted">
+            Shows entity relationships extracted from your project's resources. Data loads from Neo4j when the node is created.
+          </p>
+        </template>
+
         <!-- QuoteCard config -->
         <template v-if="infographicType === 'quoteCard'">
           <div>
@@ -488,6 +500,7 @@ const infographicModalTitle = computed(() => {
     wordCloud: 'Add Word Cloud',
     timeline: 'Add Timeline',
     entityGraph: 'Add Entity Graph',
+    relationshipGraph: 'Add Relationship Graph',
     quoteCard: 'Add Quote Card',
   };
   return titles[infographicType.value] || 'Add Infographic';
@@ -645,6 +658,15 @@ const buildNodeData = (type: string): Record<string, any> => {
         title: cfg.title || 'Entity Network',
         entities: topEnts.map((e: any) => ({ id: e.name, name: e.name, type: e.type })),
         links: filteredLinks,
+      };
+    }
+
+    case 'relationshipGraph': {
+      return {
+        title: cfg.title || 'Relationship Graph',
+        entities: [],
+        relationships: [],
+        projectId: projectStore.currentProject?.id,
       };
     }
 

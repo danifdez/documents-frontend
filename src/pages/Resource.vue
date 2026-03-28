@@ -153,6 +153,7 @@
                         @extractEntities="handleExtractEntities" @createWorkspace="handleCreateWorkspace"
                         @keyPoints="handleKeyPointsJob" @send-selection-to-workspace="handleToolbarSendSelection"
                         @keywords="handleKeywordsJob" :hasEntities="resource.entities && resource.entities.length > 0"
+                        :hasRelationships="resource.status === 'ready' || resource.status === 'confirmed'"
                         :isConfirmed="!isPendingConfirmation" />
                     <!-- Show extraction message when extracting -->
                     <div v-else-if="isExtracting && !isImageFile"
@@ -277,6 +278,9 @@
                                 No keywords. Click "Add" to create one.
                             </p>
                         </div>
+                    </div>
+                    <div v-else-if="displayMode === 'relationships'" class="flex-1 min-h-0">
+                        <ResourceRelationships :resource-id="resourceId" :project-id="resource.project?.id" />
                     </div>
                     <div v-else-if="displayMode === 'workspace' && workspaceDocument"
                         class="flex flex-col h-full w-full min-w-0">
@@ -547,6 +551,7 @@ import FloatingSearchBox from '../components/ui/FloatingSearchBox.vue';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import HtmlContent from '../components/contents/HtmlContent.vue';
 import ResourceOverview from '../components/resources/ResourceOverview.vue';
+import ResourceRelationships from '../components/resources/ResourceRelationships.vue';
 import ResourceMediaPreview from '../components/resources/ResourceMediaPreview.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import ChatSidebar from '../components/ui/ChatSidebar.vue';
@@ -572,7 +577,7 @@ const resource = ref<Record<string, any>>({});
 const projectStore = useProjectStore();
 const notification = useNotification();
 const rawHtmlContent = ref<string>('');
-const displayMode = ref<'extracted' | 'raw' | 'translated' | 'overview' | 'workspace'>('extracted');
+const displayMode = ref<'extracted' | 'raw' | 'translated' | 'overview' | 'workspace' | 'relationships'>('extracted');
 const splitViewActive = ref(false);
 const splitDocument = ref<Record<string, any> | null>(null);
 const splitResource = ref<Record<string, any> | null>(null);

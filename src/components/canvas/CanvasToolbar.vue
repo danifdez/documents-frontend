@@ -165,6 +165,7 @@ const infographicItems = [
   { type: 'wordCloud', label: 'Word Cloud', icon: '☁' },
   { type: 'timeline', label: 'Timeline', icon: '⏱' },
   { type: 'entityGraph', label: 'Entity Graph', icon: '🔗' },
+  { type: 'relationshipGraph', label: 'Relationship Graph', icon: '🕸' },
   { type: 'quoteCard', label: 'Quote Card', icon: '💬' },
 ];
 

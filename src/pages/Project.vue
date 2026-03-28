@@ -37,7 +37,7 @@
                 </svg>
                 <span>Document</span>
               </button>
-              <button @click="createCanvas"
+              <button v-if="featureStore.isEnabled('canvas')" @click="createCanvas"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
                 title="New canvas">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -47,7 +47,7 @@
                 </svg>
                 <span>Canvas</span>
               </button>
-              <button @click="showCreateNoteModal = true"
+              <button v-if="featureStore.isEnabled('notes')" @click="showCreateNoteModal = true"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
                 title="New note">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -57,7 +57,7 @@
                 </svg>
                 <span>Note</span>
               </button>
-              <button @click="createTimeline"
+              <button v-if="featureStore.isEnabled('timelines')" @click="createTimeline"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
                 title="New timeline">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -78,7 +78,16 @@
                 <span>Import</span>
               </button>
 
-              <router-link :to="`/project/${route.params.id}/bibliography`"
+              <router-link v-if="featureStore.isEnabled('relationships')" :to="`/project/${route.params.id}/relationships`"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
+                title="Relationships">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span>Relationships</span>
+              </router-link>
+
+              <router-link v-if="featureStore.isEnabled('bibliography')" :to="`/project/${route.params.id}/bibliography`"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
                 title="Bibliography">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -218,13 +227,13 @@
         </div>
 
         <!-- Notes & Events row -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-          <section>
+        <div v-if="featureStore.isEnabled('notes') || featureStore.isEnabled('calendar')" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+          <section v-if="featureStore.isEnabled('notes')">
             <h3 class="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Notes</h3>
             <NoteList :notes="projectNotes" :isLoading="isNotesLoading" />
           </section>
 
-          <section>
+          <section v-if="featureStore.isEnabled('calendar')">
             <h3 class="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Upcoming Events</h3>
             <EventList :events="projectEvents" :isLoading="isEventsLoading" />
           </section>
@@ -285,12 +294,14 @@ import NoteModal from '../components/notes/NoteModal.vue';
 import EventList from '../components/calendar/EventList.vue';
 import { useNotification } from '../composables/useNotification';
 import { useProjectStore } from '../store/projectStore';
+import { useFeatureStore } from '../store/featureStore';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 
 const { showSearch } = useGlobalKeyboard();
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
+const featureStore = useFeatureStore();
 const showDeleteDialog = ref(false);
 const showEditModal = ref(false);
 const showCreateThreadModal = ref(false);

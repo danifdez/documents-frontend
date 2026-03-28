@@ -48,7 +48,7 @@
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Browser</span>
             </button>
 
-            <router-link to="/entities"
+            <router-link v-if="featureStore.isEnabled('entities')" to="/entities"
                 class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200"
                 :class="{ 'justify-center': collapsed }" active-class="!bg-accent-subtle !text-accent-dark font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
@@ -60,7 +60,7 @@
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Entities</span>
             </router-link>
 
-            <router-link to="/datasets"
+            <router-link v-if="featureStore.isEnabled('datasets')" to="/datasets"
                 class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200"
                 :class="{ 'justify-center': collapsed }" active-class="!bg-accent-subtle !text-accent-dark font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
@@ -72,7 +72,7 @@
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Datasets</span>
             </router-link>
 
-            <router-link to="/notes"
+            <router-link v-if="featureStore.isEnabled('notes')" to="/notes"
                 class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200"
                 :class="{ 'justify-center': collapsed }" active-class="!bg-accent-subtle !text-accent-dark font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
@@ -84,7 +84,7 @@
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Notes</span>
             </router-link>
 
-            <router-link to="/knowledge-base"
+            <router-link v-if="featureStore.isEnabled('knowledge_base')" to="/knowledge-base"
                 class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200"
                 :class="{ 'justify-center': collapsed }" active-class="!bg-accent-subtle !text-accent-dark font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
@@ -96,7 +96,7 @@
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Knowledge Base</span>
             </router-link>
 
-            <router-link to="/calendar"
+            <router-link v-if="featureStore.isEnabled('calendar')" to="/calendar"
                 class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200"
                 :class="{ 'justify-center': collapsed }" active-class="!bg-accent-subtle !text-accent-dark font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
@@ -108,7 +108,7 @@
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Calendar</span>
             </router-link>
 
-            <button @click="toggleTaskPanel()"
+            <button v-if="featureStore.isEnabled('tasks')" @click="toggleTaskPanel()"
                 class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200 hover:bg-surface-hover cursor-pointer w-full"
                 :class="collapsed ? 'justify-center' : 'text-left'">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
@@ -181,10 +181,12 @@ import SyncIndicator from '../components/SyncIndicator.vue';
 import { useProjectStore } from '../store/projectStore';
 import { useTaskPanel } from '../composables/useTaskPanel';
 import { useAuthStore } from '../store/authStore';
+import { useFeatureStore } from '../store/featureStore';
 import { useRouter } from 'vue-router';
 
 const projectStore = useProjectStore();
 const authStore = useAuthStore();
+const featureStore = useFeatureStore();
 const router = useRouter();
 const { toggleTaskPanel } = useTaskPanel();
 const collapsed = ref(true);

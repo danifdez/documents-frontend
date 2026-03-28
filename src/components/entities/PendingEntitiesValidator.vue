@@ -548,7 +548,9 @@ const deleteEntity = async (id: number, isConfirmed?: boolean) => {
                 await deletePendingEntity(id);
                 pendingEntities.value = pendingEntities.value.filter(e => e.id !== id);
                 if (expandedEntityId.value === id) expandedEntityId.value = null;
-            } catch { }
+            } catch { } finally {
+                closeConfirmModal();
+            }
         }
     });
 };

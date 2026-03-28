@@ -214,7 +214,8 @@ app.whenReady().then(() => {
       paragraphSpacing: 1.5,
       language: 'en',
       theme: 'system',
-      defaultBrowserUrl: 'https://github.com/electron/electron'
+      defaultBrowserUrl: 'https://github.com/electron/electron',
+      disabledFeatures: [],
     });
   });
 

@@ -62,51 +62,67 @@ const routes = [
     path: '/canvas/:id',
     name: 'Canvas',
     component: Canvas,
+    meta: { feature: 'canvas' },
   },
   {
     path: '/entities',
     name: 'Entities',
     component: Entities,
+    meta: { feature: 'entities' },
+  },
+  {
+    path: '/project/:id/relationships',
+    name: 'Relationships',
+    component: () => import('../pages/Relationships.vue'),
+    meta: { feature: 'relationships' },
   },
   {
     path: '/datasets',
     name: 'Datasets',
     component: Datasets,
+    meta: { feature: 'datasets' },
   },
   {
     path: '/datasets/:id',
     name: 'Dataset',
     component: Dataset,
+    meta: { feature: 'datasets' },
   },
   {
     path: '/notes',
     name: 'Notes',
     component: Notes,
+    meta: { feature: 'notes' },
   },
   {
     path: '/notes/:id',
     name: 'NoteEdit',
     component: NoteEdit,
+    meta: { feature: 'notes' },
   },
   {
     path: '/calendar',
     name: 'Calendar',
     component: Calendar,
+    meta: { feature: 'calendar' },
   },
   {
     path: '/timeline/:id',
     name: 'Timeline',
     component: Timeline,
+    meta: { feature: 'timelines' },
   },
   {
     path: '/knowledge-base',
     name: 'KnowledgeBase',
     component: KnowledgeBase,
+    meta: { feature: 'knowledge_base' },
   },
   {
     path: '/knowledge-base/:id',
     name: 'KnowledgeEntryEdit',
     component: KnowledgeEntryEdit,
+    meta: { feature: 'knowledge_base' },
   },
 {
     path: '/settings',
@@ -117,11 +133,13 @@ const routes = [
     path: '/bibliography',
     name: 'Bibliography',
     component: Bibliography,
+    meta: { feature: 'bibliography' },
   },
   {
     path: '/project/:id/bibliography',
     name: 'ProjectBibliography',
     component: Bibliography,
+    meta: { feature: 'bibliography' },
   },
   {
     path: '/admin/users',
@@ -142,6 +160,15 @@ router.beforeEach(async (to) => {
 
   if (!authStore.initialized) {
     await authStore.checkAuthStatus()
+  }
+
+  // Feature flag guard
+  if (to.meta?.feature) {
+    const { useFeatureStore } = await import('../store/featureStore')
+    const featureStore = useFeatureStore()
+    if (!featureStore.isEnabled(to.meta.feature as string)) {
+      return { path: '/' }
+    }
   }
 
   // No auth required — pass through

@@ -83,6 +83,37 @@
 
             </div>
 
+            <!-- Features Section -->
+            <div class="mt-8 mb-8">
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold text-text-primary tracking-tight">Features</h2>
+                    <p class="mt-1 text-sm text-text-muted">Enable or disable application features. Server-disabled features cannot be enabled here.</p>
+                    <div class="mt-4 h-px bg-border"></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div v-for="flag in featureStore.featureFlags" :key="flag.key"
+                        class="bg-surface-elevated rounded-xl border border-border p-4 flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-medium text-text-primary">{{ flag.label }}</span>
+                            <p v-if="!flag.backendEnabled" class="text-xs text-text-muted mt-0.5">Disabled by server</p>
+                        </div>
+                        <button v-if="flag.backendEnabled"
+                            @click="featureStore.toggleLocalFeature(flag.key)"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer"
+                            :class="flag.enabled ? 'bg-accent' : 'bg-border'">
+                            <span
+                                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
+                                :class="flag.enabled ? 'translate-x-6' : 'translate-x-1'" />
+                        </button>
+                        <span v-else
+                            class="relative inline-flex h-6 w-11 items-center rounded-full bg-border opacity-40 cursor-not-allowed">
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
+                        </span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Workspaces Section -->
             <div class="mt-8 mb-8">
                 <div class="mb-6">
@@ -254,6 +285,7 @@ import apiClient from '../services/api';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useAuthStore } from '../store/authStore';
 import { useProjectStore } from '../store/projectStore';
+import { useFeatureStore } from '../store/featureStore';
 import { useRouter } from 'vue-router';
 import WorkspaceModal from '../components/WorkspaceModal.vue';
 import type { Workspace } from '../types/Workspace';
@@ -262,6 +294,7 @@ const { themeMode, setTheme } = useTheme();
 const workspaceStore = useWorkspaceStore();
 const authStore = useAuthStore();
 const projectStore = useProjectStore();
+const featureStore = useFeatureStore();
 const router = useRouter();
 
 const showWorkspaceModal = ref(false);

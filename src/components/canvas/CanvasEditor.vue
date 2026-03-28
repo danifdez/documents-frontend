@@ -107,6 +107,7 @@ import ListNode from './nodes/ListNode.vue';
 import WordCloudNode from './nodes/WordCloudNode.vue';
 import TimelineNode from './nodes/TimelineNode.vue';
 import EntityGraphNode from './nodes/EntityGraphNode.vue';
+import RelationshipGraphNode from './nodes/RelationshipGraphNode.vue';
 import QuoteCardNode from './nodes/QuoteCardNode.vue';
 
 import type { CanvasData } from '../../types/canvas';
@@ -137,6 +138,7 @@ const nodeTypes = {
   wordCloud: markRaw(WordCloudNode),
   timeline: markRaw(TimelineNode),
   entityGraph: markRaw(EntityGraphNode),
+  relationshipGraph: markRaw(RelationshipGraphNode),
   quoteCard: markRaw(QuoteCardNode),
 };
 
@@ -419,6 +421,7 @@ const defaultSizes: Record<string, { width: number; height: number }> = {
   wordCloud: { width: 260, height: 180 },
   timeline: { width: 240, height: 200 },
   entityGraph: { width: 320, height: 260 },
+  relationshipGraph: { width: 380, height: 300 },
   quoteCard: { width: 220, height: 120 },
 };
 
@@ -475,6 +478,7 @@ const miniMapNodeColor = (node: Node) => {
     case 'wordCloud': return '#ec4899';
     case 'timeline': return '#14b8a6';
     case 'entityGraph': return '#f97316';
+    case 'relationshipGraph': return '#6366f1';
     case 'quoteCard': return '#eab308';
     default: return '#94a3b8';
   }

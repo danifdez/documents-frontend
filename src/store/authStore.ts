@@ -32,6 +32,14 @@ export const useAuthStore = defineStore('auth', () => {
       authRequired.value = data.authEnabled === true;
       // Remember last known auth state for offline use
       localStorage.setItem(tokenKey('authRequired'), String(authRequired.value));
+
+      // Pass feature flags to feature store
+      if (data.features) {
+        const { useFeatureStore } = await import('./featureStore');
+        const featureStore = useFeatureStore();
+        featureStore.setBackendFeatures(data.features);
+        await featureStore.loadLocalPreferences();
+      }
     } catch {
       // Offline: restore last known auth state
       const cached = localStorage.getItem(tokenKey('authRequired'));

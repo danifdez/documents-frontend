@@ -1,7 +1,7 @@
 <template>
     <div class="mb-3 flex justify-between">
         <div class="mb-2.5 flex gap-2">
-            <Button @click="emit('ask')" size="small" title="Ask Assistant">
+            <Button v-if="featureStore.isEnabled('rag')" @click="emit('ask')" size="small" title="Ask Assistant">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -21,7 +21,7 @@
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
             </Button>
-            <Button v-if="!hasEntities" @click="emit('extractEntities')" size="small" title="Extract Entities">
+            <Button v-if="!hasEntities && featureStore.isEnabled('entities')" @click="emit('extractEntities')" size="small" title="Extract Entities">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"
@@ -86,6 +86,10 @@
                     :active="actualDisplayMode === 'workspace'" @click="changeDisplayMode('workspace')" type="button">
                     Workspace
                 </Button>
+                <Button v-if="featureStore.isEnabled('relationships') && hasRelationships" size="small" variant="secondary"
+                    :active="actualDisplayMode === 'relationships'" @click="changeDisplayMode('relationships')" type="button">
+                    Relationships
+                </Button>
                 <Button v-if="!hideOriginal" size="small" variant="secondary" :active="actualDisplayMode === 'raw'"
                     @click="changeDisplayMode('raw')">
                     Original
@@ -115,6 +119,8 @@
 import { defineProps, defineEmits, ref, computed, watch } from 'vue';
 import Button from '../ui/Button.vue';
 import ButtonGroup from '../ui/ButtonGroup.vue';
+import { useFeatureStore } from '../../store/featureStore';
+const featureStore = useFeatureStore();
 const props = defineProps({
     isEditMode: { type: Boolean },
     isSaving: { type: Boolean },
@@ -128,6 +134,7 @@ const props = defineProps({
     hideWorkspace: { type: Boolean, default: false },
     hideOriginal: { type: Boolean, default: false },
     hasEntities: { type: Boolean, default: false },
+    hasRelationships: { type: Boolean, default: false },
     sourceLanguage: { type: String, default: '' },
     defaultLanguage: { type: String, default: 'en' },
     isConfirmed: { type: Boolean, default: true },
