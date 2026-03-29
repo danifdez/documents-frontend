@@ -127,18 +127,29 @@
                         class="bg-surface-elevated rounded-xl border p-4 flex flex-col gap-2 transition-colors"
                         :class="ws.id === workspaceStore.activeWorkspaceId ? 'border-accent' : 'border-border'">
                         <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-text-primary">{{ ws.name }}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-text-primary">{{ ws.name }}</span>
+                                <span v-if="ws.id === workspaceStore.defaultWorkspaceId"
+                                    class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-hover text-text-muted">Default</span>
+                            </div>
                             <span v-if="ws.id === workspaceStore.activeWorkspaceId"
                                 class="px-2 py-0.5 rounded-full text-xs font-medium bg-accent/10 text-accent">Active</span>
                         </div>
-                        <span class="text-xs text-text-muted truncate">{{ ws.url }}</span>
+                        <span v-if="ws.type === 'local'" class="text-xs text-accent truncate">Local server</span>
+                        <span v-else class="text-xs text-text-muted truncate">{{ ws.url }}</span>
                         <div class="flex gap-2 mt-1">
                             <button v-if="ws.id !== workspaceStore.activeWorkspaceId"
                                 @click="switchToWorkspace(ws.id)"
                                 class="text-xs text-accent hover:underline cursor-pointer">Switch</button>
-                            <button @click="editWorkspace(ws)"
+                            <button v-if="ws.type !== 'local'" @click="editWorkspace(ws)"
                                 class="text-xs text-text-secondary hover:underline cursor-pointer">Edit</button>
-                            <button v-if="workspaceStore.workspaces.length > 1" @click="deleteWorkspace(ws.id)"
+                            <button v-if="ws.id !== workspaceStore.defaultWorkspaceId"
+                                @click="workspaceStore.setDefaultWorkspace(ws.id)"
+                                class="text-xs text-text-secondary hover:underline cursor-pointer">Set default</button>
+                            <button v-else
+                                @click="workspaceStore.setDefaultWorkspace(null)"
+                                class="text-xs text-text-muted hover:underline cursor-pointer">Unset default</button>
+                            <button v-if="workspaceStore.workspaces.length > 1 && ws.type !== 'local'" @click="deleteWorkspace(ws.id)"
                                 class="text-xs text-red-500 hover:underline cursor-pointer">Remove</button>
                         </div>
                     </div>
@@ -157,6 +168,109 @@
                     :workspace="editingWorkspace"
                     @close="showWorkspaceModal = false; editingWorkspace = null"
                     @save="handleWorkspaceSave" />
+            </div>
+
+            <!-- Local Server Section -->
+            <div class="mt-8 mb-8">
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold text-text-primary tracking-tight">Local Server</h2>
+                    <p class="mt-1 text-sm text-text-muted">Install and run all services locally on this machine</p>
+                    <div class="mt-4 h-px bg-border"></div>
+                </div>
+
+                <div class="bg-surface-elevated rounded-xl border border-border p-5 max-w-lg">
+                    <!-- Core services -->
+                    <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Core Services</h3>
+                    <div class="space-y-3 mb-4">
+                        <div v-for="svc in coreServices" :key="svc.key" class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full" :class="standaloneInstalled[svc.key] ? 'bg-green-500' : 'bg-border'"></span>
+                                <span class="text-sm text-text-primary">{{ svc.label }}</span>
+                            </div>
+                            <span class="text-xs text-text-muted">{{ svc.size }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Download progress -->
+                    <div v-if="standaloneDownloading" class="mb-4">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs text-text-secondary">Downloading {{ downloadProgress.component }}...</span>
+                            <span class="text-xs text-text-muted">{{ downloadProgress.percent }}%</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-border rounded-full overflow-hidden">
+                            <div class="h-full bg-accent rounded-full transition-all duration-300"
+                                :style="{ width: downloadProgress.percent + '%' }"></div>
+                        </div>
+                    </div>
+
+                    <!-- Error -->
+                    <div v-if="standaloneDownloadError" class="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+                        {{ standaloneDownloadError }}
+                    </div>
+
+                    <!-- Install / Uninstall -->
+                    <div class="flex gap-2">
+                        <button v-if="!standaloneFullyInstalled"
+                            @click="installStandalone"
+                            :disabled="standaloneDownloading"
+                            class="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            {{ standaloneDownloading ? 'Installing...' : 'Install Local Server (~350 MB)' }}
+                        </button>
+                        <button v-if="standaloneFullyInstalled"
+                            @click="uninstallStandalone"
+                            class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
+                            Uninstall
+                        </button>
+                    </div>
+
+                    <!-- AI / Inference Models -->
+                    <div class="mt-5 pt-4 border-t border-border">
+                        <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">AI / Inference</h3>
+                        <p class="text-xs text-text-muted mb-3">Document extraction, transcription, translation, entity recognition, summarization, semantic search, image generation.</p>
+
+                        <!-- GPU detection -->
+                        <div v-if="gpuInfo" class="mb-3 text-xs px-3 py-2 rounded-lg"
+                            :class="gpuInfo.available && gpuInfo.cuda ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-surface-hover text-text-muted'">
+                            <template v-if="gpuInfo.available && gpuInfo.cuda">
+                                GPU detected: {{ gpuInfo.name }} (CUDA) — GPU acceleration will be used
+                            </template>
+                            <template v-else-if="gpuInfo.available">
+                                {{ gpuInfo.name }} detected — CPU inference will be used
+                            </template>
+                            <template v-else>
+                                No GPU detected — CPU inference will be used
+                            </template>
+                        </div>
+
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full" :class="standaloneInstalled.models ? 'bg-green-500' : 'bg-border'"></span>
+                                <span class="text-sm text-text-primary">Models Service</span>
+                            </div>
+                            <span class="text-xs text-text-muted">{{ modelsSize }}</span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button v-if="!standaloneInstalled.models"
+                                @click="installModels"
+                                :disabled="standaloneDownloading"
+                                class="px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                {{ standaloneDownloading ? 'Installing...' : 'Install AI Features' }}
+                            </button>
+                            <button v-else
+                                @click="uninstallModels"
+                                class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
+                                Remove AI Features
+                            </button>
+                            <!-- Force CPU toggle when GPU is available -->
+                            <label v-if="gpuInfo?.cuda && !standaloneInstalled.models"
+                                class="flex items-center gap-1.5 text-xs text-text-muted cursor-pointer ml-2">
+                                <input type="checkbox" v-model="forceCpu" class="accent-accent w-3 h-3" />
+                                Force CPU only
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Export Section -->
@@ -278,7 +392,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import PageHeader from '../components/ui/PageHeader.vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
 import apiClient from '../services/api';
@@ -324,6 +438,79 @@ async function switchToWorkspace(id: string) {
 
 async function deleteWorkspace(id: string) {
     await workspaceStore.removeWorkspace(id);
+}
+
+// ── Local server install state ──
+const standaloneInstalled = ref({ backend: false, postgres: false, qdrant: false, neo4j: false, models: false });
+const standaloneDownloading = ref(false);
+const standaloneDownloadError = ref('');
+const downloadProgress = ref({ component: '', downloaded: 0, total: 0, percent: 0 });
+const gpuInfo = ref<{ available: boolean; name: string | null; cuda: boolean } | null>(null);
+const standaloneFullyInstalled = computed(() =>
+    standaloneInstalled.value.backend && standaloneInstalled.value.postgres
+    && standaloneInstalled.value.qdrant && standaloneInstalled.value.neo4j
+);
+
+const coreServices = [
+    { key: 'backend' as const, label: 'Backend (NestJS)', size: '~50 MB' },
+    { key: 'postgres' as const, label: 'PostgreSQL', size: '~200 MB' },
+    { key: 'qdrant' as const, label: 'Qdrant', size: '~40 MB' },
+    { key: 'neo4j' as const, label: 'Neo4j', size: '~60 MB' },
+];
+
+async function loadStandaloneStatus() {
+    if (window.electronAPI?.standaloneCheckInstalled) {
+        standaloneInstalled.value = await window.electronAPI.standaloneCheckInstalled();
+    }
+    if (window.electronAPI?.standaloneDetectGpu) {
+        gpuInfo.value = await window.electronAPI.standaloneDetectGpu();
+    }
+}
+
+async function installStandalone() {
+    standaloneDownloading.value = true;
+    standaloneDownloadError.value = '';
+    const result = await window.electronAPI.standaloneDownloadAll();
+    standaloneDownloading.value = false;
+    if (!result.success) {
+        standaloneDownloadError.value = result.error || 'Download failed';
+    }
+    await loadStandaloneStatus();
+}
+
+async function uninstallStandalone() {
+    await window.electronAPI.standaloneStop();
+    await window.electronAPI.standaloneUninstallServices();
+    await loadStandaloneStatus();
+}
+
+const forceCpu = ref(false);
+const modelsSize = computed(() => {
+    if (gpuInfo.value?.cuda && !forceCpu.value) return '~3-5 GB (GPU)';
+    return '~1.5-2 GB (CPU)';
+});
+
+async function installModels() {
+    standaloneDownloading.value = true;
+    standaloneDownloadError.value = '';
+    // Auto-detect: use GPU if CUDA available and user hasn't forced CPU
+    const variant = (gpuInfo.value?.cuda && !forceCpu.value) ? 'models-gpu' : 'models-cpu';
+    // Downloads the service bundle AND runs --setup to download ML models
+    const result = await window.electronAPI.standaloneInstallModels(variant);
+    standaloneDownloading.value = false;
+    if (!result.success) {
+        standaloneDownloadError.value = result.error || 'Installation failed';
+    }
+    await loadStandaloneStatus();
+}
+
+async function uninstallModels() {
+    await window.electronAPI.standaloneUninstallModels();
+    await loadStandaloneStatus();
+}
+
+function onDownloadProgress(progress: { component: string; downloaded: number; total: number; percent: number }) {
+    downloadProgress.value = progress;
 }
 
 const fontSizes = [12, 14, 16, 18, 20, 22, 24];
@@ -449,5 +636,9 @@ const startExport = async () => {
 onMounted(() => {
     loadSettings();
     loadProjects();
+    loadStandaloneStatus();
+    if (window.electronAPI?.onStandaloneDownloadProgress) {
+        window.electronAPI.onStandaloneDownloadProgress(onDownloadProgress);
+    }
 });
 </script>

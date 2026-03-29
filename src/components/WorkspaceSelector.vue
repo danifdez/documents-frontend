@@ -32,7 +32,8 @@
         <div class="w-2 h-2 rounded-full shrink-0"
           :class="ws.id === workspaceStore.activeWorkspaceId ? 'bg-accent' : 'bg-border'"></div>
         <span class="truncate flex-1">{{ ws.name }}</span>
-        <span class="text-xs text-text-muted truncate max-w-24">{{ formatUrl(ws.url) }}</span>
+        <span v-if="ws.type === 'local'" class="text-xs text-accent truncate max-w-24">local</span>
+        <span v-else class="text-xs text-text-muted truncate max-w-24">{{ formatUrl(ws.url) }}</span>
       </div>
 
       <div class="border-t border-border mt-1 pt-1">

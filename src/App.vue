@@ -1,8 +1,43 @@
 <template>
   <div v-if="!workspaceStore.initialized" />
-  <WorkspaceModal v-else-if="!workspaceStore.hasWorkspaces"
-    @save="handleFirstWorkspace"
-    :closable="false" />
+
+  <!-- First launch: choose local or remote -->
+  <div v-else-if="!workspaceStore.hasWorkspaces" class="fixed inset-0 flex items-center justify-center bg-surface">
+    <div v-if="!showRemoteForm" class="flex flex-col items-center gap-6 max-w-md px-6">
+      <h1 class="text-2xl font-bold text-text-primary">Documents</h1>
+      <p class="text-sm text-text-muted text-center">Choose how you want to use the application</p>
+
+      <div class="flex flex-col gap-3 w-full">
+        <button @click="handleSetupLocal"
+          :disabled="localSetupInProgress"
+          class="w-full p-4 rounded-xl border border-border bg-surface-elevated hover:bg-surface-hover transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-wait">
+          <div class="font-medium text-text-primary mb-1">Standalone</div>
+          <div class="text-xs text-text-muted">Run everything locally on this machine. Services will be downloaded on first use (~350 MB).</div>
+        </button>
+
+        <button @click="showRemoteForm = true"
+          class="w-full p-4 rounded-xl border border-border bg-surface-elevated hover:bg-surface-hover transition-colors cursor-pointer text-left">
+          <div class="font-medium text-text-primary mb-1">Connect to server</div>
+          <div class="text-xs text-text-muted">Connect to an existing Documents server on your network.</div>
+        </button>
+      </div>
+
+      <!-- Loading state for local setup -->
+      <div v-if="localSetupInProgress" class="text-sm text-text-secondary">
+        Starting local server...
+      </div>
+      <div v-if="workspaceStore.localServerError" class="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2 w-full">
+        {{ workspaceStore.localServerError }}
+      </div>
+    </div>
+
+    <!-- Remote workspace form -->
+    <WorkspaceModal v-else
+      @save="handleFirstRemoteWorkspace"
+      @close="showRemoteForm = false"
+      :closable="true" />
+  </div>
+
   <div v-else-if="isLoginRoute">
     <router-view />
   </div>
@@ -17,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import MainLayout from './layout/MainLayout.vue';
 import GlobalSearchModal from './components/GlobalSearchModal.vue';
 import SelectionLookup from './components/knowledge/SelectionLookup.vue';
@@ -44,6 +79,8 @@ const offlineStore = useOfflineStore();
 const { isOnline } = useNetworkStatus();
 
 const isLoginRoute = computed(() => route.name === 'Login');
+const showRemoteForm = ref(false);
+const localSetupInProgress = ref(false);
 
 // Sync network status to offline store and auto-sync on reconnect
 watch(isOnline, (online, wasOnline) => {
@@ -53,9 +90,30 @@ watch(isOnline, (online, wasOnline) => {
   }
 });
 
-async function handleFirstWorkspace(data: { name: string; url: string }) {
+async function handleSetupLocal() {
+  localSetupInProgress.value = true;
+  // Check if services are installed; if not, install them first
+  const installed = await window.electronAPI.standaloneIsReady();
+  if (!installed) {
+    // Download services before starting
+    const result = await window.electronAPI.standaloneDownloadAll();
+    if (!result.success) {
+      workspaceStore.localServerError = result.error || 'Failed to install services';
+      localSetupInProgress.value = false;
+      return;
+    }
+  }
+  await workspaceStore.setupLocal();
+  localSetupInProgress.value = false;
+  if (!workspaceStore.localServerError) {
+    setupSocket();
+  }
+}
+
+async function handleFirstRemoteWorkspace(data: { name: string; url: string }) {
   const ws = await workspaceStore.addWorkspace(data.name, data.url);
   await workspaceStore.switchWorkspace(ws.id);
+  showRemoteForm.value = false;
   setupSocket();
 }
 

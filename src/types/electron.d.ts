@@ -29,12 +29,29 @@ export interface ElectronAPI {
     writeFile: (filePath: string, data: string) => Promise<void>;
 
     // Workspace management
-    getWorkspaces: () => Promise<{ id: string; name: string; url: string }[]>;
-    addWorkspace: (workspace: { id: string; name: string; url: string }) => Promise<{ id: string; name: string; url: string }>;
-    updateWorkspace: (workspace: { id: string; name: string; url: string }) => Promise<{ id: string; name: string; url: string }>;
+    getWorkspaces: () => Promise<{ id: string; name: string; url: string; type?: string }[]>;
+    addWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => Promise<any>;
+    updateWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => Promise<any>;
     removeWorkspace: (id: string) => Promise<boolean>;
-    getActiveWorkspace: () => Promise<{ id: string; name: string; url: string } | null>;
-    setActiveWorkspace: (id: string) => Promise<{ id: string; name: string; url: string } | null>;
+    getActiveWorkspace: () => Promise<{ id: string; name: string; url: string; type?: string } | null>;
+    setActiveWorkspace: (id: string) => Promise<any>;
+    setDefaultWorkspace: (id: string | null) => Promise<boolean>;
+    getDefaultWorkspace: () => Promise<string | null>;
+
+    // Local server (standalone) management
+    standaloneCheckInstalled: () => Promise<{ backend: boolean; postgres: boolean; qdrant: boolean; neo4j: boolean; models: boolean }>;
+    standaloneIsReady: () => Promise<boolean>;
+    standaloneDetectGpu: () => Promise<{ available: boolean; name: string | null; cuda: boolean }>;
+    standaloneDownloadAll: () => Promise<{ success: boolean; error?: string }>;
+    standaloneDownloadComponent: (component: string) => Promise<{ success: boolean; error?: string }>;
+    standaloneInstallModels: (variant: string) => Promise<{ success: boolean; error?: string }>;
+    standaloneUninstallServices: () => Promise<{ success: boolean; error?: string }>;
+    standaloneUninstallModels: () => Promise<{ success: boolean; error?: string }>;
+    standaloneStart: () => Promise<{ success: boolean; url?: string; error?: string }>;
+    standaloneStop: () => Promise<{ success: boolean; error?: string }>;
+    standaloneStatus: () => Promise<{ postgres: string; backend: string; qdrant: string; neo4j: string; models: string }>;
+    standaloneGetUrl: () => Promise<string | null>;
+    onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number }) => void) => void;
 
     // Offline filesystem storage
     offlinePutItem: (wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) => Promise<void>;

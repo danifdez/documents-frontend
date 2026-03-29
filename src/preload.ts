@@ -20,11 +20,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Workspace management
     getWorkspaces: () => ipcRenderer.invoke('workspace:list'),
-    addWorkspace: (workspace: { id: string; name: string; url: string }) => ipcRenderer.invoke('workspace:add', workspace),
-    updateWorkspace: (workspace: { id: string; name: string; url: string }) => ipcRenderer.invoke('workspace:update', workspace),
+    addWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => ipcRenderer.invoke('workspace:add', workspace),
+    updateWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => ipcRenderer.invoke('workspace:update', workspace),
     removeWorkspace: (id: string) => ipcRenderer.invoke('workspace:remove', id),
     getActiveWorkspace: () => ipcRenderer.invoke('workspace:get-active'),
     setActiveWorkspace: (id: string) => ipcRenderer.invoke('workspace:set-active', id),
+    setDefaultWorkspace: (id: string | null) => ipcRenderer.invoke('workspace:set-default', id),
+    getDefaultWorkspace: () => ipcRenderer.invoke('workspace:get-default'),
+
+    // Local server (standalone) management
+    standaloneCheckInstalled: () => ipcRenderer.invoke('standalone:check-installed'),
+    standaloneIsReady: () => ipcRenderer.invoke('standalone:is-ready'),
+    standaloneDetectGpu: () => ipcRenderer.invoke('standalone:detect-gpu'),
+    standaloneDownloadAll: () => ipcRenderer.invoke('standalone:download-all'),
+    standaloneDownloadComponent: (component: string) => ipcRenderer.invoke('standalone:download-component', component),
+    standaloneInstallModels: (variant: string) => ipcRenderer.invoke('standalone:install-models', variant),
+    standaloneUninstallServices: () => ipcRenderer.invoke('standalone:uninstall-services'),
+    standaloneUninstallModels: () => ipcRenderer.invoke('standalone:uninstall-models'),
+    standaloneStart: () => ipcRenderer.invoke('standalone:start'),
+    standaloneStop: () => ipcRenderer.invoke('standalone:stop'),
+    standaloneStatus: () => ipcRenderer.invoke('standalone:status'),
+    standaloneGetUrl: () => ipcRenderer.invoke('standalone:get-url'),
+    onStandaloneDownloadProgress: (callback: (progress: any) => void) =>
+        ipcRenderer.on('standalone:download-progress', (_event, progress) => callback(progress)),
 
     // Offline filesystem storage
     offlinePutItem: (wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) =>

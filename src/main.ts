@@ -7,6 +7,8 @@ import axios from 'axios';
 import FormData from 'form-data';
 import Store from 'electron-store';
 import { registerOfflineHandlers } from './main-offline';
+import { standaloneManager } from './services/standalone/standalone-manager';
+import { checkInstalled, isStandaloneReady, downloadComponent, downloadAll, installModels, uninstallServices, uninstallModels, detectGpu } from './services/standalone/download-manager';
 
 const MIME_MAP: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -55,6 +57,10 @@ if (!store.get('workspaces')) {
 }
 
 function getApiUrl(): string {
+  // If standalone services are running, use them
+  const localUrl = standaloneManager.getBackendUrl();
+  if (localUrl) return localUrl;
+
   const activeId = store.get('activeWorkspaceId') as string;
   const workspaces = store.get('workspaces', []) as any[];
   const active = workspaces.find((w: any) => w.id === activeId);
@@ -281,6 +287,106 @@ app.whenReady().then(() => {
     return workspaces.find((w: any) => w.id === id) || null;
   });
 
+  ipcMain.handle('workspace:set-default', (_, id: string | null) => {
+    store.set('defaultWorkspaceId', id);
+    return true;
+  });
+
+  ipcMain.handle('workspace:get-default', () => {
+    return store.get('defaultWorkspaceId', null);
+  });
+
+  // ── Local server (standalone) IPC handlers ──
+  ipcMain.handle('standalone:check-installed', () => {
+    return checkInstalled();
+  });
+
+  ipcMain.handle('standalone:is-ready', () => {
+    return isStandaloneReady();
+  });
+
+  ipcMain.handle('standalone:detect-gpu', () => {
+    return detectGpu();
+  });
+
+  ipcMain.handle('standalone:download-all', async () => {
+    try {
+      await downloadAll((progress) => {
+        mainWindow?.webContents.send('standalone:download-progress', progress);
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('standalone:download-component', async (_, component: string) => {
+    try {
+      await downloadComponent(component, (progress) => {
+        mainWindow?.webContents.send('standalone:download-progress', progress);
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('standalone:uninstall-services', async () => {
+    try {
+      await standaloneManager.stop();
+      await uninstallServices();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('standalone:install-models', async (_, variant: string) => {
+    try {
+      await installModels(variant as 'models-cpu' | 'models-gpu', (progress) => {
+        mainWindow?.webContents.send('standalone:download-progress', progress);
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('standalone:uninstall-models', async () => {
+    try {
+      await uninstallModels();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('standalone:start', async () => {
+    try {
+      const url = await standaloneManager.start();
+      return { success: true, url };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('standalone:stop', async () => {
+    try {
+      await standaloneManager.stop();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('standalone:status', () => {
+    return standaloneManager.getStatus();
+  });
+
+  ipcMain.handle('standalone:get-url', () => {
+    return standaloneManager.getBackendUrl();
+  });
+
   ipcMain.handle('show-selection-context-menu', (event) => {
     return new Promise((resolve) => {
       const menu = Menu.buildFromTemplate([
@@ -312,6 +418,10 @@ app.whenReady().then(() => {
       focusedWindow.webContents.toggleDevTools();
     }
   });
+});
+
+app.on('before-quit', async () => {
+  await standaloneManager.stop();
 });
 
 app.on('window-all-closed', () => {
