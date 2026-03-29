@@ -9,20 +9,18 @@
     <NodeFloatingToolbar :selected="selected" node-type="timeline" :data="node.data"
       @update="onToolbarUpdate" />
 
-    <div v-if="node.data.title" class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 shrink-0">
+    <div v-if="node.data.title" class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 shrink-0 flex items-center gap-1.5">
       {{ node.data.title }}
+      <span v-if="layoutLabel" class="text-[9px] font-normal text-text-muted px-1 py-0.5 rounded bg-surface border border-border">{{ layoutLabel }}</span>
     </div>
 
     <div class="flex-1 overflow-y-auto">
-      <div v-if="sortedEvents.length" class="relative pl-4">
-        <!-- Vertical line -->
-        <div class="absolute left-[7px] top-1 bottom-1 w-px bg-border"></div>
-
+      <!-- Vertical / default preview -->
+      <div v-if="!layoutType || layoutType === 'vertical' || layoutType === 'horizontal'" class="relative pl-4">
+        <div v-if="sortedEvents.length" class="absolute left-[7px] top-1 bottom-1 w-px bg-border"></div>
         <div v-for="(ev, idx) in sortedEvents" :key="idx" class="relative flex items-start gap-2.5 mb-3 last:mb-0">
-          <!-- Dot -->
           <div class="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full border-2 border-white shrink-0"
             :style="{ backgroundColor: ev.color || '#6366f1' }" />
-
           <div class="min-w-0">
             <div class="text-[10px] text-text-muted font-mono">
               {{ formatDate(ev.date) }}
@@ -32,7 +30,8 @@
           </div>
         </div>
       </div>
-      <div v-else class="flex items-center justify-center h-full text-xs text-text-muted">
+
+      <div v-if="!sortedEvents.length" class="flex items-center justify-center h-full text-xs text-text-muted">
         No events
       </div>
     </div>
@@ -49,6 +48,15 @@ import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 defineProps<{ id: string; data: Record<string, any>; selected: boolean }>();
 const { node } = useNode();
 
+const layoutType = computed(() => node.data.layoutType || '');
+
+const layoutLabels: Record<string, string> = {
+  horizontal: 'H',
+  vertical: 'V',
+};
+
+const layoutLabel = computed(() => layoutLabels[layoutType.value] || '');
+
 const sortedEvents = computed(() => {
   const events = node.data.events || [];
   return [...events].sort((a: any, b: any) => {
@@ -63,6 +71,13 @@ const formatDate = (dateStr: string) => {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+const formatDateShort = (dateStr: string) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
 const onToolbarUpdate = (updates: Record<string, any>) => {

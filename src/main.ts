@@ -68,9 +68,15 @@ const createWindow = () => {
   mainWindow = new BrowserWindow({
     width,
     height,
+    backgroundColor: '#000000',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
   });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -92,10 +98,16 @@ const createBrowserWindow = (projectId?: string) => {
   const win = new BrowserWindow({
     width,
     height,
+    backgroundColor: '#000000',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       webviewTag: true,
     },
+  });
+
+  win.once('ready-to-show', () => {
+    win.show();
   });
 
   win.maximize();
@@ -213,7 +225,7 @@ app.whenReady().then(() => {
       fontFamily: 'sans-serif',
       paragraphSpacing: 1.5,
       language: 'en',
-      theme: 'system',
+      theme: 'dark',
       defaultBrowserUrl: 'https://github.com/electron/electron',
       disabledFeatures: [],
     });
