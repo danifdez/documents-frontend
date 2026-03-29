@@ -79,7 +79,6 @@ async function testConnection() {
 
 function handleSubmit() {
   if (!name.value.trim() || !url.value.trim()) return;
-  // Remove trailing slash
   const cleanUrl = url.value.replace(/\/+$/, '');
   emit('save', { name: name.value.trim(), url: cleanUrl });
 }
