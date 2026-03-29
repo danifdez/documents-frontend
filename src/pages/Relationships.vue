@@ -1,10 +1,10 @@
 <template>
     <div class="px-6 py-4 h-screen flex flex-col overflow-hidden">
         <!-- Header -->
+        <Breadcrumb :items="breadcrumbItems" />
         <div class="flex items-center justify-between mb-3 shrink-0">
             <div class="flex items-center gap-3">
                 <h1 class="text-lg font-bold text-text-primary">Relationships</h1>
-                <span v-if="projectName" class="text-sm text-text-muted">{{ projectName }}</span>
             </div>
             <div class="flex items-center gap-3">
                 <!-- View toggle -->
@@ -126,11 +126,21 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute } from 'vue-router';
 import { useRelationships } from '../services/relationships/useRelationships';
 import apiClient from '../services/api';
+import Breadcrumb from '../components/ui/Breadcrumb.vue';
 
 const route = useRoute();
 const projectId = computed(() => Number(route.params.id));
 const projectName = ref('');
 const resources = ref<{ id: number; name: string }[]>([]);
+
+const breadcrumbItems = computed(() => {
+  const items: { name: string; path?: string }[] = [];
+  if (projectName.value) {
+    items.push({ name: projectName.value, path: `/project/${projectId.value}` });
+  }
+  items.push({ name: 'Relationships' });
+  return items;
+});
 
 const { isLoading, data, fetchByProject } = useRelationships();
 

@@ -23,9 +23,23 @@ export function useResourceList() {
         }
     };
 
+    const loadResourcesByThread = async (threadId: string | number) => {
+        isLoading.value = true;
+        const response = await apiClient.get("/resources/thread/" + threadId);
+        isLoading.value = false;
+        return response.data;
+    };
+
     const assignResourceToProject = async (resourceId: number | string, projectId: number | string) => {
         const response = await apiClient.patch(`/resources/${resourceId}/assign`, {
             projectId: Number(projectId),
+        });
+        return response.data;
+    };
+
+    const assignResourceToThread = async (resourceId: number | string, threadId: number | string) => {
+        const response = await apiClient.patch(`/resources/${resourceId}/assign-thread`, {
+            threadId: Number(threadId),
         });
         return response.data;
     };
@@ -35,7 +49,9 @@ export function useResourceList() {
         error,
         isLoading,
         loadResourcesByProject,
+        loadResourcesByThread,
         loadPendingResources,
         assignResourceToProject,
+        assignResourceToThread,
     };
 }

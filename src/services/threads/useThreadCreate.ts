@@ -7,16 +7,16 @@ export function useThreadCreate() {
     const error = ref<string | null>(null);
     const isLoading = ref<boolean>(false);
 
-    const createThread = async (name: string, projectId: string, description?: string) => {
+    const createThread = async (name: string, projectId: string, description?: string, parentId?: string | number) => {
         isLoading.value = true;
         error.value = null;
 
         try {
-            const response = await apiClient.post('/threads', {
-                name,
-                project: projectId,
-                description,
-            });
+            const data: any = { name, project: projectId, description };
+            if (parentId) {
+                data.parent = { id: Number(parentId) };
+            }
+            const response = await apiClient.post('/threads', data);
 
             newThreadId.value = response.data._id;
             status.value = true;

@@ -78,6 +78,10 @@ const props = defineProps({
   projectId: {
     type: String,
     default: ''
+  },
+  threadId: {
+    type: String,
+    default: ''
   }
 });
 
@@ -105,6 +109,9 @@ const uploadFile = async (file: any) => {
       fd.append('name', (file as any).name || 'file');
       if (props.projectId) {
         fd.append('projectId', props.projectId);
+      }
+      if (props.threadId) {
+        fd.append('threadId', props.threadId);
       }
       const resp = await fetch(`${API_URL}/resources/upload`, {
         method: 'POST',

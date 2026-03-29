@@ -37,10 +37,16 @@ export function useThread() {
         }
     };
 
+    const loadChildThreads = async (parentId: string | number) => {
+        const response = await apiClient.get(`/threads/${parentId}/children`);
+        return response.data;
+    };
+
     return {
         error,
         isLoading,
         loadThread,
+        loadChildThreads,
         updateThread,
         deleteThread,
     };

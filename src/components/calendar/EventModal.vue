@@ -76,6 +76,7 @@ const props = defineProps<{
     event?: CalendarEvent | null;
     projects: Array<{ id: number; name: string }>;
     defaultDate?: Date;
+    defaultProjectId?: number | null;
 }>();
 
 const emit = defineEmits(['update:modelValue', 'submit', 'delete']);
@@ -131,6 +132,9 @@ watch(() => props.modelValue, (v) => {
             resetForm();
             if (props.defaultDate) {
                 form.startDate = formatDateForInput(props.defaultDate, false);
+            }
+            if (props.defaultProjectId) {
+                form.projectId = props.defaultProjectId;
             }
         }
     }

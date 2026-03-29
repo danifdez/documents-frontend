@@ -24,6 +24,7 @@ import FormField from '../ui/FormField.vue';
 const props = defineProps<{
     modelValue: boolean;
     projectId?: string | number;
+    threadId?: string | number;
 }>();
 
 const emit = defineEmits(['update:modelValue', 'note:created']);
@@ -47,6 +48,9 @@ async function handleCreate() {
         }
         if (props.projectId) {
             data.project = { id: Number(props.projectId) };
+        }
+        if (props.threadId) {
+            data.thread = { id: Number(props.threadId) };
         }
         const note = await createNote(data);
         title.value = '';

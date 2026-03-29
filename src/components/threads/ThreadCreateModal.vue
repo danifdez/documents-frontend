@@ -31,6 +31,10 @@ const props = defineProps({
     projectId: {
         type: String,
         required: true
+    },
+    parentId: {
+        type: [String, Number],
+        default: null
     }
 });
 
@@ -57,7 +61,7 @@ async function addThread() {
 
     try {
         isSubmitting.value = true;
-        await createThread(threadName.value, props.projectId, threadDescription.value);
+        await createThread(threadName.value, props.projectId, threadDescription.value, props.parentId);
 
         if (status.value) {
             threadName.value = '';

@@ -10,13 +10,6 @@
           </div>
           <div class="flex items-center gap-3">
             <FilterBadge v-if="filterActive" :term="searchTerm" @clear="clearFilter" />
-            <router-link to="/bibliography"
-              class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <span>Bibliography</span>
-            </router-link>
             <button @click="showImportModal = true"
               class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -38,6 +31,66 @@
           </div>
         </div>
         <div class="mt-6 h-px bg-border"></div>
+
+        <!-- Quick access to global sections -->
+        <div class="mt-4 flex flex-wrap gap-4">
+          <button @click="openBrowser"
+            title="Browse and capture web content"
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+            <span class="text-xs font-medium">Browser</span>
+          </button>
+          <router-link v-if="featureStore.isEnabled('entities')" to="/entities"
+            title="Manage people, places, organizations and concepts"
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="text-xs font-medium">Entities</span>
+          </router-link>
+          <router-link v-if="featureStore.isEnabled('datasets')" to="/datasets"
+            title="Create and analyze structured data tables"
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+            </svg>
+            <span class="text-xs font-medium">Datasets</span>
+          </router-link>
+          <router-link v-if="featureStore.isEnabled('notes')" to="/notes"
+            title="Quick notes and ideas across projects"
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <span class="text-xs font-medium">Notes</span>
+          </router-link>
+          <router-link v-if="featureStore.isEnabled('calendar')" to="/calendar"
+            title="Schedule and track events and deadlines"
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span class="text-xs font-medium">Calendar</span>
+          </router-link>
+          <router-link v-if="featureStore.isEnabled('knowledge_base')" to="/knowledge-base"
+            title="Curated reference articles and documentation"
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span class="text-xs font-medium">Knowledge</span>
+          </router-link>
+          <router-link v-if="featureStore.isEnabled('bibliography')" to="/bibliography"
+            title="Manage citations and references across projects"
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <span class="text-xs font-medium">Bibliography</span>
+          </router-link>
+        </div>
       </div>
 
       <!-- Pending resources -->
@@ -99,133 +152,8 @@
 
         <!-- Right: Notes & Events sidebar -->
         <div class="flex flex-col gap-6">
-
-          <!-- Recent Notes -->
-          <section>
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-sm font-semibold text-text-primary uppercase tracking-wider flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" stroke-width="1.75">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Recent Notes
-              </h2>
-              <div class="flex items-center gap-2">
-                <button @click="showNewNoteModal = true"
-                  class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent-subtle rounded-md transition-colors cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                  </svg>
-                  New
-                </button>
-                <router-link to="/notes"
-                  class="text-xs text-accent hover:text-accent-dark font-medium transition-colors">
-                  View all
-                </router-link>
-              </div>
-            </div>
-
-            <LoadingSpinner v-if="isNotesLoading" size="lg" fullHeight />
-
-            <div v-else-if="recentNotes.length > 0"
-              class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
-              <div class="flex flex-col divide-y divide-border-light">
-                <router-link v-for="note in recentNotes" :key="note.id" :to="`/notes/${note.id}`"
-                  class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group">
-                  <div
-                    class="w-7 h-7 rounded-md flex items-center justify-center bg-emerald-50 text-emerald-500 shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor" stroke-width="1.75">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="text-sm text-text-primary truncate">{{ note.title }}</p>
-                    <p class="text-[10px] text-text-muted">{{ formatDate(note.updatedAt) }}</p>
-                  </div>
-                  <span v-if="note.project"
-                    class="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent shrink-0">
-                    {{ note.project.name }}
-                  </span>
-                </router-link>
-              </div>
-            </div>
-
-            <div v-else class="text-center py-8 rounded-xl border border-dashed border-border">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mx-auto text-text-muted mb-2" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <p class="text-xs text-text-muted">No notes yet</p>
-            </div>
-          </section>
-
-          <!-- Upcoming Events -->
-          <section>
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-sm font-semibold text-text-primary uppercase tracking-wider flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-accent" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" stroke-width="1.75">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Upcoming Events
-              </h2>
-              <div class="flex items-center gap-2">
-                <button @click="showNewEventModal = true"
-                  class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent-subtle rounded-md transition-colors cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                  </svg>
-                  New
-                </button>
-                <router-link to="/calendar"
-                  class="text-xs text-accent hover:text-accent-dark font-medium transition-colors">
-                  View calendar
-                </router-link>
-              </div>
-            </div>
-
-            <LoadingSpinner v-if="isEventsLoading" size="lg" fullHeight />
-
-            <div v-else-if="upcomingEvents.length > 0"
-              class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
-              <div class="flex flex-col divide-y divide-border-light">
-                <router-link v-for="event in upcomingEvents" :key="event.id" to="/calendar"
-                  class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group">
-                  <div class="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-                    :style="{ backgroundColor: event.color + '20', color: event.color }">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor" stroke-width="1.75">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="text-sm text-text-primary truncate">{{ event.title }}</p>
-                    <p class="text-[10px] text-text-muted">{{ formatEventDate(event) }}</p>
-                  </div>
-                  <span v-if="event.project"
-                    class="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent shrink-0">
-                    {{ event.project.name }}
-                  </span>
-                </router-link>
-              </div>
-            </div>
-
-            <div v-else class="text-center py-8 rounded-xl border border-dashed border-border">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mx-auto text-text-muted mb-2" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <p class="text-xs text-text-muted">No upcoming events</p>
-            </div>
-          </section>
-
+          <RecentNotesPanel :notes="allNotes" :isLoading="isNotesLoading" @create="showNewNoteModal = true" />
+          <UpcomingEventsPanel :events="allEvents" :isLoading="isEventsLoading" @create="showNewEventModal = true" />
         </div>
 
       </div>
@@ -243,8 +171,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
 import ProjectList from '../components/projects/ProjectList.vue';
+import RecentNotesPanel from '../components/notes/RecentNotesPanel.vue';
+import UpcomingEventsPanel from '../components/calendar/UpcomingEventsPanel.vue';
 import ProjectAddModal from '../components/projects/ProjectAddModal.vue';
 import ImportDocumentModal from '../components/documents/ImportDocumentModal.vue';
 import SearchInput from '../components/search/SearchInput.vue';
@@ -259,8 +188,15 @@ import { useNotification } from '../composables/useNotification';
 import { useNotes } from '../services/notes/useNotes';
 import { useCalendarEvents } from '../services/calendar/useCalendarEvents';
 import { useProjectList } from '../services/projects/useProjectList';
+import { useFeatureStore } from '../store/featureStore';
 import NoteModal from '../components/notes/NoteModal.vue';
 import EventModal from '../components/calendar/EventModal.vue';
+
+const featureStore = useFeatureStore();
+
+const openBrowser = async () => {
+  await window.electronAPI.openExternalBrowser();
+};
 
 const projectsComponent = ref(null);
 const showProjectModal = ref(false);
@@ -270,7 +206,7 @@ const filterActive = computed(() => !!(searchTerm.value && String(searchTerm.val
 
 const clearFilter = () => {
   searchTerm.value = '';
-  if (projectsComponent.value && projectsComponent.value.loadProjects) {
+  if (projectsComponent.value && projectsComponent.value.filterProjects) {
     projectsComponent.value.filterProjects('');
   }
 };
@@ -289,23 +225,6 @@ const { projects: projectsList, loadProjects: loadProjectsList } = useProjectLis
 const showNewNoteModal = ref(false);
 const showNewEventModal = ref(false);
 
-const recentNotes = computed(() => allNotes.value.slice(0, 5));
-const upcomingEvents = computed(() => allEvents.value.slice(0, 5));
-
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-};
-
-const formatEventDate = (event) => {
-  const start = new Date(event.startDate);
-  if (event.allDay) {
-    return start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-  }
-  return start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) +
-    ' ' + start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-};
-
 const { showSearch } = useGlobalKeyboard();
 
 const openProjectModal = () => {
@@ -318,9 +237,10 @@ const onNewProject = () => {
   }
 };
 
-const searchProjects = (searchTerm) => {
-  if (projectsComponent.value && projectsComponent.value.loadProjects) {
-    projectsComponent.value.filterProjects(searchTerm);
+const searchProjects = (term) => {
+  searchTerm.value = term;
+  if (projectsComponent.value && projectsComponent.value.filterProjects) {
+    projectsComponent.value.filterProjects(term);
   }
 };
 

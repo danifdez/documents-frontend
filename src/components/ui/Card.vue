@@ -58,18 +58,20 @@ const props = defineProps({
     variant: {
         type: String,
         default: 'default',
-        validator: (v) => ['default', 'document', 'canvas', 'thread'].includes(v),
+        validator: (v) => ['default', 'document', 'canvas', 'thread', 'timeline'].includes(v),
     },
 });
 
 const iconBgClasses = computed(() => {
     switch (props.variant) {
-        case 'canvas':
-            return 'bg-amber-50 text-amber-500 group-hover:bg-amber-500 group-hover:text-white';
+        case 'thread':
+            return 'bg-violet-50 text-violet-500 group-hover:bg-violet-500 group-hover:text-white';
         case 'document':
             return 'bg-accent-subtle text-accent group-hover:bg-accent group-hover:text-white';
-        case 'thread':
-            return 'bg-accent-subtle text-accent group-hover:bg-accent group-hover:text-white';
+        case 'canvas':
+            return 'bg-amber-50 text-amber-500 group-hover:bg-amber-500 group-hover:text-white';
+        case 'timeline':
+            return 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white';
         default:
             return 'bg-accent-subtle text-accent group-hover:bg-accent group-hover:text-white';
     }

@@ -22,6 +22,7 @@ export interface Resource {
   license: string | null;
   status: string;
   project: { id: number; name: string } | null;
+  thread: { id: number; name: string } | null;
   authors: Array<{ id: number; name: string }>;
   entities: Array<{ id: number; name: string; entityType?: { id: number; name: string } }>;
   createdAt: string;

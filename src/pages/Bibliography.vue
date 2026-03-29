@@ -21,10 +21,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import BibliographyManager from '../components/bibliography/BibliographyManager.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
+import apiClient from '../services/api';
 
 const route = useRoute();
 const projectId = computed(() => {
@@ -32,10 +33,21 @@ const projectId = computed(() => {
     return id ? Number(id) : null;
 });
 
+const projectName = ref('');
+
+onMounted(async () => {
+    if (projectId.value) {
+        try {
+            const res = await apiClient.get(`/projects/${projectId.value}`);
+            projectName.value = res.data.name;
+        } catch { }
+    }
+});
+
 const breadcrumbItems = computed(() => {
     if (projectId.value) {
         return [
-            { name: 'Project', to: `/project/${projectId.value}` },
+            { name: projectName.value || 'Project', path: `/project/${projectId.value}` },
             { name: 'Bibliography' },
         ];
     }

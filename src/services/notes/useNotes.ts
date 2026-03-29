@@ -40,6 +40,22 @@ export function useNotes() {
         }
     };
 
+    const loadNotesByThread = async (threadId: string | number) => {
+        isLoading.value = true;
+        error.value = null;
+        try {
+            const response = await apiClient.get(`/notes/thread/${threadId}`);
+            notes.value = response.data;
+            return response.data;
+        } catch (err) {
+            error.value = err;
+            notes.value = [];
+            throw err;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
     const loadNote = async (id: string | number) => {
         isLoading.value = true;
         error.value = null;
@@ -93,6 +109,7 @@ export function useNotes() {
         isLoading,
         loadNotes,
         loadNotesByProject,
+        loadNotesByThread,
         loadNote,
         createNote,
         updateNote,
