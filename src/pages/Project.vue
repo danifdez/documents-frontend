@@ -93,14 +93,14 @@
             </svg>
             <span class="text-xs font-medium">Notes</span>
           </button>
-          <button v-if="featureStore.isEnabled('calendar')" @click="showCreateEventModal = true"
-            title="Create an event for this project"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
+          <router-link v-if="featureStore.isEnabled('calendar')" :to="`/project/${route.params.id}/calendar`"
+            title="View project calendar"
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span class="text-xs font-medium">Calendar</span>
-          </button>
+          </router-link>
           <router-link v-if="featureStore.isEnabled('datasets')" to="/datasets"
             title="Structured data tables and analysis"
             class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
@@ -127,8 +127,8 @@
           </div>
         </div>
 
-        <!-- Sections grid: left column (Threads + Documents + Notes) | right column (Resources + Events) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Sections grid: Documents | Resources | Notes+Events -->
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_1fr_20rem] gap-6">
 
           <!-- Left column: Threads + Documents + Canvases + Timelines -->
           <div class="min-w-0">
@@ -205,8 +205,8 @@
             </section>
           </div>
 
-          <!-- Right column: Resources + Notes + Events -->
-          <div class="min-w-0 flex flex-col gap-8">
+          <!-- Middle column: Resources -->
+          <div class="min-w-0">
             <section>
               <h3 class="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Resources</h3>
               <div v-if="isResourcesLoading" class="flex justify-center py-8">
@@ -239,12 +239,16 @@
                 </p>
               </div>
             </section>
+          </div>
 
+          <!-- Right column: Notes + Events -->
+          <div class="flex flex-col gap-6">
             <RecentNotesPanel v-if="featureStore.isEnabled('notes')"
               :notes="projectNotes" :isLoading="isNotesLoading" :showProject="false"
               @create="showCreateNoteModal = true" />
             <UpcomingEventsPanel v-if="featureStore.isEnabled('calendar')"
               :events="projectEvents" :isLoading="isEventsLoading" :showProject="false"
+              :projectId="route.params.id"
               @create="showCreateEventModal = true" />
           </div>
 

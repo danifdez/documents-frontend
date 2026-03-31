@@ -108,7 +108,7 @@
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Knowledge Base</span>
             </router-link>
 
-            <router-link v-if="featureStore.isEnabled('calendar')" to="/calendar"
+            <router-link v-if="featureStore.isEnabled('calendar')" :to="calendarRoute"
                 class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200"
                 :class="{ 'justify-center': collapsed }" active-class="!bg-accent-subtle !text-accent-dark font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
@@ -119,18 +119,6 @@
                 <span v-if="!collapsed"
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Calendar</span>
             </router-link>
-
-            <button v-if="featureStore.isEnabled('tasks')" @click="toggleTaskPanel()"
-                class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200 hover:bg-surface-hover cursor-pointer w-full"
-                :class="collapsed ? 'justify-center' : 'text-left'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="1.75">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-                <span v-if="!collapsed"
-                    class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Tasks</span>
-            </button>
 
             <ResourceSidebar :collapsed="collapsed" @expand="handleResourceExpand" />
             <DocumentSidebar :collapsed="collapsed" @expand="handleDocumentExpand" />
@@ -191,7 +179,6 @@ import DocumentSidebar from './DocumentSidebar.vue';
 import WorkspaceSelector from '../components/WorkspaceSelector.vue';
 import SyncIndicator from '../components/SyncIndicator.vue';
 import { useProjectStore } from '../store/projectStore';
-import { useTaskPanel } from '../composables/useTaskPanel';
 import { useAuthStore } from '../store/authStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useRouter } from 'vue-router';
@@ -200,11 +187,17 @@ const projectStore = useProjectStore();
 const authStore = useAuthStore();
 const featureStore = useFeatureStore();
 const router = useRouter();
-const { toggleTaskPanel } = useTaskPanel();
 const collapsed = ref(true);
 
 const hasProjectSelected = computed(() => {
     return !!projectStore?.currentProject?.id;
+});
+
+const calendarRoute = computed(() => {
+    if (hasProjectSelected.value) {
+        return `/project/${projectStore.currentProject.id}/calendar`;
+    }
+    return '/calendar';
 });
 
 const authRequired = computed(() => authStore.authRequired);

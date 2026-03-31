@@ -48,7 +48,7 @@
     </div>
 
     <!-- Timeline visualization -->
-    <div class="flex-1 min-h-0 overflow-auto" ref="scrollContainerRef" data-timeline-export
+    <div class="flex-1 min-h-0 overflow-auto" ref="scrollContainerRef" data-timeline-export>
       <div class="flex justify-center" :style="{ minWidth: scaledTimelineWidth + 'px' }">
         <div class="relative" :style="{ width: scaledTimelineWidth + 'px', height: timelineHeight + 'px' }">
 

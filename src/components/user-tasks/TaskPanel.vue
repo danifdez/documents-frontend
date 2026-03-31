@@ -78,16 +78,22 @@
 
                     <!-- Completed section -->
                     <div v-if="completedTasks.length > 0" class="mt-4 pt-4 border-t border-border">
-                        <button @click="showCompleted = !showCompleted"
-                            class="flex items-center gap-2.5 px-4 py-2 text-sm text-text-muted hover:text-text-secondary transition-colors cursor-pointer">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200"
-                                :class="{ 'rotate-90': showCompleted }" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Completed ({{ completedTasks.length }})
-                        </button>
+                        <div class="flex items-center justify-between">
+                            <button @click="showCompleted = !showCompleted"
+                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-text-muted hover:text-text-secondary transition-colors cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200"
+                                    :class="{ 'rotate-90': showCompleted }" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                Completed ({{ completedTasks.length }})
+                            </button>
+                            <button @click="clearCompleted"
+                                class="px-3 py-1 text-[11px] font-medium text-red-500 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer">
+                                Clear all
+                            </button>
+                        </div>
                         <template v-if="showCompleted">
                             <div v-for="task in completedTasks" :key="task.id"
                                 class="group flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-surface-hover transition-colors">
@@ -220,6 +226,13 @@ const handleBackspace = async (task: UserTask, index: number, event: KeyboardEve
 
 const removeTask = async (task: UserTask) => {
     await deleteTask(task.id);
+    await loadTasks();
+};
+
+const clearCompleted = async () => {
+    for (const task of completedTasks.value) {
+        await deleteTask(task.id);
+    }
     await loadTasks();
 };
 </script>

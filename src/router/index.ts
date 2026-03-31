@@ -107,6 +107,12 @@ const routes = [
     meta: { feature: 'calendar' },
   },
   {
+    path: '/project/:id/calendar',
+    name: 'ProjectCalendar',
+    component: Calendar,
+    meta: { feature: 'calendar' },
+  },
+  {
     path: '/timeline/:id',
     name: 'Timeline',
     component: Timeline,

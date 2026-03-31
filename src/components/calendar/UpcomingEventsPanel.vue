@@ -17,7 +17,7 @@
           </svg>
           New
         </button>
-        <router-link to="/calendar"
+        <router-link :to="calendarRoute"
           class="text-xs text-accent hover:text-accent-dark font-medium transition-colors">
           View calendar
         </router-link>
@@ -29,7 +29,7 @@
     <div v-else-if="displayEvents.length > 0"
       class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
       <div class="flex flex-col divide-y divide-border-light">
-        <router-link v-for="event in displayEvents" :key="event.id" to="/calendar"
+        <router-link v-for="event in displayEvents" :key="event.id" :to="calendarRoute"
           class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group">
           <div class="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
             :style="{ backgroundColor: event.color + '20', color: event.color }">
@@ -72,9 +72,16 @@ const props = withDefaults(defineProps<{
   isLoading: boolean;
   limit?: number;
   showProject?: boolean;
+  projectId?: number | string | null;
 }>(), {
   limit: 5,
   showProject: true,
+  projectId: null,
+});
+
+const calendarRoute = computed(() => {
+  if (props.projectId) return `/project/${props.projectId}/calendar`;
+  return '/calendar';
 });
 
 defineEmits<{
