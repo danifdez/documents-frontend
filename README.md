@@ -77,6 +77,7 @@ See [Getting Started](docs/getting-started.md) for full setup, environment varia
 | [Features](docs/features.md) | Detailed walkthrough of all application features and pages |
 | [Architecture](docs/architecture.md) | Electron process model, Vue app structure, and key design patterns |
 | [Electron Integration](docs/electron-integration.md) | IPC channels, preload bridge, file upload flow, and security configuration |
+| [Standalone Mode](docs/standalone.md) | Running the app as a self-contained local server |
 
 ## Building Distributables
 
