@@ -58,14 +58,14 @@
             </svg>
             <span class="text-xs font-medium">Datasets</span>
           </router-link>
-          <router-link v-if="featureStore.isEnabled('notes')" to="/notes"
+          <button v-if="featureStore.isEnabled('notes')" @click="openNotesPanel"
             title="Quick notes and ideas across projects"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
             <span class="text-xs font-medium">Notes</span>
-          </router-link>
+          </button>
           <router-link v-if="featureStore.isEnabled('calendar')" to="/calendar"
             title="Schedule and track events and deadlines"
             class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
@@ -152,7 +152,8 @@
 
         <!-- Right: Notes & Events sidebar -->
         <div class="flex flex-col gap-6">
-          <RecentNotesPanel :notes="allNotes" :isLoading="isNotesLoading" @create="showNewNoteModal = true" />
+          <RecentNotesPanel :notes="allNotes" :isLoading="isNotesLoading"
+            @create="openNotesPanel" @open="openNoteInPanel" />
           <UpcomingEventsPanel :events="allEvents" :isLoading="isEventsLoading" @create="showNewEventModal = true" />
         </div>
 
@@ -163,7 +164,6 @@
       <SearchInput :show="showSearch" :value="searchTerm" @search="searchProjects" @close="showSearch = false"
         placeholder="Search projects..." />
 
-      <NoteModal v-model="showNewNoteModal" @note:created="handleNoteCreated" />
       <EventModal v-model="showNewEventModal" :projects="projectsList" @submit="handleEventCreated" />
     </div>
   </div>
@@ -189,7 +189,6 @@ import { useNotes } from '../services/notes/useNotes';
 import { useCalendarEvents } from '../services/calendar/useCalendarEvents';
 import { useProjectList } from '../services/projects/useProjectList';
 import { useFeatureStore } from '../store/featureStore';
-import NoteModal from '../components/notes/NoteModal.vue';
 import EventModal from '../components/calendar/EventModal.vue';
 
 const featureStore = useFeatureStore();
@@ -222,10 +221,17 @@ const { notes: allNotes, isLoading: isNotesLoading, loadNotes } = useNotes();
 const { events: allEvents, isLoading: isEventsLoading, loadEventsByRange, createEvent } = useCalendarEvents();
 const { projects: projectsList, loadProjects: loadProjectsList } = useProjectList();
 
-const showNewNoteModal = ref(false);
 const showNewEventModal = ref(false);
 
-const { showSearch } = useGlobalKeyboard();
+const { showSearch, showNotesPanel } = useGlobalKeyboard();
+
+const openNotesPanel = () => {
+  showNotesPanel.value = true;
+};
+
+const openNoteInPanel = (noteId) => {
+  showNotesPanel.value = true;
+};
 
 const openProjectModal = () => {
   showProjectModal.value = true;
@@ -241,14 +247,6 @@ const searchProjects = (term) => {
   searchTerm.value = term;
   if (projectsComponent.value && projectsComponent.value.filterProjects) {
     projectsComponent.value.filterProjects(term);
-  }
-};
-
-const handleNoteCreated = async () => {
-  try {
-    await loadNotes();
-  } catch (e) {
-    // silently fail
   }
 };
 

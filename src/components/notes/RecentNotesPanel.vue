@@ -17,10 +17,10 @@
           </svg>
           New
         </button>
-        <router-link to="/notes"
-          class="text-xs text-accent hover:text-accent-dark font-medium transition-colors">
+        <button @click="$emit('create')"
+          class="text-xs text-accent hover:text-accent-dark font-medium transition-colors cursor-pointer">
           View all
-        </router-link>
+        </button>
       </div>
     </div>
 
@@ -29,8 +29,8 @@
     <div v-else-if="displayNotes.length > 0"
       class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
       <div class="flex flex-col divide-y divide-border-light">
-        <router-link v-for="note in displayNotes" :key="note.id" :to="`/notes/${note.id}`"
-          class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group">
+        <button v-for="note in displayNotes" :key="note.id" @click="$emit('open', note.id)"
+          class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group cursor-pointer text-left w-full">
           <div class="w-7 h-7 rounded-md flex items-center justify-center bg-emerald-50 text-emerald-500 shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
               stroke="currentColor" stroke-width="1.75">
@@ -46,7 +46,7 @@
             class="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent shrink-0">
             {{ note.project.name }}
           </span>
-        </router-link>
+        </button>
       </div>
     </div>
 
@@ -78,6 +78,7 @@ const props = withDefaults(defineProps<{
 
 defineEmits<{
   create: [];
+  open: [noteId: number];
 }>();
 
 const displayNotes = computed(() => props.notes.slice(0, props.limit));

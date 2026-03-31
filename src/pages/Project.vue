@@ -85,8 +85,8 @@
             </svg>
             <span class="text-xs font-medium">Bibliography</span>
           </router-link>
-          <button v-if="featureStore.isEnabled('notes')" @click="showCreateNoteModal = true"
-            title="Create a note for this project"
+          <button v-if="featureStore.isEnabled('notes')" @click="openNotesPanel"
+            title="Notes for this project"
             class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -245,7 +245,7 @@
           <div class="flex flex-col gap-6">
             <RecentNotesPanel v-if="featureStore.isEnabled('notes')"
               :notes="projectNotes" :isLoading="isNotesLoading" :showProject="false"
-              @create="showCreateNoteModal = true" />
+              @create="openNotesPanel" @open="openNoteInPanel" />
             <UpcomingEventsPanel v-if="featureStore.isEnabled('calendar')"
               :events="projectEvents" :isLoading="isEventsLoading" :showProject="false"
               :projectId="route.params.id"
@@ -257,8 +257,6 @@
 
       </div>
 
-      <NoteModal v-model="showCreateNoteModal" :project-id="route.params.id"
-        @note:created="loadNotesByProject(route.params.id)" />
       <EventModal v-if="project" v-model="showCreateEventModal" :projects="[project]" :default-project-id="project.id"
         @submit="handleEventCreated" />
 
@@ -315,7 +313,6 @@ import FilterBadge from '../components/search/FilterBadge.vue';
 import Card from '../components/ui/Card.vue';
 import IconType from '../components/resources/IconType.vue';
 import RecentNotesPanel from '../components/notes/RecentNotesPanel.vue';
-import NoteModal from '../components/notes/NoteModal.vue';
 import UpcomingEventsPanel from '../components/calendar/UpcomingEventsPanel.vue';
 import EventModal from '../components/calendar/EventModal.vue';
 import { useNotification } from '../composables/useNotification';
@@ -323,7 +320,15 @@ import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 
-const { showSearch } = useGlobalKeyboard();
+const { showSearch, showNotesPanel } = useGlobalKeyboard();
+
+const openNotesPanel = () => {
+  showNotesPanel.value = true;
+};
+
+const openNoteInPanel = (noteId) => {
+  showNotesPanel.value = true;
+};
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -332,7 +337,6 @@ const showDeleteDialog = ref(false);
 const showEditModal = ref(false);
 const showCreateThreadModal = ref(false);
 const showImportDocumentModal = ref(false);
-const showCreateNoteModal = ref(false);
 const showMoveModal = ref(false);
 const moveItem = ref(null);
 const showCreateEventModal = ref(false);

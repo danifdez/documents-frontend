@@ -11,8 +11,6 @@ import Entities from '../pages/Entities.vue'
 import Canvas from '../pages/Canvas.vue'
 import Datasets from '../pages/Datasets.vue'
 import Dataset from '../pages/Dataset.vue'
-import Notes from '../pages/Notes.vue'
-import NoteEdit from '../pages/NoteEdit.vue'
 import Calendar from '../pages/Calendar.vue'
 import Timeline from '../pages/Timeline.vue'
 import KnowledgeBase from '../pages/KnowledgeBase.vue'
@@ -87,18 +85,6 @@ const routes = [
     name: 'Dataset',
     component: Dataset,
     meta: { feature: 'datasets' },
-  },
-  {
-    path: '/notes',
-    name: 'Notes',
-    component: Notes,
-    meta: { feature: 'notes' },
-  },
-  {
-    path: '/notes/:id',
-    name: 'NoteEdit',
-    component: NoteEdit,
-    meta: { feature: 'notes' },
   },
   {
     path: '/calendar',

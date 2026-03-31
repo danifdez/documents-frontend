@@ -187,7 +187,7 @@
           <!-- Notes -->
           <RecentNotesPanel v-if="featureStore.isEnabled('notes')"
             :notes="threadNotes" :isLoading="isNotesLoading" :showProject="false"
-            @create="showNoteModal = true" />
+            @create="openNotesPanel" @open="openNoteInPanel" />
         </div>
 
       </div>
@@ -207,11 +207,6 @@
         :project-id="projectStore.currentProject?.id?.toString() || ''"
         :thread-id="threadId?.toString() || ''"
         @documents:imported="handleResourcesImported" />
-
-      <NoteModal v-model="showNoteModal"
-        :project-id="projectStore.currentProject?.id"
-        :thread-id="threadId"
-        @note:created="handleNoteCreated" />
 
       <ConfirmModal :isOpen="showDeleteDialog" title="Delete Thread"
         message="Are you sure you want to delete this thread? This action cannot be undone."
@@ -251,7 +246,6 @@ import SearchInput from '../components/search/SearchInput.vue';
 import FilterBadge from '../components/search/FilterBadge.vue';
 import IconType from '../components/resources/IconType.vue';
 import ImportDocumentModal from '../components/documents/ImportDocumentModal.vue';
-import NoteModal from '../components/notes/NoteModal.vue';
 import RecentNotesPanel from '../components/notes/RecentNotesPanel.vue';
 import ThreadCreateModal from '../components/threads/ThreadCreateModal.vue';
 import MoveToThreadModal from '../components/ui/MoveToThreadModal.vue';
@@ -276,7 +270,15 @@ const { loadResourcesByThread, assignResourceToThread } = useResourceList();
 const { threads: projectThreads, loadThreads: loadProjectThreads } = useThreadList();
 const { notes: threadNotes, isLoading: isNotesLoading, loadNotesByThread } = useNotes();
 const { loadThread, loadChildThreads, updateThread, deleteThread } = useThread();
-const { showSearch } = useGlobalKeyboard();
+const { showSearch, showNotesPanel } = useGlobalKeyboard();
+
+const openNotesPanel = () => {
+  showNotesPanel.value = true;
+};
+
+const openNoteInPanel = (noteId) => {
+  showNotesPanel.value = true;
+};
 const thread = ref(null);
 const projectStore = useProjectStore();
 const featureStore = useFeatureStore();
@@ -287,7 +289,6 @@ const isDocsLoading = ref(true);
 const isResourcesLoading = ref(false);
 const threadResources = ref([]);
 const showImportModal = ref(false);
-const showNoteModal = ref(false);
 const showCreateThreadModal = ref(false);
 const showEditModal = ref(false);
 const showDeleteDialog = ref(false);
@@ -403,12 +404,6 @@ const loadResources = async () => {
 
 const handleResourcesImported = async () => {
   await loadResources();
-};
-
-const handleNoteCreated = async () => {
-  try {
-    await loadNotesByThread(threadId.value);
-  } catch { }
 };
 
 const confirmDelete = () => {
