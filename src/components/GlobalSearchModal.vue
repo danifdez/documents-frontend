@@ -143,7 +143,7 @@ const searchPlaceholder = computed(() => {
     if (projectStore.currentProject) {
         return `Search in ${projectStore.currentProject.name}...`;
     }
-    return 'Search notes, events, knowledge base, entities, datasets...';
+    return 'Search notes, events, knowledge base, relationships, datasets...';
 });
 
 const collectionLabels: Record<string, string> = {
@@ -153,7 +153,7 @@ const collectionLabels: Record<string, string> = {
     notes: 'Notes',
     events: 'Events',
     knowledge: 'Knowledge Base',
-    entities: 'Entities',
+    entities: 'Relationships',
     datasets: 'Datasets',
 };
 
@@ -234,7 +234,7 @@ function getResultLink(result: any) {
         case 'knowledge':
             return `/knowledge-base/${result.id}`;
         case 'entities':
-            return `/entities`;
+            return `/relationships`;
         case 'datasets':
             return `/datasets/${result.id}`;
         default:

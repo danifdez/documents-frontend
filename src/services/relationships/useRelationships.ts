@@ -27,6 +27,10 @@ export function useRelationships() {
     const error = ref<string | null>(null);
     const data = ref<RelationshipData>({ entities: [], relationships: [] });
 
+    const fetchAll = (): Promise<RelationshipData> => {
+        return _query('/relationships/all');
+    };
+
     const fetchByResource = (resourceId: number): Promise<RelationshipData> => {
         return _query(`/relationships/resource/${resourceId}`);
     };
@@ -165,6 +169,7 @@ export function useRelationships() {
         isLoading,
         error,
         data,
+        fetchAll,
         fetchByResource,
         fetchByProject,
         createRelationship,

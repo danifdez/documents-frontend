@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export const FEATURE_LABELS: Record<string, string> = {
-  entities: 'Entities',
   authors: 'Authors',
   canvas: 'Canvas',
   datasets: 'Datasets',

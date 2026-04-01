@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import Dashboard from '../pages/Dashboard.vue'
 import Project from '../pages/Project.vue'
 import Thread from '../pages/Thread.vue'
@@ -7,7 +7,7 @@ import BrowserToolbar from '../pages/BrowserToolbar.vue'
 import BrowserPage from '../pages/BrowserPage.vue'
 import Resource from '../pages/Resource.vue'
 import Settings from '../pages/Settings.vue'
-import Entities from '../pages/Entities.vue'
+import Relationships from '../pages/Relationships.vue'
 import Canvas from '../pages/Canvas.vue'
 import Datasets from '../pages/Datasets.vue'
 import Dataset from '../pages/Dataset.vue'
@@ -18,7 +18,7 @@ import KnowledgeEntryEdit from '../pages/KnowledgeEntryEdit.vue'
 import Bibliography from '../pages/Bibliography.vue'
 import Login from '../pages/Login.vue'
 import UserManagement from '../pages/UserManagement.vue'
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
@@ -63,15 +63,19 @@ const routes = [
     meta: { feature: 'canvas' },
   },
   {
+    path: '/relationships',
+    name: 'Relationships',
+    component: Relationships,
+    meta: { feature: 'relationships' },
+  },
+  {
     path: '/entities',
-    name: 'Entities',
-    component: Entities,
-    meta: { feature: 'entities' },
+    redirect: '/relationships',
   },
   {
     path: '/project/:id/relationships',
-    name: 'Relationships',
-    component: () => import('../pages/Relationships.vue'),
+    name: 'ProjectRelationships',
+    redirect: (to: any) => ({ path: '/relationships', query: { tab: 'relationships', project: to.params.id } }),
     meta: { feature: 'relationships' },
   },
   {

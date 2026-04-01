@@ -1,10 +1,19 @@
 import { io, Socket } from 'socket.io-client';
 
-let socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000');
+function getAuthToken(): string | null {
+    const wsId = localStorage.getItem('activeWorkspaceId') || 'default';
+    return localStorage.getItem(`accessToken_${wsId}`);
+}
 
-export function reconnectSocket(url: string) {
+let socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+    auth: { token: getAuthToken() },
+});
+
+export function reconnectSocket(url?: string) {
     socket.disconnect();
-    socket = io(url);
+    socket = io(url || import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+        auth: { token: getAuthToken() },
+    });
     socket.connect();
 }
 

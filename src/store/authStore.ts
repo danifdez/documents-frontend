@@ -60,6 +60,10 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = data.user;
     localStorage.setItem(tokenKey('accessToken'), data.accessToken);
     localStorage.setItem(tokenKey('refreshToken'), data.refreshToken);
+
+    // Reconnect WebSocket with new token
+    const { reconnectSocket } = await import('../services/notifications/notification');
+    reconnectSocket();
   }
 
   async function refresh(): Promise<boolean> {

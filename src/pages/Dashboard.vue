@@ -42,13 +42,13 @@
             </svg>
             <span class="text-xs font-medium">Browser</span>
           </button>
-          <router-link v-if="featureStore.isEnabled('entities')" to="/entities"
-            title="Manage people, places, organizations and concepts"
+          <router-link v-if="featureStore.isEnabled('relationships')" to="/relationships"
+            title="Manage entities and explore their relationships"
             class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            <span class="text-xs font-medium">Entities</span>
+            <span class="text-xs font-medium">Relationships</span>
           </router-link>
           <router-link v-if="featureStore.isEnabled('datasets')" to="/datasets"
             title="Create and analyze structured data tables"

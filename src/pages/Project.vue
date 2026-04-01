@@ -70,12 +70,12 @@
         <!-- Quick access to project sections -->
         <div class="mt-4 mb-6 flex flex-wrap gap-4">
           <router-link v-if="featureStore.isEnabled('relationships')" :to="`/project/${route.params.id}/relationships`"
-            title="Explore entity relationships in this project"
+            title="Entities and relationships in this project"
             class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            <span class="text-xs font-medium">Relations</span>
+            <span class="text-xs font-medium">Relationships</span>
           </router-link>
           <router-link v-if="featureStore.isEnabled('bibliography')" :to="`/project/${route.params.id}/bibliography`"
             title="Manage citations and references for this project"
@@ -108,14 +108,6 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
             </svg>
             <span class="text-xs font-medium">Datasets</span>
-          </router-link>
-          <router-link v-if="featureStore.isEnabled('entities')" to="/entities"
-            title="People, places, organizations and concepts"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span class="text-xs font-medium">Entities</span>
           </router-link>
         </div>
 

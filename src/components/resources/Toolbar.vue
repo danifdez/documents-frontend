@@ -21,7 +21,7 @@
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
             </Button>
-            <Button v-if="!hasEntities && featureStore.isEnabled('entities')" @click="emit('extractEntities')" size="small" title="Extract Entities">
+            <Button v-if="!hasEntities && featureStore.isEnabled('relationships')" @click="emit('extractEntities')" size="small" title="Extract Entities">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"
