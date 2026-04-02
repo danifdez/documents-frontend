@@ -7,6 +7,13 @@ export interface KnowledgeEntry {
     content: string | null;
     summary: string | null;
     tags: string[] | null;
+    isDefinition: boolean;
+    entityId: number | null;
+    entity: {
+        id: number;
+        name: string;
+        entityType: { id: number; name: string };
+    } | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -70,6 +77,15 @@ export function useKnowledgeBase() {
         }
     };
 
+    const loadByEntityId = async (entityId: number) => {
+        try {
+            const response = await apiClient.get(`/knowledge-entries/by-entity/${entityId}`);
+            return response.data as KnowledgeEntry | null;
+        } catch {
+            return null;
+        }
+    };
+
     const deleteEntry = async (id: number | string) => {
         try {
             const response = await apiClient.delete(`/knowledge-entries/${id}`);
@@ -87,6 +103,7 @@ export function useKnowledgeBase() {
         isLoading,
         loadEntries,
         loadEntry,
+        loadByEntityId,
         createEntry,
         updateEntry,
         deleteEntry,

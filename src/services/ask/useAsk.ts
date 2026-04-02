@@ -7,7 +7,7 @@ export function useAsk() {
     const isLoading = ref(false);
     const error = ref<string | null>(null);
 
-    const ask = async (question: string, projectId?: number): Promise<void> => {
+    const ask = async (question: string, projectId?: number, context?: string): Promise<void> => {
         isLoading.value = true;
         error.value = null;
         const requestId = uuidv4();
@@ -24,7 +24,7 @@ export function useAsk() {
             };
             socket.on('askResponse', onResponse);
 
-            apiClient.post('/model/ask', { question, projectId, requestId })
+            apiClient.post('/model/ask', { question, projectId, requestId, context })
                 .catch((err: any) => {
                     socket.off('askResponse', onResponse);
                     error.value = err.message || 'Failed to get response';

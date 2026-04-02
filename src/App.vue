@@ -42,7 +42,7 @@
     <router-view />
   </div>
   <MainLayout v-else>
-    <div class="flex-1 flex flex-col min-h-0 overflow-hidden px-5 pt-4">
+    <div :class="['flex-1 flex flex-col min-h-0 overflow-hidden', isBrowserPage ? '' : 'px-5 pt-4']">
       <router-view class="flex-1 min-h-0 overflow-hidden" />
     </div>
     <GlobalSearchModal :show="showGlobalSearch" @close="showGlobalSearch = false" />
@@ -79,6 +79,7 @@ const offlineStore = useOfflineStore();
 const { isOnline } = useNetworkStatus();
 
 const isLoginRoute = computed(() => route.name === 'Login');
+const isBrowserPage = computed(() => route.name === 'BrowserPage' || route.name === 'BrowserToolbar');
 const showRemoteForm = ref(false);
 const localSetupInProgress = ref(false);
 
@@ -142,6 +143,11 @@ function setupSocket() {
 
 onMounted(async () => {
   initTheme();
+
+  // Listen for navigation requests from browser window
+  window.electronAPI?.onNavigateToRoute?.((route) => {
+    router.push(route);
+  });
 
   // Initialize workspace before anything else
   await workspaceStore.loadWorkspaces();

@@ -1,7 +1,7 @@
 <template>
   <div class="mb-2.5 flex flex-wrap items-center gap-1 bg-surface-elevated p-2 relative">
-    <!-- Text Color & BG Color (not in summary mode) -->
-    <template v-if="context !== 'summary'">
+    <!-- Text Color & BG Color (not in summary or knowledge mode) -->
+    <template v-if="context !== 'summary' && context !== 'knowledge'">
       <div class="relative">
         <Button @click="toggleDropdown('textColor')" title="Text Color" size="small" borderless>
           <span class="text-base font-bold" :style="{ color: currentTextColor || '#000' }">A</span>
@@ -287,9 +287,11 @@
         </svg>
       </Button>
 
-      <div class="h-6 w-px bg-border mx-0.5"></div>
+    </template>
 
-      <!-- Markers -->
+    <!-- Markers (not summary, not knowledge) -->
+    <template v-if="context !== 'summary' && context !== 'knowledge'">
+      <div class="h-6 w-px bg-border mx-0.5"></div>
       <Button @click="applyMarker('idea')" title="Idea Marker (Ctrl+Alt+I)" size="small"
         :active="activeMarkerType === 'idea'" borderless>
         <span class="text-sm">💡</span>
@@ -330,6 +332,11 @@
             stroke-linejoin="round" />
         </svg>
       </Button>
+    </template>
+
+    <!-- Citations (document + knowledge) -->
+    <template v-if="context === 'document' || context === 'knowledge'">
+      <div v-if="context === 'knowledge'" class="h-6 w-px bg-border mx-0.5"></div>
       <Button @click="emit('add-citation')" title="Insertar cita bibliográfica" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
           <path d="M4 4H16C16.5523 4 17 4.44772 17 5V15C17 15.5523 16.5523 16 16 16H4C3.44772 16 3 15.5523 3 15V5C3 4.44772 3.44772 4 4 4Z" stroke="currentColor" stroke-width="1.5" fill="none" />
@@ -338,6 +345,10 @@
           <path d="M6 13H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
         </svg>
       </Button>
+    </template>
+
+    <!-- Dataset view (document-only) -->
+    <template v-if="context === 'document'">
       <Button @click="emit('add-dataset-view')" title="Insert Dataset View" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">

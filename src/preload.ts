@@ -17,6 +17,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSettings: () => ipcRenderer.invoke('settings:get'),
     setSettings: (settings: any) => ipcRenderer.invoke('settings:set', settings),
     showSelectionContextMenu: () => ipcRenderer.invoke('show-selection-context-menu'),
+    navigateMainWindow: (route: string) => ipcRenderer.invoke('navigate-main-window', route),
+    onNavigateToRoute: (callback: (route: string) => void) =>
+        ipcRenderer.on('navigate-to-route', (_event, route) => callback(route)),
 
     // Workspace management
     getWorkspaces: () => ipcRenderer.invoke('workspace:list'),

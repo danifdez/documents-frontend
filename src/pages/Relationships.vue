@@ -239,7 +239,22 @@
                                             {{ project.name }}
                                         </button>
                                     </div>
-                                    <p v-if="(!expandedDetail.resources || expandedDetail.resources.length === 0) && (!expandedDetail.projects || expandedDetail.projects.length === 0)"
+                                    <!-- Knowledge Base entries -->
+                                    <div v-if="expandedDetail.knowledgeEntries && expandedDetail.knowledgeEntries.length > 0">
+                                        <span class="text-[10px] font-semibold text-text-muted uppercase">Knowledge Base ({{ expandedDetail.knowledgeEntries.length }})</span>
+                                        <button v-for="kb in expandedDetail.knowledgeEntries" :key="kb.id"
+                                            @click="navigateToKBEntry(kb.id)"
+                                            class="block w-full text-left text-[11px] text-accent hover:underline truncate">
+                                            {{ kb.title }}
+                                        </button>
+                                    </div>
+                                    <div v-if="featureStore.isEnabled('knowledge_base') && (!expandedDetail.knowledgeEntries || expandedDetail.knowledgeEntries.length === 0)">
+                                        <button @click="createKBFromEntity(entity)"
+                                            class="text-[10px] text-accent hover:underline cursor-pointer">
+                                            + Crear entrada en Knowledge Base
+                                        </button>
+                                    </div>
+                                    <p v-if="(!expandedDetail.resources || expandedDetail.resources.length === 0) && (!expandedDetail.projects || expandedDetail.projects.length === 0) && (!expandedDetail.knowledgeEntries || expandedDetail.knowledgeEntries.length === 0)"
                                         class="text-[10px] text-text-muted">Not linked to any resources</p>
                                 </div>
                             </div>
@@ -483,6 +498,8 @@ import { useNotification } from '../composables/useNotification';
 import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import apiClient from '../services/api';
+import { useKnowledgeBase } from '../services/knowledge/useKnowledgeBase';
+import { useFeatureStore } from '../store/featureStore';
 
 const router = useRouter();
 const route = useRoute();
@@ -491,6 +508,8 @@ const { fetchEntityTypes } = useEntityTypes();
 const { isLoading: relLoading, data: relData, fetchAll, fetchByProject } = useRelationships();
 const { projects: allProjects, loadProjects } = useProjectList();
 const notification = useNotification();
+const { createEntry: createKBEntry } = useKnowledgeBase();
+const featureStore = useFeatureStore();
 
 // ==================== PROJECT CONTEXT ====================
 const projectFromRoute = computed(() => route.query.project ? Number(route.query.project) : 0);
@@ -596,6 +615,24 @@ const navigateToResource = (resourceId: number) => {
 
 const navigateToProject = (projectId: number) => {
     router.push(`/project/${projectId}`);
+};
+
+const navigateToKBEntry = (kbId: number) => {
+    router.push(`/knowledge-base/${kbId}`);
+};
+
+const createKBFromEntity = async (entity: Entity) => {
+    try {
+        const entry = await createKBEntry({
+            title: entity.name,
+            summary: entity.description || undefined,
+            isDefinition: true,
+            entityId: entity.id,
+        });
+        router.push(`/knowledge-base/${entry.id}`);
+    } catch (err) {
+        notification.error('Failed to create KB entry');
+    }
 };
 
 // Edit state

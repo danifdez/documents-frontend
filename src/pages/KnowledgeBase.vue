@@ -36,6 +36,9 @@
                         <h3 class="text-sm font-medium text-text-primary leading-snug line-clamp-2 group-hover:text-accent transition-colors">
                             {{ entry.title }}
                         </h3>
+                        <span v-if="entry.isDefinition"
+                            class="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700"
+                            title="Definición">Def</span>
                     </div>
                     <p v-if="entry.summary" class="text-xs text-text-muted line-clamp-3 mb-3">{{ entry.summary }}</p>
                     <div v-if="entry.tags && entry.tags.length" class="flex flex-wrap gap-1">

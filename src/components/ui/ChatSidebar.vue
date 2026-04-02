@@ -19,7 +19,7 @@
                                 </div>
                                 <div>
                                     <h2 class="text-sm font-semibold text-text-primary">Ask AI</h2>
-                                    <p class="text-[11px] text-text-muted">Ask questions about this resource</p>
+                                    <p class="text-[11px] text-text-muted">{{ subtitle }}</p>
                                 </div>
                             </div>
                             <button @click="$emit('close')"
@@ -132,6 +132,14 @@ const props = defineProps({
     projectId: {
         type: Number,
         default: undefined
+    },
+    context: {
+        type: String,
+        default: undefined
+    },
+    subtitle: {
+        type: String,
+        default: 'Ask questions about this resource'
     }
 });
 const emit = defineEmits(['send', 'close']);
@@ -156,7 +164,7 @@ async function sendMessage() {
         const question = input.value;
         input.value = '';
         scrollToBottom();
-        await ask(question, props.projectId);
+        await ask(question, props.projectId, props.context);
     }
 }
 

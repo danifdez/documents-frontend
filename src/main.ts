@@ -135,6 +135,13 @@ app.whenReady().then(() => {
     createBrowserWindow(projectId);
   });
 
+  ipcMain.handle('navigate-main-window', (_, route: string) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('navigate-to-route', route);
+      mainWindow.focus();
+    }
+  });
+
   ipcMain.handle("extract-webpage", async (_, { content, title, url, projectId }) => {
     try {
       const tempDir = path.join(os.tmpdir(), 'document-manager');
@@ -393,6 +400,10 @@ app.whenReady().then(() => {
         {
           label: 'Send to document',
           click: () => resolve('send-to-doc'),
+        },
+        {
+          label: 'Lookup related information',
+          click: () => resolve('lookup'),
         },
       ]);
       const win = BrowserWindow.fromWebContents(event.sender);

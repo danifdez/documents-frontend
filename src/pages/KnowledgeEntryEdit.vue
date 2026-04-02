@@ -38,6 +38,96 @@
                     class="w-full bg-transparent text-sm text-text-secondary placeholder:text-text-muted focus:outline-none"
                     @blur="saveSummary" @keydown.enter="saveSummary" />
 
+                <!-- Definition toggle + Entity link -->
+                <div class="flex items-center gap-4 mb-1">
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <button @click="toggleDefinition" type="button"
+                            class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 cursor-pointer"
+                            :class="entryIsDefinition ? 'bg-accent' : 'bg-gray-300'">
+                            <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 shadow-sm"
+                                :class="entryIsDefinition ? 'translate-x-[18px]' : 'translate-x-[3px]'" />
+                        </button>
+                        <span class="text-xs text-text-secondary">Definición</span>
+                    </label>
+
+                    <!-- Linked entity -->
+                    <div class="flex items-center gap-1.5">
+                        <template v-if="linkedEntity">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                {{ linkedEntity.name }}
+                                <span class="text-[10px] opacity-60">{{ linkedEntity.entityType?.name }}</span>
+                                <button @click="unlinkEntity" class="hover:text-red-500 transition-colors cursor-pointer leading-none">&times;</button>
+                            </span>
+                        </template>
+                        <template v-else>
+                            <div class="relative">
+                                <button @click="showEntityMenu = !showEntityMenu"
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-text-muted hover:text-accent border border-dashed border-border hover:border-accent transition-colors cursor-pointer">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    </svg>
+                                    Vincular entidad
+                                </button>
+
+                                <!-- Entity search dropdown -->
+                                <div v-if="showEntityMenu"
+                                    class="absolute left-0 top-full mt-1 z-50 bg-surface-elevated border border-border rounded-lg shadow-xl w-72 overflow-hidden">
+                                    <div class="p-2 border-b border-border">
+                                        <input v-model="entitySearchQuery" ref="entitySearchRef" type="text" placeholder="Buscar entidad..."
+                                            class="w-full px-2 py-1.5 text-xs bg-surface border border-border rounded focus:outline-none focus:border-accent"
+                                            @input="debouncedSearchEntities" />
+                                    </div>
+                                    <div class="max-h-48 overflow-y-auto">
+                                        <div v-if="entitySearchLoading" class="flex justify-center py-3">
+                                            <div class="animate-spin rounded-full h-4 w-4 border-2 border-accent border-t-transparent"></div>
+                                        </div>
+                                        <template v-else>
+                                            <div v-for="ent in entitySearchResults" :key="ent.id" @click="linkEntity(ent)"
+                                                class="px-3 py-2 text-xs cursor-pointer hover:bg-surface-hover transition-colors">
+                                                <span class="font-medium text-text-primary">{{ ent.name }}</span>
+                                                <span class="ml-1.5 text-[10px] text-text-muted">{{ ent.entityType?.name }}</span>
+                                            </div>
+                                            <div v-if="!entitySearchLoading && entitySearchResults.length === 0 && entitySearchQuery.length > 0"
+                                                class="px-3 py-3 text-center text-xs text-text-muted">
+                                                Sin resultados
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <!-- Create new entity -->
+                                    <div class="border-t border-border p-2">
+                                        <div v-if="!showCreateEntityForm">
+                                            <button @click="showCreateEntityForm = true"
+                                                class="w-full text-left px-2 py-1.5 text-xs text-accent hover:bg-accent-subtle rounded transition-colors cursor-pointer">
+                                                + Crear nueva entidad
+                                            </button>
+                                        </div>
+                                        <div v-else class="space-y-2">
+                                            <select v-model="newEntityTypeId"
+                                                class="w-full px-2 py-1.5 text-xs bg-surface border border-border rounded focus:outline-none focus:border-accent">
+                                                <option :value="0" disabled>Tipo de entidad...</option>
+                                                <option v-for="et in entityTypes" :key="et.id" :value="et.id">{{ et.name }}</option>
+                                            </select>
+                                            <div class="flex gap-1.5">
+                                                <button @click="createAndLinkEntity" :disabled="!newEntityTypeId"
+                                                    class="flex-1 px-2 py-1 text-xs font-medium text-white bg-accent rounded hover:bg-accent/90 disabled:opacity-40 cursor-pointer transition-colors">
+                                                    Crear
+                                                </button>
+                                                <button @click="showCreateEntityForm = false"
+                                                    class="px-2 py-1 text-xs text-text-muted hover:text-text-primary cursor-pointer transition-colors">
+                                                    Cancelar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
                 <!-- Tags -->
                 <div class="flex flex-wrap items-center gap-1.5">
                     <span v-for="(tag, i) in entryTags" :key="tag"
@@ -65,7 +155,7 @@
 
         <!-- Editor -->
         <div class="flex-1 overflow-hidden">
-            <NoteEditor v-if="loaded" v-model="entryContent" />
+            <KnowledgeEditor v-if="loaded" v-model="entryContent" />
         </div>
 
         <!-- Delete confirm dialog -->
@@ -80,17 +170,32 @@
 import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useKnowledgeBase } from '../services/knowledge/useKnowledgeBase';
-import NoteEditor from '../components/notes/NoteEditor.vue';
+import { useEntities, type Entity } from '../services/entities/useEntities';
+import { useEntityTypes, type EntityType } from '../services/entity-types/useEntityTypes';
+import KnowledgeEditor from '../components/knowledge/KnowledgeEditor.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 
 const route = useRoute();
 const router = useRouter();
 const { loadEntry, updateEntry, deleteEntry } = useKnowledgeBase();
+const { searchEntities, createEntity } = useEntities();
+const { fetchEntityTypes } = useEntityTypes();
 
 const entryTitle = ref('');
 const entryContent = ref<string | null>(null);
 const entrySummary = ref('');
 const entryTags = ref<string[]>([]);
+const entryIsDefinition = ref(false);
+const linkedEntity = ref<{ id: number; name: string; entityType?: { id: number; name: string } } | null>(null);
+const showEntityMenu = ref(false);
+const entitySearchQuery = ref('');
+const entitySearchRef = ref<HTMLInputElement | null>(null);
+const entitySearchResults = ref<Entity[]>([]);
+const entitySearchLoading = ref(false);
+const entityTypes = ref<EntityType[]>([]);
+const showCreateEntityForm = ref(false);
+const newEntityTypeId = ref(0);
+let entitySearchTimeout: ReturnType<typeof setTimeout> | null = null;
 const loaded = ref(false);
 const saving = ref(false);
 const lastSaved = ref(false);
@@ -109,8 +214,11 @@ onMounted(async () => {
             entryContent.value = data.content;
             entrySummary.value = data.summary || '';
             entryTags.value = data.tags || [];
+            entryIsDefinition.value = data.isDefinition ?? false;
+            linkedEntity.value = data.entity ?? null;
         }
         loaded.value = true;
+        fetchEntityTypes().then(types => { entityTypes.value = types; }).catch(() => {});
     } catch {
         router.push('/knowledge-base');
     }
@@ -130,6 +238,56 @@ const saveField = async (fields: Record<string, any>) => {
 
 const saveTitle = () => saveField({ title: entryTitle.value });
 const saveSummary = () => saveField({ summary: entrySummary.value });
+
+const toggleDefinition = () => {
+    entryIsDefinition.value = !entryIsDefinition.value;
+    saveField({ isDefinition: entryIsDefinition.value });
+};
+
+const debouncedSearchEntities = () => {
+    if (entitySearchTimeout) clearTimeout(entitySearchTimeout);
+    entitySearchTimeout = setTimeout(async () => {
+        const q = entitySearchQuery.value.trim();
+        if (q.length < 2) { entitySearchResults.value = []; return; }
+        entitySearchLoading.value = true;
+        try {
+            entitySearchResults.value = await searchEntities(q);
+        } finally {
+            entitySearchLoading.value = false;
+        }
+    }, 300);
+};
+
+const linkEntity = async (ent: Entity) => {
+    linkedEntity.value = { id: ent.id, name: ent.name, entityType: ent.entityType };
+    showEntityMenu.value = false;
+    entitySearchQuery.value = '';
+    entitySearchResults.value = [];
+    await saveField({ entityId: ent.id });
+};
+
+const unlinkEntity = async () => {
+    linkedEntity.value = null;
+    await saveField({ entityId: null });
+};
+
+const createAndLinkEntity = async () => {
+    if (!newEntityTypeId.value) return;
+    try {
+        const created = await createEntity({
+            name: entryTitle.value || 'Sin nombre',
+            entityTypeId: newEntityTypeId.value,
+            description: entrySummary.value || undefined,
+        });
+        linkedEntity.value = { id: created.id, name: created.name, entityType: created.entityType };
+        showEntityMenu.value = false;
+        showCreateEntityForm.value = false;
+        newEntityTypeId.value = 0;
+        await saveField({ entityId: created.id });
+    } catch (err) {
+        console.error('Error creating entity:', err);
+    }
+};
 
 watch(entryContent, (val) => {
     if (!loaded.value) return;

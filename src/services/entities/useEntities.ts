@@ -36,9 +36,16 @@ export interface EntityResource {
     } | null;
 }
 
+export interface EntityKnowledgeEntry {
+    id: number;
+    title: string;
+    summary: string | null;
+}
+
 export interface EntityDetail extends Entity {
     resources?: EntityResource[];
     projects?: { id: number; name: string }[];
+    knowledgeEntries?: EntityKnowledgeEntry[];
 }
 
 export interface EntityMergeTarget {
