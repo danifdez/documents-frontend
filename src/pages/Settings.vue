@@ -1,105 +1,118 @@
 <template>
     <div class="h-full overflow-y-auto">
         <div class="px-6 py-6">
-            <PageHeader title="Settings" subtitle="Configure your editor and application preferences" :divider="true" />
+            <PageHeader title="Settings" subtitle="Configure your editor and application preferences" :divider="false" />
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-
-                <!-- Editor Appearance -->
-                <section class="bg-surface-elevated rounded-xl border border-border p-5">
-                    <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Editor Appearance</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1">Font Size</label>
-                            <select v-model="fontSize" @change="saveSettings"
-                                class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
-                                <option v-for="size in fontSizes" :key="size" :value="size">{{ size }} px</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1">Font Family</label>
-                            <select v-model="fontFamily" @change="saveSettings"
-                                class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
-                                <option v-for="family in fontFamilies" :key="family.value" :value="family.value">{{
-                                    family.label }}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1">Paragraph Spacing
-                                <span class="text-text-muted font-normal ml-1">{{ paragraphSpacing }}</span></label>
-                            <input type="range" min="1" max="3" step="0.1" v-model.number="paragraphSpacing"
-                                @change="saveSettings"
-                                class="w-full h-1.5 bg-border rounded-full appearance-none accent-accent" />
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Theme -->
-                <section class="bg-surface-elevated rounded-xl border border-border p-5">
-                    <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Theme</h2>
-                    <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-2">Appearance</label>
-                        <div class="flex gap-2">
-                            <button v-for="opt in themeOptions" :key="opt.value"
-                                @click="theme = opt.value; saveSettings()"
-                                class="flex-1 flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg border transition-all duration-200 cursor-pointer"
-                                :class="theme === opt.value
-                                    ? 'border-accent bg-accent-subtle text-accent-dark'
-                                    : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="1.75">
-                                    <path stroke-linecap="round" stroke-linejoin="round" :d="opt.icon" />
-                                </svg>
-                                <span class="text-xs font-medium">{{ opt.label }}</span>
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Browser -->
-                <section class="bg-surface-elevated rounded-xl border border-border p-5">
-                    <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Browser</h2>
-                    <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-1">Default URL</label>
-                        <input type="text" v-model="defaultBrowserUrl" @change="saveSettings"
-                            placeholder="https://example.com"
-                            class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
-                        <p class="mt-1.5 text-xs text-text-muted">The page that opens by default in the built-in browser</p>
-                    </div>
-                </section>
-
-                <!-- Language -->
-                <section class="bg-surface-elevated rounded-xl border border-border p-5">
-                    <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Language</h2>
-                    <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-1">Display Language</label>
-                        <select v-model="language" @change="saveSettings"
-                            class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
-                            <option v-for="lang in languages" :key="lang.code" :value="lang.code">{{ lang.label
-                                }}</option>
-                        </select>
-                    </div>
-                </section>
-
+            <!-- Tabs -->
+            <div class="flex gap-1 mb-6 border-b border-border">
+                <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+                    class="px-4 py-2.5 text-sm font-medium transition-all duration-200 cursor-pointer border-b-2 -mb-px"
+                    :class="activeTab === tab.id
+                        ? 'border-accent text-accent'
+                        : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'">
+                    {{ tab.label }}
+                </button>
             </div>
 
-            <!-- Features Section -->
-            <div class="mt-8 mb-8">
-                <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-text-primary tracking-tight">Features</h2>
-                    <p class="mt-1 text-sm text-text-muted">Enable or disable application features. Server-disabled features cannot be enabled here.</p>
-                    <div class="mt-4 h-px bg-border"></div>
+            <!-- General Tab -->
+            <div v-show="activeTab === 'general'">
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+
+                    <!-- Theme -->
+                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Theme</h2>
+                        <div>
+                            <label class="block text-xs font-medium text-text-secondary mb-2">Appearance</label>
+                            <div class="flex gap-2">
+                                <button v-for="opt in themeOptions" :key="opt.value"
+                                    @click="theme = opt.value; saveSettings()"
+                                    class="flex-1 flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg border transition-all duration-200 cursor-pointer"
+                                    :class="theme === opt.value
+                                        ? 'border-accent bg-accent-subtle text-accent-dark'
+                                        : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                        <path stroke-linecap="round" stroke-linejoin="round" :d="opt.icon" />
+                                    </svg>
+                                    <span class="text-xs font-medium">{{ opt.label }}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Language -->
+                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Language</h2>
+                        <div>
+                            <label class="block text-xs font-medium text-text-secondary mb-1">Display Language</label>
+                            <select v-model="language" @change="saveSettings"
+                                class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
+                                <option v-for="lang in languages" :key="lang.code" :value="lang.code">{{ lang.label
+                                    }}</option>
+                            </select>
+                        </div>
+                    </section>
+
+                    <!-- Browser -->
+                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Browser</h2>
+                        <div>
+                            <label class="block text-xs font-medium text-text-secondary mb-1">Default URL</label>
+                            <input type="text" v-model="defaultBrowserUrl" @change="saveSettings"
+                                placeholder="https://example.com"
+                                class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
+                            <p class="mt-1.5 text-xs text-text-muted">The page that opens by default in the built-in
+                                browser</p>
+                        </div>
+                    </section>
+
+                    <!-- Editor Appearance -->
+                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Editor
+                            Appearance</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-medium text-text-secondary mb-1">Font Size</label>
+                                <select v-model="fontSize" @change="saveSettings"
+                                    class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
+                                    <option v-for="size in fontSizes" :key="size" :value="size">{{ size }} px</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-text-secondary mb-1">Font Family</label>
+                                <select v-model="fontFamily" @change="saveSettings"
+                                    class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
+                                    <option v-for="family in fontFamilies" :key="family.value" :value="family.value">{{
+                                        family.label }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-text-secondary mb-1">Paragraph Spacing
+                                    <span class="text-text-muted font-normal ml-1">{{ paragraphSpacing }}</span></label>
+                                <input type="range" min="1" max="3" step="0.1" v-model.number="paragraphSpacing"
+                                    @change="saveSettings"
+                                    class="w-full h-1.5 bg-border rounded-full appearance-none accent-accent" />
+                            </div>
+                        </div>
+                    </section>
+
                 </div>
+            </div>
+
+            <!-- Features Tab -->
+            <div v-show="activeTab === 'features'">
+                <p class="text-sm text-text-muted mb-4">Enable or disable application features. Server-disabled
+                    features cannot be enabled here.</p>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div v-for="flag in featureStore.featureFlags" :key="flag.key"
                         class="bg-surface-elevated rounded-xl border border-border p-4 flex items-center justify-between">
                         <div>
                             <span class="text-sm font-medium text-text-primary">{{ flag.label }}</span>
-                            <p v-if="!flag.backendEnabled" class="text-xs text-text-muted mt-0.5">Disabled by server</p>
+                            <p v-if="!flag.backendEnabled" class="text-xs text-text-muted mt-0.5">Disabled by server
+                            </p>
                         </div>
-                        <button v-if="flag.backendEnabled"
-                            @click="featureStore.toggleLocalFeature(flag.key)"
+                        <button v-if="flag.backendEnabled" @click="featureStore.toggleLocalFeature(flag.key)"
                             class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer"
                             :class="flag.enabled ? 'bg-accent' : 'bg-border'">
                             <span
@@ -114,13 +127,9 @@
                 </div>
             </div>
 
-            <!-- Workspaces Section -->
-            <div class="mt-8 mb-8">
-                <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-text-primary tracking-tight">Workspaces</h2>
-                    <p class="mt-1 text-sm text-text-muted">Manage server connections</p>
-                    <div class="mt-4 h-px bg-border"></div>
-                </div>
+            <!-- Workspaces Tab -->
+            <div v-show="activeTab === 'workspaces'">
+                <p class="text-sm text-text-muted mb-4">Manage server connections</p>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div v-for="ws in workspaceStore.workspaces" :key="ws.id"
@@ -146,10 +155,11 @@
                             <button v-if="ws.id !== workspaceStore.defaultWorkspaceId"
                                 @click="workspaceStore.setDefaultWorkspace(ws.id)"
                                 class="text-xs text-text-secondary hover:underline cursor-pointer">Set default</button>
-                            <button v-else
-                                @click="workspaceStore.setDefaultWorkspace(null)"
+                            <button v-else @click="workspaceStore.setDefaultWorkspace(null)"
                                 class="text-xs text-text-muted hover:underline cursor-pointer">Unset default</button>
-                            <button v-if="workspaceStore.workspaces.length > 1 && ws.type !== 'local'" @click="deleteWorkspace(ws.id)"
+                            <button
+                                v-if="workspaceStore.workspaces.length > 1 && ws.type !== 'local'"
+                                @click="deleteWorkspace(ws.id)"
                                 class="text-xs text-red-500 hover:underline cursor-pointer">Remove</button>
                         </div>
                     </div>
@@ -164,27 +174,23 @@
                     </button>
                 </div>
 
-                <WorkspaceModal v-if="showWorkspaceModal || editingWorkspace"
-                    :workspace="editingWorkspace"
-                    @close="showWorkspaceModal = false; editingWorkspace = null"
-                    @save="handleWorkspaceSave" />
+                <WorkspaceModal v-if="showWorkspaceModal || editingWorkspace" :workspace="editingWorkspace"
+                    @close="showWorkspaceModal = false; editingWorkspace = null" @save="handleWorkspaceSave" />
             </div>
 
-            <!-- Local Server Section -->
-            <div class="mt-8 mb-8">
-                <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-text-primary tracking-tight">Local Server</h2>
-                    <p class="mt-1 text-sm text-text-muted">Install and run all services locally on this machine</p>
-                    <div class="mt-4 h-px bg-border"></div>
-                </div>
+            <!-- Server Tab -->
+            <div v-show="activeTab === 'server'">
+                <p class="text-sm text-text-muted mb-4">Install and run all services locally on this machine</p>
 
                 <div class="bg-surface-elevated rounded-xl border border-border p-5 max-w-lg">
                     <!-- Core services -->
-                    <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Core Services</h3>
+                    <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Core Services
+                    </h3>
                     <div class="space-y-3 mb-4">
                         <div v-for="svc in coreServices" :key="svc.key" class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full" :class="standaloneInstalled[svc.key] ? 'bg-green-500' : 'bg-border'"></span>
+                                <span class="w-2 h-2 rounded-full"
+                                    :class="standaloneInstalled[svc.key] ? 'bg-green-500' : 'bg-border'"></span>
                                 <span class="text-sm text-text-primary">{{ svc.label }}</span>
                             </div>
                             <span class="text-xs text-text-muted">{{ svc.size }}</span>
@@ -194,7 +200,8 @@
                     <!-- Download progress -->
                     <div v-if="standaloneDownloading" class="mb-4">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs text-text-secondary">Downloading {{ downloadProgress.component }}...</span>
+                            <span class="text-xs text-text-secondary">Downloading {{ downloadProgress.component
+                                }}...</span>
                             <span class="text-xs text-text-muted">{{ downloadProgress.percent }}%</span>
                         </div>
                         <div class="w-full h-1.5 bg-border rounded-full overflow-hidden">
@@ -204,20 +211,19 @@
                     </div>
 
                     <!-- Error -->
-                    <div v-if="standaloneDownloadError" class="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+                    <div v-if="standaloneDownloadError"
+                        class="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
                         {{ standaloneDownloadError }}
                     </div>
 
                     <!-- Install / Uninstall -->
                     <div class="flex gap-2">
-                        <button v-if="!standaloneFullyInstalled"
-                            @click="installStandalone"
+                        <button v-if="!standaloneFullyInstalled" @click="installStandalone"
                             :disabled="standaloneDownloading"
                             class="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                             {{ standaloneDownloading ? 'Installing...' : 'Install Local Server (~350 MB)' }}
                         </button>
-                        <button v-if="standaloneFullyInstalled"
-                            @click="uninstallStandalone"
+                        <button v-if="standaloneFullyInstalled" @click="uninstallStandalone"
                             class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
                             Uninstall
                         </button>
@@ -225,8 +231,10 @@
 
                     <!-- AI / Inference Models -->
                     <div class="mt-5 pt-4 border-t border-border">
-                        <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">AI / Inference</h3>
-                        <p class="text-xs text-text-muted mb-3">Document extraction, transcription, translation, entity recognition, summarization, semantic search, image generation.</p>
+                        <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">AI /
+                            Inference</h3>
+                        <p class="text-xs text-text-muted mb-3">Document extraction, transcription, translation, entity
+                            recognition, summarization, semantic search, image generation.</p>
 
                         <!-- GPU detection -->
                         <div v-if="gpuInfo" class="mb-3 text-xs px-3 py-2 rounded-lg"
@@ -244,21 +252,20 @@
 
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full" :class="standaloneInstalled.models ? 'bg-green-500' : 'bg-border'"></span>
+                                <span class="w-2 h-2 rounded-full"
+                                    :class="standaloneInstalled.models ? 'bg-green-500' : 'bg-border'"></span>
                                 <span class="text-sm text-text-primary">Models Service</span>
                             </div>
                             <span class="text-xs text-text-muted">{{ modelsSize }}</span>
                         </div>
 
                         <div class="flex items-center gap-2">
-                            <button v-if="!standaloneInstalled.models"
-                                @click="installModels"
+                            <button v-if="!standaloneInstalled.models" @click="installModels"
                                 :disabled="standaloneDownloading"
                                 class="px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                                 {{ standaloneDownloading ? 'Installing...' : 'Install AI Features' }}
                             </button>
-                            <button v-else
-                                @click="uninstallModels"
+                            <button v-else @click="uninstallModels"
                                 class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
                                 Remove AI Features
                             </button>
@@ -273,13 +280,9 @@
                 </div>
             </div>
 
-            <!-- Export Section -->
-            <div class="mt-8 mb-8">
-                <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-text-primary tracking-tight">Export</h2>
-                    <p class="mt-1 text-sm text-text-muted">Export resources from your projects as a ZIP archive</p>
-                    <div class="mt-4 h-px bg-border"></div>
-                </div>
+            <!-- Export Tab -->
+            <div v-show="activeTab === 'export'">
+                <p class="text-sm text-text-muted mb-4">Export resources from your projects as a ZIP archive</p>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
 
@@ -360,7 +363,8 @@
                                     selectedProjectIds.length > 1 ? 's' : '' }}.</p>
                             </div>
 
-                            <button @click="startExport" :disabled="exporting || (exportScope === 'selected' && selectedProjectIds.length === 0)"
+                            <button @click="startExport"
+                                :disabled="exporting || (exportScope === 'selected' && selectedProjectIds.length === 0)"
                                 class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer"
                                 :class="exporting || (exportScope === 'selected' && selectedProjectIds.length === 0)
                                     ? 'bg-border text-text-muted cursor-not-allowed'
@@ -410,6 +414,17 @@ const authStore = useAuthStore();
 const projectStore = useProjectStore();
 const featureStore = useFeatureStore();
 const router = useRouter();
+
+// ── Tabs ──
+type TabId = 'general' | 'features' | 'workspaces' | 'server' | 'export';
+const activeTab = ref<TabId>('general');
+const tabs: { id: TabId; label: string }[] = [
+    { id: 'general', label: 'General' },
+    { id: 'features', label: 'Features' },
+    { id: 'workspaces', label: 'Workspaces' },
+    { id: 'server', label: 'Server' },
+    { id: 'export', label: 'Export' },
+];
 
 const showWorkspaceModal = ref(false);
 const editingWorkspace = ref<Workspace | null>(null);
