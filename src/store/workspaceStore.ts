@@ -45,6 +45,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         await startLocalServer();
       } else {
         setApiBaseUrl(activeWorkspace.value.url);
+        // Remote workspaces always require fresh login on startup
+        const { useAuthStore } = await import('./authStore');
+        useAuthStore().reset();
       }
     }
 
@@ -111,6 +114,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } else {
       setApiBaseUrl(workspace.url);
       reconnectSocket(workspace.url);
+      // Remote workspaces always require fresh login on switch
+      const { useAuthStore } = await import('./authStore');
+      useAuthStore().reset();
     }
   }
 

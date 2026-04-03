@@ -143,10 +143,10 @@
 
             <div v-if="authRequired && currentUser" class="flex items-center px-3 py-2 gap-2"
                 :class="{ 'justify-center': collapsed }">
-                <div class="w-7 h-7 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-semibold shrink-0">
+                <router-link to="/profile" class="w-7 h-7 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-semibold shrink-0 hover:bg-accent/30 transition-colors cursor-pointer" title="Profile">
                     {{ userInitials }}
-                </div>
-                <span v-if="!collapsed" class="text-xs text-text-muted truncate flex-1">{{ currentUser.displayName || currentUser.username }}</span>
+                </router-link>
+                <router-link v-if="!collapsed" to="/profile" class="text-xs text-text-muted truncate flex-1 hover:text-text-secondary transition-colors">{{ currentUser.displayName || currentUser.username }}</router-link>
                 <button v-if="!collapsed" @click="handleLogout" title="Sign out"
                     class="p-1 rounded text-text-muted hover:text-red-500 transition-colors cursor-pointer shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"

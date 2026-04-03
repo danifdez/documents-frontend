@@ -6,8 +6,8 @@ export interface AuthUser {
   id: number;
   username: string;
   displayName: string | null;
-  role: string;
   permissions: Record<string, boolean>;
+  groupId: number | null;
 }
 
 function tokenKey(key: string): string {
@@ -23,10 +23,29 @@ export const useAuthStore = defineStore('auth', () => {
   const initialized = ref(false);
 
   const isAuthenticated = computed(() => !!accessToken.value);
-  const isAdmin = computed(() => user.value?.role === 'admin');
+  const isAdmin = computed(() => !!user.value?.permissions?.['user-management']);
   const permissions = computed(() => user.value?.permissions ?? {});
 
   async function checkAuthStatus() {
+    // Local workspaces skip authentication entirely
+    const { useWorkspaceStore } = await import('./workspaceStore');
+    const wsStore = useWorkspaceStore();
+    if (wsStore.isLocal) {
+      authRequired.value = false;
+      initialized.value = true;
+      // Still load feature flags from backend
+      try {
+        const { data } = await apiClient.get('/auth/status');
+        if (data.features) {
+          const { useFeatureStore } = await import('./featureStore');
+          const featureStore = useFeatureStore();
+          featureStore.setBackendFeatures(data.features);
+          await featureStore.loadLocalPreferences();
+        }
+      } catch { /* standalone server may not be ready yet */ }
+      return;
+    }
+
     try {
       const { data } = await apiClient.get('/auth/status');
       authRequired.value = data.authEnabled === true;
@@ -98,12 +117,13 @@ export const useAuthStore = defineStore('auth', () => {
     refreshTokenValue.value = null;
     authRequired.value = false;
     initialized.value = false;
+    localStorage.removeItem(tokenKey('accessToken'));
+    localStorage.removeItem(tokenKey('refreshToken'));
   }
 
   function hasPermission(perm: string): boolean {
     if (!authRequired.value) return true;
     if (!isAuthenticated.value) return false;
-    if (isAdmin.value) return true;
     return permissions.value[perm] === true;
   }
 

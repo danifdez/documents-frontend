@@ -18,6 +18,7 @@ import KnowledgeEntryEdit from '../pages/KnowledgeEntryEdit.vue'
 import Bibliography from '../pages/Bibliography.vue'
 import Login from '../pages/Login.vue'
 import UserManagement from '../pages/UserManagement.vue'
+import Profile from '../pages/Profile.vue'
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -142,6 +143,11 @@ const routes: RouteRecordRaw[] = [
     name: 'UserManagement',
     component: UserManagement,
     meta: { requiresAdmin: true },
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile,
   },
 ]
 
