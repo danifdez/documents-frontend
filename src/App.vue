@@ -129,15 +129,17 @@ function setupSocket() {
   });
 
   socket.on('notification', (data) => {
-    notification.info('Resource extracted', {
-      link: {
-        text: 'View resource',
-        url: `/resource/${data.resourceId}`,
-        onClick: () => {
-          router.push(`/resource/${data.resourceId}`);
+    if (data.resourceId) {
+      notification.info(data.message || 'Resource extracted', {
+        link: {
+          text: 'View resource',
+          url: `/resource/${data.resourceId}`,
+          onClick: () => {
+            router.push(`/resource/${data.resourceId}`);
+          }
         }
-      }
-    });
+      });
+    }
   });
 }
 

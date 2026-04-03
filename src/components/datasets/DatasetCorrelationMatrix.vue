@@ -1,7 +1,8 @@
 <template>
-    <div class="space-y-4">
+    <div :class="mode === 'display' ? 'h-full flex flex-col gap-3 overflow-hidden' : 'space-y-4'">
         <!-- Configuration -->
-        <div class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
+        <div v-if="showControls" class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
+            <p class="text-xs text-text-muted leading-relaxed">Compute Pearson correlations between numeric fields. Values near +1 indicate a strong positive relationship, near -1 strong negative, and near 0 no linear relationship. Click any cell to see a scatter plot.</p>
             <div>
                 <label class="block text-xs font-medium text-text-secondary mb-1.5">Numeric fields to include
                     <HelpTip>Select which numeric fields to compare. The matrix shows the Pearson correlation (r) between each pair: values near +1 indicate strong positive relationship, near -1 strong negative, near 0 no linear relationship.</HelpTip>
@@ -31,15 +32,38 @@
             </button>
         </div>
 
+        <!-- Saved views for this type -->
+        <div v-if="showControls && savedViews && savedViews.length > 0"
+            class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            <div class="px-3 py-2 border-b border-border-light bg-surface">
+                <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved</span>
+            </div>
+            <div class="divide-y divide-border-light max-h-32 overflow-y-auto">
+                <div v-for="sv in savedViews" :key="sv.id"
+                    class="flex items-center justify-between px-3 py-2 hover:bg-surface-hover transition-colors group">
+                    <button @click="$emit('loadSaved', sv)"
+                        class="flex-1 min-w-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left truncate">
+                        {{ sv.name }}
+                    </button>
+                    <button @click="$emit('deleteSaved', sv.id)"
+                        class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0">
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Error -->
-        <div v-if="result?.error" class="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        <div v-if="showResults && result?.error" class="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
             {{ result.error }}
         </div>
 
         <!-- Results -->
-        <template v-if="result && !result.error && result.chartData?.matrix">
+        <template v-if="showResults && result && !result.error && result.chartData?.matrix">
             <!-- Strong correlations summary -->
-            <div v-if="result.stats?.strongCorrelations?.length > 0" class="flex flex-wrap gap-2">
+            <div v-if="result.stats?.strongCorrelations?.length > 0" class="flex flex-wrap gap-2 shrink-0">
                 <div v-for="(sc, i) in result.stats.strongCorrelations" :key="i"
                     class="px-3 py-2 rounded-lg border border-border text-xs"
                     :class="sc.correlation > 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'">
@@ -52,7 +76,7 @@
             </div>
 
             <!-- Heatmap table -->
-            <div class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            <div class="rounded-xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
                 <div class="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface">
                     <span class="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                         Correlation Matrix ({{ result.chartData.fields.length }} fields)
@@ -68,7 +92,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="overflow-auto" ref="matrixRef">
+                <div class="overflow-auto flex-1 min-h-0" ref="matrixRef">
                     <table class="text-xs w-full">
                         <thead>
                             <tr>
@@ -115,7 +139,7 @@
 
             <!-- Scatter detail -->
             <div v-if="scatterResult && !scatterResult.error"
-                class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+                class="rounded-xl border border-border overflow-hidden flex flex-col shrink-0" style="max-height: 40%;">
                 <div class="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface">
                     <span class="text-sm font-medium text-text-primary">
                         {{ scatterResult.field1Name }} vs {{ scatterResult.field2Name }}
@@ -132,7 +156,7 @@
                     </button>
                 </div>
                 <div class="p-4">
-                    <canvas ref="scatterCanvas" class="max-h-72"></canvas>
+                    <canvas ref="scatterCanvas" class="w-full max-h-[calc(100vh-20rem)]"></canvas>
                 </div>
             </div>
         </template>
@@ -151,11 +175,18 @@ const props = defineProps<{
     schema: DatasetField[];
     result: any | null;
     running: boolean;
+    mode?: 'full' | 'sidebar' | 'display';
+    savedViews?: { id: number; name: string; config: Record<string, any> }[];
 }>();
 
 const emit = defineEmits<{
     run: [operation: string, params: Record<string, any>];
+    loadSaved: [view: any];
+    deleteSaved: [id: number];
 }>();
+
+const showControls = computed(() => !props.mode || props.mode === 'full' || props.mode === 'sidebar');
+const showResults = computed(() => !props.mode || props.mode === 'full' || props.mode === 'display');
 
 const numericFields = computed(() => props.schema.filter(f => f.type === 'number'));
 const selectedFields = ref<string[]>([]);
@@ -179,7 +210,7 @@ const toggleAll = () => {
 
 const handleRun = () => {
     scatterResult.value = null;
-    emit('run', 'correlation_matrix', { fields: selectedFields.value });
+    emit('run', 'correlation-matrix', { fields: selectedFields.value });
 };
 
 const cellColor = (val: number | null): string => {

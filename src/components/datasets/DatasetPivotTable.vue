@@ -1,12 +1,11 @@
 <template>
-    <div class="space-y-4">
+    <div :class="mode === 'display' ? 'h-full flex flex-col gap-3 overflow-hidden' : 'space-y-4'">
         <!-- Configuration -->
-        <div class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+        <div v-if="showControls" class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
+            <p class="text-xs text-text-muted leading-relaxed">Cross-tabulate two categorical fields and aggregate a numeric value in each cell. Useful for comparing totals, averages or counts across two dimensions.</p>
+            <div class="space-y-3">
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Row field *
-                        <HelpTip>Field whose unique values will become the rows of the pivot table. Choose a categorical field like country, status, or category.</HelpTip>
-                    </label>
+                    <label class="block text-xs font-medium text-text-secondary mb-1">Row field *</label>
                     <select v-model="config.rowField"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Select...</option>
@@ -14,9 +13,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Column field *
-                        <HelpTip>Field whose unique values will become the columns. This creates a cross-tabulation between the row and column fields.</HelpTip>
-                    </label>
+                    <label class="block text-xs font-medium text-text-secondary mb-1">Column field *</label>
                     <select v-model="config.colField"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Select...</option>
@@ -24,9 +21,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Value field
-                        <HelpTip>Optional numeric field to aggregate in each cell. If left empty, each cell shows the count of records matching that row/column combination.</HelpTip>
-                    </label>
+                    <label class="block text-xs font-medium text-text-secondary mb-1">Value field</label>
                     <select v-model="config.valueField"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Count (no field)</option>
@@ -34,9 +29,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Function
-                        <HelpTip>How to aggregate the value field in each cell. Count counts records, Sum adds values, Mean averages them, etc.</HelpTip>
-                    </label>
+                    <label class="block text-xs font-medium text-text-secondary mb-1">Function</label>
                     <select v-model="config.fn"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="count">Count</option>
@@ -61,15 +54,38 @@
             </div>
         </div>
 
+        <!-- Saved views for this type -->
+        <div v-if="showControls && savedViews && savedViews.length > 0"
+            class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            <div class="px-3 py-2 border-b border-border-light bg-surface">
+                <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved</span>
+            </div>
+            <div class="divide-y divide-border-light max-h-32 overflow-y-auto">
+                <div v-for="sv in savedViews" :key="sv.id"
+                    class="flex items-center justify-between px-3 py-2 hover:bg-surface-hover transition-colors group">
+                    <button @click="$emit('loadSaved', sv)"
+                        class="flex-1 min-w-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left truncate">
+                        {{ sv.name }}
+                    </button>
+                    <button @click="$emit('deleteSaved', sv.id)"
+                        class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0">
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Error -->
-        <div v-if="result?.error" class="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        <div v-if="showResults && result?.error" class="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
             {{ result.error }}
         </div>
 
         <!-- Results -->
-        <template v-if="result && !result.error && result.tableData">
+        <template v-if="showResults && result && !result.error && result.tableData">
             <!-- Stats -->
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap gap-3 shrink-0">
                 <div v-for="(val, key) in result.stats" :key="key"
                     class="px-3 py-2 rounded-lg bg-surface-elevated border border-border">
                     <div class="text-sm font-semibold text-text-primary">{{ formatValue(val) }}</div>
@@ -78,7 +94,7 @@
             </div>
 
             <!-- Data / Chart tabs -->
-            <div class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            <div class="rounded-xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
                 <!-- Tab bar -->
                 <div class="flex items-center justify-between px-4 py-2 border-b border-border bg-surface">
                     <div class="flex items-center gap-1">
@@ -110,7 +126,7 @@
                 </div>
 
                 <!-- Data view -->
-                <div v-if="viewTab === 'data'" class="overflow-auto max-h-[60vh]" ref="tableRef">
+                <div v-if="viewTab === 'data'" class="overflow-auto flex-1 min-h-0" ref="tableRef">
                     <table class="text-xs w-full">
                         <thead>
                             <tr>
@@ -158,8 +174,8 @@
                 </div>
 
                 <!-- Chart view -->
-                <div v-if="viewTab === 'chart'" class="p-4">
-                    <canvas ref="chartCanvas" class="max-h-96"></canvas>
+                <div v-if="viewTab === 'chart'" class="p-4 flex-1 min-h-0">
+                    <canvas ref="chartCanvas" class="w-full h-full"></canvas>
                 </div>
             </div>
         </template>
@@ -178,11 +194,18 @@ const props = defineProps<{
     schema: DatasetField[];
     result: Record<string, any> | null;
     running: boolean;
+    mode?: 'full' | 'sidebar' | 'display';
+    savedViews?: { id: number; name: string; config: Record<string, any> }[];
 }>();
 
 const emit = defineEmits<{
     run: [operation: string, params: Record<string, any>];
+    loadSaved: [view: any];
+    deleteSaved: [id: number];
 }>();
+
+const showControls = computed(() => !props.mode || props.mode === 'full' || props.mode === 'sidebar');
+const showResults = computed(() => !props.mode || props.mode === 'full' || props.mode === 'display');
 
 const numericFields = computed(() => props.schema.filter(f => f.type === 'number'));
 const config = ref({ rowField: '', colField: '', valueField: '', fn: 'count' });
@@ -200,7 +223,7 @@ const handleRun = () => {
         fn: config.value.fn,
     };
     if (config.value.valueField) p.valueField = config.value.valueField;
-    emit('run', 'pivot_table', p);
+    emit('run', 'pivot-table', p);
 };
 
 // Max value for color scaling

@@ -4,8 +4,8 @@
             <div v-if="isOpen"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                 <div
-                    class="bg-surface-elevated rounded-xl shadow-2xl shadow-black/10 border border-border max-w-2xl w-full mx-4 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-border-light flex items-center justify-between">
+                    class="bg-surface-elevated rounded-xl shadow-2xl shadow-black/10 border border-border max-w-2xl w-full mx-4 overflow-hidden max-h-[85vh] flex flex-col">
+                    <div class="px-6 py-4 border-b border-border-light flex items-center justify-between shrink-0">
                         <h3 class="text-base font-semibold text-text-primary tracking-tight">Import CSV</h3>
                         <div class="flex items-center gap-2">
                             <span v-for="(label, i) in ['Upload', 'Map', 'Result']" :key="i"
@@ -20,7 +20,7 @@
                         </div>
                     </div>
 
-                    <div class="px-6 py-5">
+                    <div class="px-6 py-5 overflow-y-auto min-h-0">
                         <!-- Step 1: Upload -->
                         <div v-if="step === 1" class="space-y-4">
                             <div @drop.prevent="handleDrop" @dragover.prevent
@@ -122,7 +122,7 @@
                         </div>
                     </div>
 
-                    <div class="px-6 py-4 border-t border-border-light flex justify-end gap-2.5">
+                    <div class="px-6 py-4 border-t border-border-light flex justify-end gap-2.5 shrink-0">
                         <Button @click="handleClose" variant="secondary">
                             {{ step === 3 ? 'Close' : 'Cancel' }}
                         </Button>

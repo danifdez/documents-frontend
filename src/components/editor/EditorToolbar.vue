@@ -358,6 +358,15 @@
           <path d="M4 12c0 2.21 3.582 4 8 4s8-1.79 8-4" />
         </svg>
       </Button>
+      <Button @click="emit('add-dataset-chart')" title="Insert Dataset Chart" size="small" borderless>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4v16h16" />
+          <path d="M8 16V9" />
+          <path d="M12 16V4" />
+          <path d="M16 16v-5" />
+        </svg>
+      </Button>
     </template>
 
     <div class="h-6 w-px bg-border mx-0.5"></div>
@@ -420,7 +429,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference', 'add-dataset-view', 'add-citation', 'marker-applied', 'convert-table-to-dataset']);
+const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference', 'add-dataset-view', 'add-dataset-chart', 'add-citation', 'marker-applied', 'convert-table-to-dataset']);
 
 // -- Unified dropdown state --
 const activeDropdown = ref<string | null>(null);

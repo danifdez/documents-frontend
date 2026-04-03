@@ -1,8 +1,13 @@
 <template>
-    <div class="space-y-4">
-        <!-- Operation selector -->
-        <div class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
-            <div class="flex items-center gap-2 flex-wrap">
+    <div :class="mode === 'display' ? 'h-full flex flex-col gap-3 overflow-hidden' : 'space-y-4'">
+        <!-- Operation selector / Controls -->
+        <div v-if="showControls" class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
+            <p class="text-xs text-text-muted leading-relaxed">
+                <template v-if="selectedOp === 'summary'">Quick overview of every field: record counts, averages, ranges, null percentages and most frequent values.</template>
+                <template v-else-if="selectedOp === 'distribution'">Visualize how values are spread across a single field. Numeric fields produce a histogram, text and select fields a frequency chart.</template>
+                <template v-else-if="selectedOp === 'time-series'">Track how a numeric value evolves over time by grouping records into periods (day, week, month, etc.).</template>
+            </p>
+            <div v-if="!selectedOperation" class="flex items-center gap-2 flex-wrap">
                 <button v-for="op in operations" :key="op.id" @click="selectedOp = op.id"
                     :title="op.tooltip"
                     class="px-3 py-1.5 text-sm rounded-lg transition-colors cursor-pointer"
@@ -11,59 +16,45 @@
                 </button>
             </div>
 
-            <!-- Operation-specific parameters -->
-            <div class="grid grid-cols-2 gap-3 items-end">
-                <!-- Distribution -->
-                <template v-if="selectedOp === 'distribution'">
-                    <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-1">Field
-                            <HelpTip>Select a field to see its distribution. For numeric fields you get a histogram; for text/select fields you get a frequency bar chart of the most common values.</HelpTip>
-                        </label>
-                        <select v-model="params.field"
-                            class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
-                            <option value="">Select...</option>
-                            <option v-for="f in schema" :key="f.key" :value="f.key">{{ f.name }} ({{ f.type }})</option>
-                        </select>
-                    </div>
-                </template>
+            <!-- Distribution field (full width) -->
+            <div v-if="selectedOp === 'distribution'">
+                <label class="block text-xs font-medium text-text-secondary mb-1">Field</label>
+                <select v-model="params.field"
+                    class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
+                    <option value="">Select...</option>
+                    <option v-for="f in schema" :key="f.key" :value="f.key">{{ f.name }} ({{ f.type }})</option>
+                </select>
+            </div>
 
-                <!-- Time Series -->
-                <template v-if="selectedOp === 'time_series'">
-                    <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-1">Date field
-                            <HelpTip>A date or datetime field to use as the time axis. Records are grouped into periods (day, week, month, etc.).</HelpTip>
-                        </label>
-                        <select v-model="params.dateField"
-                            class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
-                            <option value="">Select...</option>
-                            <option v-for="f in dateFields" :key="f.key" :value="f.key">{{ f.name }}</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-1">Value field
-                            <HelpTip>Numeric field to track over time. The average value per period will be plotted as a trend line.</HelpTip>
-                        </label>
-                        <select v-model="params.valueField"
-                            class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
-                            <option value="">Select...</option>
-                            <option v-for="f in numericFields" :key="f.key" :value="f.key">{{ f.name }}</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-1">Period
-                            <HelpTip>Time granularity for grouping. Day gives the most detail, Year the broadest view. Choose based on your date range.</HelpTip>
-                        </label>
-                        <select v-model="params.period"
-                            class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
-                            <option value="D">Day</option>
-                            <option value="W">Week</option>
-                            <option value="ME">Month</option>
-                            <option value="QE">Quarter</option>
-                            <option value="YE">Year</option>
-                        </select>
-                    </div>
-                </template>
-
+            <!-- Time Series parameters (each field in its own row) -->
+            <div v-if="selectedOp === 'time-series'" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-text-secondary mb-1">Date field</label>
+                    <select v-model="params.dateField"
+                        class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
+                        <option value="">Select...</option>
+                        <option v-for="f in dateFields" :key="f.key" :value="f.key">{{ f.name }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-text-secondary mb-1">Value field</label>
+                    <select v-model="params.valueField"
+                        class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
+                        <option value="">Select...</option>
+                        <option v-for="f in numericFields" :key="f.key" :value="f.key">{{ f.name }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-text-secondary mb-1">Period</label>
+                    <select v-model="params.period"
+                        class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
+                        <option value="D">Day</option>
+                        <option value="W">Week</option>
+                        <option value="ME">Month</option>
+                        <option value="QE">Quarter</option>
+                        <option value="YE">Year</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Run button -->
@@ -77,16 +68,40 @@
             </button>
         </div>
 
+        <!-- Saved views for this type -->
+        <div v-if="showControls && savedViews && savedViews.length > 0"
+            class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            <div class="px-3 py-2 border-b border-border-light bg-surface">
+                <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved</span>
+            </div>
+            <div class="divide-y divide-border-light max-h-32 overflow-y-auto">
+                <div v-for="sv in savedViews" :key="sv.id"
+                    class="flex items-center justify-between px-3 py-2 hover:bg-surface-hover transition-colors group">
+                    <button @click="$emit('loadSaved', sv)"
+                        class="flex-1 min-w-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left truncate">
+                        {{ sv.name }}
+                    </button>
+                    <button @click="$emit('deleteSaved', sv.id)"
+                        class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0"
+                        title="Delete">
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Error -->
-        <div v-if="result?.error" class="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        <div v-if="showResults && result?.error" class="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
             {{ result.error }}
         </div>
 
         <!-- Results -->
-        <template v-if="result && !result.error">
-            <!-- Stats summary -->
-            <div v-if="result.stats" class="flex flex-wrap gap-3">
-                <div v-for="(val, key) in result.stats" :key="key"
+        <template v-if="showResults && result && !result.error">
+            <!-- Stats summary (hide uniqueCount) -->
+            <div v-if="result.stats" class="flex flex-wrap gap-3 shrink-0">
+                <div v-for="(val, key) in result.stats" :key="key" v-show="key !== 'uniqueCount'"
                     class="px-3 py-2 rounded-lg bg-surface-elevated border border-border">
                     <div class="text-sm font-semibold text-text-primary">{{ formatValue(val) }}</div>
                     <div class="text-[10px] text-text-muted uppercase">{{ formatLabel(key as string) }}</div>
@@ -95,25 +110,25 @@
 
             <!-- Chart -->
             <div v-if="result.chartType && result.chartType !== 'none' && result.chartData"
-                class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
-                <div class="flex items-center justify-end px-4 py-2 border-b border-border-light bg-surface">
+                class="rounded-xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
+                <div class="flex items-center justify-end px-4 py-2 border-b border-border-light bg-surface shrink-0">
                     <button @click="exportPng"
                         class="text-xs text-accent hover:text-accent-dark cursor-pointer transition-colors">
                         Export PNG
                     </button>
                 </div>
-                <div class="p-4">
-                    <canvas ref="chartCanvas" class="max-h-80"></canvas>
+                <div class="p-4 flex-1 min-h-0">
+                    <canvas ref="chartCanvas" class="w-full h-full"></canvas>
                 </div>
             </div>
 
             <!-- Summary table (for summary operation) -->
             <div v-if="result.operation === 'summary' && result.tableData?.fields"
-                class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
-                <div class="px-4 py-2.5 border-b border-border bg-surface text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                class="rounded-xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
+                <div class="px-4 py-2.5 border-b border-border bg-surface text-[11px] font-semibold text-text-muted uppercase tracking-wider shrink-0">
                     Fields Overview
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-auto flex-1 min-h-0">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-border-light bg-surface">
@@ -155,15 +170,15 @@
 
             <!-- Data table (for chart-based results) -->
             <div v-if="result.tableData && result.operation !== 'summary'"
-                class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
-                <div class="px-4 py-2.5 border-b border-border bg-surface flex items-center justify-between">
+                class="rounded-xl border border-border overflow-hidden flex flex-col shrink-0" style="max-height: 30%;">
+                <div class="px-4 py-2.5 border-b border-border bg-surface flex items-center justify-between shrink-0">
                     <span class="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Data</span>
                     <button @click="exportCsv"
                         class="text-xs text-accent hover:text-accent-dark cursor-pointer transition-colors">
                         Export CSV
                     </button>
                 </div>
-                <div class="overflow-x-auto max-h-60">
+                <div class="overflow-auto flex-1 min-h-0">
                     <!-- Labels + values format -->
                     <table v-if="result.tableData.labels && result.tableData.values" class="w-full text-sm">
                         <tbody class="divide-y divide-border-light">
@@ -208,19 +223,32 @@ const props = defineProps<{
     schema: DatasetField[];
     result: Record<string, any> | null;
     running: boolean;
+    selectedOperation?: string;
+    mode?: 'full' | 'sidebar' | 'display';
+    savedViews?: { id: number; name: string; config: Record<string, any> }[];
 }>();
+
+const showControls = computed(() => !props.mode || props.mode === 'full' || props.mode === 'sidebar');
+const showResults = computed(() => !props.mode || props.mode === 'full' || props.mode === 'display');
 
 const emit = defineEmits<{
     run: [operation: string, params: Record<string, any>];
+    loadSaved: [view: any];
+    deleteSaved: [id: number];
 }>();
 
 const operations = [
     { id: 'summary', label: 'Summary', tooltip: 'Quick overview of all fields: counts, means, ranges, and top values' },
     { id: 'distribution', label: 'Distribution', tooltip: 'Histogram for numeric fields or frequency chart for categories' },
-    { id: 'time_series', label: 'Time Series', tooltip: 'Track how a numeric value changes over time' },
+    { id: 'time-series', label: 'Time Series', tooltip: 'Track how a numeric value changes over time' },
 ];
 
-const selectedOp = ref('summary');
+const selectedOp = ref(props.selectedOperation || 'summary');
+
+// When parent controls the operation, sync it
+if (props.selectedOperation) {
+    watch(() => props.selectedOperation, (op) => { if (op) selectedOp.value = op; });
+}
 const params = ref<Record<string, any>>({ fn: 'mean', period: 'ME', chartType: 'bar' });
 const chartCanvas = ref<HTMLCanvasElement | null>(null);
 let chartInstance: Chart | null = null;
@@ -232,14 +260,14 @@ const handleRun = () => {
     emit('run', selectedOp.value, { ...params.value });
 };
 
-// Chart rendering
-watch(() => props.result, async (newResult) => {
+const renderChart = async (newResult: Record<string, any>) => {
     if (chartInstance) {
         chartInstance.destroy();
         chartInstance = null;
     }
 
     if (!newResult || !newResult.chartData || newResult.chartType === 'none') return;
+    if (!showResults.value) return;
 
     await nextTick();
     if (!chartCanvas.value) return;
@@ -320,7 +348,16 @@ watch(() => props.result, async (newResult) => {
             options: { responsive: true, maintainAspectRatio: false },
         });
     }
+};
+
+// Re-render chart when result changes or when canvas becomes available
+watch(() => props.result, (newResult) => {
+    if (newResult) renderChart(newResult);
 }, { deep: true });
+
+watch(chartCanvas, (canvas) => {
+    if (canvas && props.result) renderChart(props.result);
+});
 
 onUnmounted(() => {
     if (chartInstance) chartInstance.destroy();

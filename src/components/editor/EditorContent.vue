@@ -4,7 +4,7 @@
             :show-comments="showComments" :show-toc="showToc" :context="context" @add-comment="handleAddCommentRequest"
             @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
             @add-reference="showReferenceModal = true" @add-dataset-view="showDatasetViewModal = true"
-            @add-citation="showCitationModal = true"
+            @add-dataset-chart="showDatasetChartModal = true" @add-citation="showCitationModal = true"
             @convert-table-to-dataset="handleConvertTableToDataset"
             @marker-applied="emit('marker-applied')" />
         <div class="editor-scroll-wrapper">
@@ -43,6 +43,7 @@
             @save="saveMark" @cancel="cancelMark" />
         <ReferenceModal v-model="showReferenceModal" @select="handleReferenceSelect" />
         <DatasetViewConfigModal v-model="showDatasetViewModal" @insert="handleDatasetViewInsert" />
+        <DatasetChartConfigModal v-model="showDatasetChartModal" @insert="handleDatasetChartInsert" />
         <TableToDatasetModal v-model="showTableToDatasetModal" :table-data="parsedTableData"
             :project-id="projectId" @created="handleTableDatasetCreated" />
         <CitationModal
@@ -91,7 +92,9 @@ import ReferenceModal from '../../components/references/ReferenceModal.vue';
 import Image from '@tiptap/extension-image';
 import { ReferenceNode } from './extensions/ReferenceExtension';
 import { DatasetViewExtension } from './extensions/DatasetViewExtension';
+import { DatasetChartExtension } from './extensions/DatasetChartExtension';
 import DatasetViewConfigModal from './DatasetViewConfigModal.vue';
+import DatasetChartConfigModal from './DatasetChartConfigModal.vue';
 import TableToDatasetModal from './TableToDatasetModal.vue';
 import { parseTableFromEditor, type ParsedTable } from './utils/parseTableFromEditor';
 import { useNotification } from '../../composables/useNotification';
@@ -162,6 +165,7 @@ const currentSelection = ref(null);
 const matches = ref([]);
 const showReferenceModal = ref(false);
 const showDatasetViewModal = ref(false);
+const showDatasetChartModal = ref(false);
 const showTableToDatasetModal = ref(false);
 const parsedTableData = ref<ParsedTable | null>(null);
 const showCitationModal = ref(false);
@@ -436,6 +440,14 @@ const handleDatasetViewInsert = (config: { datasetId: number; datasetName: strin
         .run();
 };
 
+const handleDatasetChartInsert = (config: { chartId: number; chartName: string; datasetId: number; datasetName: string }) => {
+    editor.value
+        .chain()
+        .focus()
+        .insertDatasetChart(config)
+        .run();
+};
+
 const handleConvertTableToDataset = () => {
     if (!editor.value) return;
     const parsed = parseTableFromEditor(editor.value);
@@ -652,6 +664,7 @@ onMounted(async () => {
             ReferenceNode,
             CitationNode,
             DatasetViewExtension,
+            DatasetChartExtension,
             Image.configure({
                 inline: false,
                 allowBase64: true,

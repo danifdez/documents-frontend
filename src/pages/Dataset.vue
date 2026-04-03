@@ -39,6 +39,14 @@
                         </svg>
                         Import CSV
                     </button>
+                    <button @click="handleExportCsv"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Export CSV
+                    </button>
                     <button @click="activeTab = activeTab === 'schema' ? 'data' : 'schema'"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -62,13 +70,46 @@
                     <component :is="tab.icon" class="h-3.5 w-3.5" />
                     {{ tab.label }}
                 </button>
+
+                <!-- Inline actions (selection + edits) - right aligned -->
+                <div class="ml-auto flex items-center gap-2">
+                    <!-- Selection actions -->
+                    <template v-if="recordTableRef?.selectedIds?.size > 0">
+                        <span class="text-xs font-medium text-accent">{{ recordTableRef.selectedIds.size }} selected</span>
+                        <button @click="recordTableRef.selectedIds.clear()"
+                            class="text-xs text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
+                            Deselect
+                        </button>
+                        <button @click="confirmBulkDelete([...recordTableRef.selectedIds])"
+                            class="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 transition-colors cursor-pointer">
+                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                        </button>
+                    </template>
+                    <!-- Edit actions -->
+                    <template v-if="recordTableRef?.hasChanges">
+                        <span v-if="!(recordTableRef?.selectedIds?.size > 0)" class="w-px h-4"></span>
+                        <span class="text-xs font-medium text-amber-600">{{ recordTableRef.editingCells.size }} change{{ recordTableRef.editingCells.size > 1 ? 's' : '' }}</span>
+                        <button @click="recordTableRef.cancelEdits()"
+                            class="px-2 py-0.5 text-xs font-medium text-text-secondary border border-border rounded-md hover:bg-surface-hover transition-colors cursor-pointer">
+                            Cancel
+                        </button>
+                        <button @click="recordTableRef.applyEdits()"
+                            class="px-2 py-0.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent-dark transition-colors cursor-pointer">
+                            Save
+                        </button>
+                    </template>
+                </div>
             </div>
 
             <!-- Content area -->
             <div class="flex-1 overflow-auto">
                 <!-- Schema editor -->
-                <div v-if="activeTab === 'schema'" class="p-4">
-                    <div class="max-w-lg space-y-4">
+                <div v-if="activeTab === 'schema'" class="h-full flex gap-6 p-4 overflow-hidden">
+                    <!-- Left: dataset info -->
+                    <div class="w-64 shrink-0 space-y-4">
                         <div>
                             <label class="block text-xs font-medium text-text-secondary mb-1">Dataset name</label>
                             <input v-model="editableName" type="text"
@@ -79,70 +120,262 @@
                             <input v-model="editableDescription" type="text" placeholder="Optional description"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Fields</label>
-                            <DatasetSchemaEditor v-model="editableSchema" />
-                        </div>
-                        <div class="flex gap-2">
-                            <Button @click="saveSchema" variant="info" :disabled="savingSchema || analyzingSchema">
-                                {{ analyzingSchema ? 'Analyzing...' : savingSchema ? 'Saving...' : 'Save' }}
-                            </Button>
-                        </div>
+                        <Button @click="saveSchema" variant="info" :disabled="savingSchema || analyzingSchema">
+                            {{ analyzingSchema ? 'Analyzing...' : savingSchema ? 'Saving...' : 'Save' }}
+                        </Button>
+                    </div>
+                    <!-- Right: fields -->
+                    <div class="flex-1 min-w-0 overflow-y-auto">
+                        <label class="block text-xs font-medium text-text-secondary mb-1.5">Fields</label>
+                        <DatasetSchemaEditor v-model="editableSchema" />
                     </div>
                 </div>
 
                 <!-- Data tab -->
                 <div v-if="activeTab === 'data'" class="h-full flex flex-col">
-                    <!-- Inline filter bar + view toggle -->
-                    <div class="shrink-0 px-4 py-2 border-b border-border-light bg-surface/50 space-y-2">
+                    <div class="shrink-0 px-4 py-2 border-b border-border-light bg-surface/50">
                         <DatasetFilterBar :schema="dataset.schema" v-model:filters="filters"
                             v-model:search-term="searchTerm" @apply="applyFilters" @search="applyFilters" />
-                        <div class="flex items-center gap-1">
-                            <button @click="dataView = 'table'"
-                                class="px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer"
-                                :class="dataView === 'table' ? 'bg-accent text-white' : 'text-text-secondary hover:bg-surface-hover'">
-                                Table
+                    </div>
+
+                    <div class="flex-1 overflow-auto">
+                        <DatasetRecordTable ref="recordTableRef" :schema="dataset.schema" :records="records" :total="totalRecords" :page="page"
+                            :limit="limit" :sort-field="sortField" :sort-order="sortOrder"
+                            @page="changePage" @sort="toggleSort"
+                            @bulk-delete="confirmBulkDelete" @inline-update="handleInlineUpdate" />
+                    </div>
+                </div>
+
+                <!-- Charts & Analysis tab -->
+                <div v-if="activeTab === 'charts'" class="h-full p-4">
+                    <div class="flex gap-4 h-full">
+                        <!-- Left sidebar -->
+                        <div class="w-72 shrink-0 space-y-3 overflow-y-auto">
+                            <!-- Charts section -->
+                            <div class="bg-surface-elevated rounded-xl border border-border p-3 space-y-2">
+                                <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Charts</span>
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <button v-for="ct in chartModes" :key="ct.id" @click="selectChartMode(ct.id)"
+                                        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
+                                        :class="visualMode === ct.id ? 'bg-accent text-white' : 'bg-surface border border-border text-text-secondary hover:bg-surface-hover'">
+                                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path v-for="(d, i) in ct.paths" :key="i" :d="d" />
+                                        </svg>
+                                        {{ ct.label }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Analysis section -->
+                            <div class="bg-surface-elevated rounded-xl border border-border p-3 space-y-2">
+                                <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Analysis</span>
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <button v-for="op in analysisModes" :key="op.id" @click="visualMode = op.id"
+                                        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
+                                        :class="visualMode === op.id ? 'bg-accent text-white' : 'bg-surface border border-border text-text-secondary hover:bg-surface-hover'">
+                                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path v-for="(d, i) in op.paths" :key="i" :d="d" />
+                                        </svg>
+                                        {{ op.label }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Chart config (when a chart type is selected) -->
+                            <DatasetChartBuilder v-if="isChartMode"
+                                :schema="dataset.schema" :result="chartResult" :running="chartRunning"
+                                :filters="activeChartFilters" :dataset-id="datasetId" :saved-charts="savedCharts"
+                                :preselected-chart-type="preselectedChartType"
+                                mode="sidebar"
+                                @run="runChartWithFilters" @save="handleSaveChart" @delete-saved-chart="handleDeleteSavedChart" />
+
+                            <!-- Analysis config (when an analysis type is selected) -->
+                            <template v-else>
+                                <DatasetStatsPanel v-if="statsOps.includes(visualMode)"
+                                    :schema="dataset.schema" :result="analysisResult" :running="analysisRunning"
+                                    :selected-operation="visualMode" mode="sidebar"
+                                    @run="runAnalysis" />
+                                <DatasetCorrelationMatrix v-else-if="visualMode === 'correlation'"
+                                    :schema="dataset.schema" :result="analysisResult" :running="analysisRunning"
+                                    mode="sidebar"
+                                    @run="runAnalysis" />
+                                <DatasetOutlierPanel v-else-if="visualMode === 'outliers'"
+                                    :schema="dataset.schema" :result="analysisResult" :running="analysisRunning"
+                                    mode="sidebar"
+                                    @run="runAnalysis" />
+                                <DatasetPivotTable v-else-if="visualMode === 'pivot'"
+                                    :schema="dataset.schema" :result="analysisResult" :running="analysisRunning"
+                                    mode="sidebar"
+                                    @run="runAnalysis" />
+                            </template>
+
+                            <!-- Save current view button -->
+                            <button v-if="activeResult && !activeResult.error" @click="showSaveViewDialog = true"
+                                class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                </svg>
+                                Save View
                             </button>
-                            <button @click="dataView = 'chart'"
-                                class="px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer"
-                                :class="dataView === 'chart' ? 'bg-accent text-white' : 'text-text-secondary hover:bg-surface-hover'">
-                                Chart
-                            </button>
+
+                            <!-- Saved views for current mode -->
+                            <div v-if="savedViewsForCurrentMode.length > 0"
+                                class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+                                <div class="px-3 py-2 border-b border-border-light bg-surface">
+                                    <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved</span>
+                                </div>
+                                <div class="divide-y divide-border-light max-h-32 overflow-y-auto">
+                                    <div v-for="sv in savedViewsForCurrentMode" :key="sv.id"
+                                        class="flex items-center justify-between px-3 py-2 hover:bg-surface-hover transition-colors group">
+                                        <button @click="loadSavedView(sv)"
+                                            class="flex-1 min-w-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left truncate">
+                                            {{ sv.name }}
+                                        </button>
+                                        <button @click="handleDeleteSavedChart(sv.id)"
+                                            class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0">
+                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right panel: results -->
+                        <div class="flex-1 min-w-0 flex flex-col">
+                            <!-- Empty state: no results yet -->
+                            <div v-if="!activeResult && !activeRunning"
+                                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-xl border border-border">
+                                <div class="text-center">
+                                    <svg class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16V9" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 16v-5" />
+                                    </svg>
+                                    <p class="text-sm text-text-muted">{{ activeModeName }}</p>
+                                    <p class="text-xs text-text-muted/70 mt-1">Configure the parameters and click Run</p>
+                                </div>
+                            </div>
+
+                            <!-- Loading -->
+                            <div v-else-if="activeRunning && !activeResult"
+                                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-xl border border-border">
+                                <div class="flex flex-col items-center gap-3">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-2 border-accent border-t-transparent"></div>
+                                    <span class="text-sm text-text-muted">Running {{ activeModeName }}...</span>
+                                </div>
+                            </div>
+
+                            <!-- Results -->
+                            <div v-else class="flex-1 min-h-0 overflow-hidden bg-surface-elevated rounded-xl border border-border p-4 flex flex-col">
+                                <DatasetChartBuilder v-if="isChartMode"
+                                    :schema="dataset.schema" :result="chartResult" :running="chartRunning"
+                                    :filters="activeChartFilters" :dataset-id="datasetId" :saved-charts="savedCharts"
+                                    :preselected-chart-type="preselectedChartType"
+                                    mode="display"
+                                    @run="runChartWithFilters" @save="handleSaveChart" @delete-saved-chart="handleDeleteSavedChart" />
+                                <DatasetStatsPanel v-else-if="statsOps.includes(visualMode)"
+                                    :schema="dataset.schema" :result="analysisResult" :running="analysisRunning"
+                                    :selected-operation="visualMode" mode="display"
+                                    @run="runAnalysis" />
+                                <DatasetCorrelationMatrix v-else-if="visualMode === 'correlation'"
+                                    :schema="dataset.schema" :result="analysisResult" :running="analysisRunning"
+                                    mode="display"
+                                    @run="runAnalysis" />
+                                <DatasetOutlierPanel v-else-if="visualMode === 'outliers'"
+                                    :schema="dataset.schema" :result="analysisResult" :running="analysisRunning"
+                                    mode="display"
+                                    @run="runAnalysis" />
+                                <DatasetPivotTable v-else-if="visualMode === 'pivot'"
+                                    :schema="dataset.schema" :result="analysisResult" :running="analysisRunning"
+                                    mode="display"
+                                    @run="runAnalysis" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Saved views tab -->
+                <div v-if="activeTab === 'saved'" class="h-full flex flex-col overflow-hidden">
+                    <!-- Empty state -->
+                    <div v-if="savedCharts.length === 0" class="flex-1 flex items-center justify-center">
+                        <div class="text-center">
+                            <svg class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                            <p class="text-sm text-text-muted">No saved views yet</p>
+                            <p class="text-xs text-text-muted/70 mt-1">Run a chart or analysis and click "Save View" to save it here</p>
                         </div>
                     </div>
 
-                    <!-- Table view -->
-                    <div v-if="dataView === 'table'" class="flex-1 overflow-auto">
-                        <DatasetRecordTable :schema="dataset.schema" :records="records" :total="totalRecords" :page="page"
-                            :limit="limit" :sort-field="sortField" :sort-order="sortOrder" @edit="editRecord"
-                            @delete="confirmDeleteRecord" @page="changePage" @sort="toggleSort" />
-                    </div>
+                    <template v-else>
+                        <!-- Search bar + type filter -->
+                        <div class="shrink-0 px-4 py-2.5 border-b border-border-light bg-surface/50 flex items-center gap-3">
+                            <!-- Search by name -->
+                            <div class="relative flex-1">
+                                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted pointer-events-none"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input v-model="savedSearch" type="text" placeholder="Search by name..."
+                                    class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-surface border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
+                            </div>
+                            <!-- Filter by type -->
+                            <select v-model="savedTypeFilter"
+                                class="rounded-lg bg-surface border border-border px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
+                                <option value="">All types</option>
+                                <optgroup label="Charts">
+                                    <option v-for="ct in chartModes" :key="ct.id" :value="ct.id">{{ ct.label }}</option>
+                                </optgroup>
+                                <optgroup label="Analysis">
+                                    <option v-for="op in analysisModes" :key="op.id" :value="op.id">{{ op.label }}</option>
+                                </optgroup>
+                            </select>
+                        </div>
 
-                    <!-- Chart view -->
-                    <div v-if="dataView === 'chart'" class="flex-1 overflow-auto">
-                        <DatasetChartBuilder :schema="dataset.schema" :result="chartResult" :running="chartRunning"
-                            :filters="activeChartFilters" @run="runChartWithFilters" />
-                    </div>
-                </div>
+                        <!-- List -->
+                        <div class="flex-1 min-h-0 overflow-y-auto">
+                            <!-- No results -->
+                            <div v-if="filteredSavedViews.length === 0" class="px-4 py-8 text-center text-sm text-text-muted">
+                                No saved views match your search
+                            </div>
 
-                <!-- Correlation Matrix tab -->
-                <div v-if="activeTab === 'correlation'" class="p-4">
-                    <DatasetCorrelationMatrix :schema="dataset.schema" :result="correlationResult" :running="correlationRunning" @run="runCorrelation" />
-                </div>
+                            <div v-else class="divide-y divide-border-light">
+                                <div v-for="sv in filteredSavedViews" :key="sv.id"
+                                    class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors group/item">
+                                    <!-- Type icon -->
+                                    <svg class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path v-for="(d, pi) in (allModes.find(m => m.id === inferVisualMode(sv.config))?.paths || ['M4 4v16h16'])" :key="pi" :d="d" />
+                                    </svg>
+                                    <!-- Name + config summary + date -->
+                                    <button @click="loadAndNavigate(sv)"
+                                        class="flex-1 min-w-0 text-left cursor-pointer">
+                                        <span class="text-sm font-medium text-text-primary truncate block">{{ sv.name }}</span>
+                                        <span class="text-[10px] text-text-muted truncate block">{{ savedViewSummary(sv) }} · {{ new Date(sv.createdAt).toLocaleDateString() }}</span>
+                                    </button>
+                                    <!-- Type badge -->
+                                    <span class="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface border border-border-light text-text-muted">
+                                        {{ savedViewLabel(sv) }}
+                                    </span>
+                                    <!-- Delete -->
+                                    <button @click="handleDeleteSavedChart(sv.id)"
+                                        class="shrink-0 p-1 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover/item:opacity-100"
+                                        title="Delete">
+                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-                <!-- Outliers tab -->
-                <div v-if="activeTab === 'outliers'" class="p-4">
-                    <DatasetOutlierPanel :schema="dataset.schema" :result="outlierResult" :running="outlierRunning" @run="runOutliers" />
-                </div>
-
-                <!-- Pivot Table tab -->
-                <div v-if="activeTab === 'pivot'" class="p-4">
-                    <DatasetPivotTable :schema="dataset.schema" :result="pivotResult" :running="pivotRunning" @run="runPivot" />
-                </div>
-
-                <!-- Stats tab -->
-                <div v-if="activeTab === 'stats'" class="p-4">
-                    <DatasetStatsPanel :schema="dataset.schema" :result="statsResult" :running="statsRunning" @run="runStats" />
+                        <!-- Footer count -->
+                        <div class="shrink-0 px-4 py-2 border-t border-border bg-surface text-xs text-text-muted">
+                            {{ filteredSavedViews.length }} of {{ savedCharts.length }} saved views
+                        </div>
+                    </template>
                 </div>
 
             </div>
@@ -150,18 +383,18 @@
 
         <!-- Record Form Modal -->
         <DatasetRecordForm v-if="dataset" :is-open="showRecordForm" :schema="dataset.schema"
-            :record="editingRecord" @close="closeRecordForm" @save="handleSaveRecord" />
+            :record="null" @close="showRecordForm = false" @save="handleSaveRecord" />
 
         <!-- CSV Import Modal -->
         <CsvImportModal v-if="dataset" :is-open="showImportModal" :dataset-id="dataset.id" :schema="dataset.schema"
             @close="showImportModal = false" @upload-preview="handleCsvUpload" @confirm-import="handleCsvConfirm"
             @imported="handleImported" />
 
-        <!-- Delete Record Confirm -->
-        <ConfirmModal :is-open="showDeleteRecordModal" title="Delete Record"
-            message="Are you sure you want to delete this record? This cannot be undone."
-            confirm-text="Delete" cancel-text="Cancel" confirm-variant="danger" @confirm="handleDeleteRecord"
-            @cancel="showDeleteRecordModal = false" />
+        <!-- Bulk Delete Confirm -->
+        <ConfirmModal :is-open="showBulkDeleteModal" :title="`Delete ${bulkDeleteIds.length} Records`"
+            :message="`Are you sure you want to delete ${bulkDeleteIds.length} selected records? This cannot be undone.`"
+            confirm-text="Delete All" cancel-text="Cancel" confirm-variant="danger" @confirm="handleBulkDelete"
+            @cancel="showBulkDeleteModal = false" />
 
         <!-- Schema Change Warning Modal -->
         <Teleport to="body">
@@ -235,13 +468,43 @@
                 </div>
             </Transition>
         </Teleport>
+
+        <!-- Save View Modal -->
+        <Teleport to="body">
+            <Transition name="modal">
+                <div v-if="showSaveViewDialog"
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div class="bg-surface-elevated rounded-xl shadow-2xl border border-border max-w-sm w-full mx-4 overflow-hidden">
+                        <div class="px-5 py-3 border-b border-border-light">
+                            <h3 class="text-sm font-semibold text-text-primary">Save View</h3>
+                        </div>
+                        <div class="px-5 py-4">
+                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Name</label>
+                            <input v-model="saveViewName" type="text" placeholder="e.g. Price distribution, Sales correlation..."
+                                class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                                @keyup.enter="handleSaveView" />
+                        </div>
+                        <div class="px-5 py-3 border-t border-border-light flex justify-end gap-2">
+                            <button @click="showSaveViewDialog = false"
+                                class="px-3 py-1.5 text-xs font-medium text-text-secondary border border-border rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
+                                Cancel
+                            </button>
+                            <button @click="handleSaveView" :disabled="!saveViewName.trim()"
+                                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg hover:bg-accent-dark transition-colors cursor-pointer disabled:opacity-50">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, h } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useDatasets, type Dataset, type DatasetRecord, type DatasetField, type CsvPreview, type ImportResult, type SchemaAnalysis } from '../services/datasets/useDatasets';
+import { useDatasets, type Dataset, type DatasetRecord, type DatasetField, type DatasetChart, type CsvPreview, type ImportResult, type SchemaAnalysis } from '../services/datasets/useDatasets';
 import { useNotification } from '../composables/useNotification';
 import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
@@ -249,12 +512,32 @@ import DatasetRecordTable from '../components/datasets/DatasetRecordTable.vue';
 import DatasetRecordForm from '../components/datasets/DatasetRecordForm.vue';
 import DatasetSchemaEditor from '../components/datasets/DatasetSchemaEditor.vue';
 import DatasetFilterBar from '../components/datasets/DatasetFilterBar.vue';
-import DatasetStatsPanel from '../components/datasets/DatasetStatsPanel.vue';
 import DatasetChartBuilder from '../components/datasets/DatasetChartBuilder.vue';
+import DatasetStatsPanel from '../components/datasets/DatasetStatsPanel.vue';
 import DatasetCorrelationMatrix from '../components/datasets/DatasetCorrelationMatrix.vue';
 import DatasetOutlierPanel from '../components/datasets/DatasetOutlierPanel.vue';
 import DatasetPivotTable from '../components/datasets/DatasetPivotTable.vue';
 import CsvImportModal from '../components/datasets/CsvImportModal.vue';
+
+const chartModes = [
+    { id: 'chart-bar', label: 'Bar', paths: ['M4 4v16h16', 'M8 16V9', 'M12 16V4', 'M16 16v-5'] },
+    { id: 'chart-line', label: 'Line', paths: ['M4 4v16h16', 'M7 12l4-5 3 3 5-6'] },
+    { id: 'chart-pie', label: 'Pie', paths: ['M21.21 15.89A10 10 0 118 2.83', 'M22 12A10 10 0 0012 2v10z'] },
+    { id: 'chart-scatter', label: 'Scatter', paths: ['M4 4v16h16', 'M7 14h.01', 'M10 10h.01', 'M14 8h.01', 'M17 11h.01', 'M11 15h.01', 'M15 13h.01'] },
+];
+
+const analysisModes = [
+    { id: 'summary', label: 'Summary', paths: ['M4 6h16', 'M4 10h16', 'M4 14h10', 'M4 18h6'] },
+    { id: 'distribution', label: 'Distribution', paths: ['M4 20h16', 'M6 16v4', 'M9 12v8', 'M12 8v12', 'M15 12v8', 'M18 16v4'] },
+    { id: 'time-series', label: 'Time Series', paths: ['M4 4v16h16', 'M4 16l4-4 3 2 4-6 5 4'] },
+    { id: 'correlation', label: 'Correlation', paths: ['M4 4h16v16H4z', 'M4 12h16', 'M12 4v16', 'M8 8h.01', 'M16 8h.01', 'M8 16h.01', 'M16 16h.01'] },
+    { id: 'outliers', label: 'Outliers', paths: ['M12 9v2m0 4h.01', 'M5.07 19h13.86a2 2 0 001.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16a2 2 0 001.73 3z'] },
+    { id: 'pivot', label: 'Pivot Table', paths: ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M3 14h7v7H3z', 'M14 14h7v7h-7z'] },
+];
+
+const allModes = [...chartModes, ...analysisModes] as { id: string; label: string; paths: string[] }[];
+const statsOps = ['summary', 'distribution', 'time-series'];
+const isChartMode = computed(() => visualMode.value.startsWith('chart-'));
 
 const TabIcon = (paths: string[]) => ({
     render: () => h('svg', { class: 'h-3.5 w-3.5', fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
@@ -263,10 +546,8 @@ const TabIcon = (paths: string[]) => ({
 
 const tabs = [
     { key: 'data', label: 'Data', icon: TabIcon(['M3 10h18M3 14h18M3 6h18M3 18h18']) },
-    { key: 'correlation', label: 'Correlation', icon: TabIcon(['M4 4v16h16', 'M8 16V9', 'M12 16V4', 'M16 16v-5']) },
-    { key: 'outliers', label: 'Outliers', icon: TabIcon(['M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16a2 2 0 001.73 3z']) },
-    { key: 'pivot', label: 'Pivot Table', icon: TabIcon(['M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z']) },
-    { key: 'stats', label: 'Stats', icon: TabIcon(['M16 8v8', 'M12 11v5', 'M8 14v2', 'M4 18h16']) },
+    { key: 'charts', label: 'Charts & Analysis', icon: TabIcon(['M4 4v16h16', 'M8 16V9', 'M12 16V4', 'M16 16v-5']) },
+    { key: 'saved', label: 'Saved', icon: TabIcon(['M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z']) },
 ];
 
 const route = useRoute();
@@ -274,10 +555,12 @@ const router = useRouter();
 const notification = useNotification();
 const {
     getDataset, updateDataset,
-    getRecords, createRecord, updateRecord, deleteRecord,
+    getRecords, createRecord, updateRecord,
     uploadCsvPreview, confirmCsvImport,
     analyzeSchemaChange,
     requestStats, getStatsResult,
+    exportDatasetCsv, bulkDeleteRecords,
+    getSavedCharts, saveChart, deleteSavedChart,
 } = useDatasets();
 
 // State
@@ -286,7 +569,16 @@ const records = ref<DatasetRecord[]>([]);
 const totalRecords = ref(0);
 const loading = ref(true);
 const activeTab = ref('data');
-const dataView = ref<'table' | 'chart'>('table');
+const visualMode = ref('summary');
+const preselectedChartType = ref('bar');
+
+const selectChartMode = (modeId: string) => {
+    visualMode.value = modeId;
+    preselectedChartType.value = modeId.replace('chart-', '');
+};
+const activeResult = computed(() => isChartMode.value ? chartResult.value : analysisResult.value);
+const activeRunning = computed(() => isChartMode.value ? chartRunning.value : analysisRunning.value);
+const activeModeName = computed(() => allModes.find(m => m.id === visualMode.value)?.label || '');
 
 // Pagination & sorting
 const page = ref(1);
@@ -307,16 +599,36 @@ const schemaAnalysis = ref<SchemaAnalysis | null>(null);
 const analyzingSchema = ref(false);
 const showSchemaWarning = ref(false);
 
+// Record table ref
+const recordTableRef = ref<any>(null);
+
 // Record form
 const showRecordForm = ref(false);
-const editingRecord = ref<DatasetRecord | null>(null);
 
 // CSV import
 const showImportModal = ref(false);
 
-// Delete record
-const showDeleteRecordModal = ref(false);
-const recordToDelete = ref<DatasetRecord | null>(null);
+
+// Bulk delete
+const showBulkDeleteModal = ref(false);
+const bulkDeleteIds = ref<number[]>([]);
+
+// Saved charts
+const savedCharts = ref<DatasetChart[]>([]);
+const savedSearch = ref('');
+const savedTypeFilter = ref('');
+
+const filteredSavedViews = computed(() => {
+    let views = savedCharts.value;
+    if (savedTypeFilter.value) {
+        views = views.filter(sv => inferVisualMode(sv.config) === savedTypeFilter.value);
+    }
+    if (savedSearch.value.trim()) {
+        const q = savedSearch.value.trim().toLowerCase();
+        views = views.filter(sv => sv.name.toLowerCase().includes(q));
+    }
+    return views;
+});
 
 const datasetId = Number(route.params.id);
 
@@ -336,7 +648,6 @@ const loadRecords = async () => {
         params.search = searchTerm.value;
     }
 
-    // Add filters
     for (const f of filters.value) {
         if (f.field && f.value) {
             params[`filter[${f.field}_${f.operator}]`] = f.value;
@@ -372,7 +683,6 @@ const applyFilters = () => {
 const saveSchema = async () => {
     if (!dataset.value) return;
 
-    // Analyze impact first
     analyzingSchema.value = true;
     try {
         const analysis = await analyzeSchemaChange(dataset.value.id, editableSchema.value);
@@ -419,48 +729,54 @@ const cancelSchemaChange = () => {
 };
 
 // Record CRUD
-const editRecord = (record: DatasetRecord) => {
-    editingRecord.value = record;
-    showRecordForm.value = true;
-};
-
-const closeRecordForm = () => {
-    showRecordForm.value = false;
-    editingRecord.value = null;
-};
-
 const handleSaveRecord = async (data: Record<string, any>) => {
     try {
-        if (editingRecord.value) {
-            await updateRecord(datasetId, editingRecord.value.id, data);
-            notification.success('Record updated');
-        } else {
-            await createRecord(datasetId, data);
-            notification.success('Record created');
-        }
-        closeRecordForm();
+        await createRecord(datasetId, data);
+        notification.success('Record created');
+        showRecordForm.value = false;
         await loadRecords();
     } catch {
-        notification.error('Failed to save record');
+        notification.error('Failed to create record');
     }
 };
 
-const confirmDeleteRecord = (record: DatasetRecord) => {
-    recordToDelete.value = record;
-    showDeleteRecordModal.value = true;
-};
-
-const handleDeleteRecord = async () => {
-    showDeleteRecordModal.value = false;
-    if (!recordToDelete.value) return;
+// Inline update
+const handleInlineUpdate = async (recordId: number, data: Record<string, any>) => {
     try {
-        await deleteRecord(datasetId, recordToDelete.value.id);
-        notification.success('Record deleted');
+        await updateRecord(datasetId, recordId, data);
+        notification.success('Record updated');
         await loadRecords();
     } catch {
-        notification.error('Failed to delete record');
-    } finally {
-        recordToDelete.value = null;
+        notification.error('Failed to update record');
+    }
+};
+
+// Bulk delete
+const confirmBulkDelete = (ids: number[]) => {
+    bulkDeleteIds.value = ids;
+    showBulkDeleteModal.value = true;
+};
+
+const handleBulkDelete = async () => {
+    showBulkDeleteModal.value = false;
+    if (!bulkDeleteIds.value.length) return;
+    try {
+        const result = await bulkDeleteRecords(datasetId, bulkDeleteIds.value);
+        notification.success(`${result.deleted} records deleted`);
+        bulkDeleteIds.value = [];
+        await loadRecords();
+    } catch {
+        notification.error('Failed to delete records');
+    }
+};
+
+// Export CSV
+const handleExportCsv = async () => {
+    try {
+        await exportDatasetCsv(datasetId);
+        notification.success('CSV exported');
+    } catch {
+        notification.error('Failed to export CSV');
     }
 };
 
@@ -491,11 +807,15 @@ const handleImported = () => {
 const createJobRunner = (errorMsg: string) => {
     const result = ref<Record<string, any> | null>(null);
     const running = ref(false);
+    const lastOperation = ref('');
+    const lastParams = ref<Record<string, any>>({});
     let timer: ReturnType<typeof setInterval> | null = null;
 
     const run = async (operation: string, params: Record<string, any>) => {
         running.value = true;
         result.value = null;
+        lastOperation.value = operation;
+        lastParams.value = { ...params };
         if (timer) clearInterval(timer);
         try {
             const { jobId } = await requestStats(datasetId, operation, params);
@@ -519,16 +839,12 @@ const createJobRunner = (errorMsg: string) => {
         }
     };
 
-    return { result, running, run };
+    return { result, running, run, lastOperation, lastParams };
 };
 
-// Stats
-const { result: statsResult, running: statsRunning, run: runStats } = createJobRunner('Analysis failed');
-
 // Charts
-const { result: chartResult, running: chartRunning, run: runChart } = createJobRunner('Chart generation failed');
+const { result: chartResult, running: chartRunning, run: runChart, lastParams: lastChartParams } = createJobRunner('Chart generation failed');
 
-// Build active filters for chart (pass current query filters to chart operation)
 const activeChartFilters = computed(() => {
     return filters.value
         .filter(f => f.field && f.value)
@@ -546,14 +862,141 @@ const runChartWithFilters = (operation: string, params: Record<string, any>) => 
     runChart(operation, params);
 };
 
-// Correlation
-const { result: correlationResult, running: correlationRunning, run: runCorrelation } = createJobRunner('Correlation analysis failed');
+// Saved views (charts + analysis)
+const showSaveViewDialog = ref(false);
+const saveViewName = ref('');
 
-// Outliers
-const { result: outlierResult, running: outlierRunning, run: runOutliers } = createJobRunner('Outlier detection failed');
+const loadSavedCharts = async () => {
+    try {
+        savedCharts.value = await getSavedCharts(datasetId);
+    } catch { /* ignore */ }
+};
 
-// Pivot Table
-const { result: pivotResult, running: pivotRunning, run: runPivot } = createJobRunner('Pivot table generation failed');
+const handleSaveChart = async (name: string, config: Record<string, any>) => {
+    config.visualMode = visualMode.value;
+    try {
+        const chart = await saveChart(datasetId, name, config);
+        savedCharts.value.unshift(chart);
+        notification.success(`"${name}" saved`);
+    } catch {
+        notification.error('Failed to save');
+    }
+};
+
+const handleSaveView = async () => {
+    if (!saveViewName.value.trim() || !activeResult.value) return;
+    const config: Record<string, any> = {};
+    if (isChartMode.value) {
+        Object.assign(config, lastChartParams.value);
+    } else {
+        config.operation = lastAnalysisOp.value || (isChartMode.value ? 'summary' : visualMode.value);
+        config.params = { ...lastAnalysisParams.value };
+    }
+    // Set visualMode last so it's never overwritten
+    config.visualMode = visualMode.value;
+    try {
+        const chart = await saveChart(datasetId, saveViewName.value.trim(), config);
+        savedCharts.value.unshift(chart);
+        notification.success(`"${saveViewName.value.trim()}" saved`);
+        showSaveViewDialog.value = false;
+        saveViewName.value = '';
+    } catch {
+        notification.error('Failed to save view');
+    }
+};
+
+const loadSavedView = (sv: DatasetChart) => {
+    const mode = inferVisualMode(sv.config);
+    visualMode.value = mode;
+    if (mode.startsWith('chart-')) {
+        preselectedChartType.value = mode.replace('chart-', '');
+    }
+    // Re-run with saved config
+    if (mode.startsWith('chart-')) {
+        runChartWithFilters('chart', sv.config);
+    } else {
+        const operation = sv.config.operation || mode;
+        runAnalysis(operation, sv.config.params || {});
+    }
+};
+
+const loadAndNavigate = (sv: DatasetChart) => {
+    activeTab.value = 'charts';
+    loadSavedView(sv);
+};
+
+const inferVisualMode = (config: Record<string, any>): string => {
+    if (config.visualMode) return config.visualMode;
+    // Legacy: infer from operation or chartType
+    const op = config.operation;
+    if (op && ['summary', 'distribution', 'time-series', 'correlation', 'outliers', 'pivot'].includes(op)) return op;
+    const ct = config.chartType;
+    if (ct && ['bar', 'line', 'pie', 'scatter'].includes(ct)) return `chart-${ct}`;
+    return 'chart-bar';
+};
+
+const savedViewsForCurrentMode = computed(() => {
+    return savedCharts.value.filter(sv => inferVisualMode(sv.config) === visualMode.value);
+});
+
+const savedViewLabel = (sv: DatasetChart): string => {
+    return allModes.find(m => m.id === inferVisualMode(sv.config))?.label || 'Chart';
+};
+
+const savedViewSummary = (sv: DatasetChart): string => {
+    const c = sv.config;
+    const params = c.params || {};
+    const fieldName = (key: string) => {
+        if (!key || !dataset.value) return key;
+        return dataset.value.schema.find(f => f.key === key)?.name || key;
+    };
+    const mode = inferVisualMode(c);
+    const parts: string[] = [];
+
+    if (mode.startsWith('chart-')) {
+        if (c.xField) parts.push(fieldName(c.xField));
+        if (c.yField) parts.push(fieldName(c.yField));
+        if (c.aggregation && c.aggregation !== 'count') parts.push(c.aggregation);
+        else if (!c.yField) parts.push('count');
+    } else if (mode === 'summary') {
+        parts.push('All fields overview');
+    } else if (mode === 'distribution') {
+        if (params.field) parts.push(fieldName(params.field));
+    } else if (mode === 'time-series') {
+        if (params.dateField) parts.push(fieldName(params.dateField));
+        if (params.valueField) parts.push(fieldName(params.valueField));
+        if (params.period) {
+            const periods: Record<string, string> = { D: 'daily', W: 'weekly', ME: 'monthly', QE: 'quarterly', YE: 'yearly' };
+            parts.push(periods[params.period] || params.period);
+        }
+    } else if (mode === 'correlation') {
+        if (params.fields?.length) parts.push(`${params.fields.length} fields`);
+        else parts.push('Numeric fields');
+    } else if (mode === 'outliers') {
+        if (params.field) parts.push(fieldName(params.field));
+        parts.push('IQR + Z-score');
+    } else if (mode === 'pivot') {
+        if (params.rowField) parts.push(fieldName(params.rowField));
+        if (params.colField) parts.push(fieldName(params.colField));
+        if (params.fn) parts.push(params.fn);
+    }
+
+    if (parts.length === 0) return new Date(sv.createdAt).toLocaleDateString();
+    return parts.join(' · ');
+};
+
+const handleDeleteSavedChart = async (chartId: number) => {
+    try {
+        await deleteSavedChart(chartId);
+        savedCharts.value = savedCharts.value.filter(c => c.id !== chartId);
+        notification.success('View deleted');
+    } catch {
+        notification.error('Failed to delete view');
+    }
+};
+
+// Analysis (unified runner for all analysis operations)
+const { result: analysisResult, running: analysisRunning, run: runAnalysis, lastParams: lastAnalysisParams, lastOperation: lastAnalysisOp } = createJobRunner('Analysis failed');
 
 onMounted(async () => {
     try {
@@ -561,7 +1004,10 @@ onMounted(async () => {
         editableSchema.value = [...dataset.value.schema];
         editableName.value = dataset.value.name;
         editableDescription.value = dataset.value.description || '';
-        await loadRecords();
+        await Promise.all([
+            loadRecords(),
+            loadSavedCharts(),
+        ]);
     } catch {
         notification.error('Failed to load dataset');
     } finally {

@@ -117,6 +117,14 @@ export interface StatsResult {
     error?: string;
 }
 
+export interface DatasetChart {
+    id: number;
+    name: string;
+    config: Record<string, any>;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface SchemaAnalysis {
     removedFields: { key: string; name: string; affectedRecords: number }[];
     typeChanges: { key: string; name: string; oldType: string; newType: string; incompatibleRecords: number }[];
@@ -254,10 +262,10 @@ export const useDatasets = () => {
         }
     };
 
-    const resolveLinks = async (datasetId: number, recordIds: number[]): Promise<Record<number, Record<string, any>>> => {
-        if (!recordIds.length) return {};
+    const resolveLinks = async (datasetId: number, values: (string | number)[], lookupField?: string): Promise<Record<string, any>> => {
+        if (!values.length) return {};
         try {
-            const response = await apiClient.post(`/datasets/${datasetId}/resolve-links`, { recordIds });
+            const response = await apiClient.post(`/datasets/${datasetId}/resolve-links`, { values, lookupField });
             return response.data;
         } catch {
             return {};
@@ -413,6 +421,83 @@ export const useDatasets = () => {
         }
     };
 
+    // --- Export CSV ---
+
+    const exportDatasetCsv = async (id: number): Promise<void> => {
+        try {
+            const response = await apiClient.get(`/datasets/${id}/export`, { responseType: 'blob' });
+            const disposition = response.headers['content-disposition'] || '';
+            const filenameMatch = disposition.match(/filename="?(.+?)"?$/);
+            const filename = filenameMatch ? filenameMatch[1] : 'dataset.csv';
+            const url = URL.createObjectURL(response.data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to export CSV';
+            throw err;
+        }
+    };
+
+    // --- Bulk Delete ---
+
+    const bulkDeleteRecords = async (datasetId: number, recordIds: number[]): Promise<{ deleted: number }> => {
+        isLoading.value = true;
+        error.value = null;
+        try {
+            const response = await apiClient.delete(`/datasets/${datasetId}/records/bulk`, { data: { recordIds } });
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to delete records';
+            throw err;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    // --- Saved Charts ---
+
+    const getSavedCharts = async (datasetId: number): Promise<DatasetChart[]> => {
+        try {
+            const response = await apiClient.get(`/datasets/${datasetId}/charts`);
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to load charts';
+            throw err;
+        }
+    };
+
+    const saveChart = async (datasetId: number, name: string, config: Record<string, any>): Promise<DatasetChart> => {
+        try {
+            const response = await apiClient.post(`/datasets/${datasetId}/charts`, { name, config });
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to save chart';
+            throw err;
+        }
+    };
+
+    const updateSavedChart = async (chartId: number, data: { name?: string; config?: Record<string, any> }): Promise<DatasetChart> => {
+        try {
+            const response = await apiClient.patch(`/datasets/charts/${chartId}`, data);
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to update chart';
+            throw err;
+        }
+    };
+
+    const deleteSavedChart = async (chartId: number): Promise<void> => {
+        try {
+            await apiClient.delete(`/datasets/charts/${chartId}`);
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to delete chart';
+            throw err;
+        }
+    };
+
     // --- Relations ---
 
     const getRelations = async (datasetId: number): Promise<DatasetRelation[]> => {
@@ -505,6 +590,12 @@ export const useDatasets = () => {
         confirmCsvImport,
         importFromFile,
         createFromTable,
+        exportDatasetCsv,
+        bulkDeleteRecords,
+        getSavedCharts,
+        saveChart,
+        updateSavedChart,
+        deleteSavedChart,
         getRelations,
         createRelation,
         deleteRelation,

@@ -1,5 +1,13 @@
 <template>
     <div class="space-y-3">
+        <button @click="addField"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-accent hover:text-accent-dark hover:bg-accent-subtle rounded-lg transition-colors cursor-pointer">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add field
+        </button>
+
         <div v-for="(field, index) in fields" :key="index"
             class="p-3 rounded-lg bg-surface border border-border-light space-y-2">
             <div class="flex items-start gap-2">
@@ -43,7 +51,7 @@
             </div>
 
             <!-- Linked dataset config -->
-            <div v-if="field.type === 'number' && datasets.length > 0" class="ml-1">
+            <div v-if="datasets.length > 0" class="ml-1">
                 <label class="flex items-center gap-2 text-xs text-text-secondary cursor-pointer"
                     @click="toggleLink(field)">
                     <svg class="h-3.5 w-3.5" :class="field.linkedDatasetId ? 'text-accent' : 'text-text-muted'"
@@ -79,13 +87,6 @@
             </div>
         </div>
 
-        <button @click="addField"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-accent hover:text-accent-dark hover:bg-accent-subtle rounded-lg transition-colors cursor-pointer">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Add field
-        </button>
     </div>
 </template>
 
@@ -114,11 +115,14 @@ const removeField = (index: number) => {
 };
 
 const generateKey = (field: DatasetField) => {
-    field.key = field.name
-        .toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_|_$/g, '');
+    // Only auto-generate key for new fields (no existing key)
+    if (!field.key) {
+        field.key = field.name
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_|_$/g, '');
+    }
 };
 
 const updateOptions = (field: DatasetField, value: string) => {
@@ -131,6 +135,7 @@ const toggleLink = (field: DatasetField) => {
         field.linkedDisplayField = undefined;
     } else {
         field.linkedDatasetId = datasets.value[0]?.id;
+        field.linkedLookupField = '';
         field.linkedDisplayField = '';
     }
 };
