@@ -13,6 +13,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   tasks: 'Tasks',
   rag: 'AI / RAG',
   relationships: 'Relationships',
+  data_sources: 'Data Sources',
 };
 
 export const useFeatureStore = defineStore('features', () => {
