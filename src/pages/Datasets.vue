@@ -1,7 +1,8 @@
 <template>
     <div class="h-full flex flex-col">
         <!-- Header bar -->
-        <div class="shrink-0 px-4 py-3 border-b border-border bg-surface-elevated flex items-center justify-between gap-4">
+        <div
+            class="shrink-0 px-4 py-3 border-b border-border bg-surface-elevated flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 min-w-0">
                 <h1 class="text-lg font-semibold text-text-primary tracking-tight">Datasets</h1>
                 <span class="text-xs text-text-muted hidden sm:inline">Manage structured data collections</span>
@@ -25,6 +26,14 @@
                     </svg>
                     Import File
                 </button>
+                <button @click="openProviderModal"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                    Sync from Provider
+                </button>
                 <button @click="showCreateModal = true"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white text-xs font-medium rounded-lg transition-colors cursor-pointer">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2">
@@ -39,13 +48,14 @@
         <LoadingSpinner v-if="loading" size="lg" fullHeight />
 
         <!-- Empty state -->
-        <EmptyState v-else-if="datasets.length === 0" icon="database"
-            title="No datasets yet" description="Create a dataset to start managing structured data" />
+        <EmptyState v-else-if="datasets.length === 0" icon="database" title="No datasets yet"
+            description="Create a dataset to start managing structured data" />
 
         <!-- Dataset list -->
         <div v-else class="flex-1 flex flex-col overflow-hidden">
             <!-- Table header -->
-            <div class="shrink-0 grid grid-cols-[1fr_6rem_8rem_6.5rem] gap-3 px-4 py-2 border-b border-border bg-surface text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+            <div
+                class="shrink-0 grid grid-cols-[1fr_6rem_8rem_6.5rem] gap-3 px-4 py-2 border-b border-border bg-surface text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                 <span>Name</span>
                 <span class="text-center">Fields</span>
                 <span class="text-center">Records</span>
@@ -103,7 +113,8 @@
             <Transition name="modal">
                 <div v-if="showCreateModal"
                     class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                    <div class="bg-surface-elevated rounded-xl shadow-2xl shadow-black/10 border border-border max-w-lg w-full mx-4 overflow-hidden">
+                    <div
+                        class="bg-surface-elevated rounded-xl shadow-2xl shadow-black/10 border border-border max-w-lg w-full mx-4 overflow-hidden">
                         <div class="px-6 py-4 border-b border-border-light">
                             <h3 class="text-base font-semibold text-text-primary tracking-tight">New Dataset</h3>
                         </div>
@@ -138,8 +149,11 @@
         </Teleport>
 
         <!-- Import from File Modal -->
-        <CsvImportDatasetModal :is-open="showImportModal" @close="showImportModal = false"
-            @imported="handleImported" />
+        <CsvImportDatasetModal :is-open="showImportModal" @close="showImportModal = false" @imported="handleImported" />
+
+        <!-- Import from Provider Modal -->
+        <DataSourceConfigModal :is-open="showProviderModal" :providers="providers" @close="showProviderModal = false"
+            @created="handleProviderCreated" />
 
         <!-- Delete Confirm -->
         <ConfirmModal :is-open="showDeleteModal" title="Delete Dataset"
@@ -153,6 +167,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDatasets, type Dataset, type DatasetField, type ImportFromFileResult } from '../services/datasets/useDatasets';
+import { useDataSources, type DataSourceProvider } from '../services/data-sources/useDataSources';
 import { useNotification } from '../composables/useNotification';
 import Button from '../components/ui/Button.vue';
 import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
@@ -160,14 +175,43 @@ import EmptyState from '../components/ui/EmptyState.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import DatasetSchemaEditor from '../components/datasets/DatasetSchemaEditor.vue';
 import CsvImportDatasetModal from '../components/datasets/CsvImportDatasetModal.vue';
+import DataSourceConfigModal from '../components/data-sources/DataSourceConfigModal.vue';
 
 const router = useRouter();
 const { getAllDatasets, createDataset, deleteDataset } = useDatasets();
+const { getProviders } = useDataSources();
 const notification = useNotification();
 
 const datasets = ref<Dataset[]>([]);
 const loading = ref(true);
 const searchTerm = ref('');
+
+// Data source providers
+const providers = ref<DataSourceProvider[]>([]);
+const showProviderModal = ref(false);
+
+const openProviderModal = async () => {
+    if (!providers.value.length) {
+        try {
+            providers.value = await getProviders();
+        } catch {
+            notification.error('Failed to load providers');
+            return;
+        }
+    }
+    showProviderModal.value = true;
+};
+
+const handleProviderCreated = async () => {
+    // DataSource sync auto-creates a Dataset; reload the list
+    try {
+        datasets.value = await getAllDatasets();
+        datasets.value.sort((a, b) => a.name.localeCompare(b.name));
+        notification.success('Dataset imported from provider');
+    } catch {
+        notification.error('Failed to reload datasets');
+    }
+};
 
 const filteredDatasets = computed(() => {
     const q = searchTerm.value.trim().toLowerCase();
@@ -249,7 +293,16 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.modal-enter-active { transition: opacity 0.2s ease; }
-.modal-leave-active { transition: opacity 0.15s ease; }
-.modal-enter-from, .modal-leave-to { opacity: 0; }
+.modal-enter-active {
+    transition: opacity 0.2s ease;
+}
+
+.modal-leave-active {
+    transition: opacity 0.15s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+    opacity: 0;
+}
 </style>
