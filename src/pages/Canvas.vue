@@ -43,6 +43,15 @@
       message="Are you sure you want to remove this canvas?" confirm-text="Remove" cancel-text="Cancel"
       confirm-variant="danger" @confirm="handleRemoveConfirm" @cancel="showRemoveModal = false" />
 
+    <!-- Chart Picker Modal -->
+    <DatasetChartConfigModal v-model="showChartPicker" @insert="handleChartInsert" />
+
+    <!-- Timeline Picker Modal -->
+    <TimelinePickerModal v-model="showTimelinePicker" @insert="handleTimelineInsert" />
+
+    <!-- Entity Picker Modal -->
+    <EntityPickerModal v-model="showEntityPicker" @insert="handleEntityInsert" />
+
     <!-- Document Picker Modal -->
     <Modal v-model="showDocPicker" :title="pickerSelectedItem ? pickerSelectedItem.name : 'Select Document'"
       :wide="!!pickerSelectedItem">
@@ -462,6 +471,9 @@ import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import Modal from '../components/ui/Modal/Modal.vue';
 import type { CanvasData } from '../types/canvas';
 import apiClient from '../services/api';
+import DatasetChartConfigModal from '../components/editor/DatasetChartConfigModal.vue';
+import TimelinePickerModal from '../components/canvas/TimelinePickerModal.vue';
+import EntityPickerModal from '../components/canvas/EntityPickerModal.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -522,6 +534,18 @@ const fetchProjectStats = async () => {
 };
 
 const openInfographicModal = async (type: string) => {
+  if (type === 'chart') {
+    showChartPicker.value = true;
+    return;
+  }
+  if (type === 'timeline') {
+    showTimelinePicker.value = true;
+    return;
+  }
+  if (type === 'entityGraph') {
+    showEntityPicker.value = true;
+    return;
+  }
   infographicType.value = type;
   infographicConfig.value = {
     statMetric: 'resourceCount',
@@ -565,41 +589,6 @@ const buildNodeData = (type: string): Record<string, any> => {
       };
     }
 
-    case 'chart': {
-      const sourceData = stats[cfg.chartSource] || [];
-      let labels: string[] = [];
-      let values: number[] = [];
-
-      if (cfg.chartSource === 'bibliographyByYear') {
-        labels = sourceData.map((d: any) => String(d.year));
-        values = sourceData.map((d: any) => d.count);
-      } else if (cfg.chartSource === 'bibliographyByType') {
-        labels = sourceData.map((d: any) => d.type);
-        values = sourceData.map((d: any) => d.count);
-      } else if (cfg.chartSource === 'topKeywords') {
-        const items = sourceData.slice(0, 15);
-        labels = items.map((d: any) => d.word);
-        values = items.map((d: any) => d.count);
-      } else if (cfg.chartSource === 'topEntities') {
-        const items = sourceData.slice(0, 15);
-        labels = items.map((d: any) => d.name);
-        values = items.map((d: any) => d.count);
-      } else if (cfg.chartSource === 'topAuthors') {
-        const items = sourceData.slice(0, 15);
-        labels = items.map((d: any) => d.name);
-        values = items.map((d: any) => d.count);
-      }
-
-      return {
-        chartType: cfg.chartType,
-        title: cfg.title,
-        chartData: {
-          labels,
-          datasets: [{ label: cfg.title || cfg.chartSource, data: values }],
-        },
-      };
-    }
-
     case 'list': {
       const sourceData = stats[cfg.listSource] || [];
       const items = sourceData.slice(0, cfg.maxItems).map((d: any) => ({
@@ -627,59 +616,6 @@ const buildNodeData = (type: string): Record<string, any> => {
       };
     }
 
-    case 'timeline': {
-      if (cfg.timelineSource === 'timelineEvents') {
-        return {
-          title: cfg.title || 'Timeline',
-          events: (stats.timelineEvents || []).map((e: any) => ({
-            date: e.date,
-            label: e.label,
-            endDate: e.endDate,
-          })),
-        };
-      } else {
-        // bibliographyByYear as timeline events
-        return {
-          title: cfg.title || 'Bibliography Timeline',
-          events: (stats.bibliographyByYear || []).map((d: any) => ({
-            date: `${d.year}-01-01`,
-            label: `${d.count} publication${d.count !== 1 ? 's' : ''}`,
-          })),
-        };
-      }
-    }
-
-    case 'entityGraph': {
-      const topEnts = (stats.topEntities || []).slice(0, 20);
-      const cooc = stats.entityCooccurrence || [];
-      const entNames = new Set(topEnts.map((e: any) => e.name));
-      const filteredLinks = cooc.filter((l: any) => entNames.has(l.source) && entNames.has(l.target));
-      return {
-        title: cfg.title || 'Entity Network',
-        entities: topEnts.map((e: any) => ({ id: e.name, name: e.name, type: e.type })),
-        links: filteredLinks,
-      };
-    }
-
-    case 'relationshipGraph': {
-      return {
-        title: cfg.title || 'Relationship Graph',
-        entities: [],
-        relationships: [],
-        projectId: projectStore.currentProject?.id,
-      };
-    }
-
-    case 'quoteCard': {
-      if (cfg.quoteSource === 'custom') {
-        return { text: cfg.customText, source: cfg.customSource };
-      }
-      const kp = stats.keyPoints?.[cfg.selectedKeyPoint];
-      return {
-        text: kp?.text || 'No key points available',
-        source: kp?.source || '',
-      };
-    }
 
     default:
       return {};
@@ -692,6 +628,50 @@ const confirmInfographic = () => {
     canvasEditorRef.value.addNode(infographicType.value, data);
   }
   showInfographicModal.value = false;
+};
+
+// Chart picker
+const showChartPicker = ref(false);
+
+const handleChartInsert = (config: { chartId: number; chartName: string; datasetId: number; datasetName: string }) => {
+  if (canvasEditorRef.value) {
+    canvasEditorRef.value.addNode('chart', {
+      chartId: config.chartId,
+      chartName: config.chartName,
+      datasetId: config.datasetId,
+      datasetName: config.datasetName,
+    });
+  }
+};
+
+// Entity picker
+const showEntityPicker = ref(false);
+
+const handleEntityInsert = (config: { entityId: number; entityName: string; entityType: string }) => {
+  if (canvasEditorRef.value) {
+    canvasEditorRef.value.addNode('entityGraph', {
+      entityId: config.entityId,
+      entityName: config.entityName,
+      entityType: config.entityType,
+      projectId: projectStore.currentProject?.id,
+    });
+  }
+};
+
+// Timeline picker
+const showTimelinePicker = ref(false);
+
+const handleTimelineInsert = (config: { timelineId: number; timelineName: string; filterMode: string; epochId?: string; dateFrom?: string; dateTo?: string }) => {
+  if (canvasEditorRef.value) {
+    canvasEditorRef.value.addNode('timeline', {
+      timelineId: config.timelineId,
+      timelineName: config.timelineName,
+      filterMode: config.filterMode,
+      epochId: config.epochId,
+      dateFrom: config.dateFrom,
+      dateTo: config.dateTo,
+    });
+  }
 };
 
 // Picker state
@@ -826,13 +806,14 @@ onMounted(async () => {
     canvasData.value = {
       name: '',
       canvasData: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
-      thread: threadId ? Number(threadId) : null,
-      project: projectId ? Number(projectId) : null,
+      threadId: threadId ? Number(threadId) : null,
+      projectId: projectId ? Number(projectId) : null,
     };
   }
 });
 
 const handleCanvasChange = (data: CanvasData) => {
+  canvasData.value.canvasData = data;
   if (!canvasData.value.name) return;
 
   if (saveTimeout.value) {
@@ -844,8 +825,6 @@ const handleCanvasChange = (data: CanvasData) => {
 
   saveTimeout.value = setTimeout(async () => {
     try {
-      canvasData.value.canvasData = data;
-
       if (isNewCanvas.value) {
         const created = await createCanvas(canvasData.value);
         canvasData.value.id = created.id;
@@ -866,7 +845,12 @@ const handleCanvasChange = (data: CanvasData) => {
 };
 
 const handleNameChange = () => {
-  if (!canvasData.value.name || isNewCanvas.value) return;
+  if (!canvasData.value.name) return;
+  if (isNewCanvas.value) {
+    // Trigger creation now that we have a name
+    handleCanvasChange(canvasData.value.canvasData || { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } });
+    return;
+  }
   saveCanvas(canvasData.value.id, { name: canvasData.value.name });
 };
 

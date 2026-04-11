@@ -12,8 +12,8 @@ export interface CanvasNode {
   style?: { width?: number; height?: number; color?: string };
 }
 
-export type CanvasNodeType = 'text' | 'sticky' | 'shape' | 'image' | 'docRef' | 'resourceRef'
-  | 'statCard' | 'chart' | 'list' | 'wordCloud' | 'timeline' | 'entityGraph' | 'quoteCard';
+export type CanvasNodeType = 'text' | 'shape' | 'bubble' | 'card' | 'image' | 'docRef' | 'resourceRef'
+  | 'chart' | 'timeline' | 'entityGraph';
 
 export interface CanvasEdge {
   id: string;

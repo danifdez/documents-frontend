@@ -1,91 +1,46 @@
 <template>
   <div class="mb-2.5 flex flex-wrap items-center gap-1 bg-surface-elevated p-2 rounded-lg">
-    <Button @click="selectTool('text')" title="Add Text" size="small" borderless
+
+    <!-- Text -->
+    <Button @click="selectTool('text')" title="Text" size="small" borderless
       :active="pendingTool === 'text'">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h8m-8 6h16" />
       </svg>
     </Button>
 
-    <Button @click="selectTool('sticky')" title="Add Sticky Note" size="small" borderless
-      :active="pendingTool === 'sticky'">
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round"
-          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-      </svg>
-    </Button>
+    <!-- ── Flowchart ── -->
+    <div class="h-6 w-px bg-border mx-0.5"></div>
+    <button v-for="s in flowShapes" :key="s.shape" @click="selectShapeTool(s.shape)" :title="s.title"
+      :class="[sBtnClass, pendingTool === `shape-${s.shape}` && sBtnActive]" v-html="s.icon">
+    </button>
 
+    <!-- ── Infographic ── -->
+    <div class="h-6 w-px bg-border mx-0.5"></div>
+    <button v-for="item in infographicItems" :key="item.type" @click="selectInfographicTool(item.type)"
+      :title="item.label"
+      :class="[sBtnClass, pendingTool === item.type && sBtnActive]">
+      <span class="text-sm leading-none">{{ item.icon }}</span>
+    </button>
+
+    <!-- ── Media & Refs ── -->
     <div class="h-6 w-px bg-border mx-0.5"></div>
 
-    <!-- Shapes dropdown -->
-    <div class="relative">
-      <Button @click="showShapes = !showShapes" title="Add Shape" size="small" borderless
-        :active="pendingTool?.startsWith('shape')">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-        </svg>
-      </Button>
-      <div v-if="showShapes"
-        class="absolute top-9 left-0 z-30 bg-surface-elevated border border-border rounded-lg shadow-lg p-2 flex gap-1">
-        <button @click="selectShapeTool('rectangle')"
-          class="p-1.5 rounded hover:bg-surface-hover transition-colors cursor-pointer" title="Rectangle">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-          </svg>
-        </button>
-        <button @click="selectShapeTool('circle')"
-          class="p-1.5 rounded hover:bg-surface-hover transition-colors cursor-pointer" title="Circle">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="9" />
-          </svg>
-        </button>
-        <button @click="selectShapeTool('diamond')"
-          class="p-1.5 rounded hover:bg-surface-hover transition-colors cursor-pointer" title="Diamond">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <polygon points="12,2 22,12 12,22 2,12" />
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- Infographic dropdown -->
-    <div class="relative">
-      <Button @click="showInfographic = !showInfographic" title="Add Infographic" size="small" borderless
-        :active="pendingTool?.startsWith('infographic-')">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M3 13h2v8H3zM8 8h2v13H8zM13 11h2v10h-2zM18 4h2v17h-2z" />
-        </svg>
-      </Button>
-      <div v-if="showInfographic"
-        class="absolute top-9 left-0 z-30 bg-surface-elevated border border-border rounded-lg shadow-lg p-1.5 w-44">
-        <button v-for="item in infographicItems" :key="item.type" @click="selectInfographicTool(item.type)"
-          class="flex items-center gap-2 w-full px-2.5 py-2 rounded-md hover:bg-surface-hover transition-colors cursor-pointer text-left">
-          <span class="text-sm">{{ item.icon }}</span>
-          <span class="text-xs text-text-primary">{{ item.label }}</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="h-6 w-px bg-border mx-0.5"></div>
-
-    <Button @click="$emit('pick-image')" title="Add Image" size="small" borderless>
+    <Button @click="$emit('pick-image')" title="Image" size="small" borderless>
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
           d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     </Button>
 
-    <div class="h-6 w-px bg-border mx-0.5"></div>
-
-    <Button @click="$emit('pick-doc')" title="Add Document Reference" size="small" borderless>
+    <Button @click="$emit('pick-doc')" title="Document Reference" size="small" borderless>
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     </Button>
 
-    <Button @click="$emit('pick-resource')" title="Add Resource Reference" size="small" borderless>
+    <Button @click="$emit('pick-resource')" title="Resource Reference" size="small" borderless>
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
           d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -134,7 +89,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import Button from '../ui/Button.vue';
 
 const props = defineProps<{
@@ -155,26 +109,23 @@ const emit = defineEmits<{
   'toggle-ai-panel': [];
 }>();
 
-const showShapes = ref(false);
-const showInfographic = ref(false);
+const sBtnClass = 'p-1 rounded hover:bg-surface-hover transition-colors cursor-pointer text-text-secondary';
+const sBtnActive = 'bg-accent-subtle !text-accent';
 
-const infographicItems = [
-  { type: 'statCard', label: 'Stat Card', icon: '#' },
-  { type: 'chart', label: 'Chart', icon: '📊' },
-  { type: 'list', label: 'List / Ranking', icon: '📋' },
-  { type: 'wordCloud', label: 'Word Cloud', icon: '☁' },
-  { type: 'timeline', label: 'Timeline', icon: '⏱' },
-  { type: 'entityGraph', label: 'Entity Graph', icon: '🔗' },
-  { type: 'relationshipGraph', label: 'Relationship Graph', icon: '🕸' },
-  { type: 'quoteCard', label: 'Quote Card', icon: '💬' },
+// ── Flowchart shapes ──
+const flowShapes = [
+  { shape: 'rectangle', title: 'Process', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/></svg>' },
+  { shape: 'circle', title: 'Circle', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg>' },
+  { shape: 'parallelogram', title: 'Input / Output', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="6,5 22,5 18,19 2,19"/></svg>' },
+  { shape: 'cylinder', title: 'Database', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/></svg>' },
+  { shape: 'hexagon', title: 'Preparation', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 21,7 21,17 12,22 3,17 3,7"/></svg>' },
+  { shape: 'triangle', title: 'Manual Op', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,3 22,21 2,21"/></svg>' },
+  { shape: 'arrow-right', title: 'Off-page Ref', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="2,7 15,7 15,3 22,12 15,21 15,17 2,17"/></svg>' },
+  { shape: 'star', title: 'Star', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"/></svg>' },
 ];
 
 const toolData: Record<string, Record<string, any>> = {
   text: { text: '' },
-  sticky: { text: '', color: '#FEF08A' },
-  'shape-rectangle': { shape: 'rectangle', label: '' },
-  'shape-circle': { shape: 'circle', label: '' },
-  'shape-diamond': { shape: 'diamond', label: '' },
 };
 
 const selectTool = (tool: string) => {
@@ -186,13 +137,21 @@ const selectTool = (tool: string) => {
 };
 
 const selectShapeTool = (shape: string) => {
-  showShapes.value = false;
   const tool = `shape-${shape}`;
-  emit('select-tool', tool, toolData[tool] || { shape, label: '' });
+  if (props.pendingTool === tool) {
+    emit('clear-tool');
+  } else {
+    emit('select-tool', tool, { shape, label: '' });
+  }
 };
 
+const infographicItems = [
+  { type: 'chart', label: 'Chart', icon: '📊' },
+  { type: 'timeline', label: 'Timeline', icon: '⏱' },
+  { type: 'entityGraph', label: 'Entity Graph', icon: '🔗' },
+];
+
 const selectInfographicTool = (type: string) => {
-  showInfographic.value = false;
   emit('pick-infographic', type);
 };
 </script>

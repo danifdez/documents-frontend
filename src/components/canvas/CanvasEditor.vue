@@ -96,22 +96,20 @@ import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/minimap/dist/style.css';
 
 import TextNode from './nodes/TextNode.vue';
-import StickyNode from './nodes/StickyNode.vue';
 import ShapeNode from './nodes/ShapeNode.vue';
+import BubbleNode from './nodes/BubbleNode.vue';
+import CardNode from './nodes/CardNode.vue';
 import ImageNode from './nodes/ImageNode.vue';
 import DocRefNode from './nodes/DocRefNode.vue';
 import ResourceRefNode from './nodes/ResourceRefNode.vue';
-import StatCardNode from './nodes/StatCardNode.vue';
 import ChartNode from './nodes/ChartNode.vue';
-import ListNode from './nodes/ListNode.vue';
-import WordCloudNode from './nodes/WordCloudNode.vue';
 import TimelineNode from './nodes/TimelineNode.vue';
 import EntityGraphNode from './nodes/EntityGraphNode.vue';
-import RelationshipGraphNode from './nodes/RelationshipGraphNode.vue';
-import QuoteCardNode from './nodes/QuoteCardNode.vue';
 
 import type { CanvasData } from '../../types/canvas';
 import apiClient from '../../services/api';
+import { type RelationshipData } from '../../services/relationships/useRelationships';
+import { getSocket } from '../../services/notifications/notification';
 
 const props = defineProps<{
   canvasData: CanvasData | null;
@@ -127,25 +125,22 @@ const emit = defineEmits<{
 
 const nodeTypes = {
   text: markRaw(TextNode),
-  sticky: markRaw(StickyNode),
   shape: markRaw(ShapeNode),
+  bubble: markRaw(BubbleNode),
+  card: markRaw(CardNode),
   image: markRaw(ImageNode),
   docRef: markRaw(DocRefNode),
   resourceRef: markRaw(ResourceRefNode),
-  statCard: markRaw(StatCardNode),
   chart: markRaw(ChartNode),
-  list: markRaw(ListNode),
-  wordCloud: markRaw(WordCloudNode),
   timeline: markRaw(TimelineNode),
   entityGraph: markRaw(EntityGraphNode),
-  relationshipGraph: markRaw(RelationshipGraphNode),
-  quoteCard: markRaw(QuoteCardNode),
 };
 
 const nodes = ref<Node[]>([]);
 const edges = ref<Edge[]>([]);
 const viewport = ref({ x: 0, y: 0, zoom: 1 });
 let skipDataWatch = false;
+let internalChange = false;
 
 const { getSelectedNodes, getSelectedEdges, removeNodes, removeEdges, findNode } = useVueFlow();
 
@@ -181,8 +176,122 @@ const duplicateNode = (nodeId: string) => {
   emitChange();
 };
 
+const fetchNeighborhood = (entityNames: string[]): Promise<RelationshipData> => {
+  const requestId = `nb-${Date.now()}`;
+  const namesParam = entityNames.map(n => encodeURIComponent(n)).join(',');
+
+  return new Promise<RelationshipData>((resolve) => {
+    const sock = getSocket();
+
+    const timeout = setTimeout(() => {
+      sock.off('relationshipQueryResponse', onResponse);
+      resolve({ entities: [], relationships: [] });
+    }, 30000);
+
+    const onResponse = (responseData: any) => {
+      if (responseData.requestId === requestId) {
+        sock.off('relationshipQueryResponse', onResponse);
+        clearTimeout(timeout);
+        resolve({
+          entities: responseData.entities || [],
+          relationships: responseData.relationships || [],
+        });
+      }
+    };
+    sock.on('relationshipQueryResponse', onResponse);
+
+    apiClient.get(`/relationships/neighborhood?names=${namesParam}&requestId=${requestId}`)
+      .catch(() => {
+        sock.off('relationshipQueryResponse', onResponse);
+        clearTimeout(timeout);
+        resolve({ entities: [], relationships: [] });
+      });
+  });
+};
+
+const drawRelationships = async (nodeId: string) => {
+  const sourceNode = findNode(nodeId);
+  if (!sourceNode || sourceNode.type !== 'entityGraph') return;
+
+  const entityName = sourceNode.data.entityName;
+  if (!entityName) return;
+
+  // All entity nodes on canvas (including source)
+  const allEntityNodes = nodes.value.filter(n => n.type === 'entityGraph' && n.data.entityName);
+  const otherEntityNodes = allEntityNodes.filter(n => n.id !== nodeId);
+  if (!otherEntityNodes.length) return;
+
+  sourceNode.data = { ...sourceNode.data, _relLoading: true };
+
+  try {
+    // Query neighborhood for all entity names on canvas
+    const allNames = allEntityNodes.map(n => n.data.entityName as string);
+    const result = await fetchNeighborhood(allNames);
+    const relationships = result.relationships || [];
+
+    console.log('[DrawRel] queried names:', allNames);
+    console.log('[DrawRel] got', relationships.length, 'relationships');
+    if (relationships.length > 0) {
+      console.log('[DrawRel] sample:', relationships.slice(0, 10));
+    }
+
+    // Build name -> canvas node id map
+    const nameToNodeId = new Map<string, string>();
+    for (const n of allEntityNodes) {
+      nameToNodeId.set((n.data.entityName as string).toLowerCase(), n.id);
+    }
+
+    const sourceName = entityName.toLowerCase();
+
+    let added = 0;
+    for (const rel of relationships) {
+      const srcName = String(rel.source).toLowerCase();
+      const tgtName = String(rel.target).toLowerCase();
+      const label = (rel.predicate || '').replace(/_/g, ' ');
+
+      let fromNodeId: string | null = null;
+      let toNodeId: string | null = null;
+
+      // Only draw edges involving the source entity
+      if (srcName === sourceName && nameToNodeId.has(tgtName)) {
+        fromNodeId = nodeId;
+        toNodeId = nameToNodeId.get(tgtName)!;
+      } else if (tgtName === sourceName && nameToNodeId.has(srcName)) {
+        fromNodeId = nameToNodeId.get(srcName)!;
+        toNodeId = nodeId;
+      }
+
+      if (!fromNodeId || !toNodeId || fromNodeId === toNodeId) continue;
+
+      const edgeExists = edges.value.some(e =>
+        (e.source === fromNodeId && e.target === toNodeId) ||
+        (e.source === toNodeId && e.target === fromNodeId)
+      );
+      if (edgeExists) continue;
+
+      edges.value = [...edges.value, {
+        id: `rel-${fromNodeId}-${toNodeId}-${Date.now()}-${added}`,
+        source: fromNodeId,
+        target: toNodeId,
+        type: 'smoothstep',
+        label,
+        data: { arrow: true, color: '#6366f1' },
+        style: { stroke: '#6366f1', strokeWidth: 1.5 },
+        markerEnd: { type: 'arrowclosed' as any, width: 12, height: 12, color: '#6366f1' },
+      }];
+      added++;
+    }
+
+    if (added > 0) emitChange();
+  } finally {
+    const sn = findNode(nodeId);
+    if (sn) sn.data = { ...sn.data, _relLoading: false };
+  }
+};
+
 provide('canvasDeleteNode', deleteNode);
 provide('canvasDuplicateNode', duplicateNode);
+provide('canvasDrawRelationships', drawRelationships);
 
 const onKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -213,6 +322,7 @@ onBeforeUnmount(() => {
 
 watch(() => props.canvasData, (data) => {
   if (data) {
+    if (internalChange) { internalChange = false; return; }
     skipDataWatch = true;
     nodes.value = data.nodes.map((n) => ({
       id: n.id,
@@ -277,6 +387,7 @@ const emitChange = () => {
     })),
     viewport: viewport.value,
   };
+  internalChange = true;
   emit('canvas-change', data);
 };
 
@@ -410,24 +521,30 @@ const updateNodeData = (nodeId: string, data: Record<string, any>) => {
 
 const defaultSizes: Record<string, { width: number; height: number }> = {
   text: { width: 150, height: 40 },
-  sticky: { width: 140, height: 100 },
   shape: { width: 60, height: 60 },
+  'bubble-central': { width: 180, height: 80 },
+  'bubble-topic': { width: 140, height: 56 },
+  'bubble-sub': { width: 110, height: 44 },
+  'card-person': { width: 160, height: 70 },
+  'card-team': { width: 170, height: 70 },
   image: { width: 160, height: 120 },
   docRef: { width: 160, height: 36 },
   resourceRef: { width: 160, height: 36 },
-  statCard: { width: 160, height: 100 },
   chart: { width: 300, height: 220 },
-  list: { width: 200, height: 200 },
-  wordCloud: { width: 260, height: 180 },
   timeline: { width: 240, height: 200 },
-  entityGraph: { width: 320, height: 260 },
-  relationshipGraph: { width: 380, height: 300 },
-  quoteCard: { width: 220, height: 120 },
+  entityGraph: { width: 120, height: 56 },
+};
+
+const resolveType = (type: string) => {
+  if (type.startsWith('shape-')) return 'shape';
+  if (type.startsWith('bubble-')) return 'bubble';
+  if (type.startsWith('card-')) return 'card';
+  return type;
 };
 
 const addNodeAt = (type: string, data: Record<string, any>, x: number, y: number) => {
-  const realType = type.startsWith('shape-') ? 'shape' : type;
-  const size = defaultSizes[realType] || { width: 150, height: 40 };
+  const realType = resolveType(type);
+  const size = defaultSizes[type] || defaultSizes[realType] || { width: 150, height: 40 };
   const newNode: Node = {
     id: `${realType}-${Date.now()}`,
     type: realType,
@@ -442,8 +559,8 @@ const addNodeAt = (type: string, data: Record<string, any>, x: number, y: number
 const addNode = (type: string, data: Record<string, any> = {}, style?: Record<string, any>) => {
   const centerX = (-viewport.value.x + 400) / viewport.value.zoom;
   const centerY = (-viewport.value.y + 300) / viewport.value.zoom;
-  const realType = type.startsWith('shape-') ? 'shape' : type;
-  const size = defaultSizes[realType] || { width: 150, height: 40 };
+  const realType = resolveType(type);
+  const size = defaultSizes[type] || defaultSizes[realType] || { width: 150, height: 40 };
   const newNode: Node = {
     id: `${realType}-${Date.now()}`,
     type: realType,
@@ -467,19 +584,15 @@ const onPaneClick = (event: MouseEvent) => {
 
 const miniMapNodeColor = (node: Node) => {
   switch (node.type) {
-    case 'sticky': return '#facc15';
     case 'shape': return '#818cf8';
+    case 'bubble': return '#60a5fa';
+    case 'card': return '#a78bfa';
     case 'image': return '#34d399';
     case 'docRef': return '#6366f1';
     case 'resourceRef': return '#10b981';
-    case 'statCard': return '#0ea5e9';
     case 'chart': return '#f59e0b';
-    case 'list': return '#8b5cf6';
-    case 'wordCloud': return '#ec4899';
     case 'timeline': return '#14b8a6';
     case 'entityGraph': return '#f97316';
-    case 'relationshipGraph': return '#6366f1';
-    case 'quoteCard': return '#eab308';
     default: return '#94a3b8';
   }
 };

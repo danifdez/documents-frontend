@@ -928,7 +928,7 @@ const handleNameChange = async () => {
     if (isNewTimeline.value) {
       const created = await createTimeline({
         name: timelineData.value.name, timelineData: [], layoutType: timelineData.value.layoutType,
-        axisBreaks: timelineData.value.axisBreaks, project: timelineData.value.project,
+        axisBreaks: timelineData.value.axisBreaks, projectId: timelineData.value.project?.id,
       });
       timelineData.value.id = created.id;
       router.replace(`/timeline/${created.id}`);

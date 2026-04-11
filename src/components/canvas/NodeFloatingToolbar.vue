@@ -3,8 +3,8 @@
     <div
       class="flex items-center gap-0.5 bg-surface-elevated border border-border rounded-lg shadow-lg px-1.5 py-1 nodrag nowheel">
 
-      <!-- Text alignment (text, sticky) -->
-      <template v-if="nodeType === 'text' || nodeType === 'sticky'">
+      <!-- Text alignment (text) -->
+      <template v-if="nodeType === 'text'">
         <button @click="emit('update', { align: 'left' })" title="Align left"
           :class="[btnClass, (data.align === 'left' || !data.align) && activeClass]">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -62,8 +62,8 @@
         <div class="h-4 w-px bg-border mx-0.5"></div>
       </template>
 
-      <!-- Color picker (text, sticky, shape, statCard, quoteCard) -->
-      <template v-if="nodeType === 'text' || nodeType === 'sticky' || nodeType === 'shape' || nodeType === 'statCard' || nodeType === 'quoteCard'">
+      <!-- Color picker -->
+      <template v-if="nodeType === 'text' || nodeType === 'shape' || nodeType === 'bubble' || nodeType === 'card'">
         <div class="relative">
           <button ref="colorBtnRef" @click="toggleColors" title="Color" :class="btnClass">
             <div class="w-3.5 h-3.5 rounded border border-border"
@@ -86,24 +86,67 @@
         </div>
       </Teleport>
 
-      <!-- Shape type (shape only) -->
-      <template v-if="nodeType === 'shape'">
-        <button @click="emit('update', { shape: 'rectangle' })" title="Rectangle"
-          :class="[btnClass, (data.shape === 'rectangle' || !data.shape) && activeClass]">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="5" width="18" height="14" rx="2" />
+      <!-- Border controls (rectangle, circle) -->
+      <template v-if="nodeType === 'shape' && (data.shape === 'rectangle' || !data.shape || data.shape === 'circle')">
+        <!-- Border radius (rectangle only) -->
+        <template v-if="data.shape === 'rectangle' || !data.shape">
+          <button @click="cycleBorderRadius" :title="`Radius: ${data.borderRadius || 0}`" :class="btnClass">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path v-if="!data.borderRadius || data.borderRadius === 0" d="M4 4h6M4 4v6" stroke-linecap="round" />
+              <path v-else-if="data.borderRadius <= 8" d="M4 10V8a4 4 0 014-4h2" stroke-linecap="round" />
+              <path v-else-if="data.borderRadius <= 20" d="M4 12V10a8 8 0 018-8h2" stroke-linecap="round" />
+              <path v-else d="M4 14C4 6 6 4 14 4" stroke-linecap="round" />
+            </svg>
+          </button>
+        </template>
+
+        <!-- Border color -->
+        <div class="relative">
+          <button ref="borderColorBtnRef" @click="toggleBorderColors" title="Border color" :class="btnClass">
+            <div class="w-3.5 h-3.5 rounded-sm border-2"
+              :style="{ borderColor: data.borderColor || data.strokeColor || '#6366F1', backgroundColor: 'transparent' }"></div>
+          </button>
+        </div>
+
+        <!-- Border style -->
+        <button @click="cycleBorderStyle" :title="`Border: ${data.borderStyle || 'solid'}`" :class="btnClass">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            :stroke-dasharray="borderStylePreview">
+            <line x1="3" y1="12" x2="21" y2="12" />
           </svg>
         </button>
-        <button @click="emit('update', { shape: 'circle' })" title="Circle"
-          :class="[btnClass, data.shape === 'circle' && activeClass]">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="9" />
+
+        <!-- Border width -->
+        <button @click="cycleBorderWidth" :title="`Width: ${data.borderWidth || 1.5}`" :class="btnClass">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            :stroke-width="borderWidthPreview">
+            <line x1="3" y1="12" x2="21" y2="12" />
           </svg>
         </button>
-        <button @click="emit('update', { shape: 'diamond' })" title="Diamond"
-          :class="[btnClass, data.shape === 'diamond' && activeClass]">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="12,2 22,12 12,22 2,12" />
+
+        <div class="h-4 w-px bg-border mx-0.5"></div>
+      </template>
+
+      <!-- Border color picker (teleported) -->
+      <Teleport to="body">
+        <div v-if="showBorderColors" class="fixed inset-0 z-[9998]" @click="showBorderColors = false"></div>
+        <div v-if="showBorderColors" class="fixed z-[9999] bg-surface-elevated border border-border rounded-xl shadow-xl p-2.5"
+          :style="borderColorPickerStyle">
+          <div class="grid grid-cols-5 gap-1.5">
+            <button v-for="c in borderColorOptions" :key="c" @click="selectBorderColor(c)"
+              class="w-7 h-7 rounded-lg border-2 cursor-pointer hover:scale-110 transition-transform"
+              :class="(data.borderColor || data.strokeColor || '#6366F1') === c ? 'border-accent shadow-sm' : 'border-transparent'"
+              :style="{ backgroundColor: c }" />
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Entity tools -->
+      <template v-if="nodeType === 'entity'">
+        <button @click="handleDrawRelationships" title="Draw relationships with other entities on canvas"
+          :class="btnClass">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         </button>
         <div class="h-4 w-px bg-border mx-0.5"></div>
@@ -153,6 +196,8 @@ const canvasDuplicateNode = inject<(id: string) => void>('canvasDuplicateNode');
 
 const handleDelete = () => canvasDeleteNode?.(node.id);
 const handleDuplicate = () => canvasDuplicateNode?.(node.id);
+const canvasDrawRelationships = inject<(id: string) => void>('canvasDrawRelationships');
+const handleDrawRelationships = () => canvasDrawRelationships?.(node.id);
 
 const showColors = ref(false);
 const colorBtnRef = ref<HTMLElement | null>(null);
@@ -180,25 +225,91 @@ const colorPickerStyle = computed(() => ({
   left: `${colorPickerPos.value.left}px`,
 }));
 
-const stickyColors = ['#FEF08A', '#BBF7D0', '#BFDBFE', '#FBCFE8', '#FED7AA', '#E9D5FF', '#FECACA', '#D1FAE5'];
 const shapeColors = ['#E0E7FF', '#DBEAFE', '#FEF3C7', '#DCFCE7', '#FCE7F3', '#F3E8FF', '#FEE2E2', '#E0F2FE'];
 const textColors = ['#FFFFFF', '#F1F5F9', '#DBEAFE', '#FEF3C7', '#DCFCE7', '#FCE7F3', '#F3E8FF', '#FEE2E2'];
-
-const infographicColors = ['#F0F9FF', '#EFF6FF', '#F0FDF4', '#FEFCE8', '#FFF7ED', '#FDF2F8', '#FAF5FF', '#F0FDFA'];
-
-const colors = props.nodeType === 'sticky' ? stickyColors
-  : props.nodeType === 'shape' ? shapeColors
-  : (props.nodeType === 'statCard' || props.nodeType === 'quoteCard') ? infographicColors
+const bubbleColors = ['#BFDBFE', '#DBEAFE', '#EFF6FF', '#BBF7D0', '#FBCFE8', '#E9D5FF', '#FED7AA', '#FECACA'];
+const cardColors = ['#6366F1', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#0EA5E9'];
+const colors = props.nodeType === 'shape' ? shapeColors
+  : props.nodeType === 'bubble' ? bubbleColors
+  : props.nodeType === 'card' ? cardColors
   : textColors;
 
-const defaultColor = props.nodeType === 'sticky' ? '#FEF08A'
-  : props.nodeType === 'shape' ? '#E0E7FF'
-  : props.nodeType === 'statCard' ? '#F0F9FF'
-  : props.nodeType === 'quoteCard' ? '#FEFCE8'
+const defaultColor = props.nodeType === 'shape' ? '#E0E7FF'
+  : props.nodeType === 'bubble' ? '#DBEAFE'
+  : props.nodeType === 'card' ? '#6366F1'
   : '#FFFFFF';
+
+// ── Border radius ──
+const borderRadiusSteps = [0, 4, 8, 16, 999];
+const cycleBorderRadius = () => {
+  const current = props.data.borderRadius ?? 4;
+  const idx = borderRadiusSteps.findIndex(r => r >= current);
+  emit('update', { borderRadius: borderRadiusSteps[(idx + 1) % borderRadiusSteps.length] });
+};
+
+// ── Border controls ──
+const showBorderColors = ref(false);
+const borderColorBtnRef = ref<HTMLElement | null>(null);
+const borderColorPos = ref({ top: 0, left: 0 });
+
+const borderColorOptions = ['#6366F1', '#3B82F6', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#94A3B8', '#1E293B'];
+
+const toggleBorderColors = () => {
+  if (showBorderColors.value) { showBorderColors.value = false; return; }
+  nextTick(() => {
+    if (borderColorBtnRef.value) {
+      const rect = borderColorBtnRef.value.getBoundingClientRect();
+      borderColorPos.value = { top: rect.bottom + 6, left: rect.left + rect.width / 2 - 100 };
+    }
+    showBorderColors.value = true;
+  });
+};
+
+const borderColorPickerStyle = computed(() => ({
+  top: `${borderColorPos.value.top}px`,
+  left: `${borderColorPos.value.left}px`,
+}));
+
+const selectBorderColor = (color: string) => {
+  showBorderColors.value = false;
+  emit('update', { borderColor: color });
+};
+
+const borderStyles = ['solid', 'dashed', 'dotted', 'none'] as const;
+const cycleBorderStyle = () => {
+  const current = props.data.borderStyle || 'solid';
+  const idx = borderStyles.indexOf(current as any);
+  emit('update', { borderStyle: borderStyles[(idx + 1) % borderStyles.length] });
+};
+
+const borderStylePreview = computed(() => {
+  switch (props.data.borderStyle) {
+    case 'dashed': return '6 4';
+    case 'dotted': return '2 3';
+    case 'none': return '0';
+    default: return 'none';
+  }
+});
+
+const borderWidths = [1, 1.5, 2.5, 4] as const;
+const cycleBorderWidth = () => {
+  const current = props.data.borderWidth || 1.5;
+  const idx = borderWidths.findIndex(w => w >= current);
+  emit('update', { borderWidth: borderWidths[(idx + 1) % borderWidths.length] });
+};
+
+const borderWidthPreview = computed(() => {
+  const w = props.data.borderWidth || 1.5;
+  return Math.max(w, 1);
+});
 
 const selectColor = (color: string) => {
   showColors.value = false;
-  emit('update', { color });
+  if (props.nodeType === 'card') {
+    emit('update', { accent: color });
+  } else {
+    emit('update', { color });
+  }
 };
+
 </script>

@@ -31,6 +31,16 @@
                         </svg>
                         New Record
                     </button>
+                    <button v-if="dataset.dataSources?.length"
+                        @click="handleSync"
+                        :disabled="syncing"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="h-3.5 w-3.5" :class="{ 'animate-spin': syncing }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        {{ syncing ? 'Syncing...' : 'Sync' }}
+                    </button>
                     <button @click="showImportModal = true"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -518,6 +528,7 @@ import DatasetCorrelationMatrix from '../components/datasets/DatasetCorrelationM
 import DatasetOutlierPanel from '../components/datasets/DatasetOutlierPanel.vue';
 import DatasetPivotTable from '../components/datasets/DatasetPivotTable.vue';
 import CsvImportModal from '../components/datasets/CsvImportModal.vue';
+import { useDataSources } from '../services/data-sources/useDataSources';
 
 const chartModes = [
     { id: 'chart-bar', label: 'Bar', paths: ['M4 4v16h16', 'M8 16V9', 'M12 16V4', 'M16 16v-5'] },
@@ -562,6 +573,7 @@ const {
     exportDatasetCsv, bulkDeleteRecords,
     getSavedCharts, saveChart, deleteSavedChart,
 } = useDatasets();
+const { triggerSync } = useDataSources();
 
 // State
 const dataset = ref<Dataset | null>(null);
@@ -571,6 +583,7 @@ const loading = ref(true);
 const activeTab = ref('data');
 const visualMode = ref('summary');
 const preselectedChartType = ref('bar');
+const syncing = ref(false);
 
 const selectChartMode = (modeId: string) => {
     visualMode.value = modeId;
@@ -657,6 +670,22 @@ const loadRecords = async () => {
     const result = await getRecords(datasetId, params);
     records.value = result.records;
     totalRecords.value = result.total;
+};
+
+const handleSync = async () => {
+    const ds = dataset.value?.dataSources?.[0];
+    if (!ds) return;
+    syncing.value = true;
+    try {
+        await triggerSync(ds.id);
+        notification.success('Sync started');
+        dataset.value = await getDataset(datasetId);
+        await loadRecords();
+    } catch {
+        notification.error('Failed to trigger sync');
+    } finally {
+        syncing.value = false;
+    }
 };
 
 const changePage = (newPage: number) => {

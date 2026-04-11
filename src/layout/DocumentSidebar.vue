@@ -68,7 +68,7 @@ import { useCanvasList } from '../services/canvas/useCanvasList';
 import { useTimelines } from '../services/timelines/useTimelines';
 import { useProjectStore } from '../store/projectStore';
 import { useDragDrop } from '../composables/useDragDrop';
-import socket from '../services/notifications/notification';
+import { getSocket } from '../services/notifications/notification';
 
 const props = defineProps({
     collapsed: {
@@ -206,10 +206,10 @@ onMounted(() => {
     if (currentProjectId.value) {
         loadAll();
     }
-    socket.on('notification', onNotification);
+    getSocket().on('notification', onNotification);
 });
 
 onBeforeUnmount(() => {
-    socket.off('notification', onNotification);
+    getSocket().off('notification', onNotification);
 });
 </script>

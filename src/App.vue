@@ -60,7 +60,7 @@ import TaskPanel from './components/user-tasks/TaskPanel.vue';
 import WorkspaceModal from './components/WorkspaceModal.vue';
 import { useGlobalKeyboard } from './composables/useGlobalKeyboard';
 import { useTaskPanel } from './composables/useTaskPanel';
-import { getSocket } from './services/notifications/notification';
+import { getSocket, connectSocket } from './services/notifications/notification';
 import { useRouter, useRoute } from 'vue-router';
 import { useNotification } from './composables/useNotification';
 import { useTheme } from './composables/useTheme';
@@ -119,15 +119,8 @@ async function handleFirstRemoteWorkspace(data: { name: string; url: string }) {
 }
 
 function setupSocket() {
+  connectSocket();
   const socket = getSocket();
-  socket.connect();
-  socket.on('connect', () => {
-    console.log('Connected to server');
-  });
-  socket.on('disconnect', () => {
-    console.log('Disconnected from server');
-  });
-
   socket.on('notification', (data) => {
     if (data.resourceId) {
       notification.info(data.message || 'Resource extracted', {

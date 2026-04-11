@@ -12,12 +12,21 @@ export interface DatasetField {
     linkedDisplayField?: string;
 }
 
+export interface DatasetDataSource {
+    id: number;
+    providerType: string;
+    lastSyncAt: string | null;
+    lastSyncStatus: 'success' | 'failed' | 'running' | null;
+    enabled: boolean;
+}
+
 export interface Dataset {
     id: number;
     name: string;
     description: string | null;
     schema: DatasetField[];
     project: { id: number; name: string } | null;
+    dataSources?: DatasetDataSource[];
     recordCount?: number;
     createdAt: string;
     updatedAt: string;
