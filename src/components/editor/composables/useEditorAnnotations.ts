@@ -49,7 +49,7 @@ export function useEditorAnnotations(
     try {
       if (!commentText.trim() || !route.params.id || route.params.id === 'new') return;
 
-      const newComment = await createComment(route.params.id as string, commentText);
+      const newComment = await createComment(route.params.id as string, commentText, 'doc');
 
       if (editor.value && currentSelection.value) {
         const { from, to } = currentSelection.value;
@@ -84,7 +84,7 @@ export function useEditorAnnotations(
     try {
       if (!route.params.id || route.params.id === 'new') return;
 
-      const newMark = await createMark(route.params.id as string, selectedMarkText.value);
+      const newMark = await createMark(route.params.id as string, selectedMarkText.value, 'doc');
 
       if (editor.value && currentSelection.value) {
         const { from, to } = currentSelection.value;

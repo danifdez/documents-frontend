@@ -6,15 +6,15 @@ export function useCommentCreate() {
     const error = ref<string | null>(null);
     const isLoading = ref<boolean>(false);
 
-    const createComment = async (resourceId: string, content: string) => {
+    const createComment = async (entityId: string, content: string, entityType: 'doc' | 'resource' = 'doc') => {
         isLoading.value = true;
         error.value = null;
 
         try {
-            const response = await apiClient.post('/comments', {
-                resource: resourceId,
-                content
-            });
+            const payload: Record<string, any> = { content };
+            payload[entityType] = Number(entityId);
+
+            const response = await apiClient.post('/comments', payload);
 
             status.value = true;
             return response.data;

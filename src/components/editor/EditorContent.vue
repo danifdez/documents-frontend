@@ -4,7 +4,8 @@
             :show-comments="showComments" :show-toc="showToc" :context="context" @add-comment="handleAddCommentRequest"
             @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
             @add-reference="showReferenceModal = true" @add-dataset-view="showDatasetViewModal = true"
-            @add-dataset-chart="showDatasetChartModal = true" @add-citation="showCitationModal = true"
+            @add-dataset-chart="showDatasetChartModal = true" @add-canvas-view="showCanvasViewModal = true"
+            @add-timeline-view="showTimelineViewModal = true" @add-citation="showCitationModal = true"
             @convert-table-to-dataset="handleConvertTableToDataset"
             @marker-applied="emit('marker-applied')" />
         <div class="editor-scroll-wrapper">
@@ -44,6 +45,8 @@
         <ReferenceModal v-model="showReferenceModal" @select="handleReferenceSelect" />
         <DatasetViewConfigModal v-model="showDatasetViewModal" @insert="handleDatasetViewInsert" />
         <DatasetChartConfigModal v-model="showDatasetChartModal" @insert="handleDatasetChartInsert" />
+        <CanvasViewConfigModal v-model="showCanvasViewModal" @insert="handleCanvasViewInsert" />
+        <TimelineViewConfigModal v-model="showTimelineViewModal" @insert="handleTimelineViewInsert" />
         <TableToDatasetModal v-model="showTableToDatasetModal" :table-data="parsedTableData"
             :project-id="projectId" @created="handleTableDatasetCreated" />
         <CitationModal
@@ -93,8 +96,12 @@ import Image from '@tiptap/extension-image';
 import { ReferenceNode } from './extensions/ReferenceExtension';
 import { DatasetViewExtension } from './extensions/DatasetViewExtension';
 import { DatasetChartExtension } from './extensions/DatasetChartExtension';
+import { CanvasViewExtension } from './extensions/CanvasViewExtension';
+import { TimelineViewExtension } from './extensions/TimelineViewExtension';
 import DatasetViewConfigModal from './DatasetViewConfigModal.vue';
 import DatasetChartConfigModal from './DatasetChartConfigModal.vue';
+import CanvasViewConfigModal from './CanvasViewConfigModal.vue';
+import TimelineViewConfigModal from '../../components/canvas/TimelinePickerModal.vue';
 import TableToDatasetModal from './TableToDatasetModal.vue';
 import { parseTableFromEditor, type ParsedTable } from './utils/parseTableFromEditor';
 import { useNotification } from '../../composables/useNotification';
@@ -166,6 +173,8 @@ const matches = ref([]);
 const showReferenceModal = ref(false);
 const showDatasetViewModal = ref(false);
 const showDatasetChartModal = ref(false);
+const showCanvasViewModal = ref(false);
+const showTimelineViewModal = ref(false);
 const showTableToDatasetModal = ref(false);
 const parsedTableData = ref<ParsedTable | null>(null);
 const showCitationModal = ref(false);
@@ -271,9 +280,11 @@ const saveComment = async (commentText: string) => {
             return;
         }
 
+        const entityType = props.context === 'resource' ? 'resource' : 'doc';
         const newComment = await createComment(
-            route.params.id,
+            String(route.params.id),
             commentText,
+            entityType,
         );
 
         if (editor.value && currentSelection.value) {
@@ -320,9 +331,11 @@ const saveMark = async () => {
             return;
         }
 
+        const entityType = props.context === 'resource' ? 'resource' : 'doc';
         const newMark = await createMark(
             route.params.id as string,
-            selectedMarkText.value
+            selectedMarkText.value,
+            entityType,
         );
 
         if (editor.value && currentSelection.value) {
@@ -445,6 +458,22 @@ const handleDatasetChartInsert = (config: { chartId: number; chartName: string; 
         .chain()
         .focus()
         .insertDatasetChart(config)
+        .run();
+};
+
+const handleCanvasViewInsert = (config: { canvasId: number; canvasName: string }) => {
+    editor.value
+        .chain()
+        .focus()
+        .insertCanvasView(config)
+        .run();
+};
+
+const handleTimelineViewInsert = (config: { timelineId: number; timelineName: string; filterMode: string; epochId?: string; dateFrom?: string; dateTo?: string }) => {
+    editor.value
+        .chain()
+        .focus()
+        .insertTimelineView(config)
         .run();
 };
 
@@ -665,6 +694,8 @@ onMounted(async () => {
             CitationNode,
             DatasetViewExtension,
             DatasetChartExtension,
+            CanvasViewExtension,
+            TimelineViewExtension,
             Image.configure({
                 inline: false,
                 allowBase64: true,
@@ -1261,6 +1292,48 @@ const scrollToPosition = (position: number) => {
 }
 
 :deep(.ProseMirror .dataset-view-wrapper.ProseMirror-selectednode .dataset-view-node) {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+/* Dataset Chart styling */
+:deep(.dataset-chart-wrapper) {
+    margin: 12px 0;
+    user-select: none;
+}
+
+:deep(.dataset-chart-wrapper .dataset-chart-node) {
+    transition: box-shadow 0.15s ease;
+}
+
+:deep(.ProseMirror .dataset-chart-wrapper.ProseMirror-selectednode .dataset-chart-node) {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+/* Canvas View styling */
+:deep(.canvas-view-wrapper) {
+    margin: 12px 0;
+    user-select: none;
+}
+
+:deep(.canvas-view-wrapper .canvas-view-node) {
+    transition: box-shadow 0.15s ease;
+}
+
+:deep(.ProseMirror .canvas-view-wrapper.ProseMirror-selectednode .canvas-view-node) {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+/* Timeline View styling */
+:deep(.timeline-view-wrapper) {
+    margin: 12px 0;
+    user-select: none;
+}
+
+:deep(.timeline-view-wrapper .timeline-view-node) {
+    transition: box-shadow 0.15s ease;
+}
+
+:deep(.ProseMirror .timeline-view-wrapper.ProseMirror-selectednode .timeline-view-node) {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
 }
 

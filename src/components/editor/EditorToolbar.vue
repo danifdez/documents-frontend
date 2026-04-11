@@ -367,6 +367,21 @@
           <path d="M16 16v-5" />
         </svg>
       </Button>
+      <Button @click="emit('add-canvas-view')" title="Insert Canvas" size="small" borderless>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="9" cy="9" r="1.5" />
+          <circle cx="15" cy="15" r="1.5" />
+          <path d="M10.5 9.5L13.5 14" />
+        </svg>
+      </Button>
+      <Button @click="emit('add-timeline-view')" title="Insert Timeline" size="small" borderless>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </Button>
     </template>
 
     <div class="h-6 w-px bg-border mx-0.5"></div>
@@ -429,7 +444,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference', 'add-dataset-view', 'add-dataset-chart', 'add-citation', 'marker-applied', 'convert-table-to-dataset']);
+const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference', 'add-dataset-view', 'add-dataset-chart', 'add-canvas-view', 'add-timeline-view', 'add-citation', 'marker-applied', 'convert-table-to-dataset']);
 
 // -- Unified dropdown state --
 const activeDropdown = ref<string | null>(null);

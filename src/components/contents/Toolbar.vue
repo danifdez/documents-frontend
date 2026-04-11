@@ -337,7 +337,7 @@ const handleAddMark = async () => {
             return;
         }
 
-        const newMark = await createMark(resourceId as string, text);
+        const newMark = await createMark(resourceId as string, text, 'resource');
 
         if (newMark && newMark.id) {
             props.editor.commands.setTextSelection({ from, to });

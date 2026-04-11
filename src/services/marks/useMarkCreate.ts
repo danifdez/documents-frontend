@@ -5,15 +5,15 @@ export const useMarkCreate = () => {
     const isLoading = ref(false);
     const error = ref<Error | null>(null);
 
-    const createMark = async (resourceId: string, content: string): Promise<any> => {
+    const createMark = async (entityId: string, content: string, entityType: 'doc' | 'resource' = 'doc'): Promise<any> => {
         isLoading.value = true;
         error.value = null;
 
         try {
-            const response = await apiClient.post('/marks', {
-                resource: resourceId,
-                content
-            });
+            const payload: Record<string, any> = { content };
+            payload[entityType] = Number(entityId);
+
+            const response = await apiClient.post('/marks', payload);
             return response.data;
         } catch (e) {
             error.value = e as Error;

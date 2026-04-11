@@ -168,6 +168,7 @@ const saveComment = async (commentText: string) => {
         const newComment = await createComment(
             props.resourceId,
             commentText,
+            'resource',
         );
 
         if (currentSelection.value) {
@@ -417,7 +418,7 @@ const handleAddMark = async (data: { text: string; from: number; to: number }) =
             return;
         }
 
-        const newMark = await createMark(resourceId as string, data.text);
+        const newMark = await createMark(resourceId as string, data.text, 'resource');
 
         if (newMark && newMark.id) {
             wrapTextWithMark(data.text, newMark.id);

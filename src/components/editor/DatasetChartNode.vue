@@ -38,7 +38,9 @@
 
         <!-- Chart canvas -->
         <div v-else class="p-4">
-            <canvas ref="chartCanvas" class="max-h-80"></canvas>
+            <div class="relative h-80">
+                <canvas ref="chartCanvas"></canvas>
+            </div>
         </div>
     </div>
 </template>
@@ -107,10 +109,10 @@ const loadChart = async () => {
         });
 
         const result = await poll();
+        loading.value = false;
         await renderChart(result);
     } catch (err: any) {
         error.value = err.message || 'Failed to load chart';
-    } finally {
         loading.value = false;
     }
 };

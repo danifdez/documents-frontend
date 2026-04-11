@@ -11,10 +11,14 @@
                         clip-rule="evenodd" />
                 </svg>
                 <Link v-if="item.path && index < items.length - 1" :to="item.path"
-                    class="!p-0 !border-0 hover:text-text-primary transition-colors">
+                    class="!p-0 !border-0 hover:text-text-primary transition-colors inline-flex items-center gap-1.5">
+                    <BreadcrumbIcon v-if="item.icon" :type="item.icon" />
                     {{ item.name }}
                 </Link>
-                <span v-else class="font-medium text-text-primary">{{ item.name }}</span>
+                <span v-else class="font-medium text-text-primary inline-flex items-center gap-1.5">
+                    <BreadcrumbIcon v-if="item.icon" :type="item.icon" />
+                    {{ item.name }}
+                </span>
             </li>
         </ol>
     </nav>
@@ -22,10 +26,12 @@
 
 <script setup lang="ts">
 import Link from './Link.vue';
+import BreadcrumbIcon from './BreadcrumbIcon.vue';
 
 interface BreadcrumbItem {
     name: string;
     path?: string;
+    icon?: string;
 }
 
 defineProps<{
