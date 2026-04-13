@@ -1,7 +1,7 @@
 <template>
     <div class="knowledge-editor flex flex-col h-full">
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully" context="knowledge"
-            @add-citation="showCitationModal = true" />
+            @add-reference="showInsertReferenceModal = true" />
         <div class="flex-1 min-h-0 overflow-hidden">
             <div class="p-4 border border-border rounded-lg overflow-y-auto bg-surface-elevated min-h-[300px] h-full outline-none font-sans leading-relaxed"
                 spellcheck="false">
@@ -11,8 +11,9 @@
                 </template>
             </div>
         </div>
-        <CitationModal v-model="showCitationModal" :entries="bibliographyEntries" citation-format="apa"
-            :existing-entry-ids="citedEntryIds" @select="handleCitationSelect" />
+        <InsertReferenceModal v-model="showInsertReferenceModal" :entries="bibliographyEntries" citation-style="apa"
+            :existing-ref-ids="citedBibIds" context="knowledge"
+            @select="handleReferenceInsert" />
     </div>
 </template>
 
@@ -31,12 +32,11 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import { MathExtension } from '../editor/extensions/MathExtension';
 import { VideoExtension } from '../editor/extensions/VideoExtension';
-import { CitationNode } from '../editor/extensions/CitationExtension';
+import { ReferenceNode } from '../editor/extensions/ReferenceExtension';
 import EditorToolbar from '../editor/EditorToolbar.vue';
-import CitationModal from '../bibliography/CitationModal.vue';
+import InsertReferenceModal from '../references/InsertReferenceModal.vue';
 import BibliographyList from '../bibliography/BibliographyList.vue';
 import { useBibliography } from '../../services/bibliography/useBibliography';
-import type { BibliographyEntry } from '../../types/Bibliography';
 import 'katex/dist/katex.min.css';
 
 const props = defineProps<{
@@ -48,16 +48,16 @@ const emit = defineEmits(['update:modelValue']);
 const editor = ref<any>(null);
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
-const showCitationModal = ref(false);
+const showInsertReferenceModal = ref(false);
 const { entries: bibliographyEntries, loadGlobal } = useBibliography();
 
-const citedEntryIds = computed<number[]>(() => {
+const citedBibIds = computed<string[]>(() => {
     if (!editor.value) return [];
-    const ids: number[] = [];
-    const seen = new Set<number>();
+    const ids: string[] = [];
+    const seen = new Set<string>();
     editor.value.state.doc.descendants((node: Record<string, any>) => {
-        if (node.type.name === 'citationNode') {
-            const id = node.attrs['data-entry-id'];
+        if (node.type.name === 'referenceNode' && node.attrs['data-ref-type'] === 'bibliography') {
+            const id = node.attrs['data-ref-id'];
             if (id != null && !seen.has(id)) {
                 seen.add(id);
                 ids.push(id);
@@ -67,15 +67,16 @@ const citedEntryIds = computed<number[]>(() => {
     return ids;
 });
 
-const handleCitationSelect = (entry: BibliographyEntry, label: string) => {
+const handleReferenceInsert = (item: { refId: string; refType: string; label: string; displayMode: string }) => {
     if (!editor.value) return;
     editor.value
         .chain()
         .focus()
-        .insertCitation({
-            entryId: entry.id,
-            citeKey: entry.citeKey ?? String(entry.id),
-            label,
+        .insertReference({
+            refId: item.refId,
+            refType: item.refType as any,
+            label: item.label,
+            displayMode: item.displayMode,
         })
         .run();
 };
@@ -125,7 +126,10 @@ onMounted(() => {
             Placeholder.configure({ placeholder: 'Escribe aquí...' }),
             MathExtension,
             VideoExtension,
-            CitationNode,
+            ReferenceNode.configure({
+                getEntries: () => bibliographyEntries.value,
+                citationStyle: 'apa',
+            }),
             Image.configure({
                 inline: false,
                 allowBase64: true,

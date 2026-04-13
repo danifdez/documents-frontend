@@ -3,9 +3,9 @@
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
             :show-comments="showComments" :show-toc="showToc" :context="context" @add-comment="handleAddCommentRequest"
             @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
-            @add-reference="showReferenceModal = true" @add-dataset-view="showDatasetViewModal = true"
+            @add-reference="showInsertReferenceModal = true" @add-dataset-view="showDatasetViewModal = true"
             @add-dataset-chart="showDatasetChartModal = true" @add-canvas-view="showCanvasViewModal = true"
-            @add-timeline-view="showTimelineViewModal = true" @add-citation="showCitationModal = true"
+            @add-timeline-view="showTimelineViewModal = true"
             @convert-table-to-dataset="handleConvertTableToDataset"
             @marker-applied="emit('marker-applied')" />
         <div class="editor-scroll-wrapper">
@@ -42,20 +42,21 @@
             @save="saveComment" @cancel="cancelComment" />
         <MarkModal :is-visible="showMarkModal" :selected-text="selectedMarkText" :is-loading="isMarkLoading"
             @save="saveMark" @cancel="cancelMark" />
-        <ReferenceModal v-model="showReferenceModal" @select="handleReferenceSelect" />
+        <InsertReferenceModal
+            v-model="showInsertReferenceModal"
+            :entries="bibliographyEntries"
+            :citation-style="(props.citationFormat as CitationStyle)"
+            :existing-ref-ids="citedBibIds"
+            :context="context"
+            :project-id="projectId"
+            @select="handleReferenceInsert"
+        />
         <DatasetViewConfigModal v-model="showDatasetViewModal" @insert="handleDatasetViewInsert" />
         <DatasetChartConfigModal v-model="showDatasetChartModal" @insert="handleDatasetChartInsert" />
         <CanvasViewConfigModal v-model="showCanvasViewModal" @insert="handleCanvasViewInsert" />
         <TimelineViewConfigModal v-model="showTimelineViewModal" @insert="handleTimelineViewInsert" />
         <TableToDatasetModal v-model="showTableToDatasetModal" :table-data="parsedTableData"
             :project-id="projectId" @created="handleTableDatasetCreated" />
-        <CitationModal
-            v-model="showCitationModal"
-            :entries="bibliographyEntries"
-            :citation-format="(props.citationFormat as 'apa' | 'numeric')"
-            :existing-entry-ids="citedEntryIds"
-            @select="handleCitationSelect"
-        />
     </div>
 </template>
 
@@ -91,7 +92,7 @@ import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
-import ReferenceModal from '../../components/references/ReferenceModal.vue';
+import InsertReferenceModal from '../../components/references/InsertReferenceModal.vue';
 import Image from '@tiptap/extension-image';
 import { ReferenceNode } from './extensions/ReferenceExtension';
 import { DatasetViewExtension } from './extensions/DatasetViewExtension';
@@ -105,11 +106,10 @@ import TimelineViewConfigModal from '../../components/canvas/TimelinePickerModal
 import TableToDatasetModal from './TableToDatasetModal.vue';
 import { parseTableFromEditor, type ParsedTable } from './utils/parseTableFromEditor';
 import { useNotification } from '../../composables/useNotification';
-import { CitationNode } from './extensions/CitationExtension';
-import CitationModal from '../bibliography/CitationModal.vue';
 import BibliographyList from '../bibliography/BibliographyList.vue';
 import { useBibliography } from '../../services/bibliography/useBibliography';
 import type { BibliographyEntry } from '../../types/Bibliography';
+import type { CitationStyle } from '../../services/citations/citationFormatter';
 import 'katex/dist/katex.min.css';
 
 const props = defineProps({
@@ -170,14 +170,13 @@ const selectedCommentText = ref('');
 const selectedMarkText = ref('');
 const currentSelection = ref(null);
 const matches = ref([]);
-const showReferenceModal = ref(false);
+const showInsertReferenceModal = ref(false);
 const showDatasetViewModal = ref(false);
 const showDatasetChartModal = ref(false);
 const showCanvasViewModal = ref(false);
 const showTimelineViewModal = ref(false);
 const showTableToDatasetModal = ref(false);
 const parsedTableData = ref<ParsedTable | null>(null);
-const showCitationModal = ref(false);
 const { entries: bibliographyEntries, loadByProject, loadGlobal } = useBibliography();
 let currentDecorations = DecorationSet.empty
 
@@ -500,35 +499,21 @@ const handleTableDatasetCreated = (info: { datasetId: number; datasetName: strin
     }
 };
 
-const handleReferenceSelect = (item: Record<string, any>) => {
-    const { from, to } = editor.value.state.selection;
-    const text = editor.value.state.doc.textBetween(from, to) || item.name || item.content;
-
-    editor.value
-        .chain()
-        .focus()
-        .insertReferenceNode({
-            referenceId: item.id,
-            referenceType: item.type,
-            text: text,
-        })
-        .run();
-};
-
-const handleCitationSelect = (entry: BibliographyEntry, label: string) => {
+const handleReferenceInsert = (item: { refId: string; refType: string; label: string; displayMode: string }) => {
     if (!editor.value) return;
-    // For numeric format, renumber all existing citations after insertion
     editor.value
         .chain()
         .focus()
-        .insertCitation({
-            entryId: entry.id,
-            citeKey: entry.citeKey ?? String(entry.id),
-            label,
+        .insertReference({
+            refId: item.refId,
+            refType: item.refType as any,
+            label: item.label,
+            displayMode: item.displayMode,
         })
         .run();
 
-    if (props.citationFormat === 'numeric') {
+    const style = props.citationFormat as string;
+    if (item.refType === 'bibliography' && (style === 'ieee' || style === 'vancouver')) {
         renumberCitations();
     }
 };
@@ -536,25 +521,25 @@ const handleCitationSelect = (entry: BibliographyEntry, label: string) => {
 const renumberCitations = () => {
     if (!editor.value) return;
     const doc = editor.value.state.doc;
-    const order: number[] = [];
-    const seen = new Set<number>();
+    const order: string[] = [];
+    const seen = new Set<string>();
     doc.descendants((node: Record<string, any>) => {
-        if (node.type.name === 'citationNode') {
-            const id = node.attrs['data-entry-id'];
+        if (node.type.name === 'referenceNode' && node.attrs['data-ref-type'] === 'bibliography') {
+            const id = node.attrs['data-ref-id'];
             if (id != null && !seen.has(id)) {
                 seen.add(id);
                 order.push(id);
             }
         }
     });
-    // Dispatch a transaction to update all data-label attrs
     const tr = editor.value.state.tr;
     let changed = false;
+    const style = props.citationFormat as string;
     doc.descendants((node: Record<string, any>, pos: number) => {
-        if (node.type.name === 'citationNode') {
-            const id = node.attrs['data-entry-id'];
+        if (node.type.name === 'referenceNode' && node.attrs['data-ref-type'] === 'bibliography') {
+            const id = node.attrs['data-ref-id'];
             const idx = order.indexOf(id) + 1;
-            const newLabel = `[${idx}]`;
+            const newLabel = style === 'vancouver' ? `(${idx})` : `[${idx}]`;
             if (node.attrs['data-label'] !== newLabel) {
                 tr.setNodeMarkup(pos, undefined, { ...node.attrs, 'data-label': newLabel });
                 changed = true;
@@ -566,13 +551,13 @@ const renumberCitations = () => {
     }
 };
 
-const citedEntryIds = computed<number[]>(() => {
+const citedBibIds = computed<string[]>(() => {
     if (!editor.value) return [];
-    const ids: number[] = [];
-    const seen = new Set<number>();
+    const ids: string[] = [];
+    const seen = new Set<string>();
     editor.value.state.doc.descendants((node: Record<string, any>) => {
-        if (node.type.name === 'citationNode') {
-            const id = node.attrs['data-entry-id'];
+        if (node.type.name === 'referenceNode' && node.attrs['data-ref-type'] === 'bibliography') {
+            const id = node.attrs['data-ref-id'];
             if (id != null && !seen.has(id)) {
                 seen.add(id);
                 ids.push(id);
@@ -690,8 +675,10 @@ onMounted(async () => {
             }),
             MathExtension,
             VideoExtension,
-            ReferenceNode,
-            CitationNode,
+            ReferenceNode.configure({
+                getEntries: () => bibliographyEntries.value,
+                citationStyle: (props.citationFormat || 'apa') as CitationStyle,
+            }),
             DatasetViewExtension,
             DatasetChartExtension,
             CanvasViewExtension,

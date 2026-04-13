@@ -324,20 +324,12 @@
           <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFC107" />
         </svg>
       </Button>
-      <Button @click="handleAddReference" title="Add Reference" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-          <path d="M9 8L14 3M14 3H10M14 3V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-          <path d="M11 12L6 17M6 17H10M6 17V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </Button>
     </template>
 
-    <!-- Citations (document + knowledge) -->
+    <!-- References (document + knowledge) -->
     <template v-if="context === 'document' || context === 'knowledge'">
       <div v-if="context === 'knowledge'" class="h-6 w-px bg-border mx-0.5"></div>
-      <Button @click="emit('add-citation')" title="Insertar cita bibliográfica" size="small" borderless>
+      <Button @click="emit('add-reference')" title="Insert Reference" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
           <path d="M4 4H16C16.5523 4 17 4.44772 17 5V15C17 15.5523 16.5523 16 16 16H4C3.44772 16 3 15.5523 3 15V5C3 4.44772 3.44772 4 4 4Z" stroke="currentColor" stroke-width="1.5" fill="none" />
           <path d="M6 8L8 7V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
@@ -444,7 +436,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference', 'add-dataset-view', 'add-dataset-chart', 'add-canvas-view', 'add-timeline-view', 'add-citation', 'marker-applied', 'convert-table-to-dataset']);
+const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference', 'add-dataset-view', 'add-dataset-chart', 'add-canvas-view', 'add-timeline-view', 'marker-applied', 'convert-table-to-dataset']);
 
 // -- Unified dropdown state --
 const activeDropdown = ref<string | null>(null);
@@ -759,10 +751,6 @@ const handleAddMark = () => {
   if (from === to) { alert('Please select some text to highlight'); return; }
   const text = props.editor.state.doc.textBetween(from, to);
   emit('add-mark', { text, from, to });
-};
-
-const handleAddReference = () => {
-  emit('add-reference');
 };
 
 defineExpose({ activeDropdown });

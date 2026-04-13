@@ -334,11 +334,14 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import BibliographyEntryForm from './BibliographyEntryForm.vue';
 import { useBibliography } from '../../services/bibliography/useBibliography';
 import { useResourceList } from '../../services/resources/useResourceList';
 import apiClient from '../../services/api';
 import type { BibliographyEntry, ZoteroCreator } from '../../types/Bibliography';
+
+const route = useRoute();
 
 const props = defineProps<{
     projectId?: number | null;
@@ -487,10 +490,19 @@ const loadResources = async () => {
     }
 };
 
-onMounted(() => {
-    loadEntries();
+onMounted(async () => {
+    await loadEntries();
     loadResources();
     loadProjects();
+
+    // Auto-select entry from query param ?entry=ID
+    const entryId = route.query.entry;
+    if (entryId) {
+        const match = entries.value.find(e => String(e.id) === String(entryId));
+        if (match) {
+            selectedEntry.value = match;
+        }
+    }
 });
 
 watch(() => props.projectId, () => {

@@ -22,7 +22,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
-                    Buscar en KB
+                    Search in KB
                 </button>
                 <div class="w-px bg-border"></div>
                 <button @click="searchInWikipedia"
@@ -46,10 +46,10 @@
                 <!-- KB results -->
                 <template v-else-if="activeTab === 'kb'">
                     <div v-if="kbResults.length === 0" class="px-4 py-5 text-center">
-                        <p class="text-xs text-text-muted">No se encontraron entradas en el Knowledge Base</p>
+                        <p class="text-xs text-text-muted">No Knowledge Base entries found</p>
                         <button @click="createKBEntry"
                             class="mt-2 text-xs text-accent hover:underline cursor-pointer">
-                            Crear nueva entrada con este término
+                            Create new entry with this term
                         </button>
                     </div>
                     <div v-for="entry in kbResults" :key="entry.id" @click="goToEntry(entry.id)"
@@ -75,7 +75,7 @@
                         </div>
                         <a :href="wikiResult.url" target="_blank" rel="noopener"
                             class="mt-3 inline-flex items-center gap-1 text-xs text-accent hover:underline">
-                            Ver en Wikipedia
+                            View on Wikipedia
                             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -100,8 +100,7 @@ const router = useRouter();
 const route = useRoute();
 
 const isAllowedRoute = () => {
-    const name = route.name as string | undefined;
-    return name === 'Resource' || route.path.startsWith('/document/');
+    return route.path.startsWith('/document/');
 };
 const { loadEntries, createEntry } = useKnowledgeBase();
 const { search: searchWiki } = useWikipedia();
@@ -124,46 +123,36 @@ const hide = () => {
     wikiError.value = null;
 };
 
-const onMouseUp = (e: MouseEvent) => {
-    // Ignore clicks inside the popup itself
-    if (popupRef.value && popupRef.value.contains(e.target as Node)) return;
-
+const onContextMenu = (e: MouseEvent) => {
     // Only activate on document or resource pages
-    if (!isAllowedRoute()) {
-        hide();
-        return;
-    }
+    if (!isAllowedRoute()) return;
 
-    setTimeout(() => {
-        const selection = window.getSelection();
-        const text = selection?.toString().trim() ?? '';
+    const selection = window.getSelection();
+    const text = selection?.toString().trim() ?? '';
 
-        if (!text || text.length < 2) {
-            hide();
-            return;
-        }
+    if (!text || text.length < 2) return;
 
-        selectedText.value = text.length > 80 ? text.slice(0, 80) + '…' : text;
+    // Prevent default browser context menu
+    e.preventDefault();
 
-        // Position popup above the selection
-        const range = selection!.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        const popupWidth = 320;
-        const margin = 8;
+    selectedText.value = text.length > 80 ? text.slice(0, 80) + '…' : text;
 
-        let x = rect.left + rect.width / 2 - popupWidth / 2;
-        let y = rect.bottom + margin + window.scrollY;
+    // Position popup at cursor
+    const popupWidth = 320;
+    const margin = 8;
 
-        // Keep within viewport
-        x = Math.max(margin, Math.min(x, window.innerWidth - popupWidth - margin));
+    let x = e.clientX;
+    let y = e.clientY + margin;
 
-        pos.value = { x, y };
-        activeTab.value = null;
-        kbResults.value = [];
-        wikiResult.value = null;
-        wikiError.value = null;
-        visible.value = true;
-    }, 10);
+    // Keep within viewport
+    x = Math.max(margin, Math.min(x, window.innerWidth - popupWidth - margin));
+
+    pos.value = { x, y };
+    activeTab.value = null;
+    kbResults.value = [];
+    wikiResult.value = null;
+    wikiError.value = null;
+    visible.value = true;
 };
 
 const onMouseDown = (e: MouseEvent) => {
@@ -193,7 +182,7 @@ const searchInWikipedia = async () => {
         if (result) {
             wikiResult.value = result;
         } else {
-            wikiError.value = 'No se encontró el artículo en Wikipedia';
+            wikiError.value = 'Article not found on Wikipedia';
         }
     } finally {
         loading.value = false;
@@ -216,12 +205,12 @@ const createKBEntry = async () => {
 };
 
 onMounted(() => {
-    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('contextmenu', onContextMenu);
     document.addEventListener('mousedown', onMouseDown);
 });
 
 onUnmounted(() => {
-    document.removeEventListener('mouseup', onMouseUp);
+    document.removeEventListener('contextmenu', onContextMenu);
     document.removeEventListener('mousedown', onMouseDown);
 });
 </script>

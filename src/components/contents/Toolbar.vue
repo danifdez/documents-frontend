@@ -48,13 +48,84 @@
                 <span>Summarize selection</span>
                 <span class="ml-auto text-xs text-text-muted">Ctrl+Alt+S</span>
             </button>
+            <div class="border-t border-border my-1"></div>
+            <button @click="handleContextMenuAction('search-kb')"
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span>Search in KB</span>
+            </button>
+            <button @click="handleContextMenuAction('search-wiki')"
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Search in Wikipedia</span>
+            </button>
+
+            <!-- Lookup results panel -->
+            <template v-if="lookupTab">
+                <div class="border-t border-border max-h-60 overflow-y-auto">
+                    <!-- Loading -->
+                    <div v-if="lookupLoading" class="flex items-center justify-center py-4">
+                        <div class="animate-spin rounded-full h-4 w-4 border-2 border-accent border-t-transparent"></div>
+                    </div>
+
+                    <!-- KB results -->
+                    <template v-else-if="lookupTab === 'kb'">
+                        <div v-if="kbResults.length === 0" class="px-4 py-3 text-center">
+                            <p class="text-xs text-text-muted">No KB entries found</p>
+                            <button @click="handleCreateKBEntry"
+                                class="mt-1 text-xs text-accent hover:underline cursor-pointer">
+                                Create new entry
+                            </button>
+                        </div>
+                        <div v-for="entry in kbResults" :key="entry.id" @click="goToKBEntry(entry.id)"
+                            class="px-4 py-2 border-b border-border last:border-0 cursor-pointer hover:bg-surface-hover text-sm">
+                            <p class="font-medium text-text-primary text-xs line-clamp-1">{{ entry.title }}</p>
+                            <p v-if="entry.summary" class="text-xs text-text-muted mt-0.5 line-clamp-2">{{ entry.summary }}</p>
+                        </div>
+                    </template>
+
+                    <!-- Wikipedia result -->
+                    <template v-else-if="lookupTab === 'wiki'">
+                        <div v-if="wikiError" class="px-4 py-3 text-center">
+                            <p class="text-xs text-text-muted">{{ wikiError }}</p>
+                        </div>
+                        <div v-else-if="wikiResult" class="px-4 py-3">
+                            <div class="flex gap-2">
+                                <img v-if="wikiResult.thumbnail" :src="wikiResult.thumbnail" alt=""
+                                    class="w-10 h-10 rounded object-cover shrink-0" />
+                                <div class="min-w-0">
+                                    <p class="text-xs font-semibold text-text-primary mb-0.5">{{ wikiResult.title }}</p>
+                                    <p class="text-xs text-text-secondary line-clamp-4 leading-relaxed">{{ wikiResult.extract }}</p>
+                                </div>
+                            </div>
+                            <a :href="wikiResult.url" target="_blank" rel="noopener"
+                                class="mt-2 inline-flex items-center gap-1 text-xs text-accent hover:underline">
+                                View on Wikipedia
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </a>
+                        </div>
+                    </template>
+                </div>
+            </template>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { useKnowledgeBase } from '../../services/knowledge/useKnowledgeBase';
+import { useWikipedia } from '../../services/knowledge/useWikipedia';
+import type { KnowledgeEntry } from '../../services/knowledge/useKnowledgeBase';
 import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
@@ -79,6 +150,15 @@ const isMarkActive = ref(false);
 const showContextMenu = ref(false);
 const contextMenuPosition = ref({ x: 0, y: 0 });
 const route = useRoute();
+const kbRouter = useRouter();
+const { loadEntries: loadKBEntries, createEntry: createKBEntry } = useKnowledgeBase();
+const { search: searchWiki } = useWikipedia();
+const lookupTab = ref<'kb' | 'wiki' | null>(null);
+const lookupLoading = ref(false);
+const kbResults = ref<KnowledgeEntry[]>([]);
+const wikiResult = ref<any>(null);
+const wikiError = ref<string | null>(null);
+const contextMenuSelectedText = ref('');
 const { createMark, isLoading: isMarkLoading } = useMarkCreate();
 const { deleteMark } = useMarkDelete();
 const { marks, loadMarks } = useMarks();
@@ -107,8 +187,17 @@ const handleAddComment = () => {
     emit('add-comment');
 };
 
-const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send' | 'summarize') => {
+const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send' | 'summarize' | 'send-to-doc' | 'search-kb' | 'search-wiki') => {
+    if (action === 'search-kb') {
+        searchInKB();
+        return;
+    }
+    if (action === 'search-wiki') {
+        searchInWikipedia();
+        return;
+    }
     showContextMenu.value = false;
+    lookupTab.value = null;
 
     if (action === 'highlight') {
         handleAddMark();
@@ -154,6 +243,51 @@ const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send' | 'sum
     }
 };
 
+const searchInKB = async () => {
+    lookupTab.value = 'kb';
+    lookupLoading.value = true;
+    try {
+        const results = await loadKBEntries(contextMenuSelectedText.value);
+        kbResults.value = results ?? [];
+    } finally {
+        lookupLoading.value = false;
+    }
+};
+
+const searchInWikipedia = async () => {
+    lookupTab.value = 'wiki';
+    wikiResult.value = null;
+    wikiError.value = null;
+    lookupLoading.value = true;
+    try {
+        const result = await searchWiki(contextMenuSelectedText.value);
+        if (result) {
+            wikiResult.value = result;
+        } else {
+            wikiError.value = 'Article not found on Wikipedia';
+        }
+    } finally {
+        lookupLoading.value = false;
+    }
+};
+
+const goToKBEntry = (id: number) => {
+    showContextMenu.value = false;
+    lookupTab.value = null;
+    kbRouter.push(`/knowledge-base/${id}`);
+};
+
+const handleCreateKBEntry = async () => {
+    showContextMenu.value = false;
+    lookupTab.value = null;
+    try {
+        const entry = await createKBEntry({ title: contextMenuSelectedText.value });
+        kbRouter.push(`/knowledge-base/${entry.id}`);
+    } catch (err) {
+        console.error('Error creating KB entry:', err);
+    }
+};
+
 const handleContextMenu = (event: MouseEvent) => {
     const selection = window.getSelection();
 
@@ -166,8 +300,17 @@ const handleContextMenu = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
+    const text = selection.toString().trim();
+    contextMenuSelectedText.value = text.length > 80 ? text.slice(0, 80) : text;
+
     // Update mark active status before showing menu
     updateMarkActiveStatus();
+
+    // Reset lookup state
+    lookupTab.value = null;
+    kbResults.value = [];
+    wikiResult.value = null;
+    wikiError.value = null;
 
     // Position the context menu at the cursor
     contextMenuPosition.value = {
@@ -180,6 +323,7 @@ const handleContextMenu = (event: MouseEvent) => {
 
 const closeContextMenu = () => {
     showContextMenu.value = false;
+    lookupTab.value = null;
 };
 
 const handleKeyboardShortcut = (event: KeyboardEvent) => {
