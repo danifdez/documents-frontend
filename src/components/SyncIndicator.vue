@@ -1,5 +1,5 @@
 <template>
-  <div v-if="offlineStore.offlineEnabled" class="relative" ref="popoverRef">
+  <div v-if="!offlineStore.backendReachable || offlineStore.pendingChangeCount > 0 || offlineStore.isSyncing" class="relative" ref="popoverRef">
     <button @click="showPopover = !showPopover"
       class="flex items-center gap-2 px-3 py-2 w-full rounded-lg text-text-muted hover:bg-surface-hover transition-colors cursor-pointer"
       :class="{ 'justify-center': collapsed }">

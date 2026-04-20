@@ -38,6 +38,21 @@
                                 </button>
                             </div>
                         </div>
+                        <div class="mt-4">
+                            <label class="block text-xs font-medium text-text-secondary mb-1">Active theme</label>
+                            <div class="flex items-center gap-2">
+                                <select v-model="activeThemeId" @change="onActiveThemeChange"
+                                    class="flex-1 px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
+                                    <option v-for="entry in themes" :key="entry.manifest.id" :value="entry.manifest.id">
+                                        {{ entry.manifest.name }}
+                                    </option>
+                                </select>
+                                <button type="button" class="btn-secondary text-xs whitespace-nowrap"
+                                    @click="showThemeManager = true">
+                                    Manage themes…
+                                </button>
+                            </div>
+                        </div>
                     </section>
 
                     <!-- Language -->
@@ -393,6 +408,24 @@
             </div>
         </div>
     </div>
+
+    <div v-if="showThemeManager"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        @click.self="showThemeManager = false">
+        <div class="bg-surface-elevated rounded-xl border border-border shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-semibold text-text-primary">Themes</h2>
+                <button type="button" class="text-text-muted hover:text-text-primary cursor-pointer"
+                    @click="showThemeManager = false" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <ThemeManager />
+        </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -406,9 +439,16 @@ import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useRouter } from 'vue-router';
 import WorkspaceModal from '../components/WorkspaceModal.vue';
+import ThemeManager from '../components/settings/ThemeManager.vue';
+import { useThemes } from '../composables/useThemes';
 import type { Workspace } from '../types/Workspace';
 
 const { themeMode, setTheme } = useTheme();
+const showThemeManager = ref(false);
+const { themes, activeThemeId, refresh: refreshThemes, activateTheme } = useThemes();
+const onActiveThemeChange = async () => {
+    await activateTheme(activeThemeId.value);
+};
 const workspaceStore = useWorkspaceStore();
 const authStore = useAuthStore();
 const projectStore = useProjectStore();
@@ -581,6 +621,7 @@ const loadSettings = async () => {
             paragraphSpacing.value = settings.paragraphSpacing || 1.5;
             language.value = settings.language || 'en';
             theme.value = (settings.theme as ThemeMode) || 'system';
+            activeThemeId.value = settings.themeId || 'default';
             defaultBrowserUrl.value = settings.defaultBrowserUrl || 'https://github.com/electron/electron';
         }
     }
@@ -595,6 +636,7 @@ const saveSettings = () => {
             paragraphSpacing: paragraphSpacing.value,
             language: language.value,
             theme: theme.value,
+            themeId: activeThemeId.value,
             defaultBrowserUrl: defaultBrowserUrl.value,
         });
     }
@@ -650,6 +692,7 @@ const startExport = async () => {
 
 onMounted(() => {
     loadSettings();
+    refreshThemes();
     loadProjects();
     loadStandaloneStatus();
     if (window.electronAPI?.onStandaloneDownloadProgress) {

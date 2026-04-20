@@ -1,0 +1,41 @@
+{
+  "id": "nord",
+  "name": "Nord",
+  "author": "Arctic Ice Studio",
+  "version": "1.0.0",
+  "description": "Cool arctic palette — soft snow whites paired with frost and polar night blues.",
+  "variants": {
+    "light": {
+      "--color-surface": "#eceff4",
+      "--color-surface-elevated": "#ffffff",
+      "--color-surface-hover": "#e5e9f0",
+      "--color-accent": "#5e81ac",
+      "--color-accent-light": "#81a1c1",
+      "--color-accent-dark": "#4c6a8e",
+      "--color-accent-subtle": "rgba(94, 129, 172, 0.14)",
+      "--color-border": "#d8dee9",
+      "--color-border-light": "#e5e9f0",
+      "--color-text-primary": "#2e3440",
+      "--color-text-secondary": "#4c566a",
+      "--color-text-muted": "#7b8794",
+      "--color-sidebar-from": "#ffffff",
+      "--color-sidebar-to": "#eceff4"
+    },
+    "dark": {
+      "--color-surface": "#2e3440",
+      "--color-surface-elevated": "#3b4252",
+      "--color-surface-hover": "#434c5e",
+      "--color-accent": "#88c0d0",
+      "--color-accent-light": "#8fbcbb",
+      "--color-accent-dark": "#5e81ac",
+      "--color-accent-subtle": "rgba(136, 192, 208, 0.18)",
+      "--color-border": "#434c5e",
+      "--color-border-light": "#3b4252",
+      "--color-text-primary": "#eceff4",
+      "--color-text-secondary": "#d8dee9",
+      "--color-text-muted": "#7b8794",
+      "--color-sidebar-from": "#3b4252",
+      "--color-sidebar-to": "#2e3440"
+    }
+  }
+}

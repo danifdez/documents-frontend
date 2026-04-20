@@ -1,0 +1,45 @@
+{
+  "id": "sepia-serif",
+  "name": "Sepia Serif",
+  "author": "Documents examples",
+  "version": "1.0.0",
+  "description": "Paper-like reading palette with a serif font stack and softer borders. Showcases the typography and customCss options.",
+  "variants": {
+    "light": {
+      "--color-surface": "#f5efe1",
+      "--color-surface-elevated": "#fbf7ec",
+      "--color-surface-hover": "#ebe3cf",
+      "--color-accent": "#8b5a2b",
+      "--color-accent-light": "#b07a4b",
+      "--color-accent-dark": "#6b4220",
+      "--color-accent-subtle": "rgba(139, 90, 43, 0.12)",
+      "--color-border": "#d7c9a7",
+      "--color-border-light": "#eadfbf",
+      "--color-text-primary": "#3a2b18",
+      "--color-text-secondary": "#5c4a32",
+      "--color-text-muted": "#8c7a5e",
+      "--color-sidebar-from": "#fbf7ec",
+      "--color-sidebar-to": "#f0e8d1"
+    },
+    "dark": {
+      "--color-surface": "#1e1a13",
+      "--color-surface-elevated": "#2a241a",
+      "--color-surface-hover": "#332c20",
+      "--color-accent": "#d4a373",
+      "--color-accent-light": "#e3bf92",
+      "--color-accent-dark": "#a97b4a",
+      "--color-accent-subtle": "rgba(212, 163, 115, 0.18)",
+      "--color-border": "#3a3023",
+      "--color-border-light": "#2a241a",
+      "--color-text-primary": "#f1e8d4",
+      "--color-text-secondary": "#c9b89a",
+      "--color-text-muted": "#8c7a5e",
+      "--color-sidebar-from": "#2a241a",
+      "--color-sidebar-to": "#1e1a13"
+    }
+  },
+  "typography": {
+    "fontFamily": "'Iowan Old Style', 'Palatino', 'Georgia', serif"
+  },
+  "customCss": "body { line-height: 1.75; letter-spacing: 0.01em; } .card, .bg-surface-elevated { box-shadow: 0 1px 2px rgba(58, 43, 24, 0.08); }"
+}

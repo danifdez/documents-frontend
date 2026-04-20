@@ -9,6 +9,13 @@ import Store from 'electron-store';
 import { registerOfflineHandlers } from './main-offline';
 import { standaloneManager } from './services/standalone/standalone-manager';
 import { checkInstalled, isStandaloneReady, downloadComponent, downloadAll, installModels, uninstallServices, uninstallModels, detectGpu } from './services/standalone/download-manager';
+import {
+  bootstrapBuiltInThemes,
+  listThemes,
+  installFromDialog as installThemeFromDialog,
+  uninstall as uninstallTheme,
+  readThemeAssets,
+} from './services/themes/theme-manager';
 
 const MIME_MAP: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -239,6 +246,7 @@ app.whenReady().then(() => {
       paragraphSpacing: 1.5,
       language: 'en',
       theme: 'dark',
+      themeId: 'default',
       defaultBrowserUrl: 'https://github.com/electron/electron',
       disabledFeatures: [],
     });
@@ -247,6 +255,26 @@ app.whenReady().then(() => {
   ipcMain.handle('settings:set', (_event, settings) => {
     store.set('settings', settings);
     return true;
+  });
+
+  // ── Theme IPC handlers ──
+  ipcMain.handle('themes:list', () => {
+    return listThemes().map((t) => ({
+      manifest: t.manifest,
+      builtIn: t.builtIn,
+    }));
+  });
+
+  ipcMain.handle('themes:install', async () => {
+    return installThemeFromDialog();
+  });
+
+  ipcMain.handle('themes:uninstall', (_event, id: string) => {
+    return uninstallTheme(id);
+  });
+
+  ipcMain.handle('themes:read-assets', (_event, id: string) => {
+    return readThemeAssets(id);
   });
 
   // ── Workspace IPC handlers ──
@@ -416,6 +444,9 @@ app.whenReady().then(() => {
 
   // Register offline filesystem handlers
   registerOfflineHandlers();
+
+  // Ensure built-in themes exist on disk
+  bootstrapBuiltInThemes();
 
   // Remove default application menu
   Menu.setApplicationMenu(null);

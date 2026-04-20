@@ -143,8 +143,14 @@
 
             <div v-if="authRequired && currentUser" class="flex items-center px-3 py-2 gap-2"
                 :class="{ 'justify-center': collapsed }">
-                <router-link to="/profile" class="w-7 h-7 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-semibold shrink-0 hover:bg-accent/30 transition-colors cursor-pointer" title="Profile">
-                    {{ userInitials }}
+                <router-link to="/profile" class="shrink-0 hover:opacity-90 transition-opacity cursor-pointer" title="Profile">
+                    <Avatar
+                        :user-id="currentUser.id"
+                        :avatar-path="currentUser.avatarPath"
+                        :display-name="currentUser.displayName"
+                        :username="currentUser.username"
+                        size="sm"
+                    />
                 </router-link>
                 <router-link v-if="!collapsed" to="/profile" class="text-xs text-text-muted truncate flex-1 hover:text-text-secondary transition-colors">{{ currentUser.displayName || currentUser.username }}</router-link>
                 <button v-if="!collapsed" @click="handleLogout" title="Sign out"
@@ -166,6 +172,7 @@ import ResourceSidebar from './ResourceSidebar.vue';
 import DocumentSidebar from './DocumentSidebar.vue';
 import WorkspaceSelector from '../components/WorkspaceSelector.vue';
 import SyncIndicator from '../components/SyncIndicator.vue';
+import Avatar from '../components/ui/Avatar.vue';
 import { useProjectStore } from '../store/projectStore';
 import { useAuthStore } from '../store/authStore';
 import { useFeatureStore } from '../store/featureStore';
@@ -191,10 +198,6 @@ const calendarRoute = computed(() => {
 const authRequired = computed(() => authStore.authRequired);
 const isAdmin = computed(() => authStore.isAdmin);
 const currentUser = computed(() => authStore.user);
-const userInitials = computed(() => {
-    const name = currentUser.value?.displayName || currentUser.value?.username || '?';
-    return name.slice(0, 2).toUpperCase();
-});
 
 const handleLogout = () => {
     authStore.logout();

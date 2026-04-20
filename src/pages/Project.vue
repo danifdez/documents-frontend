@@ -62,6 +62,8 @@
 
               <Dropdown :showDots="true">
                 <DropdownItem @click="openEditModal">Edit</DropdownItem>
+                <DropdownItem v-if="project?.status !== 'archived'" @click="confirmArchive">Archive</DropdownItem>
+                <DropdownItem v-else @click="unarchiveProjectHandler">Unarchive</DropdownItem>
                 <DropdownItem @click="confirmDelete" className="text-red-500">Delete</DropdownItem>
               </Dropdown>
           </template>
@@ -263,6 +265,11 @@
         cancelText="Cancel" confirmVariant="danger" @confirm="deleteProjectHandler"
         @cancel="showDeleteDialog = false" />
 
+      <ConfirmModal :isOpen="showArchiveDialog" title="Archive Project"
+        message="Archiving will move resource files to the archive storage and delete all related embeddings. You can unarchive later, but embeddings will need to be re-generated."
+        confirmText="Archive" cancelText="Cancel" @confirm="archiveProjectHandler"
+        @cancel="showArchiveDialog = false" />
+
       <ProjectEditModal v-model="showEditModal" :project-id="route.params.id"
         @project:updated="handleProjectUpdated" />
 
@@ -326,6 +333,7 @@ const router = useRouter();
 const projectStore = useProjectStore();
 const featureStore = useFeatureStore();
 const showDeleteDialog = ref(false);
+const showArchiveDialog = ref(false);
 const showEditModal = ref(false);
 const showCreateThreadModal = ref(false);
 const showImportDocumentModal = ref(false);
@@ -337,7 +345,7 @@ const filteredThreads = ref([]);
 const filteredDocuments = ref([]);
 const displayItems = ref([]);
 const selectedFile = ref(null);
-const { deleteProject } = useProject();
+const { deleteProject, archiveProject, unarchiveProject } = useProject();
 const { isLoading, threads, loadThreads } = useThreadList();
 const { isLoading: isDocsLoading, documents: projectDocuments, loadDocumentsByProject } = useDocumentProjectList();
 const { isLoading: isResourcesLoading, loadResourcesByProject } = useResourceList();
@@ -475,6 +483,33 @@ const deleteProjectHandler = async () => {
     router.push('/');
   } else {
     showDeleteDialog.value = false;
+  }
+};
+
+const confirmArchive = () => {
+  showArchiveDialog.value = true;
+};
+
+const archiveProjectHandler = async () => {
+  const id = route.params.id;
+  const success = await archiveProject(id);
+  showArchiveDialog.value = false;
+  if (success) {
+    notification.success('Project archived');
+    router.push('/');
+  } else {
+    notification.error('Failed to archive project');
+  }
+};
+
+const unarchiveProjectHandler = async () => {
+  const id = route.params.id;
+  const success = await unarchiveProject(id);
+  if (success) {
+    notification.success('Project unarchived');
+    await projectStore.loadProject(id);
+  } else {
+    notification.error('Failed to unarchive project');
   }
 };
 

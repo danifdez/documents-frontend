@@ -8,14 +8,30 @@ function getAuthToken(): string | null {
 }
 
 const isConnected = ref(false);
+let connectErrorLogged = false;
+
+const SOCKET_OPTIONS = {
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 2000,
+    reconnectionDelayMax: 30000,
+    timeout: 5000,
+};
 
 function bindConnectionEvents(s: Socket) {
     s.on('connect', () => {
         isConnected.value = true;
+        connectErrorLogged = false;
         setServerReachable(true);
     });
     s.on('disconnect', () => {
         isConnected.value = false;
+    });
+    s.on('connect_error', () => {
+        if (!connectErrorLogged) {
+            console.warn('[socket] connect failed — will retry silently');
+            connectErrorLogged = true;
+        }
     });
 }
 
@@ -26,6 +42,7 @@ function getOrCreateSocket(url?: string): Socket {
     socket = io(url || import.meta.env.VITE_API_URL || 'http://localhost:3000', {
         auth: { token: getAuthToken() },
         autoConnect: false,
+        ...SOCKET_OPTIONS,
     });
     bindConnectionEvents(socket);
     return socket;
@@ -46,6 +63,7 @@ export function reconnectSocket(url?: string) {
     }
     socket = io(url || import.meta.env.VITE_API_URL || 'http://localhost:3000', {
         auth: { token: getAuthToken() },
+        ...SOCKET_OPTIONS,
     });
     bindConnectionEvents(socket);
     socket.connect();

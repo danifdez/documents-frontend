@@ -1,3 +1,26 @@
+export interface ThemeManifestType {
+    id: string;
+    name: string;
+    author?: string;
+    version?: string;
+    description?: string;
+    variants: {
+        light: Record<string, string>;
+        dark: Record<string, string>;
+    };
+    typography?: {
+        fontFamily?: string;
+        fontFaces?: { family: string; src: string; weight?: number | string; style?: string }[];
+    };
+    customCss?: string;
+}
+
+export interface ThemeAssetsType {
+    manifest: ThemeManifestType;
+    customCss: string;
+    fonts: { family: string; weight?: number | string; style?: string; dataUrl: string }[];
+}
+
 export interface ElectronAPI {
     getSettings: () => Promise<{
         language?: string;
@@ -5,7 +28,9 @@ export interface ElectronAPI {
         fontFamily?: string;
         paragraphSpacing?: number;
         theme?: 'light' | 'dark' | 'system';
+        themeId?: string;
         defaultBrowserUrl?: string;
+        disabledFeatures?: string[];
     }>;
     setSettings: (settings: any) => Promise<void>;
     openExternalBrowser: (projectId: string) => Promise<void>;
@@ -52,6 +77,12 @@ export interface ElectronAPI {
     standaloneStatus: () => Promise<{ postgres: string; backend: string; qdrant: string; neo4j: string; models: string }>;
     standaloneGetUrl: () => Promise<string | null>;
     onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number }) => void) => void;
+
+    // Theme management
+    listThemes: () => Promise<{ manifest: ThemeManifestType; builtIn: boolean }[]>;
+    installTheme: () => Promise<{ success: true; theme: { manifest: ThemeManifestType; builtIn: boolean } } | { success: false; error: string }>;
+    uninstallTheme: (id: string) => Promise<{ success: boolean; error?: string }>;
+    readThemeAssets: (id: string) => Promise<ThemeAssetsType | null>;
 
     // Offline filesystem storage
     offlinePutItem: (wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) => Promise<void>;

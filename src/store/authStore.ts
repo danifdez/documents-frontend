@@ -6,6 +6,7 @@ export interface AuthUser {
   id: number;
   username: string;
   displayName: string | null;
+  avatarPath: string | null;
   permissions: Record<string, boolean>;
   groupId: number | null;
 }

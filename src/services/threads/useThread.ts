@@ -37,9 +37,32 @@ export function useThread() {
         }
     };
 
-    const loadChildThreads = async (parentId: string | number) => {
-        const response = await apiClient.get(`/threads/${parentId}/children`);
+    const loadChildThreads = async (parentId: string | number, includeArchived = false) => {
+        const url = includeArchived
+            ? `/threads/${parentId}/children?includeArchived=true`
+            : `/threads/${parentId}/children`;
+        const response = await apiClient.get(url);
         return response.data;
+    };
+
+    const archiveThread = async (id: string | number): Promise<boolean> => {
+        try {
+            await apiClient.post(`/threads/${id}/archive`);
+            return true;
+        } catch (err) {
+            console.error("Error archiving thread:", err);
+            return false;
+        }
+    };
+
+    const unarchiveThread = async (id: string | number): Promise<boolean> => {
+        try {
+            await apiClient.post(`/threads/${id}/unarchive`);
+            return true;
+        } catch (err) {
+            console.error("Error unarchiving thread:", err);
+            return false;
+        }
     };
 
     return {
@@ -49,5 +72,7 @@ export function useThread() {
         loadChildThreads,
         updateThread,
         deleteThread,
+        archiveThread,
+        unarchiveThread,
     };
 }

@@ -18,12 +18,6 @@
                         <template v-if="editor">
                             <editor-content :style="cssVars" :editor="editor" />
                         </template>
-                        <BibliographyList
-                            v-if="context === 'document' && editor"
-                            :editor="editor"
-                            :entries="bibliographyEntries"
-                            :citation-format="(props.citationFormat as 'apa' | 'numeric')"
-                        />
                     </div>
                     <div v-if="context !== 'summary'" class="marker-gutter">
                         <div v-for="m in markerPositions" :key="m.id"
@@ -106,7 +100,6 @@ import TimelineViewConfigModal from '../../components/canvas/TimelinePickerModal
 import TableToDatasetModal from './TableToDatasetModal.vue';
 import { parseTableFromEditor, type ParsedTable } from './utils/parseTableFromEditor';
 import { useNotification } from '../../composables/useNotification';
-import BibliographyList from '../bibliography/BibliographyList.vue';
 import { useBibliography } from '../../services/bibliography/useBibliography';
 import type { BibliographyEntry } from '../../types/Bibliography';
 import type { CitationStyle } from '../../services/citations/citationFormatter';

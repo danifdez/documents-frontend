@@ -5,7 +5,7 @@ const options: PluginOptions = {
     transition: "Vue-Toastification__fade",
     maxToasts: 5,
     newestOnTop: true,
-    position: "top-right",
+    position: "bottom-right",
     timeout: 5000,
     closeOnClick: true,
     pauseOnFocusLoss: true,

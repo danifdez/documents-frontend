@@ -56,11 +56,33 @@ export function useProject() {
         }
     };
 
+    const archiveProject = async (id: string | number): Promise<boolean> => {
+        try {
+            await apiClient.post(`/projects/${id}/archive`);
+            return true;
+        } catch (err) {
+            console.error("Error archiving project:", err);
+            return false;
+        }
+    };
+
+    const unarchiveProject = async (id: string | number): Promise<boolean> => {
+        try {
+            await apiClient.post(`/projects/${id}/unarchive`);
+            return true;
+        } catch (err) {
+            console.error("Error unarchiving project:", err);
+            return false;
+        }
+    };
+
     return {
         error,
         isLoading,
         loadProject,
         updateProject,
         deleteProject,
+        archiveProject,
+        unarchiveProject,
     };
 }

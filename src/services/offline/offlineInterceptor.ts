@@ -1,5 +1,10 @@
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getOfflineItem, getAllOfflineItemsByWorkspace } from './offlineDb';
+import { getUrlCache, setUrlCache } from './urlCache';
+
+function getWsId(): string {
+  return localStorage.getItem('activeWorkspaceId') || 'default';
+}
 
 // ── Server reachability state ──
 // Tracks whether the backend is reachable. Once a request fails,
@@ -11,7 +16,19 @@ export function isServerReachable(): boolean {
 }
 
 export function setServerReachable(value: boolean) {
+  const changed = serverReachable !== value;
   serverReachable = value;
+  if (!changed) return;
+  // Mirror into the Pinia store so the UI reacts. Dynamic import keeps
+  // this free of a static cycle; try/catch survives the very first
+  // request fired before Pinia is installed (module var is the fallback).
+  import('../../store/offlineStore')
+    .then(({ useOfflineStore }) => {
+      try {
+        useOfflineStore().setBackendReachable(value);
+      } catch { /* Pinia not ready yet — module var still reflects state */ }
+    })
+    .catch(() => { /* ignore */ });
 }
 
 // ── URL pattern matching ──
@@ -70,7 +87,7 @@ function matchListUrl(url: string): { type: string; parentId?: number } | null {
 // ── Cache resolution ──
 
 async function resolveFromCache(url: string): Promise<any | undefined> {
-  const wsId = localStorage.getItem('activeWorkspaceId') || 'default';
+  const wsId = getWsId();
 
   // List endpoints
   const listMatch = matchListUrl(url);
@@ -91,19 +108,27 @@ async function resolveFromCache(url: string): Promise<any | undefined> {
       );
     }
 
-    return items.map((item) => item.data);
+    if (items.length > 0) {
+      return items.map((item) => item.data);
+    }
+    // Fall through to URL cache below — covers items not pre-bundled.
   }
 
   // Single-item endpoints
   const matched = matchUrl(url);
-  if (!matched) return undefined;
+  if (matched) {
+    const item = await getOfflineItem(wsId, matched.type, matched.id);
+    if (item) {
+      return matched.subfield
+        ? { [matched.subfield]: item.data[matched.subfield] }
+        : item.data;
+    }
+    // Fall through to URL cache below.
+  }
 
-  const item = await getOfflineItem(wsId, matched.type, matched.id);
-  if (!item) return undefined;
-
-  return matched.subfield
-    ? { [matched.subfield]: item.data[matched.subfield] }
-    : item.data;
+  // URL-keyed cache: covers any GET we've previously seen successfully,
+  // even if it doesn't fit the structured patterns above.
+  return getUrlCache(wsId, 'get', url);
 }
 
 function offlineResponse(data: any, config: any, statusText: string) {
@@ -153,9 +178,22 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
   apiClient.interceptors.response.use(
     (response) => {
       // Server responded — mark as reachable
-      serverReachable = true;
+      setServerReachable(true);
       if (response.config.baseURL) {
         localStorage.setItem('_lastApiBaseUrl', response.config.baseURL);
+      }
+
+      // Write-through cache: store every successful GET so we can serve it
+      // from cache the next time the backend is unreachable.
+      if (response.config.method === 'get' && response.status >= 200 && response.status < 300) {
+        const url = response.config.url || '';
+        // Skip caching of binary file downloads and the auth/refresh endpoint.
+        const isBinary = response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer';
+        if (url && !isBinary && !url.startsWith('/auth/refresh')) {
+          try {
+            setUrlCache(getWsId(), 'get', url, response.data);
+          } catch { /* ignore caching failures */ }
+        }
       }
       return response;
     },
@@ -187,10 +225,11 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
         return Promise.reject(error);
       }
 
-      // Real network error (server was thought reachable but isn't)
-      // Exclude our own aborted requests (ERR_CANCELED)
+      // Real network error (server was thought reachable but isn't).
+      // Covers ERR_NETWORK, ERR_NETWORK_CHANGED, ECONNREFUSED, ECONNRESET, ECONNABORTED, etc.
+      // Exclude our own aborted requests (ERR_CANCELED).
       if (!error.response && error.code !== 'ERR_CANCELED') {
-        serverReachable = false;
+        setServerReachable(false);
 
         // Try to serve this failed GET from cache, fallback to empty
         if (config.method === 'get') {
@@ -211,6 +250,10 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
             await offlineStore.addPendingChange(matched.type, matched.id, method, payload);
             return offlineResponse({ ...payload, id: matched.id }, config, 'OK (queued offline)');
           }
+          // Unknown mutation URL: don't reject (would surface as unhandled rejection
+          // and can blank the UI). Return a 503-like synthetic response; callers
+          // checking response.status can react, callers awaiting data get an empty object.
+          return offlineResponse({}, config, 'Service Unavailable (offline)');
         }
       }
 

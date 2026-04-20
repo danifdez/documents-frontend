@@ -7,7 +7,6 @@
                 spellcheck="false">
                 <template v-if="editor">
                     <editor-content :editor="editor" />
-                    <BibliographyList :editor="editor" :entries="bibliographyEntries" citation-format="apa" />
                 </template>
             </div>
         </div>
@@ -35,7 +34,6 @@ import { VideoExtension } from '../editor/extensions/VideoExtension';
 import { ReferenceNode } from '../editor/extensions/ReferenceExtension';
 import EditorToolbar from '../editor/EditorToolbar.vue';
 import InsertReferenceModal from '../references/InsertReferenceModal.vue';
-import BibliographyList from '../bibliography/BibliographyList.vue';
 import { useBibliography } from '../../services/bibliography/useBibliography';
 import 'katex/dist/katex.min.css';
 

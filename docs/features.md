@@ -131,6 +131,12 @@ The Settings page exposes editor preferences that are persisted locally via `ele
 
 Settings are read and written through the `settings:get` / `settings:set` IPC channels.
 
+## Themes
+
+The app ships with a built-in **Default** theme and lets users install additional themes from a local `.json` or `.zip` file (colors, typography, and optional custom CSS). Each theme defines both a light and dark variant; the existing *Light / Dark / System* toggle decides which one is applied.
+
+Manage themes from **Settings → General → Theme → Manage themes…**. See [themes.md](themes.md) for the manifest format, supported CSS variables, packaging rules, and a full worked example.
+
 ## User Management
 
 The User Management page (accessible to administrators) lists all registered users, their roles, and active sessions. Roles control access to sensitive operations such as bulk deletion and job triggering.

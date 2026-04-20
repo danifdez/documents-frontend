@@ -35,7 +35,10 @@ function extFromMime(mime: string): string {
 }
 
 export const useOfflineStore = defineStore('offline', () => {
-  const offlineEnabled = ref(false);
+  // Offline is always-on locally: mutations are always queued and synced
+  // when the backend comes back, regardless of any server-side flag.
+  const offlineEnabled = ref(true);
+  const backendReachable = ref(true);
   const isOnline = ref(true);
   const isSyncing = ref(false);
   const pendingChangeCount = ref(0);
@@ -43,6 +46,8 @@ export const useOfflineStore = defineStore('offline', () => {
   const lastSyncTimestamp = ref<string | null>(null);
   const initialized = ref(false);
   let syncInterval: ReturnType<typeof setInterval> | null = null;
+  let recoveryTimer: ReturnType<typeof setTimeout> | null = null;
+  let recoveryAttempt = 0;
 
   function getWsId(): string {
     return localStorage.getItem('activeWorkspaceId') || 'default';
@@ -53,13 +58,67 @@ export const useOfflineStore = defineStore('offline', () => {
     await updateManifest(wsId, [...offlineItemKeys.value], lastSyncTimestamp.value);
   }
 
-  async function checkOfflineEnabled() {
-    try {
-      const { data } = await apiClient.get('/auth/status');
-      offlineEnabled.value = data.offlineEnabled === true;
-    } catch {
-      // If we can't reach server, keep previous value
+  function setBackendReachable(value: boolean) {
+    const wasReachable = backendReachable.value;
+    backendReachable.value = value;
+    isOnline.value = value;
+
+    if (value && !wasReachable) {
+      stopRecoveryPoll();
+      if (pendingChangeCount.value > 0 || offlineItemKeys.value.size > 0) {
+        syncOnReconnect();
+      }
+    } else if (!value && wasReachable) {
+      startRecoveryPoll();
     }
+  }
+
+  async function probeBackend(): Promise<boolean> {
+    const baseUrl = apiClient.defaults.baseURL || '';
+    try {
+      const res = await fetch(`${baseUrl}/auth/status`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000),
+      });
+      const ok = res.ok;
+      setBackendReachable(ok);
+      return ok;
+    } catch {
+      setBackendReachable(false);
+      return false;
+    }
+  }
+
+  function nextRecoveryDelay(): number {
+    const schedule = [10_000, 15_000, 20_000, 30_000];
+    return schedule[Math.min(recoveryAttempt, schedule.length - 1)];
+  }
+
+  function startRecoveryPoll() {
+    if (recoveryTimer) return;
+    recoveryAttempt = 0;
+    const tick = async () => {
+      recoveryTimer = null;
+      if (backendReachable.value) return;
+      await probeBackend();
+      if (!backendReachable.value) {
+        recoveryAttempt++;
+        recoveryTimer = setTimeout(tick, nextRecoveryDelay());
+      }
+    };
+    recoveryTimer = setTimeout(tick, nextRecoveryDelay());
+  }
+
+  function stopRecoveryPoll() {
+    if (recoveryTimer) {
+      clearTimeout(recoveryTimer);
+      recoveryTimer = null;
+    }
+    recoveryAttempt = 0;
+  }
+
+  async function checkOfflineEnabled() {
+    // No-op: offline support is always on locally. Kept for backwards compat.
   }
 
   async function loadOfflineState() {
@@ -254,12 +313,17 @@ export const useOfflineStore = defineStore('offline', () => {
 
   return {
     offlineEnabled,
+    backendReachable,
     isOnline,
     isSyncing,
     pendingChangeCount,
     offlineItemKeys,
     initialized,
     checkOfflineEnabled,
+    setBackendReachable,
+    probeBackend,
+    startRecoveryPoll,
+    stopRecoveryPoll,
     loadOfflineState,
     isItemOffline,
     makeAvailableOffline,

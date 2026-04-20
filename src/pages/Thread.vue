@@ -52,6 +52,8 @@
           </button>
           <Dropdown :showDots="true">
             <DropdownItem @click="showEditModal = true">Edit</DropdownItem>
+            <DropdownItem v-if="thread?.status !== 'archived'" @click="confirmArchive">Archive</DropdownItem>
+            <DropdownItem v-else @click="handleUnarchive">Unarchive</DropdownItem>
             <DropdownItem @click="confirmDelete" className="text-red-500">Delete</DropdownItem>
           </Dropdown>
         </template>
@@ -213,6 +215,11 @@
         confirmText="Delete" cancelText="Cancel" confirmVariant="danger"
         @confirm="handleDelete" @cancel="showDeleteDialog = false" />
 
+      <ConfirmModal :isOpen="showArchiveDialog" title="Archive Thread"
+        message="Archiving will move resource files to the archive storage and delete all related embeddings for this thread and its children."
+        confirmText="Archive" cancelText="Cancel" @confirm="handleArchive"
+        @cancel="showArchiveDialog = false" />
+
       <!-- Edit thread modal -->
       <Modal v-model="showEditModal" title="Edit Thread">
         <form @submit.prevent="handleEdit" class="space-y-4">
@@ -269,7 +276,7 @@ const { canvases, loadCanvasesByThread } = useCanvasList();
 const { loadResourcesByThread, assignResourceToThread } = useResourceList();
 const { threads: projectThreads, loadThreads: loadProjectThreads } = useThreadList();
 const { notes: threadNotes, isLoading: isNotesLoading, loadNotesByThread } = useNotes();
-const { loadThread, loadChildThreads, updateThread, deleteThread } = useThread();
+const { loadThread, loadChildThreads, updateThread, deleteThread, archiveThread, unarchiveThread } = useThread();
 const { showSearch, showNotesPanel } = useGlobalKeyboard();
 
 const openNotesPanel = () => {
@@ -292,6 +299,7 @@ const showImportModal = ref(false);
 const showCreateThreadModal = ref(false);
 const showEditModal = ref(false);
 const showDeleteDialog = ref(false);
+const showArchiveDialog = ref(false);
 const childThreads = ref([]);
 const editName = ref('');
 const editDescription = ref('');
@@ -408,6 +416,35 @@ const handleResourcesImported = async () => {
 
 const confirmDelete = () => {
   showDeleteDialog.value = true;
+};
+
+const confirmArchive = () => {
+  showArchiveDialog.value = true;
+};
+
+const handleArchive = async () => {
+  showArchiveDialog.value = false;
+  const success = await archiveThread(threadId.value);
+  if (success) {
+    notification.success('Thread archived');
+    if (projectStore.currentProject) {
+      router.push(`/project/${projectStore.currentProject.id}`);
+    } else {
+      router.push('/');
+    }
+  } else {
+    notification.error('Failed to archive thread');
+  }
+};
+
+const handleUnarchive = async () => {
+  const success = await unarchiveThread(threadId.value);
+  if (success) {
+    notification.success('Thread unarchived');
+    thread.value = await loadThread(threadId.value);
+  } else {
+    notification.error('Failed to unarchive thread');
+  }
 };
 
 const handleDelete = async () => {

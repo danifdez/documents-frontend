@@ -476,6 +476,10 @@
                                     </span>
                                 </span>
                             </Button>
+                            <Button v-if="!isImageFile" variant="secondary" size="small"
+                                :active="viewSideBar === 'dates'" @click="viewSideBar = 'dates'">
+                                Dates
+                            </Button>
                         </ButtonGroup>
                     </div>
                 </div>
@@ -506,6 +510,21 @@
                             :target-language="defaultLanguage" @entity:removed="handleEntityRemoved"
                             @entity:merged="handleEntityMerged" @entity:highlight="handleEntityHighlight" />
                     </div>
+                    <div v-else-if="viewSideBar === 'dates'" class="space-y-3">
+                        <ButtonGroup>
+                            <Button variant="secondary" size="small" :active="datesView === 'list'"
+                                @click="datesView = 'list'">List</Button>
+                            <Button variant="secondary" size="small" :active="datesView === 'timeline'"
+                                @click="datesView = 'timeline'">Timeline</Button>
+                            <Button variant="secondary" size="small" @click="refreshDates">Refresh</Button>
+                        </ButtonGroup>
+                        <DatesList v-if="datesView === 'list'" :dates="resourceDates" :loading="datesLoading"
+                            :resource-publication-date="resource.publicationDate"
+                            @select="handleDateSelect" @remove="handleDateRemove"
+                            @set-anchor="handleDatesAnchor" />
+                        <DatesTimeline v-else :dates="resourceDates" :can-promote="!!resource?.project?.id"
+                            @select="handleDateSelect" @promote="handleDatePromote" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -520,6 +539,12 @@
             :project-id="resource?.project?.id || projectStore.currentProject?.id"
             @close="showSendToDocModal = false" @send-to-existing="handleSendToExistingDoc"
             @create-new-doc="handleCreateNewDocFromSelection" />
+
+        <PromoteDateToTimelineModal v-model="showPromoteModal"
+            :project-id="resource?.project?.id || null"
+            :resource-id="Number(resourceId)"
+            :date="promoteDate"
+            @promoted="handlePromoted" />
 
         <!-- Confirm Modals -->
         <ConfirmModal :is-open="showRemoveResourceModal" title="Remove Resource"
@@ -557,6 +582,11 @@ import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import ChatSidebar from '../components/ui/ChatSidebar.vue';
 import EntitiesList from '../components/entities/EntitiesList.vue';
 import PendingEntitiesValidator from '../components/entities/PendingEntitiesValidator.vue';
+import DatesList from '../components/resources/DatesList.vue';
+import DatesTimeline from '../components/resources/DatesTimeline.vue';
+import PromoteDateToTimelineModal from '../components/resources/PromoteDateToTimelineModal.vue';
+import { useResourceDates } from '../services/resources/useResourceDates';
+import type { ResourceDate } from '../types/ResourceDate';
 import Button from '../components/ui/Button.vue';
 import ButtonGroup from '../components/ui/ButtonGroup.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
@@ -589,7 +619,59 @@ const apiBaseUrl = apiClient.defaults.baseURL;
 const editorContentRef = ref();
 const splitEditor = ref();
 const workspaceEditor = ref();
-const viewSideBar = ref<'properties' | 'comments' | 'index' | 'entities'>('properties');
+const viewSideBar = ref<'properties' | 'comments' | 'index' | 'entities' | 'dates'>('properties');
+const datesView = ref<'list' | 'timeline'>('list');
+const { dates: resourceDates, loading: datesLoading, fetchDates: loadResourceDates, removeDate: removeResourceDate } = useResourceDates();
+
+const refreshDates = async () => {
+    const id = Number(resourceId.value);
+    if (!isNaN(id)) await loadResourceDates(id);
+};
+
+const handleDatesAnchor = async (dateStr: string) => {
+    try {
+        await updateResource(Number(resourceId.value), { publicationDate: dateStr });
+        resource.value.publicationDate = dateStr;
+        setTimeout(refreshDates, 1500);
+    } catch (err) {
+        console.error('Failed to set authoring date:', err);
+    }
+};
+
+const handleDateRemove = async (id: number) => {
+    try {
+        await removeResourceDate(Number(resourceId.value), id);
+    } catch (err) {
+        console.error('Failed to remove date:', err);
+    }
+};
+
+const handleDateSelect = (_d: ResourceDate) => { /* reserved for future scroll-to-context */ };
+
+const showPromoteModal = ref(false);
+const promoteDate = ref<ResourceDate | null>(null);
+
+const handleDatePromote = (d: ResourceDate) => {
+    if (!d.date) {
+        notification.error?.('This date is unresolved and cannot be added to a timeline.');
+        return;
+    }
+    const projectId = resource.value?.project?.id;
+    if (!projectId) {
+        notification.error?.('Assign this resource to a project before adding dates to a timeline.');
+        return;
+    }
+    promoteDate.value = d;
+    showPromoteModal.value = true;
+};
+
+const handlePromoted = (payload: { timelineId: number; event: { title: string; date: string } }) => {
+    notification.success?.(`Added "${payload.event.title}" (${payload.event.date}) to timeline.`);
+};
+
+watch(viewSideBar, (val) => {
+    if (val === 'dates') refreshDates();
+});
 
 const isEditMode = ref(false);
 const editContent = ref('');

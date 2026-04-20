@@ -47,6 +47,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onStandaloneDownloadProgress: (callback: (progress: any) => void) =>
         ipcRenderer.on('standalone:download-progress', (_event, progress) => callback(progress)),
 
+    // Theme management
+    listThemes: () => ipcRenderer.invoke('themes:list'),
+    installTheme: () => ipcRenderer.invoke('themes:install'),
+    uninstallTheme: (id: string) => ipcRenderer.invoke('themes:uninstall', id),
+    readThemeAssets: (id: string) => ipcRenderer.invoke('themes:read-assets', id),
+
     // Offline filesystem storage
     offlinePutItem: (wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) =>
         ipcRenderer.invoke('offline:put-item', wsId, type, id, data, syncedAt, parentType, parentId),

@@ -49,15 +49,18 @@
     <SelectionLookup />
     <TaskPanel v-model="showTaskPanel" />
   </MainLayout>
+
+  <OfflineBanner />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import MainLayout from './layout/MainLayout.vue';
 import GlobalSearchModal from './components/GlobalSearchModal.vue';
 import SelectionLookup from './components/knowledge/SelectionLookup.vue';
 import TaskPanel from './components/user-tasks/TaskPanel.vue';
 import WorkspaceModal from './components/WorkspaceModal.vue';
+import OfflineBanner from './components/OfflineBanner.vue';
 import { useGlobalKeyboard } from './composables/useGlobalKeyboard';
 import { useTaskPanel } from './composables/useTaskPanel';
 import { getSocket, connectSocket } from './services/notifications/notification';
@@ -66,7 +69,6 @@ import { useNotification } from './composables/useNotification';
 import { useTheme } from './composables/useTheme';
 import { useWorkspaceStore } from './store/workspaceStore';
 import { useOfflineStore } from './store/offlineStore';
-import { useNetworkStatus } from './composables/useNetworkStatus';
 
 const notification = useNotification();
 const router = useRouter();
@@ -76,20 +78,11 @@ const { showTaskPanel } = useTaskPanel();
 const { initTheme } = useTheme();
 const workspaceStore = useWorkspaceStore();
 const offlineStore = useOfflineStore();
-const { isOnline } = useNetworkStatus();
 
 const isLoginRoute = computed(() => route.name === 'Login');
 const isBrowserPage = computed(() => route.name === 'BrowserPage' || route.name === 'BrowserToolbar');
 const showRemoteForm = ref(false);
 const localSetupInProgress = ref(false);
-
-// Sync network status to offline store and auto-sync on reconnect
-watch(isOnline, (online, wasOnline) => {
-  offlineStore.isOnline = online;
-  if (online && !wasOnline && offlineStore.offlineEnabled && offlineStore.pendingChangeCount > 0) {
-    offlineStore.syncOnReconnect();
-  }
-});
 
 async function handleSetupLocal() {
   localSetupInProgress.value = true;
@@ -148,15 +141,10 @@ onMounted(async () => {
   await workspaceStore.loadWorkspaces();
 
   if (workspaceStore.hasWorkspaces) {
-    // Initialize offline support
-    await offlineStore.checkOfflineEnabled();
+    // Probe the backend so the first paint already reflects reachability
+    await offlineStore.probeBackend();
     await offlineStore.loadOfflineState();
-    offlineStore.isOnline = isOnline.value;
-
-    // Start background sync (every 5 min while online)
-    if (offlineStore.offlineEnabled) {
-      offlineStore.startBackgroundSync();
-    }
+    offlineStore.startBackgroundSync();
 
     setupSocket();
   }

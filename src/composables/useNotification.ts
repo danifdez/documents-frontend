@@ -1,5 +1,6 @@
 import { useToast, TYPE, POSITION, ToastOptions } from 'vue-toastification';
 import { h } from 'vue';
+import { isServerReachable } from '../services/offline/offlineInterceptor';
 
 interface NotificationOptions extends ToastOptions {
     title?: string;
@@ -27,7 +28,7 @@ export function useNotification() {
             pauseOnFocusLoss: true,
             pauseOnHover: true,
             draggable: true,
-            position: POSITION.TOP_RIGHT,
+            position: POSITION.BOTTOM_RIGHT,
             ...options,
         };
 
@@ -67,9 +68,15 @@ export function useNotification() {
     };
 
     /**
-     * Display an error notification
+     * Display an error notification.
+     * Suppressed when the backend is unreachable: a single offline banner
+     * covers the situation and we don't want a toast per failed query.
      */
     const error = (message: string, options?: NotificationOptions) => {
+        if (!isServerReachable()) {
+            console.warn('[notification.error suppressed offline]', message);
+            return;
+        }
         return notify(message, { ...options, type: TYPE.ERROR });
     };
 

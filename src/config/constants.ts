@@ -4,6 +4,8 @@ export const DEFAULT_FONT_FAMILY = 'sans-serif';
 export const DEFAULT_PARAGRAPH_SPACING = 1.5;
 export const DEFAULT_LANGUAGE = 'en';
 export const DEFAULT_THEME = 'system';
+export const DEFAULT_THEME_ID = 'default';
+export const BUILT_IN_THEME_IDS = ['default'] as const;
 export const DEFAULT_BROWSER_URL = 'https://github.com/electron/electron';
 
 // ── Timing ──

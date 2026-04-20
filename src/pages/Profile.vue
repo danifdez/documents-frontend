@@ -5,6 +5,37 @@
     <div class="flex gap-6">
       <!-- Left column: info -->
       <div class="flex-1 flex flex-col gap-6">
+        <!-- Profile photo -->
+        <div class="border border-border rounded-lg p-4">
+          <div class="text-xs text-text-muted uppercase tracking-wider mb-3">Profile Photo</div>
+          <div class="flex items-center gap-4">
+            <Avatar
+              :key="avatarVersion"
+              :user-id="user?.id"
+              :avatar-path="user?.avatarPath"
+              :display-name="user?.displayName"
+              :username="user?.username"
+              size="xl"
+            />
+            <div class="flex flex-col gap-2">
+              <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" @change="onFileSelected" />
+              <button type="button" @click="fileInput?.click()" :disabled="isUploadingAvatar"
+                class="px-3 py-1.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 cursor-pointer">
+                {{ isUploadingAvatar ? 'Uploading...' : (user?.avatarPath ? 'Change photo' : 'Upload photo') }}
+              </button>
+              <button v-if="user?.avatarPath" type="button" @click="removeAvatar" :disabled="isUploadingAvatar"
+                class="px-3 py-1.5 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors disabled:opacity-50 cursor-pointer">
+                Remove photo
+              </button>
+              <p class="text-xs text-text-muted">PNG, JPEG, WEBP or GIF. Max 5 MB.</p>
+            </div>
+          </div>
+          <div v-if="avatarMessage" class="text-sm rounded-lg px-3 py-2 mt-3"
+            :class="avatarError ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-green-600 bg-green-50 dark:bg-green-900/20'">
+            {{ avatarMessage }}
+          </div>
+        </div>
+
         <!-- Account -->
         <div class="border border-border rounded-lg p-4">
           <div class="text-xs text-text-muted uppercase tracking-wider mb-3">Account</div>
@@ -77,6 +108,7 @@
 import { ref, computed, onMounted } from 'vue';
 import apiClient from '../services/api';
 import FormField from '../components/ui/FormField.vue';
+import Avatar from '../components/ui/Avatar.vue';
 import { useAuthStore } from '../store/authStore';
 
 const authStore = useAuthStore();
@@ -93,6 +125,57 @@ const groupName = ref('-');
 const isSavingProfile = ref(false);
 const profileMessage = ref('');
 const profileError = ref(false);
+
+const fileInput = ref<HTMLInputElement | null>(null);
+const isUploadingAvatar = ref(false);
+const avatarMessage = ref('');
+const avatarError = ref(false);
+const avatarVersion = ref(0);
+
+async function onFileSelected(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  isUploadingAvatar.value = true;
+  avatarMessage.value = '';
+
+  try {
+    const fd = new FormData();
+    fd.append('avatar', file);
+    const { data } = await apiClient.post('/auth/me/avatar', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    authStore.user = data;
+    avatarVersion.value++;
+    avatarMessage.value = 'Photo updated';
+    avatarError.value = false;
+  } catch (err: any) {
+    avatarMessage.value = err.response?.data?.message || 'Failed to upload photo';
+    avatarError.value = true;
+  } finally {
+    isUploadingAvatar.value = false;
+    if (fileInput.value) fileInput.value.value = '';
+  }
+}
+
+async function removeAvatar() {
+  isUploadingAvatar.value = true;
+  avatarMessage.value = '';
+
+  try {
+    await apiClient.delete('/auth/me/avatar');
+    if (authStore.user) authStore.user = { ...authStore.user, avatarPath: null };
+    avatarVersion.value++;
+    avatarMessage.value = 'Photo removed';
+    avatarError.value = false;
+  } catch (err: any) {
+    avatarMessage.value = err.response?.data?.message || 'Failed to remove photo';
+    avatarError.value = true;
+  } finally {
+    isUploadingAvatar.value = false;
+  }
+}
 
 const currentPassword = ref('');
 const newPassword = ref('');

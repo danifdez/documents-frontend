@@ -6,10 +6,11 @@ export function useProjectList() {
     const error = ref(null);
     const isLoading = ref(false);
 
-    const loadProjects = async () => {
+    const loadProjects = async (includeArchived = false) => {
         isLoading.value = true;
         try {
-            const response = await apiClient.get("/projects");
+            const url = includeArchived ? "/projects?includeArchived=true" : "/projects";
+            const response = await apiClient.get(url);
             projects.value = response.data;
         } catch (err) {
             error.value = err;
@@ -18,14 +19,16 @@ export function useProjectList() {
         }
     };
 
-    const searchProjects = async (query: string) => {
+    const searchProjects = async (query: string, includeArchived = false) => {
         isLoading.value = true;
         try {
             if (!query || query.trim() === '') {
-                return loadProjects();
+                return loadProjects(includeArchived);
             }
 
-            const response = await apiClient.get(`/projects/search?q=${encodeURIComponent(query)}`);
+            const params = new URLSearchParams({ q: query });
+            if (includeArchived) params.set('includeArchived', 'true');
+            const response = await apiClient.get(`/projects/search?${params.toString()}`);
             projects.value = response.data;
         } catch (err) {
             error.value = err;
