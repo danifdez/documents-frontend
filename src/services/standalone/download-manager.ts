@@ -264,7 +264,7 @@ export async function installModels(
  *  - BAAI/bge-small-en-v1.5 (embeddings, ~130 MB)
  *  - en_core_web_sm (spaCy NER, ~12 MB)
  *  - faster-whisper-small (transcription, ~460 MB)
- *  - Phi-4-mini-instruct GGUF (LLM, ~2.5 GB)
+ *  - Qwen3-8B GGUF Q5_K_M (LLM, ~5.7 GB)
  */
 export async function setupModels(
   onProgress?: (progress: DownloadProgress) => void,

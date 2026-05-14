@@ -1449,7 +1449,7 @@ const handleSummarizeJob = async () => {
         const language = await getLanguageSetting();
         await apiClient.post('/model/summarize', {
             targetLanguage: language,
-            resourceId: resourceId.value,
+            resourceId: Number(resourceId.value),
         });
         notification.success('Summarization job created successfully');
     } catch (error) {
@@ -1463,7 +1463,7 @@ const handleTranslate = async () => {
     try {
         const language = await getLanguageSetting();
         await apiClient.post('/model/translate', {
-            resourceId: resourceId.value,
+            resourceId: Number(resourceId.value),
             targetLanguage: language,
         });
         notification.success('Translation job created successfully');
@@ -1476,7 +1476,7 @@ const handleKeyPointsJob = async () => {
     try {
         const language = await getLanguageSetting();
         await apiClient.post('/model/key-points', {
-            resourceId: resourceId.value,
+            resourceId: Number(resourceId.value),
             targetLanguage: language,
         });
         notification.success('Key points job created successfully');
@@ -1489,7 +1489,7 @@ const handleKeywordsJob = async () => {
     try {
         const language = await getLanguageSetting();
         await apiClient.post('/model/keywords', {
-            resourceId: resourceId.value,
+            resourceId: Number(resourceId.value),
             targetLanguage: language,
         });
         notification.success('Keywords job created successfully');
