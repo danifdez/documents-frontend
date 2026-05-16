@@ -43,6 +43,14 @@
                 :class="['p-1.5 rounded transition-colors cursor-pointer text-xs font-bold', editor.isActive('heading', { level: 3 }) ? 'bg-accent-subtle text-accent' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover']">
                 H3
             </button>
+
+            <div v-if="dictation" class="w-px h-5 bg-border mx-1"></div>
+            <VoiceCaptureButton
+                v-if="dictation"
+                mode="inline"
+                @transcribed="onDictation"
+                @state-change="onDictationState"
+            />
         </div>
 
         <!-- Editor content -->
@@ -58,10 +66,14 @@ import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
+import VoiceCaptureButton from '../voice/VoiceCaptureButton.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     modelValue: string | null;
-}>();
+    dictation?: boolean;
+}>(), {
+    dictation: true,
+});
 
 const emit = defineEmits(['update:modelValue']);
 
@@ -78,6 +90,46 @@ const editor = useEditor({
         emit('update:modelValue', editor.getHTML());
     },
 });
+
+// ── Voice dictation ──────────────────────────────────────────────────
+// TipTap uses ProseMirror positions, not text offsets. We keep:
+//   anchor  – position where dictation started.
+//   lastLen – length of the last inserted partial.
+// On each partial we replace the range [anchor, anchor+lastLen] with the
+// new text and update lastLen. We do not detect manual user edits in
+// between (reliable detection in ProseMirror would require inspecting
+// transactions; left as an improvement).
+let anchor: number | null = null;
+let lastLen = 0;
+
+function onDictationState(state: string) {
+    if (state === 'recording' && anchor === null) {
+        const ed = editor.value;
+        if (!ed) return;
+        anchor = ed.state.selection.from;
+        lastLen = 0;
+    } else if (state === 'idle' || state === 'error') {
+        anchor = null;
+        lastLen = 0;
+    }
+}
+
+function onDictation(text: string, _isFinal: boolean) {
+    const ed = editor.value;
+    if (!ed || anchor === null) return;
+    const from = anchor;
+    const to = anchor + lastLen;
+    if (to > ed.state.doc.content.size) {
+        anchor = null;
+        return;
+    }
+    ed.chain()
+        .focus()
+        .setTextSelection({ from, to })
+        .insertContent(text)
+        .run();
+    lastLen = text.length;
+}
 
 watch(() => props.modelValue, (val) => {
     if (editor.value && val !== editor.value.getHTML()) {

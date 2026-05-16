@@ -48,6 +48,7 @@
     <GlobalSearchModal :show="showGlobalSearch" @close="showGlobalSearch = false" />
     <SelectionLookup />
     <TaskPanel v-model="showTaskPanel" />
+    <AssistantModal v-if="featureStore.isEnabled('assistants')" v-model="showAssistant" />
   </MainLayout>
 
   <OfflineBanner />
@@ -61,6 +62,7 @@ import SelectionLookup from './components/knowledge/SelectionLookup.vue';
 import TaskPanel from './components/user-tasks/TaskPanel.vue';
 import WorkspaceModal from './components/WorkspaceModal.vue';
 import OfflineBanner from './components/OfflineBanner.vue';
+import AssistantModal from './components/assistant/AssistantModal.vue';
 import { useGlobalKeyboard } from './composables/useGlobalKeyboard';
 import { useTaskPanel } from './composables/useTaskPanel';
 import { getSocket, connectSocket } from './services/notifications/notification';
@@ -69,15 +71,17 @@ import { useNotification } from './composables/useNotification';
 import { useTheme } from './composables/useTheme';
 import { useWorkspaceStore } from './store/workspaceStore';
 import { useOfflineStore } from './store/offlineStore';
+import { useFeatureStore } from './store/featureStore';
 
 const notification = useNotification();
 const router = useRouter();
 const route = useRoute();
-const { showGlobalSearch } = useGlobalKeyboard();
+const { showGlobalSearch, showAssistant } = useGlobalKeyboard();
 const { showTaskPanel } = useTaskPanel();
 const { initTheme } = useTheme();
 const workspaceStore = useWorkspaceStore();
 const offlineStore = useOfflineStore();
+const featureStore = useFeatureStore();
 
 const isLoginRoute = computed(() => route.name === 'Login');
 const isBrowserPage = computed(() => route.name === 'BrowserPage' || route.name === 'BrowserToolbar');

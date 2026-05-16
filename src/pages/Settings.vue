@@ -81,6 +81,15 @@
                         </div>
                     </section>
 
+                    <!-- Voice (only when local engine is bundled) -->
+                    <section
+                        v-if="voiceLocalAvailable"
+                        class="bg-surface-elevated rounded-xl border border-border p-5"
+                    >
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice</h2>
+                        <VoiceSettings />
+                    </section>
+
                     <!-- Editor Appearance -->
                     <section class="bg-surface-elevated rounded-xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Editor
@@ -440,11 +449,14 @@ import { useFeatureStore } from '../store/featureStore';
 import { useRouter } from 'vue-router';
 import WorkspaceModal from '../components/WorkspaceModal.vue';
 import ThemeManager from '../components/settings/ThemeManager.vue';
+import VoiceSettings from '../components/settings/VoiceSettings.vue';
+import { isLocalEngineAvailable } from '../services/voice/availability';
 import { useThemes } from '../composables/useThemes';
 import type { Workspace } from '../types/Workspace';
 
 const { themeMode, setTheme } = useTheme();
 const showThemeManager = ref(false);
+const voiceLocalAvailable = isLocalEngineAvailable();
 const { themes, activeThemeId, refresh: refreshThemes, activateTheme } = useThemes();
 const onActiveThemeChange = async () => {
     await activateTheme(activeThemeId.value);

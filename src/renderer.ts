@@ -62,3 +62,9 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 app.mount('#app');
+
+// Kick off voice model preload so the first dictation does not have to wait
+// for the download and the whisper instance to load.
+import('./services/voice/preloadLocalEngine').then(({ preloadLocalEngineIfNeeded }) => {
+  preloadLocalEngineIfNeeded();
+});

@@ -3,6 +3,56 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
+// ── Bridge for the local voice engine (Task 08) ──────────────────────────
+// `isLocalAvailable` is synchronous because it is read by the component and
+// the driver factory when rendering Settings and before starting a session.
+// `voice:local:isAvailable` and `voice:local:hasModel` are exposed by main.ts.
+// The renderer loads this flag lazily on first use via `invoke`.
+let localAvailableCache: boolean | null = null;
+async function refreshLocalAvailable(): Promise<boolean> {
+  try {
+    localAvailableCache = await ipcRenderer.invoke('voice:local:isAvailable');
+  } catch {
+    localAvailableCache = false;
+  }
+  return localAvailableCache;
+}
+// Eager refresh — the result stays cached for later synchronous calls
+// from `availability.ts` and from Settings.
+void refreshLocalAvailable();
+
+contextBridge.exposeInMainWorld('voice', {
+  isLocalAvailable: (): boolean => localAvailableCache === true,
+  refreshAvailability: refreshLocalAvailable,
+  hasModel: (): Promise<boolean> => ipcRenderer.invoke('voice:local:hasModel'),
+  preloadLocal: (): Promise<void> => ipcRenderer.invoke('voice:local:preload'),
+  startLocal: (): Promise<{ sessionId: string }> => ipcRenderer.invoke('voice:local:start'),
+  pushChunkLocal: (sessionId: string, buf: ArrayBuffer): Promise<void> =>
+    ipcRenderer.invoke('voice:local:chunk', sessionId, buf),
+  stopLocal: (sessionId: string): Promise<void> => ipcRenderer.invoke('voice:local:stop', sessionId),
+  cancelLocal: (sessionId: string): Promise<void> =>
+    ipcRenderer.invoke('voice:local:cancel', sessionId),
+  onPartialLocal: (cb: (payload: { sessionId: string; text: string; isFinal: boolean }) => void) => {
+    const handler = (_e: unknown, payload: { sessionId: string; text: string; isFinal: boolean }) => {
+      console.log('[preload] IPC voice:local:partial', payload);
+      cb(payload);
+    };
+    ipcRenderer.on('voice:local:partial', handler);
+    return () => ipcRenderer.off('voice:local:partial', handler);
+  },
+  onErrorLocal: (cb: (payload: { sessionId: string; message: string }) => void) => {
+    const handler = (_e: unknown, payload: { sessionId: string; message: string }) => cb(payload);
+    ipcRenderer.on('voice:local:error', handler);
+    return () => ipcRenderer.off('voice:local:error', handler);
+  },
+  onLoadingProgress: (cb: (p: { downloaded: number; total: number | null; percent: number }) => void) => {
+    const handler = (_e: unknown, payload: { downloaded: number; total: number | null; percent: number }) => cb(payload);
+    ipcRenderer.on('voice:local:loading-progress', handler);
+    return () => ipcRenderer.off('voice:local:loading-progress', handler);
+  },
+});
+
+
 contextBridge.exposeInMainWorld('electronAPI', {
     openExternalBrowser: (projectId: string) => ipcRenderer.invoke('open-external-browser', projectId),
     navigateTo: (url: string) => ipcRenderer.invoke('navigate-to', url),

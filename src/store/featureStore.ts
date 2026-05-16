@@ -14,6 +14,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   rag: 'AI / RAG',
   relationships: 'Relationships',
   data_sources: 'Data Sources',
+  assistants: 'Assistant',
 };
 
 export const useFeatureStore = defineStore('features', () => {

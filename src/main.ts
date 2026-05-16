@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, screen, dialog, Menu, globalShortcut } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, dialog, Menu, globalShortcut, session } from 'electron';
+import { localEngine } from './main/voice/localEngine';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -138,6 +139,40 @@ const createBrowserWindow = (projectId?: string) => {
 };
 
 app.whenReady().then(() => {
+  // Grant microphone permissions to the renderer. Without this getUserMedia
+  // hangs indefinitely: Electron does not propagate the request to the OS
+  // by default. Only the permissions actively used by the app are granted.
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+    if (permission === 'media' || permission === 'mediaKeySystem') {
+      return callback(true);
+    }
+    callback(false);
+  });
+  session.defaultSession.setPermissionCheckHandler((_wc, permission) => {
+    return permission === 'media' || permission === 'mediaKeySystem';
+  });
+
+  // ── Local voice engine ───────────────────────────────────────────────
+  // The engine is only actually available if the native bindings load
+  // (see `main/voice/localEngine.ts`). When they don't, `isAvailable`
+  // returns `false` and the renderer factory falls back to the remote driver.
+  ipcMain.handle('voice:local:isAvailable', () => localEngine.isAvailable());
+  ipcMain.handle('voice:local:hasModel', () => localEngine.hasModel());
+  ipcMain.handle('voice:local:preload', async (event) => {
+    localEngine.bindRenderer(event.sender);
+    return localEngine.preload();
+  });
+  ipcMain.handle('voice:local:start', async (event) => {
+    localEngine.bindRenderer(event.sender);
+    return localEngine.startSession();
+  });
+  ipcMain.handle('voice:local:chunk', (_e, sessionId: string, buf: ArrayBuffer | Uint8Array) => {
+    const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf as ArrayBuffer);
+    localEngine.pushChunk(sessionId, b);
+  });
+  ipcMain.handle('voice:local:stop', (_e, sessionId: string) => localEngine.stopSession(sessionId));
+  ipcMain.handle('voice:local:cancel', (_e, sessionId: string) => localEngine.cancelSession(sessionId));
+
   ipcMain.handle('open-external-browser', (_, projectId?: string) => {
     createBrowserWindow(projectId);
   });
@@ -464,6 +499,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', async () => {
   await standaloneManager.stop();
+  await localEngine.shutdown();
 });
 
 app.on('window-all-closed', () => {

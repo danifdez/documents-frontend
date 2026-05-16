@@ -16,7 +16,7 @@
 
     <!-- Popover -->
     <div v-if="showPopover && !collapsed"
-      class="absolute left-0 bottom-full mb-2 w-52 bg-surface border border-border rounded-lg shadow-lg z-50 p-3">
+      class="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-lg shadow-lg z-50 p-3">
       <div class="text-xs text-text-secondary mb-2">
         <div class="flex justify-between mb-1">
           <span>Status</span>

@@ -1,6 +1,6 @@
 <template>
-    <div class="flex h-screen overflow-hidden bg-surface">
-        <Sidebar v-if="!isBrowserToolbar" />
+    <div class="flex flex-col h-screen overflow-hidden bg-surface">
+        <Topbar v-if="!isBrowserToolbar" />
         <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
             <slot></slot>
         </div>
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import Sidebar from './Sidebar.vue';
+import Topbar from './Topbar.vue';
 import NotesPanel from '../components/notes/NotesPanel.vue';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';

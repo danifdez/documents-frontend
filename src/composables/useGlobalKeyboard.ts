@@ -5,6 +5,7 @@ const showSearch = ref(false);
 const showGlobalSearch = ref(false);
 const showNotesPanel = ref(false);
 const quickNoteRequested = ref(0);
+const showAssistant = ref(false);
 
 let initialized = false;
 
@@ -43,6 +44,12 @@ export function useGlobalKeyboard() {
                 quickNoteRequested.value++;
             }
 
+            // Ctrl+J: Toggle assistant modal
+            if (event.ctrlKey && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'j') {
+                event.preventDefault();
+                showAssistant.value = !showAssistant.value;
+            }
+
             if (event.key === 'Escape') {
                 showSearch.value = false;
                 showGlobalSearch.value = false;
@@ -58,5 +65,6 @@ export function useGlobalKeyboard() {
         showGlobalSearch,
         showNotesPanel,
         quickNoteRequested,
+        showAssistant,
     };
 }
