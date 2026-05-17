@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen, dialog, Menu, globalShortcut, session } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, dialog, Menu, globalShortcut, session, shell } from 'electron';
 import { localEngine } from './main/voice/localEngine';
 import path from 'path';
 import fs from 'fs';
@@ -250,6 +250,53 @@ app.whenReady().then(() => {
     } catch (error) {
       return { error: `Failed to process document: ${error.message}` };
     }
+  });
+
+  ipcMain.handle('shell:open-path', async (_event, targetPath: string) => {
+    if (!targetPath || typeof targetPath !== 'string') {
+      return { ok: false, error: 'invalid_path' };
+    }
+    try {
+      const err = await shell.openPath(targetPath);
+      if (err) return { ok: false, error: err };
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: e?.message ?? 'open_path_failed' };
+    }
+  });
+
+  ipcMain.handle('shell:show-item-in-folder', (_event, targetPath: string) => {
+    if (!targetPath || typeof targetPath !== 'string') {
+      return { ok: false };
+    }
+    try {
+      shell.showItemInFolder(targetPath);
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    }
+  });
+
+  ipcMain.handle('folder-scope:pick', async (_event, opts?: { title?: string }) => {
+    const win = BrowserWindow.getFocusedWindow() ?? mainWindow ?? undefined;
+    console.log('[folder-scope] picker opened');
+    const result = win
+      ? await dialog.showOpenDialog(win, {
+          properties: ['openDirectory', 'createDirectory'],
+          title: opts?.title ?? 'Pick the working folder',
+        })
+      : await dialog.showOpenDialog({
+          properties: ['openDirectory', 'createDirectory'],
+          title: opts?.title ?? 'Pick the working folder',
+        });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      console.log('[folder-scope] picker cancelled');
+      return null;
+    }
+
+    console.log('[folder-scope] picker confirmed');
+    return result.filePaths[0];
   });
 
   ipcMain.handle("open-multiple-file-dialog", async () => {

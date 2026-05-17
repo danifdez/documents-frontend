@@ -53,6 +53,18 @@ contextBridge.exposeInMainWorld('voice', {
 });
 
 
+contextBridge.exposeInMainWorld('folderScope', {
+    pick: (opts?: { title?: string }): Promise<string | null> =>
+        ipcRenderer.invoke('folder-scope:pick', opts),
+});
+
+contextBridge.exposeInMainWorld('shellOps', {
+    openPath: (p: string): Promise<{ ok: boolean; error?: string }> =>
+        ipcRenderer.invoke('shell:open-path', p),
+    showItemInFolder: (p: string): Promise<{ ok: boolean }> =>
+        ipcRenderer.invoke('shell:show-item-in-folder', p),
+});
+
 contextBridge.exposeInMainWorld('electronAPI', {
     openExternalBrowser: (projectId: string) => ipcRenderer.invoke('open-external-browser', projectId),
     navigateTo: (url: string) => ipcRenderer.invoke('navigate-to', url),

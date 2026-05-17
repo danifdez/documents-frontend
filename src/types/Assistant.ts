@@ -21,10 +21,17 @@ export type AssistantMessageEvent =
             name: string;
             args: string;
             summary: string;
-            status?: 'running' | 'done';
+            status?: 'running' | 'done' | 'pending_confirmation' | 'cancelled';
             // Set when the tool created something deletable (note, task, …).
             // Drives the "Delete" action button on the card.
-            entity?: { kind: 'note' | 'task'; id: number; title?: string; deleted?: boolean };
+            entity?: { kind: 'note' | 'task' | 'indexedFile'; id: number; title?: string; deleted?: boolean };
+            // Set on `pending_confirmation` events. `kind` selects the handler,
+            // `payload` carries the data the handler needs to execute the
+            // action when the user clicks Confirm.
+            kind?: string;
+            payload?: Record<string, any>;
+            confirmLabel?: string;
+            cancelLabel?: string;
         };
     }
     | { kind: string; [k: string]: any };

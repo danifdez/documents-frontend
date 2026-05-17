@@ -16,7 +16,11 @@
             <template v-for="msg in store.activeMessages" :key="msg.id">
                 <!-- Inline event card (memory saved, tool executed, …) -->
                 <div v-if="msg.role === 'event'" class="flex justify-center">
-                    <div class="event-card" :class="{ 'event-card-running': isRunningTool(msg.event) }">
+                    <div class="event-card"
+                        :class="{
+                            'event-card-running': isRunningTool(msg.event),
+                            'event-card-pending': isPendingConfirmation(msg.event),
+                        }">
                         <span class="event-icon">
                             <span v-if="isRunningTool(msg.event)" class="event-spinner"></span>
                             <template v-else>{{ eventIcon(msg.event) }}</template>
@@ -25,7 +29,19 @@
                             <div class="event-title">{{ eventTitle(msg) }}</div>
                             <div class="event-meta">{{ eventMeta(msg.event) }}</div>
                         </div>
-                        <button v-if="canDelete(msg.event) && !isEntityDeleted(msg.event)"
+                        <template v-if="isPendingConfirmation(msg.event)">
+                            <button @click="confirmEvent(msg)"
+                                class="event-action event-action-confirm"
+                                :disabled="resolvingIds.has(msg.id)">
+                                {{ resolvingIds.has(msg.id) ? '…' : (msg.event && (msg.event as any).tool?.confirmLabel || 'Confirm') }}
+                            </button>
+                            <button @click="cancelEvent(msg)"
+                                class="event-action"
+                                :disabled="resolvingIds.has(msg.id)">
+                                {{ (msg.event && (msg.event as any).tool?.cancelLabel) || 'Cancel' }}
+                            </button>
+                        </template>
+                        <button v-else-if="canDelete(msg.event) && !isEntityDeleted(msg.event)"
                             @click="deleteEntity(msg)"
                             class="event-action"
                             :disabled="deletingIds.has(msg.id)"
@@ -76,6 +92,7 @@ import type { AssistantMessage, AssistantMessageEvent } from '../../types/Assist
 import { MEMORY_TYPE_LABEL } from '../../types/AssistantMemory';
 import MarkdownContent from './MarkdownContent.vue';
 import apiClient from '../../services/api';
+import { getConfirmHandler } from '../../services/assistantConfirmHandlers';
 
 const store = useAssistantStore();
 const scrollContainer = ref<HTMLElement | null>(null);
@@ -147,6 +164,8 @@ function eventMeta(event: AssistantMessageEvent | null): string {
     if (event.kind === 'tool_executed' && event.tool) {
         const label = TOOL_NAME_LABEL[event.tool.name] || event.tool.name;
         if (event.tool.status === 'running') return `${label} · in progress…`;
+        if (event.tool.status === 'pending_confirmation') return `${label} · waiting for your confirmation`;
+        if (event.tool.status === 'cancelled') return `${label} · cancelled`;
         return event.tool.summary ? `${label} · ${event.tool.summary}` : label;
     }
     return '';
@@ -154,6 +173,10 @@ function eventMeta(event: AssistantMessageEvent | null): string {
 
 function isRunningTool(event: AssistantMessageEvent | null): boolean {
     return !!(event && event.kind === 'tool_executed' && event.tool?.status === 'running');
+}
+
+function isPendingConfirmation(event: AssistantMessageEvent | null): boolean {
+    return !!(event && event.kind === 'tool_executed' && event.tool?.status === 'pending_confirmation');
 }
 
 function canDelete(event: AssistantMessageEvent | null): boolean {
@@ -170,6 +193,52 @@ function entityKindLabel(event: AssistantMessageEvent | null): string {
 }
 
 const deletingIds = ref<Set<number>>(new Set());
+const resolvingIds = ref<Set<number>>(new Set());
+
+async function confirmEvent(msg: AssistantMessage) {
+    if (msg.event?.kind !== 'tool_executed' || !msg.event.tool) return;
+    const tool = msg.event.tool as any;
+    const kind = tool.kind;
+    const handler = getConfirmHandler(kind);
+    if (!handler || !store.activeAssistant) return;
+    resolvingIds.value.add(msg.id);
+    try {
+        const summary = await handler.execute({
+            assistantId: store.activeAssistant.id,
+            payload: tool.payload || {},
+        });
+        await apiClient.patch(
+            `/assistants/${store.activeAssistant.id}/messages/${msg.id}/event-status`,
+            { status: 'done', summary },
+        );
+        store.updateEventToolStatus(msg.id, 'done', summary);
+    } catch (e: any) {
+        alert(e?.response?.data?.message || e?.message || 'Could not perform the action');
+    } finally {
+        resolvingIds.value.delete(msg.id);
+    }
+}
+
+async function cancelEvent(msg: AssistantMessage) {
+    if (msg.event?.kind !== 'tool_executed' || !msg.event.tool || !store.activeAssistant) return;
+    const tool = msg.event.tool as any;
+    const handler = getConfirmHandler(tool.kind);
+    const summary = handler?.cancelSummary
+        ? handler.cancelSummary({ assistantId: store.activeAssistant.id, payload: tool.payload || {} })
+        : 'Cancelled';
+    resolvingIds.value.add(msg.id);
+    try {
+        await apiClient.patch(
+            `/assistants/${store.activeAssistant.id}/messages/${msg.id}/event-status`,
+            { status: 'cancelled', summary },
+        );
+        store.updateEventToolStatus(msg.id, 'cancelled', summary);
+    } catch (e: any) {
+        alert(e?.response?.data?.message || e?.message || 'Could not cancel');
+    } finally {
+        resolvingIds.value.delete(msg.id);
+    }
+}
 
 async function deleteEntity(msg: AssistantMessage) {
     if (msg.event?.kind !== 'tool_executed' || !msg.event.tool?.entity) return;
@@ -253,6 +322,20 @@ watch(
     border-style: solid;
     border-color: var(--color-accent);
     background-color: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+}
+
+.event-card-pending {
+    border-style: solid;
+    border-color: rgb(217 119 6);
+    background-color: color-mix(in srgb, rgb(217 119 6) 8%, var(--color-surface));
+}
+
+.event-action-confirm {
+    color: rgb(220 38 38);
+    border-color: rgb(220 38 38);
+}
+.event-action-confirm:hover:not(:disabled) {
+    background-color: color-mix(in srgb, rgb(220 38 38) 12%, transparent);
 }
 
 .event-action {

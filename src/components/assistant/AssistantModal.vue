@@ -36,7 +36,7 @@
                                 {{ store.activeAssistant!.pinned ? '★' : '☆' }}
                             </button>
 
-                            <button v-if="canShowMemory" @click="memoryOpen = !memoryOpen"
+                            <button v-if="canShowMemory" @click="toggleMemory"
                                 title="Assistant memory"
                                 class="flex items-center gap-1.5 px-2.5 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer text-sm"
                                 :class="{ '!bg-accent-subtle !text-accent-dark': memoryOpen }">
@@ -46,6 +46,18 @@
                                         d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0 0V4m0 14v3m4-7h3M5 11H2m17.071-6.071l-2.121 2.121M7.05 16.95l-2.121 2.121M19.071 19.071l-2.121-2.121M7.05 7.05L4.929 4.929" />
                                 </svg>
                                 <span>Memory</span>
+                            </button>
+
+                            <button v-if="canShowFiles" @click="toggleFiles"
+                                title="Working folder files"
+                                class="flex items-center gap-1.5 px-2.5 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer text-sm"
+                                :class="{ '!bg-accent-subtle !text-accent-dark': filesOpen }">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                                <span>Files</span>
                             </button>
 
                             <button v-if="canEdit" @click="openHelperEditor(store.activeAssistant)"
@@ -82,6 +94,11 @@
                         :show="memoryOpen && canShowMemory"
                         :assistant-id="store.activeAssistant?.id ?? null"
                         @update:show="memoryOpen = $event" />
+
+                    <AssistantFilesPanel
+                        :show="filesOpen && canShowFiles"
+                        :assistant-id="store.activeAssistant?.id ?? null"
+                        @update:show="filesOpen = $event" />
                 </div>
 
                 <HelperEditModal v-model="helperEditorOpen" :assistant="helperEditing" />
@@ -97,6 +114,7 @@ import AssistantChat from './AssistantChat.vue';
 import AssistantComposer from './AssistantComposer.vue';
 import HelperEditModal from './HelperEditModal.vue';
 import MemoryPanel from './MemoryPanel.vue';
+import AssistantFilesPanel from './AssistantFilesPanel.vue';
 import { useAssistantStore } from '../../store/assistantStore';
 import type { Assistant } from '../../types/Assistant';
 
@@ -113,10 +131,22 @@ const composerRef = ref<InstanceType<typeof AssistantComposer> | null>(null);
 const helperEditorOpen = ref(false);
 const helperEditing = ref<Assistant | null>(null);
 const memoryOpen = ref(false);
+const filesOpen = ref(false);
 
 const canPin = computed(() => store.activeAssistant && !store.activeAssistant.isSystem);
-const canEdit = computed(() => store.activeAssistant && !store.activeAssistant.isSystem);
+const canEdit = computed(() => !!store.activeAssistant);
 const canShowMemory = computed(() => store.activeAssistant?.isSystem === true);
+const canShowFiles = computed(() => !!store.activeAssistant?.folderScope);
+
+function toggleMemory() {
+    memoryOpen.value = !memoryOpen.value;
+    if (memoryOpen.value) filesOpen.value = false;
+}
+
+function toggleFiles() {
+    filesOpen.value = !filesOpen.value;
+    if (filesOpen.value) memoryOpen.value = false;
+}
 
 const composerPlaceholder = computed(() => {
     if (!store.activeAssistant) return 'Select a conversation…';
@@ -146,6 +176,11 @@ function onKeydown(e: KeyboardEvent) {
             memoryOpen.value = false;
             return;
         }
+        if (filesOpen.value) {
+            e.preventDefault();
+            filesOpen.value = false;
+            return;
+        }
         e.preventDefault();
         close();
     }
@@ -173,8 +208,9 @@ watch(
     () => store.activeId,
     async (id) => {
         // Memory only applies to the personal assistant; close the panel
-        // when switching away from it.
+        // when switching away from it. Files require a folderScope.
         if (!canShowMemory.value) memoryOpen.value = false;
+        if (!canShowFiles.value) filesOpen.value = false;
         if (id != null && props.modelValue) {
             await store.selectAssistant(id);
             await nextTick();
@@ -197,7 +233,7 @@ onBeforeUnmount(() => {
     position: fixed;
     inset: 0;
     background-color: var(--color-surface);
-    z-index: 60;
+    z-index: 40;
     display: flex;
 }
 

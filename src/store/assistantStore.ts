@@ -29,7 +29,25 @@ export const useAssistantStore = defineStore('assistant', () => {
     const loading = ref(false);
     const loaded = ref(false);
     const error = ref<string | null>(null);
+    // Bumped whenever a chat tool mutates the assistant's working folder. The
+    // files panel watches this counter so it refetches after folder_write /
+    // folder_delete / folder_overwrite without a full reload.
+    const folderFilesVersionByAssistant = ref<Record<number, number>>({});
     let socketAttached = false;
+
+    const FOLDER_MUTATING_TOOLS = new Set([
+        'folder_write',
+        'folder_delete',
+        'folder_overwrite',
+    ]);
+
+    function bumpFolderFilesVersion(assistantId: number) {
+        const prev = folderFilesVersionByAssistant.value[assistantId] ?? 0;
+        folderFilesVersionByAssistant.value = {
+            ...folderFilesVersionByAssistant.value,
+            [assistantId]: prev + 1,
+        };
+    }
 
     const sortedAssistants = computed<Assistant[]>(() => {
         const list = [...assistants.value];
@@ -81,6 +99,18 @@ export const useAssistantStore = defineStore('assistant', () => {
             if (!event?.assistantId || !event?.eventMessage) return;
             const arr = messagesByAssistant.value[event.assistantId] ?? [];
             const incoming = event.eventMessage;
+            // Tell the files panel (if open) that the working folder may have changed.
+            // We bump on `done` only — `running` / `pending_confirmation` haven't
+            // touched disk yet.
+            const toolName = incoming.event?.kind === 'tool_executed'
+                ? incoming.event.tool?.name
+                : undefined;
+            const toolStatus = incoming.event?.kind === 'tool_executed'
+                ? incoming.event.tool?.status
+                : undefined;
+            if (toolName && FOLDER_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
+                bumpFolderFilesVersion(event.assistantId);
+            }
             const existingIdx = arr.findIndex((m) => m.id === incoming.id);
             if (existingIdx >= 0) {
                 // Update in place — `running` → `done` transitions on the same id.
@@ -239,6 +269,49 @@ export const useAssistantStore = defineStore('assistant', () => {
      * the backend has already removed the underlying note/task and this
      * flips the card's UI from a Delete button to a "Deleted" badge.
      */
+    /**
+     * Update the local copy of a `tool_executed` event after the user resolves
+     * a pending-confirmation card (Confirm/Cancel). The backend has already
+     * been patched; this only mirrors the change in the in-memory message list
+     * so the card re-renders without a fresh fetch.
+     */
+    function updateEventToolStatus(messageId: number, status: 'done' | 'cancelled', summary?: string): void {
+        const aid = activeId.value;
+        if (aid == null) return;
+        const arr = messagesByAssistant.value[aid];
+        if (!arr) return;
+        const idx = arr.findIndex((m) => m.id === messageId);
+        if (idx < 0) return;
+        const msg = arr[idx];
+        if (msg.event?.kind !== 'tool_executed' || !msg.event.tool) return;
+        const next = [...arr];
+        const toolName = msg.event.tool.name;
+        const toolKind = (msg.event.tool as any).kind as string | undefined;
+        next[idx] = {
+            ...msg,
+            event: {
+                ...msg.event,
+                tool: {
+                    ...msg.event.tool,
+                    status,
+                    summary: summary ?? msg.event.tool.summary,
+                },
+            },
+        };
+        messagesByAssistant.value = { ...messagesByAssistant.value, [aid]: next };
+        // A confirmed folder action mutates disk; tell the panel to refetch.
+        if (status === 'done' && (
+            FOLDER_MUTATING_TOOLS.has(toolName)
+            || (toolKind && FOLDER_MUTATING_TOOLS.has(toolKind))
+        )) {
+            bumpFolderFilesVersion(aid);
+        }
+    }
+
+    function folderFilesVersionFor(assistantId: number): number {
+        return folderFilesVersionByAssistant.value[assistantId] ?? 0;
+    }
+
     function markEventEntityDeleted(messageId: number): void {
         const aid = activeId.value;
         if (aid == null) return;
@@ -366,5 +439,8 @@ export const useAssistantStore = defineStore('assistant', () => {
         deleteAssistant,
         togglePin,
         markEventEntityDeleted,
+        updateEventToolStatus,
+        folderFilesVersionFor,
+        bumpFolderFilesVersion,
     };
 });

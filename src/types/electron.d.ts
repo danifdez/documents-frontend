@@ -101,6 +101,15 @@ export interface ElectronAPI {
     offlineClearAll: (wsId: string) => Promise<void>;
 }
 
+export interface FolderScopeBridge {
+    pick: (opts?: { title?: string }) => Promise<string | null>;
+}
+
+export interface ShellOpsBridge {
+    openPath: (path: string) => Promise<{ ok: boolean; error?: string }>;
+    showItemInFolder: (path: string) => Promise<{ ok: boolean }>;
+}
+
 export interface VoiceLocalBridge {
     isLocalAvailable: () => boolean;
     refreshAvailability: () => Promise<boolean>;
@@ -119,6 +128,8 @@ declare global {
     interface Window {
         electronAPI: ElectronAPI;
         voice?: VoiceLocalBridge;
+        folderScope?: FolderScopeBridge;
+        shellOps?: ShellOpsBridge;
     }
 }
 
