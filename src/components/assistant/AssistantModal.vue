@@ -5,36 +5,49 @@
                 <div class="assistant-modal-container">
                     <!-- Sidebar -->
                     <AssistantSidebar
-                        @new-helper="openHelperEditor(null)"
-                        @edit-helper="openHelperEditor" />
+                        :selection="selectionKey"
+                        @new-agent="openAgentEditor(null)"
+                        @edit-agent="openAgentEditor"
+                        @select-assistant="selectAssistant"
+                        @select-agent="selectAgent" />
 
                     <!-- Chat area -->
                     <div class="flex-1 min-w-0 flex flex-col bg-surface-elevated">
                         <!-- Header -->
                         <header class="flex items-center gap-3 px-5 py-3 border-b border-border shrink-0">
-                            <div class="text-xl leading-none">{{ store.activeAssistant?.icon || '◇' }}</div>
+                            <div class="text-xl leading-none">{{ headerIcon }}</div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-baseline gap-2">
-                                    <h2 class="font-semibold text-text-primary truncate">
-                                        {{ store.activeAssistant?.name || 'Assistant' }}
-                                    </h2>
-                                    <code v-if="store.activeAssistant?.folderScope"
+                                    <h2 class="font-semibold text-text-primary truncate">{{ headerName }}</h2>
+                                    <code v-if="headerFolderScope"
                                         class="text-[11px] text-text-muted bg-surface px-1.5 py-0.5 rounded">
-                                        {{ store.activeAssistant.folderScope }}
+                                        {{ headerFolderScope }}
                                     </code>
                                 </div>
-                                <div v-if="store.activeAssistant?.sub" class="text-xs text-text-muted truncate">
-                                    {{ store.activeAssistant.sub }}
+                                <div v-if="headerSub" class="text-xs text-text-muted truncate">
+                                    {{ headerSub }}
+                                </div>
+                                <!-- Agent scope notice — discreet single line, not a banner. -->
+                                <div v-if="selection === 'agent' && activeAgent" class="text-[11px] text-text-muted truncate mt-0.5">
+                                    {{ activeAgent.folderScope
+                                        ? 'This agent only has access to its working folder.'
+                                        : 'This agent has no working folder configured. It can only chat using its instructions.' }}
                                 </div>
                             </div>
 
-                            <button v-if="canPin"
-                                @click="store.togglePin(store.activeAssistant!.id)"
-                                :title="store.activeAssistant!.pinned ? 'Unpin' : 'Pin as favorite'"
+                            <!-- Pin toggle for agent in the header (mirrors the card star). -->
+                            <button v-if="selection === 'agent' && activeAgent"
+                                @click="onPinClick"
+                                :title="activeAgent.pinned ? 'Unfavorite' : 'Favorite (won\'t expire)'"
                                 class="text-lg leading-none px-2 py-1 rounded hover:bg-surface-hover transition-colors cursor-pointer"
-                                :class="store.activeAssistant!.pinned ? 'text-amber-500' : 'text-text-muted hover:text-text-secondary'">
-                                {{ store.activeAssistant!.pinned ? '★' : '☆' }}
+                                :class="activeAgent.pinned ? 'text-amber-500' : 'text-text-muted hover:text-text-secondary'">
+                                {{ activeAgent.pinned ? '★' : '☆' }}
                             </button>
+
+                            <span v-if="selection === 'agent' && activeAgent && !activeAgent.pinned && agentExpirationText"
+                                class="text-[11px] text-text-muted">
+                                {{ agentExpirationText }}
+                            </span>
 
                             <button v-if="canShowMemory" @click="toggleMemory"
                                 title="Assistant memory"
@@ -60,9 +73,9 @@
                                 <span>Files</span>
                             </button>
 
-                            <button v-if="canEdit" @click="openHelperEditor(store.activeAssistant)"
+                            <button v-if="selection === 'agent' && activeAgent" @click="openAgentEditor(activeAgent)"
                                 class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
-                                title="Edit helper">
+                                title="Edit agent">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="1.75">
                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -81,27 +94,34 @@
                             </button>
                         </header>
 
-                        <AssistantChat />
+                        <AssistantChat v-if="selection === 'assistant'" />
+                        <AgentChat v-else-if="selection === 'agent'" />
+                        <div v-else class="flex-1 flex items-center justify-center text-text-muted text-sm">
+                            Pick a conversation from the sidebar.
+                        </div>
 
                         <AssistantComposer
                             ref="composerRef"
-                            :disabled="!store.activeAssistant || (store.isActivePending && !store.activeStreamDone)"
+                            :disabled="composerDisabled"
                             :placeholder="composerPlaceholder"
                             @send="handleSend" />
                     </div>
 
                     <MemoryPanel
                         :show="memoryOpen && canShowMemory"
-                        :assistant-id="store.activeAssistant?.id ?? null"
+                        :assistant-id="assistantStore.activeAssistant?.id ?? null"
                         @update:show="memoryOpen = $event" />
 
                     <AssistantFilesPanel
                         :show="filesOpen && canShowFiles"
-                        :assistant-id="store.activeAssistant?.id ?? null"
+                        :assistant-id="filesPanelAssistantId"
                         @update:show="filesOpen = $event" />
                 </div>
 
-                <HelperEditModal v-model="helperEditorOpen" :assistant="helperEditing" />
+                <AgentEditModal v-model="agentEditorOpen" :agent="agentEditing" />
+
+                <UnfavoriteWarning :is-open="headerUnpinWarning"
+                    @confirm="confirmHeaderUnpin" @cancel="headerUnpinWarning = false" />
             </div>
         </Transition>
     </Teleport>
@@ -112,11 +132,15 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import AssistantSidebar from './AssistantSidebar.vue';
 import AssistantChat from './AssistantChat.vue';
 import AssistantComposer from './AssistantComposer.vue';
-import HelperEditModal from './HelperEditModal.vue';
 import MemoryPanel from './MemoryPanel.vue';
 import AssistantFilesPanel from './AssistantFilesPanel.vue';
+import AgentChat from '../agent/AgentChat.vue';
+import AgentEditModal from '../agent/AgentEditModal.vue';
+import UnfavoriteWarning from '../agent/UnfavoriteWarning.vue';
+import { expirationLabel } from '../agent/expirationLabel';
 import { useAssistantStore } from '../../store/assistantStore';
-import type { Assistant } from '../../types/Assistant';
+import { useAgentStore } from '../../store/agentStore';
+import type { Agent } from '../../types/Agent';
 
 const props = defineProps<{
     modelValue: boolean;
@@ -126,17 +150,97 @@ const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
 }>();
 
-const store = useAssistantStore();
+const assistantStore = useAssistantStore();
+const agentStore = useAgentStore();
+
 const composerRef = ref<InstanceType<typeof AssistantComposer> | null>(null);
-const helperEditorOpen = ref(false);
-const helperEditing = ref<Assistant | null>(null);
+const agentEditorOpen = ref(false);
+const agentEditing = ref<Agent | null>(null);
 const memoryOpen = ref(false);
 const filesOpen = ref(false);
+const headerUnpinWarning = ref(false);
 
-const canPin = computed(() => store.activeAssistant && !store.activeAssistant.isSystem);
-const canEdit = computed(() => !!store.activeAssistant);
-const canShowMemory = computed(() => store.activeAssistant?.isSystem === true);
-const canShowFiles = computed(() => !!store.activeAssistant?.folderScope);
+// Active selection: 'assistant' | 'agent' | null.
+const selection = ref<'assistant' | 'agent' | null>(null);
+
+const selectionKey = computed(() => {
+    if (selection.value === 'assistant' && assistantStore.activeId != null)
+        return `assistant-${assistantStore.activeId}`;
+    if (selection.value === 'agent' && agentStore.activeId != null)
+        return `agent-${agentStore.activeId}`;
+    return null;
+});
+
+const activeAgent = computed(() => agentStore.activeAgent);
+
+const headerName = computed(() => {
+    if (selection.value === 'assistant') return assistantStore.activeAssistant?.name || 'Assistant';
+    if (selection.value === 'agent') return activeAgent.value?.name || 'Agent';
+    return 'Assistant';
+});
+
+const headerIcon = computed(() => {
+    if (selection.value === 'assistant') return assistantStore.activeAssistant?.icon || '◇';
+    if (selection.value === 'agent') return activeAgent.value?.icon || '◇';
+    return '◇';
+});
+
+const headerSub = computed(() => {
+    if (selection.value === 'assistant') return assistantStore.activeAssistant?.sub || '';
+    if (selection.value === 'agent') return activeAgent.value?.sub || '';
+    return '';
+});
+
+const headerFolderScope = computed(() => {
+    if (selection.value === 'assistant') return assistantStore.activeAssistant?.folderScope || null;
+    if (selection.value === 'agent') return activeAgent.value?.folderScope || null;
+    return null;
+});
+
+const agentExpirationText = computed(() => {
+    const a = activeAgent.value;
+    return a ? expirationLabel(a.expiresAt, a.pinned) : null;
+});
+
+const canShowMemory = computed(
+    () => selection.value === 'assistant' && assistantStore.activeAssistant?.isSystem === true,
+);
+const canShowFiles = computed(() => {
+    if (selection.value === 'assistant') return !!assistantStore.activeAssistant?.folderScope;
+    if (selection.value === 'agent') return !!activeAgent.value?.folderScope;
+    return false;
+});
+const filesPanelAssistantId = computed(() => {
+    if (selection.value === 'assistant') return assistantStore.activeAssistant?.id ?? null;
+    // The AssistantFilesPanel still expects an assistant id; for agents we
+    // bypass file panel for now to keep the change focused — see T07-T10
+    // notes. Returning null hides it.
+    return null;
+});
+
+const composerDisabled = computed(() => {
+    if (selection.value === 'assistant') {
+        return !assistantStore.activeAssistant || (assistantStore.isActivePending && !assistantStore.activeStreamDone);
+    }
+    if (selection.value === 'agent') {
+        return !agentStore.activeAgent || (agentStore.isActivePending && !agentStore.activeStreamDone);
+    }
+    return true;
+});
+
+const composerPlaceholder = computed(() => {
+    if (selection.value === 'assistant') {
+        if (!assistantStore.activeAssistant) return 'Select a conversation…';
+        if (assistantStore.isActivePending && !assistantStore.activeStreamDone) return 'Waiting for response…';
+        return `Message ${assistantStore.activeAssistant.name}… (Shift+Enter for a new line)`;
+    }
+    if (selection.value === 'agent') {
+        if (!agentStore.activeAgent) return 'Select a conversation…';
+        if (agentStore.isActivePending && !agentStore.activeStreamDone) return 'Waiting for response…';
+        return `Message ${agentStore.activeAgent.name}… (Shift+Enter for a new line)`;
+    }
+    return 'Select a conversation…';
+});
 
 function toggleMemory() {
     memoryOpen.value = !memoryOpen.value;
@@ -148,29 +252,56 @@ function toggleFiles() {
     if (filesOpen.value) memoryOpen.value = false;
 }
 
-const composerPlaceholder = computed(() => {
-    if (!store.activeAssistant) return 'Select a conversation…';
-    if (store.isActivePending && !store.activeStreamDone) return 'Waiting for response…';
-    return `Message ${store.activeAssistant.name}… (Shift+Enter for a new line)`;
-});
-
 function close() {
     emit('update:modelValue', false);
 }
 
 function handleSend(text: string) {
-    store.sendMessage(text);
+    if (selection.value === 'assistant') {
+        assistantStore.sendMessage(text);
+    } else if (selection.value === 'agent') {
+        agentStore.sendMessage(text);
+    }
 }
 
-function openHelperEditor(a: Assistant | null) {
-    helperEditing.value = a;
-    helperEditorOpen.value = true;
+function openAgentEditor(a: Agent | null) {
+    agentEditing.value = a;
+    agentEditorOpen.value = true;
+}
+
+async function selectAssistant(id: number) {
+    selection.value = 'assistant';
+    await assistantStore.selectAssistant(id);
+    await nextTick();
+    composerRef.value?.focus();
+}
+
+async function selectAgent(a: Agent) {
+    selection.value = 'agent';
+    await agentStore.selectAgent(a.id);
+    await nextTick();
+    composerRef.value?.focus();
+}
+
+function onPinClick() {
+    const a = activeAgent.value;
+    if (!a) return;
+    if (a.pinned) {
+        headerUnpinWarning.value = true;
+    } else {
+        void agentStore.togglePin(a.id);
+    }
+}
+
+function confirmHeaderUnpin() {
+    headerUnpinWarning.value = false;
+    if (activeAgent.value) void agentStore.togglePin(activeAgent.value.id);
 }
 
 function onKeydown(e: KeyboardEvent) {
     if (!props.modelValue) return;
     if (e.key === 'Escape') {
-        if (helperEditorOpen.value) return; // its own modal handles Esc
+        if (agentEditorOpen.value) return;
         if (memoryOpen.value) {
             e.preventDefault();
             memoryOpen.value = false;
@@ -190,32 +321,21 @@ watch(
     () => props.modelValue,
     async (v) => {
         if (v) {
-            await store.load();
-            // Always default to the personal assistant when (re)opening the modal
-            const personal = store.assistants.find((a) => a.isSystem);
+            await Promise.all([assistantStore.load(), agentStore.load()]);
+            // Default to the personal assistant.
+            const personal = assistantStore.assistants.find((a) => a.isSystem);
             if (personal) {
-                await store.selectAssistant(personal.id);
-            } else if (store.activeId != null) {
-                await store.selectAssistant(store.activeId);
+                await selectAssistant(personal.id);
             }
-            await nextTick();
-            composerRef.value?.focus();
         }
     },
 );
 
 watch(
-    () => store.activeId,
-    async (id) => {
-        // Memory only applies to the personal assistant; close the panel
-        // when switching away from it. Files require a folderScope.
+    () => selection.value,
+    () => {
         if (!canShowMemory.value) memoryOpen.value = false;
         if (!canShowFiles.value) filesOpen.value = false;
-        if (id != null && props.modelValue) {
-            await store.selectAssistant(id);
-            await nextTick();
-            composerRef.value?.focus();
-        }
     },
 );
 

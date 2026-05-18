@@ -3,7 +3,6 @@ import { ref, computed } from 'vue';
 import type {
     Assistant,
     AssistantMessage,
-    CreateAssistantPayload,
     UpdateAssistantPayload,
     AssistantResponseEvent,
 } from '../types/Assistant';
@@ -387,12 +386,6 @@ export const useAssistantStore = defineStore('assistant', () => {
         }
     }
 
-    async function createHelper(payload: CreateAssistantPayload) {
-        const created = await api.create(payload);
-        assistants.value = [...assistants.value, created];
-        return created;
-    }
-
     async function updateAssistant(id: number, payload: UpdateAssistantPayload) {
         const updated = await api.update(id, payload);
         const idx = assistants.value.findIndex((a) => a.id === id);
@@ -434,7 +427,6 @@ export const useAssistantStore = defineStore('assistant', () => {
         load,
         selectAssistant,
         sendMessage,
-        createHelper,
         updateAssistant,
         deleteAssistant,
         togglePin,
