@@ -17,7 +17,7 @@
         </div>
 
         <div class="flex flex-col gap-0.5">
-            <div v-for="event in visibleEvents" :key="event.id"
+            <div v-for="event in visibleEvents" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                 @click.stop="$emit('eventClick', event)"
                 class="px-1.5 py-0.5 rounded text-[10px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity"
                 :style="{ backgroundColor: event.color + '20', color: event.color }">

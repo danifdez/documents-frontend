@@ -22,7 +22,7 @@
                 class="border-r border-border-light last:border-r-0 p-1.5 min-h-[120px]"
                 :class="{ 'bg-accent/5': day.isToday }">
                 <div class="flex flex-col gap-1">
-                    <div v-for="event in getEventsForDay(day.date)" :key="event.id"
+                    <div v-for="event in getEventsForDay(day.date)" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                         @click.stop="$emit('eventClick', event)"
                         class="px-2 py-1.5 rounded text-[11px] font-medium cursor-pointer hover:opacity-80 transition-opacity"
                         :style="{ backgroundColor: event.color + '20', color: event.color }">
@@ -77,24 +77,32 @@ function isSameDay(a: Date, b: Date): boolean {
         a.getDate() === b.getDate();
 }
 
+function eventStart(event: CalendarEvent): Date {
+    return new Date(event.occurrenceStart ?? event.startDate);
+}
+
+function eventEnd(event: CalendarEvent): Date | null {
+    const raw = event.occurrenceEnd ?? event.endDate;
+    return raw ? new Date(raw) : null;
+}
+
 function getEventsForDay(date: Date): CalendarEvent[] {
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
     return props.events
         .filter(event => {
-            const start = new Date(event.startDate);
-            const end = event.endDate ? new Date(event.endDate) : start;
+            const start = eventStart(event);
+            const end = eventEnd(event) ?? start;
             return start <= dayEnd && end >= dayStart;
         })
         .sort((a, b) => {
             if (a.allDay && !b.allDay) return -1;
             if (!a.allDay && b.allDay) return 1;
-            return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+            return eventStart(a).getTime() - eventStart(b).getTime();
         });
 }
 
 function formatTime(event: CalendarEvent): string {
-    const start = new Date(event.startDate);
-    return start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return eventStart(event).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 </script>

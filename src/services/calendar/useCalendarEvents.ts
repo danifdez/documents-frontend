@@ -46,6 +46,9 @@ export function useCalendarEvents() {
         try {
             const params: Record<string, string> = { start, end };
             if (projectId) params.projectId = String(projectId);
+            try {
+                params.tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            } catch { /* fallback: server uses its own tz */ }
             const response = await apiClient.get('/calendar-events/range', { params });
             events.value = response.data;
             return response.data;

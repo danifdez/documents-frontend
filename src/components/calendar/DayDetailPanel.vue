@@ -8,7 +8,7 @@
 
         <!-- All-day events -->
         <div v-if="allDayEvents.length > 0" class="px-2 py-1.5 border-b border-border shrink-0">
-            <div v-for="event in allDayEvents" :key="event.id"
+            <div v-for="event in allDayEvents" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                 class="px-2 py-1 rounded text-[11px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity mb-0.5"
                 :style="{ backgroundColor: event.color + '20', color: event.color }"
                 @click="$emit('eventClick', event)">
@@ -31,7 +31,7 @@
                 </div>
 
                 <!-- Timed events positioned by time -->
-                <div v-for="evt in positionedEvents" :key="evt.event.id"
+                <div v-for="evt in positionedEvents" :key="`${evt.event.id}-${evt.event.occurrenceStart ?? evt.event.startDate}`"
                     class="absolute rounded px-1.5 py-1 text-[11px] font-medium cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
                     :style="{
                         top: evt.top + 'px',
@@ -96,8 +96,9 @@ const dayEvents = computed(() => {
     const dayEnd = new Date(props.date.getFullYear(), props.date.getMonth(), props.date.getDate(), 23, 59, 59);
 
     return props.events.filter(event => {
-        const start = new Date(event.startDate);
-        const end = event.endDate ? new Date(event.endDate) : start;
+        const start = new Date(event.occurrenceStart ?? event.startDate);
+        const endRaw = event.occurrenceEnd ?? event.endDate;
+        const end = endRaw ? new Date(endRaw) : start;
         return start <= dayEnd && end >= dayStart;
     });
 });
@@ -108,8 +109,9 @@ const timedEvents = computed(() => dayEvents.value.filter(e => !e.allDay));
 
 const positionedEvents = computed(() => {
     return timedEvents.value.map(event => {
-        const start = new Date(event.startDate);
-        const end = event.endDate ? new Date(event.endDate) : new Date(start.getTime() + 60 * 60 * 1000);
+        const start = new Date(event.occurrenceStart ?? event.startDate);
+        const endRaw = event.occurrenceEnd ?? event.endDate;
+        const end = endRaw ? new Date(endRaw) : new Date(start.getTime() + 60 * 60 * 1000);
 
         const startMinutes = start.getHours() * 60 + start.getMinutes();
         const endMinutes = end.getHours() * 60 + end.getMinutes();
@@ -129,10 +131,11 @@ function formatHourLabel(hour: number): string {
 }
 
 function formatTime(event: CalendarEvent): string {
-    const start = new Date(event.startDate);
+    const start = new Date(event.occurrenceStart ?? event.startDate);
     const time = start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-    if (event.endDate) {
-        const end = new Date(event.endDate);
+    const endRaw = event.occurrenceEnd ?? event.endDate;
+    if (endRaw) {
+        const end = new Date(endRaw);
         const endTime = end.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
         return `${time} - ${endTime}`;
     }

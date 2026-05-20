@@ -92,8 +92,9 @@ function isSameDay(a: Date, b: Date): boolean {
 
 function getEventsForDay(date: Date): CalendarEvent[] {
     return props.events.filter(event => {
-        const start = new Date(event.startDate);
-        const end = event.endDate ? new Date(event.endDate) : start;
+        const start = new Date(event.occurrenceStart ?? event.startDate);
+        const endRaw = event.occurrenceEnd ?? event.endDate;
+        const end = endRaw ? new Date(endRaw) : start;
 
         const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);

@@ -145,3 +145,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
     offlineClearAll: (wsId: string) =>
         ipcRenderer.invoke('offline:clear-all', wsId),
 });
+
+contextBridge.exposeInMainWorld('calendarAlarms', {
+    showAlarmNotification: (payload: {
+        eventId: number;
+        occurrenceStart: string;
+        title: string;
+        alarmLabel: string | null;
+    }) => ipcRenderer.invoke('calendar:show-alarm', payload),
+    showMissedAggregate: (payload: {
+        items: Array<{ eventId: number; occurrenceStart: string; title: string; alarmLabel: string | null }>;
+    }) => ipcRenderer.invoke('calendar:show-missed-aggregate', payload),
+    onNavigateToEvent: (callback: (eventId: number) => void) => {
+        const handler = (_e: unknown, eventId: number) => callback(eventId);
+        ipcRenderer.on('calendar:navigate', handler);
+        return () => ipcRenderer.off('calendar:navigate', handler);
+    },
+    onNavigateMissedPanel: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('calendar:navigate-missed-panel', handler);
+        return () => ipcRenderer.off('calendar:navigate-missed-panel', handler);
+    },
+});

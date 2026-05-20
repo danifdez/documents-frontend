@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen, dialog, Menu, globalShortcut, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification, screen, dialog, Menu, globalShortcut, session, shell } from 'electron';
 import { localEngine } from './main/voice/localEngine';
 import path from 'path';
 import fs from 'fs';
@@ -73,6 +73,72 @@ function getApiUrl(): string {
   const workspaces = store.get('workspaces', []) as any[];
   const active = workspaces.find((w: any) => w.id === activeId);
   return active?.url || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+}
+
+function formatLocalTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: 'short',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function focusMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function showAlarmNotification(payload: {
+  eventId: number;
+  occurrenceStart: string;
+  title: string;
+  alarmLabel: string | null;
+}) {
+  if (!Notification.isSupported()) return;
+  const n = new Notification({
+    title: payload.alarmLabel || payload.title,
+    body: formatLocalTime(payload.occurrenceStart),
+    silent: false,
+  });
+  n.on('click', () => {
+    focusMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('calendar:navigate', payload.eventId);
+    }
+  });
+  n.show();
+}
+
+function showMissedAggregate(payload: {
+  items: Array<{ eventId: number; occurrenceStart: string; title: string; alarmLabel: string | null }>;
+}) {
+  if (!Notification.isSupported()) return;
+  const count = payload.items.length;
+  if (count === 0) return;
+  const titles = payload.items
+    .slice(0, 4)
+    .map((i) => i.alarmLabel || i.title)
+    .join(', ');
+  const suffix = count > 4 ? ', …' : '';
+  const n = new Notification({
+    title: `${count} missed alert${count === 1 ? '' : 's'}`,
+    body: `${titles}${suffix}`,
+    silent: false,
+  });
+  n.on('click', () => {
+    focusMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('calendar:navigate-missed-panel');
+    }
+  });
+  n.show();
 }
 
 const createWindow = () => {
@@ -182,6 +248,21 @@ app.whenReady().then(() => {
       mainWindow.webContents.send('navigate-to-route', route);
       mainWindow.focus();
     }
+  });
+
+  ipcMain.handle('calendar:show-alarm', (_, payload: {
+    eventId: number;
+    occurrenceStart: string;
+    title: string;
+    alarmLabel: string | null;
+  }) => {
+    showAlarmNotification(payload);
+  });
+
+  ipcMain.handle('calendar:show-missed-aggregate', (_, payload: {
+    items: Array<{ eventId: number; occurrenceStart: string; title: string; alarmLabel: string | null }>;
+  }) => {
+    showMissedAggregate(payload);
   });
 
   ipcMain.handle("extract-webpage", async (_, { content, title, url, projectId }) => {

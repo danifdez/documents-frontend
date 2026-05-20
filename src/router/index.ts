@@ -12,6 +12,7 @@ import Canvas from '../pages/Canvas.vue'
 import Datasets from '../pages/Datasets.vue'
 import Dataset from '../pages/Dataset.vue'
 import Calendar from '../pages/Calendar.vue'
+import MissedAlarmsPanel from '../components/calendar/MissedAlarmsPanel.vue'
 import Timeline from '../pages/Timeline.vue'
 import KnowledgeBase from '../pages/KnowledgeBase.vue'
 import KnowledgeEntryEdit from '../pages/KnowledgeEntryEdit.vue'
@@ -95,6 +96,12 @@ const routes: RouteRecordRaw[] = [
     path: '/calendar',
     name: 'Calendar',
     component: Calendar,
+    meta: { feature: 'calendar' },
+  },
+  {
+    path: '/calendar/missed',
+    name: 'CalendarMissed',
+    component: MissedAlarmsPanel,
     meta: { feature: 'calendar' },
   },
   {

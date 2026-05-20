@@ -178,6 +178,22 @@ watch(currentDate, () => {
     loadMonthEvents();
 });
 
+async function openEventByIdFromRoute() {
+    const raw = route.query.eventId;
+    if (!raw) return;
+    const id = Number(Array.isArray(raw) ? raw[0] : raw);
+    if (!id) return;
+    try {
+        const res = await apiClient.get(`/calendar-events/${id}`);
+        if (res.data) {
+            selectedEvent.value = res.data as CalendarEvent;
+            showEventModal.value = true;
+        }
+    } catch {
+        // event no longer exists — silent.
+    }
+}
+
 onMounted(async () => {
     if (projectId.value) {
         try {
@@ -187,5 +203,10 @@ onMounted(async () => {
     }
     await loadProjects();
     await loadMonthEvents();
+    await openEventByIdFromRoute();
+});
+
+watch(() => route.query.eventId, () => {
+    openEventByIdFromRoute();
 });
 </script>

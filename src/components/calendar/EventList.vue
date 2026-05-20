@@ -5,7 +5,7 @@
         </div>
 
         <div v-else-if="events.length > 0" class="flex flex-col gap-1.5">
-            <div v-for="event in events" :key="event.id"
+            <div v-for="event in events" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                 class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors cursor-pointer"
                 @click="$emit('eventClick', event)">
                 <div class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: event.color }"></div>
@@ -41,7 +41,7 @@ defineProps<{
 defineEmits(['eventClick']);
 
 function formatEventDate(event: CalendarEvent): string {
-    const start = new Date(event.startDate);
+    const start = new Date(event.occurrenceStart ?? event.startDate);
     if (event.allDay) {
         return start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }

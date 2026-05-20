@@ -66,6 +66,7 @@ import AssistantModal from './components/assistant/AssistantModal.vue';
 import { useGlobalKeyboard } from './composables/useGlobalKeyboard';
 import { useTaskPanel } from './composables/useTaskPanel';
 import { getSocket, connectSocket } from './services/notifications/notification';
+import { bindCalendarAlarms } from './services/calendar/useCalendarAlarms';
 import { useRouter, useRoute } from 'vue-router';
 import { useNotification } from './composables/useNotification';
 import { useTheme } from './composables/useTheme';
@@ -131,6 +132,7 @@ function setupSocket() {
       });
     }
   });
+  bindCalendarAlarms();
 }
 
 onMounted(async () => {
@@ -139,6 +141,13 @@ onMounted(async () => {
   // Listen for navigation requests from browser window
   window.electronAPI?.onNavigateToRoute?.((route) => {
     router.push(route);
+  });
+
+  window.calendarAlarms?.onNavigateToEvent?.((eventId: number) => {
+    router.push({ path: '/calendar', query: { eventId: String(eventId) } });
+  });
+  window.calendarAlarms?.onNavigateMissedPanel?.(() => {
+    router.push({ path: '/calendar/missed' });
   });
 
   // Initialize workspace before anything else
