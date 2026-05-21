@@ -138,6 +138,8 @@ function eventIcon(event: AssistantMessageEvent | null): string {
 
 const TOOL_NAME_LABEL: Record<string, string> = {
     search_workspace: 'Workspace search',
+    update_task: 'Update task',
+    delete_task: 'Delete task',
 };
 
 function eventTitle(msg: AssistantMessage): string {

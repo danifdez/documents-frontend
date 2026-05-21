@@ -54,6 +54,19 @@ const handlers: Record<string, ConfirmHandler> = {
       return `Overwrite cancelled${filename}`;
     },
   },
+  task_delete: {
+    async execute({ payload }) {
+      const id = Number(payload?.taskId);
+      if (!id) throw new Error('Missing taskId in payload');
+      await apiClient.delete(`/user-tasks/${id}`);
+      const title = payload?.title ? `: ${payload.title}` : '';
+      return `Deleted${title}`;
+    },
+    cancelSummary({ payload }) {
+      const title = payload?.title ? ` ${payload.title}` : '';
+      return `Delete cancelled${title}`;
+    },
+  },
 };
 
 export function getConfirmHandler(kind: string): ConfirmHandler | undefined {

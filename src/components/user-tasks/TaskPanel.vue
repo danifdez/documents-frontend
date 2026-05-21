@@ -128,12 +128,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import { useUserTasks } from '../../services/user-tasks/useUserTasks';
+import { useAssistantStore } from '../../store/assistantStore';
 import type { UserTask } from '../../types/UserTask';
 
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void }>();
 
 const { tasks: allTasks, loadTasks, createTask, updateTask, deleteTask } = useUserTasks();
+const assistantStore = useAssistantStore();
 
 const newTitle = ref('');
 const newTaskInput = ref<HTMLInputElement | null>(null);
@@ -155,6 +157,10 @@ watch(() => props.modelValue, async (open) => {
     } else {
         expandedTask.value = null;
     }
+});
+
+watch(() => assistantStore.userTasksVersion, async () => {
+    if (props.modelValue) await loadTasks();
 });
 
 const setInputRef = (el: any, index: number) => {

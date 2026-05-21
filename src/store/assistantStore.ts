@@ -32,6 +32,9 @@ export const useAssistantStore = defineStore('assistant', () => {
     // files panel watches this counter so it refetches after folder_write /
     // folder_delete / folder_overwrite without a full reload.
     const folderFilesVersionByAssistant = ref<Record<number, number>>({});
+    // Bumped whenever a chat tool mutates user tasks. Workspace-wide rather
+    // than per-assistant since tasks are global. TaskPanel watches it.
+    const userTasksVersion = ref(0);
     let socketAttached = false;
 
     const FOLDER_MUTATING_TOOLS = new Set([
@@ -40,12 +43,18 @@ export const useAssistantStore = defineStore('assistant', () => {
         'folder_overwrite',
     ]);
 
+    const TASK_MUTATING_TOOLS = new Set(['create_task', 'update_task']);
+
     function bumpFolderFilesVersion(assistantId: number) {
         const prev = folderFilesVersionByAssistant.value[assistantId] ?? 0;
         folderFilesVersionByAssistant.value = {
             ...folderFilesVersionByAssistant.value,
             [assistantId]: prev + 1,
         };
+    }
+
+    function bumpUserTasksVersion() {
+        userTasksVersion.value += 1;
     }
 
     const sortedAssistants = computed<Assistant[]>(() => {
@@ -109,6 +118,9 @@ export const useAssistantStore = defineStore('assistant', () => {
                 : undefined;
             if (toolName && FOLDER_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
                 bumpFolderFilesVersion(event.assistantId);
+            }
+            if (toolName && TASK_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
+                bumpUserTasksVersion();
             }
             const existingIdx = arr.findIndex((m) => m.id === incoming.id);
             if (existingIdx >= 0) {
@@ -305,6 +317,9 @@ export const useAssistantStore = defineStore('assistant', () => {
         )) {
             bumpFolderFilesVersion(aid);
         }
+        if (status === 'done' && toolKind === 'task_delete') {
+            bumpUserTasksVersion();
+        }
     }
 
     function folderFilesVersionFor(assistantId: number): number {
@@ -434,5 +449,7 @@ export const useAssistantStore = defineStore('assistant', () => {
         updateEventToolStatus,
         folderFilesVersionFor,
         bumpFolderFilesVersion,
+        userTasksVersion,
+        bumpUserTasksVersion,
     };
 });
