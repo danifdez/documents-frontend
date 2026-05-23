@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate the tray icon PNGs for documents-frontend (Cambio #11 — T01).
+Generate the tray icon PNGs for documents-frontend.
 
 Uses only the Python standard library (zlib + struct) to avoid a runtime
 dependency on Pillow or ImageMagick. The icon design is a simple

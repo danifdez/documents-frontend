@@ -10,46 +10,46 @@ import { contextBridge, ipcRenderer } from 'electron';
 // The renderer loads this flag lazily on first use via `invoke`.
 let localAvailableCache: boolean | null = null;
 async function refreshLocalAvailable(): Promise<boolean> {
-  try {
-    localAvailableCache = await ipcRenderer.invoke('voice:local:isAvailable');
-  } catch {
-    localAvailableCache = false;
-  }
-  return localAvailableCache;
+    try {
+        localAvailableCache = await ipcRenderer.invoke('voice:local:isAvailable');
+    } catch {
+        localAvailableCache = false;
+    }
+    return localAvailableCache;
 }
 // Eager refresh — the result stays cached for later synchronous calls
 // from `availability.ts` and from Settings.
 void refreshLocalAvailable();
 
 contextBridge.exposeInMainWorld('voice', {
-  isLocalAvailable: (): boolean => localAvailableCache === true,
-  refreshAvailability: refreshLocalAvailable,
-  hasModel: (): Promise<boolean> => ipcRenderer.invoke('voice:local:hasModel'),
-  preloadLocal: (): Promise<void> => ipcRenderer.invoke('voice:local:preload'),
-  startLocal: (): Promise<{ sessionId: string }> => ipcRenderer.invoke('voice:local:start'),
-  pushChunkLocal: (sessionId: string, buf: ArrayBuffer): Promise<void> =>
-    ipcRenderer.invoke('voice:local:chunk', sessionId, buf),
-  stopLocal: (sessionId: string): Promise<void> => ipcRenderer.invoke('voice:local:stop', sessionId),
-  cancelLocal: (sessionId: string): Promise<void> =>
-    ipcRenderer.invoke('voice:local:cancel', sessionId),
-  onPartialLocal: (cb: (payload: { sessionId: string; text: string; isFinal: boolean }) => void) => {
-    const handler = (_e: unknown, payload: { sessionId: string; text: string; isFinal: boolean }) => {
-      console.log('[preload] IPC voice:local:partial', payload);
-      cb(payload);
-    };
-    ipcRenderer.on('voice:local:partial', handler);
-    return () => ipcRenderer.off('voice:local:partial', handler);
-  },
-  onErrorLocal: (cb: (payload: { sessionId: string; message: string }) => void) => {
-    const handler = (_e: unknown, payload: { sessionId: string; message: string }) => cb(payload);
-    ipcRenderer.on('voice:local:error', handler);
-    return () => ipcRenderer.off('voice:local:error', handler);
-  },
-  onLoadingProgress: (cb: (p: { downloaded: number; total: number | null; percent: number }) => void) => {
-    const handler = (_e: unknown, payload: { downloaded: number; total: number | null; percent: number }) => cb(payload);
-    ipcRenderer.on('voice:local:loading-progress', handler);
-    return () => ipcRenderer.off('voice:local:loading-progress', handler);
-  },
+    isLocalAvailable: (): boolean => localAvailableCache === true,
+    refreshAvailability: refreshLocalAvailable,
+    hasModel: (): Promise<boolean> => ipcRenderer.invoke('voice:local:hasModel'),
+    preloadLocal: (): Promise<void> => ipcRenderer.invoke('voice:local:preload'),
+    startLocal: (): Promise<{ sessionId: string }> => ipcRenderer.invoke('voice:local:start'),
+    pushChunkLocal: (sessionId: string, buf: ArrayBuffer): Promise<void> =>
+        ipcRenderer.invoke('voice:local:chunk', sessionId, buf),
+    stopLocal: (sessionId: string): Promise<void> => ipcRenderer.invoke('voice:local:stop', sessionId),
+    cancelLocal: (sessionId: string): Promise<void> =>
+        ipcRenderer.invoke('voice:local:cancel', sessionId),
+    onPartialLocal: (cb: (payload: { sessionId: string; text: string; isFinal: boolean }) => void) => {
+        const handler = (_e: unknown, payload: { sessionId: string; text: string; isFinal: boolean }) => {
+            console.log('[preload] IPC voice:local:partial', payload);
+            cb(payload);
+        };
+        ipcRenderer.on('voice:local:partial', handler);
+        return () => ipcRenderer.off('voice:local:partial', handler);
+    },
+    onErrorLocal: (cb: (payload: { sessionId: string; message: string }) => void) => {
+        const handler = (_e: unknown, payload: { sessionId: string; message: string }) => cb(payload);
+        ipcRenderer.on('voice:local:error', handler);
+        return () => ipcRenderer.off('voice:local:error', handler);
+    },
+    onLoadingProgress: (cb: (p: { downloaded: number; total: number | null; percent: number }) => void) => {
+        const handler = (_e: unknown, payload: { downloaded: number; total: number | null; percent: number }) => cb(payload);
+        ipcRenderer.on('voice:local:loading-progress', handler);
+        return () => ipcRenderer.off('voice:local:loading-progress', handler);
+    },
 });
 
 
@@ -78,7 +78,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openMultipleFileDialog: () => ipcRenderer.invoke('open-multiple-file-dialog'),
     getSettings: () => ipcRenderer.invoke('settings:get'),
     setSettings: (settings: any) => ipcRenderer.invoke('settings:set', settings),
-    // Cambio #11 — T04/T08. Exposes the residente/tray runtime info that
+    // Exposes the residente/tray runtime info that
     // the Settings UI needs to gate platform-specific controls.
     getTrayAvailable: (): Promise<boolean> => ipcRenderer.invoke('app:tray-available'),
     getPlatform: (): Promise<NodeJS.Platform> => ipcRenderer.invoke('app:get-platform'),

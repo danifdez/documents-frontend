@@ -7,11 +7,9 @@
         <div v-else class="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
             <!-- Personal assistant: still owned by AssistantStore. -->
             <div v-for="a in personalAssistants" :key="a.id"
-                class="px-3 py-2.5 rounded-lg cursor-pointer transition-colors"
-                :class="selection === 'assistant-' + a.id
+                class="px-3 py-2.5 rounded-lg cursor-pointer transition-colors" :class="selection === 'assistant-' + a.id
                     ? 'bg-accent-subtle text-accent-dark'
-                    : 'hover:bg-surface-hover text-text-secondary'"
-                @click="onSelectAssistant(a.id)">
+                    : 'hover:bg-surface-hover text-text-secondary'" @click="onSelectAssistant(a.id)">
                 <div class="flex items-center gap-2">
                     <span class="text-lg leading-none">{{ a.icon || '◇' }}</span>
                     <span class="text-sm font-semibold">{{ a.name }}</span>
@@ -20,9 +18,7 @@
             </div>
 
             <!-- Agents: separate entity, separate store. -->
-            <AgentList
-                @new-agent="$emit('new-agent')"
-                @select-agent="onSelectAgent"
+            <AgentList @new-agent="$emit('new-agent')" @select-agent="onSelectAgent"
                 @edit-agent="$emit('edit-agent', $event)" />
         </div>
     </aside>
@@ -52,7 +48,7 @@ const agentStore = useAgentStore();
 
 // Use the assistant store's existing sortedAssistants but keep only the
 // personal one — non-personal assistants are deprecated as "helpers" and
-// live in `agents` from Cambio #6 onwards.
+// live in `agents`.
 const personalAssistants = computed(() => store.sortedAssistants.filter((a) => a.isSystem));
 
 function onSelectAssistant(id: number) {

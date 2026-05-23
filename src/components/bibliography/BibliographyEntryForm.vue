@@ -36,8 +36,7 @@
                 </div>
             </div>
             <div class="space-y-1.5">
-                <div v-for="(creator, idx) in form.creators" :key="idx"
-                    class="flex gap-2 items-center">
+                <div v-for="(creator, idx) in form.creators" :key="idx" class="flex gap-2 items-center">
                     <select v-model="creator.creatorType"
                         class="w-28 px-2 py-1.5 text-xs border border-border rounded bg-surface-elevated focus:outline-none">
                         <option v-for="ct in allCreatorTypes" :key="ct.value" :value="ct.value">{{ ct.label }}</option>
@@ -49,12 +48,14 @@
                     <button type="button" @click="removeCreator(idx)"
                         class="p-1 text-text-muted hover:text-red-500 shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
                         </svg>
                     </button>
                 </div>
-                <div v-if="!form.creators || form.creators.length === 0"
-                    class="text-xs text-text-muted italic py-1">Sin creadores añadidos</div>
+                <div v-if="!form.creators || form.creators.length === 0" class="text-xs text-text-muted italic py-1">Sin
+                    creadores añadidos</div>
             </div>
         </div>
 
@@ -64,14 +65,17 @@
         <!-- Publication details — vary by type -->
         <div class="grid grid-cols-2 gap-3">
             <!-- Journal -->
-            <FormField v-if="showField('journal')" class="col-span-2" label="Publicación" v-model="form.journal" :placeholder="journalPlaceholder" />
+            <FormField v-if="showField('journal')" class="col-span-2" label="Publicación" v-model="form.journal"
+                :placeholder="journalPlaceholder" />
             <FormField v-if="showField('journalAbbreviation')" label="Abreviatura" v-model="form.journalAbbreviation" />
 
             <!-- Booktitle / proceedingsTitle -->
-            <FormField v-if="showField('booktitle')" class="col-span-2" :label="booktitleLabel" v-model="form.booktitle" />
+            <FormField v-if="showField('booktitle')" class="col-span-2" :label="booktitleLabel"
+                v-model="form.booktitle" />
 
             <!-- Conference name -->
-            <FormField v-if="showField('conferenceName')" class="col-span-2" label="Nombre del congreso" v-model="form.conferenceName" />
+            <FormField v-if="showField('conferenceName')" class="col-span-2" label="Nombre del congreso"
+                v-model="form.conferenceName" />
 
             <!-- Volume / Issue / Pages -->
             <FormField v-if="showField('volume')" label="Volumen" v-model="form.volume" />
@@ -95,15 +99,20 @@
             <FormField v-if="showField('numberOfVolumes')" label="Nº de volúmenes" v-model="form.numberOfVolumes" />
 
             <!-- Institution / University / ThesisType / ReportType -->
-            <FormField v-if="showField('institution')" class="col-span-2" :label="institutionLabel" v-model="form.institution" />
-            <FormField v-if="showField('university')" class="col-span-2" label="Universidad" v-model="form.university" />
-            <FormField v-if="showField('thesisType')" label="Tipo de tesis" v-model="form.thesisType" placeholder="Doctoral, Máster..." />
+            <FormField v-if="showField('institution')" class="col-span-2" :label="institutionLabel"
+                v-model="form.institution" />
+            <FormField v-if="showField('university')" class="col-span-2" label="Universidad"
+                v-model="form.university" />
+            <FormField v-if="showField('thesisType')" label="Tipo de tesis" v-model="form.thesisType"
+                placeholder="Doctoral, Máster..." />
             <FormField v-if="showField('reportNumber')" label="Nº de informe" v-model="form.reportNumber" />
             <FormField v-if="showField('reportType')" label="Tipo de informe" v-model="form.reportType" />
 
             <!-- Website fields -->
-            <FormField v-if="showField('websiteTitle')" class="col-span-2" label="Título del sitio web" v-model="form.websiteTitle" />
-            <FormField v-if="showField('websiteType')" class="col-span-2" label="Tipo de web" v-model="form.websiteType" />
+            <FormField v-if="showField('websiteTitle')" class="col-span-2" label="Título del sitio web"
+                v-model="form.websiteTitle" />
+            <FormField v-if="showField('websiteType')" class="col-span-2" label="Tipo de web"
+                v-model="form.websiteType" />
         </div>
 
         <!-- Identifiers -->
@@ -112,14 +121,18 @@
             <FormField v-if="showField('isbn')" label="ISBN" v-model="form.isbn" />
             <FormField v-if="showField('issn')" label="ISSN" v-model="form.issn" />
             <FormField class="col-span-2" label="URL" v-model="form.url" />
-            <FormField v-if="showField('accessDate')" label="Fecha de acceso" v-model="form.accessDate" placeholder="2024-01-15" />
+            <FormField v-if="showField('accessDate')" label="Fecha de acceso" v-model="form.accessDate"
+                placeholder="2024-01-15" />
         </div>
 
         <!-- Archive / Library fields (collapsed by default) -->
         <details class="group">
             <summary class="cursor-pointer text-xs font-medium text-text-muted flex items-center gap-1 select-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 transition-transform group-open:rotate-90"
+                    viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clip-rule="evenodd" />
                 </svg>
                 Campos de archivo / biblioteca
             </summary>
@@ -142,11 +155,10 @@
         <div class="flex justify-end gap-2 pt-1">
             <button type="button" @click="emit('cancel')"
                 class="px-3 py-1.5 text-sm rounded border border-border hover:bg-surface-hover">
-                Cancelar
+                Cancel
             </button>
-            <button type="submit"
-                class="px-3 py-1.5 text-sm rounded bg-accent text-white hover:opacity-90">
-                {{ entry ? 'Guardar cambios' : 'Añadir entrada' }}
+            <button type="submit" class="px-3 py-1.5 text-sm rounded bg-accent text-white hover:opacity-90">
+                {{ entry ? 'Save changes' : 'Add entry' }}
             </button>
         </div>
     </form>

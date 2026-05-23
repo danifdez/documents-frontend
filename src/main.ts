@@ -55,7 +55,7 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
-// Single-instance lock (Cambio #11 — T02). A second invocation of the
+// Single-instance lock. A second invocation of the
 // executable must exit immediately, surfacing the running instance instead.
 // Without this, two processes race for the standalone backend ports.
 const gotTheLock = app.requestSingleInstanceLock();
@@ -68,7 +68,7 @@ if (!gotTheLock) {
 
 let mainWindow: BrowserWindow | null = null;
 
-// Tray state (Cambio #11 — T03). `trayUnavailable` is consumed by T05
+// Tray state. `trayUnavailable` is consumed by T05
 // (`window-all-closed` / `mainWindow.on('close')`) and by T08 (Settings UI
 // disables tray-dependent controls when the OS has no system tray).
 let tray: Tray | null = null;
@@ -115,7 +115,7 @@ function formatLocalTime(iso: string): string {
   }
 }
 
-// Tray icon resolution (Cambio #11 — T01). Copied to `<outDir>/assets/tray/`
+// Tray icon resolution. Copied to `<outDir>/assets/tray/`
 // by the `copyTrayAssets` Vite plugin so it works in both dev and packaged
 // builds. macOS expects the `*Template.png` naming so the OS auto-recolors
 // for Light/Dark menu bar themes.
@@ -125,7 +125,7 @@ function getTrayIconPath(): string {
 }
 
 function focusMainWindow() {
-  // Cambio #11 — T09. Recreate the window if it was destroyed (e.g. via
+  // Recreate the window if it was destroyed (e.g. via
   // devtools), show it if hidden in the tray, restore if minimised, then
   // focus. Callers that follow up with an IPC must use
   // `focusMainWindowAndSend` so the message waits for `did-finish-load`
@@ -155,7 +155,7 @@ function focusMainWindowAndSend(channel: string, ...args: any[]) {
   }
 }
 
-// Toggle the main window from the tray (Cambio #11 — T03). Hides it when
+// Toggle the main window from the tray. Hides it when
 // visible, shows + focuses it otherwise. Recreates the window if it was
 // destroyed (e.g. via devtools).
 function toggleMainWindow() {
@@ -190,7 +190,7 @@ function buildTrayMenu(): Menu {
 }
 
 /**
- * Hidden start mode (Cambio #11 — T07). Used by `launchAtLogin` (T04) to
+ * Hidden start mode. Used by `launchAtLogin` (T04) to
  * wake the app at session start without showing the window: the user sees
  * the tray icon (signal that the app is loaded) but no surprise window.
  */
@@ -198,7 +198,7 @@ function shouldStartHidden(): boolean {
   return process.argv.includes('--hidden');
 }
 
-// Cambio #11 — T10. Eager preload of the local Whisper model when the user
+// Eager preload of the local Whisper model when the user
 // opts in via `settings.preloadVoiceModel`. Fire-and-forget: the helper
 // swallows its own errors so a missing binding never blocks startup.
 async function maybePreloadVoiceModel() {
@@ -221,15 +221,14 @@ async function maybePreloadVoiceModel() {
   }
 }
 
-// Read the user's close-behaviour preference at runtime (Cambio #11 — T05).
-// Default `'tray'` matches the cambio's main premise — the user opts into
+// Read the user's close-behaviour preference at runtime.
 // the classic "X quits" model explicitly.
 function getCloseBehavior(): 'tray' | 'quit' {
   const settings = store.get('settings') as Record<string, any> | undefined;
   return settings?.closeBehavior === 'quit' ? 'quit' : 'tray';
 }
 
-// Apply the side effects of the residente/tray preferences (Cambio #11 — T04).
+// Apply the side effects of the residente/tray preferences.
 // Called from `settings:set` and at boot to reapply persisted settings.
 function applySettingsEffects(
   settings: Record<string, any>,
@@ -316,7 +315,7 @@ async function markEventOccurrenceDone(eventId: number, occurrenceStart: string)
   }
 }
 
-// Cambio #11 — T06. Didactic toast shown the first time the user hides the
+// Didactic toast shown the first time the user hides the
 // window to the tray. Without it, the first close confuses the user (they
 // think they quit the app and reopen it expecting cold-start cost).
 function maybeShowFirstCloseToast() {
@@ -499,7 +498,7 @@ const createWindow = () => {
     }
   });
 
-  // Cambio #11 — T05. Close = hide when running in tray mode. The window
+  // Close = hide when running in tray mode. The window
   // is destroyed only on real exits (tray Exit, OS shutdown). This is the
   // pivot that makes the app residente — without this, the tray icon and
   // preferences are cosmetic.
@@ -602,7 +601,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('navigate-main-window', (_, route: string) => {
-    // Cambio #11 — T09. Use the robust helper so navigation works also when
+    // Use the robust helper so navigation works also when
     // the main window is hidden in the tray or had to be recreated.
     focusMainWindowAndSend('navigate-to-route', route);
   });
@@ -741,13 +740,13 @@ app.whenReady().then(() => {
     console.log('[folder-scope] picker opened');
     const result = win
       ? await dialog.showOpenDialog(win, {
-          properties: ['openDirectory', 'createDirectory'],
-          title: opts?.title ?? 'Pick the working folder',
-        })
+        properties: ['openDirectory', 'createDirectory'],
+        title: opts?.title ?? 'Pick the working folder',
+      })
       : await dialog.showOpenDialog({
-          properties: ['openDirectory', 'createDirectory'],
-          title: opts?.title ?? 'Pick the working folder',
-        });
+        properties: ['openDirectory', 'createDirectory'],
+        title: opts?.title ?? 'Pick the working folder',
+      });
 
     if (result.canceled || result.filePaths.length === 0) {
       console.log('[folder-scope] picker cancelled');
@@ -790,7 +789,7 @@ app.whenReady().then(() => {
       themeId: 'default',
       defaultBrowserUrl: 'https://github.com/electron/electron',
       disabledFeatures: [],
-      // Tray / residente — Cambio #11. Defaults only apply when the store
+      // Tray / residente. Defaults only apply when the store
       // has no `settings` yet; users with existing persisted settings will
       // see `undefined` here and consumers fall back to these values via
       // `?? <default>` locally.
@@ -798,7 +797,7 @@ app.whenReady().then(() => {
       launchAtLogin: false,
       toggleShortcut: null,
       hideDockIcon: false,
-      // Preload of the local Whisper model on startup (Cambio #11 — T10).
+      // Preload of the local Whisper model on startup.
       preloadVoiceModel: false,
     });
   });
@@ -813,7 +812,7 @@ app.whenReady().then(() => {
     return { ok: true, shortcutOk };
   });
 
-  // ── Cambio #11 — T06: dev-only handler to reset the first-close hint
+  // ── Dev-only handler to reset the first-close hint
   // so the didactic toast can be re-tested without hand-editing the store.
   if (process.env.NODE_ENV === 'development') {
     ipcMain.handle('debug:reset-tray-hint', () => {
@@ -824,12 +823,12 @@ app.whenReady().then(() => {
     });
   }
 
-  // ── Cambio #11 — T08: expose tray availability to the renderer so the
+  // ── Expose tray availability to the renderer so the
   // Settings UI can disable tray-dependent controls when the OS has no
   // system tray (e.g. GNOME without AppIndicator).
   ipcMain.handle('app:tray-available', () => !trayUnavailable);
 
-  // ── Cambio #11 — T08: expose process.platform to the renderer to gate
+  // ── Expose process.platform to the renderer to gate
   // platform-specific toggles (`launchAtLogin` Linux, `hideDockIcon` macOS).
   ipcMain.handle('app:get-platform', () => process.platform);
 
@@ -1030,7 +1029,7 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
 
-  // Cambio #11 — T04. Reapply persisted residente settings: register the
+  // Reapply persisted residente settings: register the
   // user's global shortcut (Electron drops it between sessions) and refresh
   // the macOS dock visibility. `launchAtLogin` is already honoured by the
   // OS, but reapplying is harmless and keeps the call site uniform.
@@ -1047,7 +1046,7 @@ app.whenReady().then(() => {
     }
   });
 
-  // Cambio #11 — T10. Preload the local Whisper model if the user opted in.
+  // Preload the local Whisper model if the user opted in.
   // Fire-and-forget — never blocks `ready-to-show`.
   void maybePreloadVoiceModel();
 });
@@ -1071,7 +1070,7 @@ app.on('before-quit', async () => {
 });
 
 app.on('window-all-closed', () => {
-  // Cambio #11 — T05. In tray mode the process must outlive its windows.
+  // In tray mode the process must outlive its windows.
   // Only fall back to the classic "quit on last window" when the tray is
   // unusable or the user explicitly chose `closeBehavior = 'quit'`.
   if (isQuitting) return;
@@ -1083,7 +1082,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  // Cambio #11 — T05. With the residente mode the main window is usually
+  // With the residente mode the main window is usually
   // hidden, not destroyed. Show + focus instead of recreating.
   if (mainWindow && !mainWindow.isDestroyed()) {
     if (!mainWindow.isVisible()) mainWindow.show();
@@ -1095,7 +1094,7 @@ app.on('activate', () => {
   }
 });
 
-// Cambio #11 — T02. Surface the primary window when a second instance is
+// Surface the primary window when a second instance is
 // launched. The second process has already called `app.quit()` (see the
 // `requestSingleInstanceLock` block at the top of this module) by the time
 // this fires.

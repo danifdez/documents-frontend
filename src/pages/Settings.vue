@@ -1,7 +1,8 @@
 <template>
     <div class="h-full overflow-y-auto">
         <div class="px-6 py-6">
-            <PageHeader title="Settings" subtitle="Configure your editor and application preferences" :divider="false" />
+            <PageHeader title="Settings" subtitle="Configure your editor and application preferences"
+                :divider="false" />
 
             <!-- Tabs -->
             <div class="flex gap-1 mb-6 border-b border-border">
@@ -82,10 +83,7 @@
                     </section>
 
                     <!-- Voice (only when local engine is bundled) -->
-                    <section
-                        v-if="voiceLocalAvailable"
-                        class="bg-surface-elevated rounded-xl border border-border p-5"
-                    >
+                    <section v-if="voiceLocalAvailable" class="bg-surface-elevated rounded-xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice</h2>
                         <VoiceSettings />
                     </section>
@@ -123,7 +121,7 @@
                 </div>
             </div>
 
-            <!-- Application Tab — Cambio #11 (residente / tray) -->
+            <!-- Application Tab -->
             <div v-show="activeTab === 'application'">
                 <p class="text-sm text-text-muted mb-4">
                     Control how the app behaves when you close the window, how it starts with your session, and the
@@ -218,9 +216,8 @@
                         </label>
                     </section>
 
-                    <!-- Voice preload (Cambio #11 — T10) -->
-                    <section v-if="voiceLocalAvailable"
-                        class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <!-- Voice preload -->
+                    <section v-if="voiceLocalAvailable" class="bg-surface-elevated rounded-xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice</h2>
                         <label class="flex items-start gap-2 cursor-pointer">
                             <input type="checkbox" v-model="preloadVoiceModel" @change="saveAppSettings"
@@ -284,8 +281,7 @@
                         <span v-if="ws.type === 'local'" class="text-xs text-accent truncate">Local server</span>
                         <span v-else class="text-xs text-text-muted truncate">{{ ws.url }}</span>
                         <div class="flex gap-2 mt-1">
-                            <button v-if="ws.id !== workspaceStore.activeWorkspaceId"
-                                @click="switchToWorkspace(ws.id)"
+                            <button v-if="ws.id !== workspaceStore.activeWorkspaceId" @click="switchToWorkspace(ws.id)"
                                 class="text-xs text-accent hover:underline cursor-pointer">Switch</button>
                             <button v-if="ws.type !== 'local'" @click="editWorkspace(ws)"
                                 class="text-xs text-text-secondary hover:underline cursor-pointer">Edit</button>
@@ -294,8 +290,7 @@
                                 class="text-xs text-text-secondary hover:underline cursor-pointer">Set default</button>
                             <button v-else @click="workspaceStore.setDefaultWorkspace(null)"
                                 class="text-xs text-text-muted hover:underline cursor-pointer">Unset default</button>
-                            <button
-                                v-if="workspaceStore.workspaces.length > 1 && ws.type !== 'local'"
+                            <button v-if="workspaceStore.workspaces.length > 1 && ws.type !== 'local'"
                                 @click="deleteWorkspace(ws.id)"
                                 class="text-xs text-red-500 hover:underline cursor-pointer">Remove</button>
                         </div>
@@ -531,10 +526,10 @@
         </div>
     </div>
 
-    <div v-if="showThemeManager"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    <div v-if="showThemeManager" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
         @click.self="showThemeManager = false">
-        <div class="bg-surface-elevated rounded-xl border border-border shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6">
+        <div
+            class="bg-surface-elevated rounded-xl border border-border shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-base font-semibold text-text-primary">Themes</h2>
                 <button type="button" class="text-text-muted hover:text-text-primary cursor-pointer"
@@ -725,7 +720,7 @@ const language = ref('en');
 const theme = ref<ThemeMode>('system');
 const defaultBrowserUrl = ref('https://github.com/electron/electron');
 
-// ── Application tab — Cambio #11 (residente / tray) ──
+// ── Application tab ──
 const closeBehavior = ref<'tray' | 'quit'>('tray');
 const launchAtLogin = ref(false);
 const toggleShortcut = ref<string | null>(null);
@@ -793,7 +788,7 @@ function currentSettingsPayload() {
         theme: theme.value,
         themeId: activeThemeId.value,
         defaultBrowserUrl: defaultBrowserUrl.value,
-        // Cambio #11 — keep the residente prefs in every settings payload so
+        // keep the residente prefs in every settings payload so
         // unrelated saves don't drop them.
         closeBehavior: closeBehavior.value,
         launchAtLogin: launchAtLogin.value,
