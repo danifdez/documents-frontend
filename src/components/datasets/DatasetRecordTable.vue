@@ -9,6 +9,9 @@
                             <input type="checkbox" :checked="allSelected" @change="toggleSelectAll"
                                 class="rounded border-border text-accent focus:ring-accent/20 cursor-pointer" />
                         </th>
+                        <th v-if="showStatusColumn" class="px-2 py-2.5 text-center text-[11px] font-semibold text-text-muted uppercase tracking-wider w-20">
+                            Status
+                        </th>
                         <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-text-muted uppercase tracking-wider w-16">
                             ID
                         </th>
@@ -27,7 +30,7 @@
                 </thead>
                 <tbody class="divide-y divide-border-light">
                     <tr v-if="records.length === 0">
-                        <td :colspan="schema.length + 3" class="px-4 py-8 text-center text-text-muted text-sm">
+                        <td :colspan="schema.length + (showStatusColumn ? 4 : 3)" class="px-4 py-8 text-center text-text-muted text-sm">
                             No records yet
                         </td>
                     </tr>
@@ -39,7 +42,38 @@
                                 @change="toggleSelect(record.id)"
                                 class="rounded border-border text-accent focus:ring-accent/20 cursor-pointer" />
                         </td>
-                        <td class="px-4 py-2.5 text-text-muted text-xs">{{ record.id }}</td>
+                        <td v-if="showStatusColumn" class="px-2 py-2.5 text-center">
+                            <span v-if="record.extractionStatus === 'extracted'"
+                                class="inline-block h-4 w-4 text-green-600" title="Extracted">
+                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                            <span v-else-if="record.extractionStatus === 'in_progress'"
+                                class="inline-block animate-spin rounded-full h-3.5 w-3.5 border-2 border-accent border-t-transparent"
+                                title="Extracting..."></span>
+                            <span v-else-if="record.extractionStatus === 'failed'"
+                                class="inline-block h-4 w-4 text-red-600 cursor-help"
+                                :title="record.extractionError || 'Extraction failed'">
+                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                            </span>
+                            <span v-else class="text-text-muted text-xs" title="Pending extraction">—</span>
+                        </td>
+                        <td class="px-4 py-2.5 text-text-muted text-xs">
+                            <div class="flex items-center justify-between gap-1 group/idcell">
+                                <span>{{ record.id }}</span>
+                                <button v-if="showStatusColumn && record.sourceResourceId != null"
+                                    type="button" @click.stop="onReExtractRow(record.id)"
+                                    class="p-0.5 rounded opacity-0 group-hover/idcell:opacity-100 text-text-muted hover:text-accent hover:bg-accent-subtle transition-opacity cursor-pointer"
+                                    title="Re-extract this row">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
                         <td v-for="field in schema" :key="field.key"
                             class="px-4 py-2.5 text-text-primary overflow-hidden"
                             @dblclick="startEdit(record, field, $event)">
@@ -95,30 +129,59 @@
                             </template>
                             <!-- Read-only display -->
                             <template v-else>
-                                <!-- Boolean -->
-                                <span v-if="field.type === 'boolean'">
-                                    <span v-if="record.data[field.key]"
-                                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-700">Yes</span>
-                                    <span v-else
-                                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-surface text-text-muted">No</span>
-                                </span>
-                                <!-- Linked field -->
-                                <span v-else-if="field.linkedDatasetId && record.data[field.key] != null">
-                                    <button v-if="getLinkedDisplay(field, record)"
-                                        @click.stop="openLinkedPopup(field, record)"
-                                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors cursor-pointer">
-                                        {{ getLinkedDisplay(field, record) }}
-                                        <svg class="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                    </button>
-                                    <span v-else-if="linkedDataLoading"
-                                        class="text-[10px] text-text-muted italic">loading...</span>
-                                    <span v-else class="text-text-secondary">{{ record.data[field.key] }}</span>
-                                </span>
-                                <!-- Normal field -->
-                                <span v-else>{{ record.data[field.key] ?? '—' }}</span>
+                                <div class="flex items-center justify-between gap-1.5 group/cell">
+                                    <div class="min-w-0 flex-1">
+                                        <!-- Boolean -->
+                                        <span v-if="field.type === 'boolean'">
+                                            <span v-if="record.data[field.key] === true"
+                                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-700">Yes</span>
+                                            <span v-else-if="record.data[field.key] === false"
+                                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-surface text-text-muted">No</span>
+                                            <span v-else-if="isExtractedNull(record, field)"
+                                                class="text-text-muted italic text-xs">not found</span>
+                                            <span v-else class="text-text-muted">—</span>
+                                        </span>
+                                        <!-- Linked field -->
+                                        <span v-else-if="field.linkedDatasetId && record.data[field.key] != null">
+                                            <button v-if="getLinkedDisplay(field, record)"
+                                                @click.stop="openLinkedPopup(field, record)"
+                                                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors cursor-pointer">
+                                                {{ getLinkedDisplay(field, record) }}
+                                                <svg class="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                            <span v-else-if="linkedDataLoading"
+                                                class="text-[10px] text-text-muted italic">loading...</span>
+                                            <span v-else class="text-text-secondary">{{ record.data[field.key] }}</span>
+                                        </span>
+                                        <!-- Null with extraction context = "not found" -->
+                                        <span v-else-if="isExtractedNull(record, field)"
+                                            class="text-text-muted italic text-xs"
+                                            :title="record.extractionStatus === 'failed' ? (record.extractionError || 'Extraction failed') : ''">
+                                            not found
+                                        </span>
+                                        <!-- Normal field -->
+                                        <span v-else>{{ record.data[field.key] ?? '—' }}</span>
+                                    </div>
+                                    <!-- Anchor + edited badges -->
+                                    <div class="flex items-center gap-1 shrink-0" v-if="record.cellMetadata?.[field.key]">
+                                        <span v-if="record.cellMetadata[field.key].editedByUser"
+                                            class="px-1 py-0 rounded text-[9px] font-medium bg-amber-100 text-amber-700"
+                                            :title="`Manually edited on ${record.cellMetadata[field.key].extractedAt}`">
+                                            edited
+                                        </span>
+                                        <button type="button" @click.stop="openAnchor(record, field, $event)"
+                                            class="p-0.5 rounded text-text-muted opacity-15 group-hover/cell:opacity-100 hover:text-accent hover:bg-accent-subtle transition-opacity cursor-pointer"
+                                            title="Show extraction source">
+                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
                             </template>
                         </td>
                     </tr>
@@ -126,6 +189,7 @@
                 <tfoot v-if="records.length > 0">
                     <tr class="border-t border-border bg-surface/50">
                         <td class="px-2 py-2"></td>
+                        <td v-if="showStatusColumn" class="px-2 py-2"></td>
                         <td class="px-4 py-2 text-[10px] text-text-muted font-medium">
                             {{ records.length }} rows
                         </td>
@@ -157,6 +221,16 @@
                 </button>
             </div>
         </div>
+
+        <!-- Cell anchor popover -->
+        <CellAnchorPopover v-if="anchorPopover.show && anchorPopover.anchor"
+            :is-open="anchorPopover.show"
+            :anchor="anchorPopover.anchor"
+            :field-name="anchorPopover.fieldName"
+            :value="anchorPopover.value"
+            :anchor-rect="anchorPopover.rect"
+            @close="closeAnchor"
+            @re-extract="emitReExtract" />
 
         <!-- Linked record popup -->
         <Teleport to="body">
@@ -212,8 +286,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed, nextTick } from 'vue';
-import type { DatasetField, DatasetRecord } from '../../services/datasets/useDatasets';
+import type { DatasetField, DatasetRecord, CellAnchor } from '../../services/datasets/useDatasets';
 import apiClient from '../../services/api';
+import CellAnchorPopover from './CellAnchorPopover.vue';
 
 const props = defineProps<{
     schema: DatasetField[];
@@ -223,6 +298,7 @@ const props = defineProps<{
     limit: number;
     sortField?: string;
     sortOrder?: string;
+    showStatusColumn?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -230,7 +306,54 @@ const emit = defineEmits<{
     sort: [field: string];
     bulkDelete: [ids: number[]];
     inlineUpdate: [recordId: number, data: Record<string, any>];
+    reExtractCell: [recordId: number, fieldKey: string];
+    reExtractRow: [recordId: number];
 }>();
+
+const onReExtractRow = (recordId: number) => emit('reExtractRow', recordId);
+
+// Anchor popover state
+const anchorPopover = reactive<{
+    show: boolean;
+    anchor: CellAnchor | null;
+    fieldName: string;
+    value: any;
+    rect: DOMRect | null;
+    recordId: number;
+    fieldKey: string;
+}>({ show: false, anchor: null, fieldName: '', value: null, rect: null, recordId: 0, fieldKey: '' });
+
+const isExtractedNull = (record: DatasetRecord, field: DatasetField): boolean => {
+    const v = record.data?.[field.key];
+    if (v !== null && v !== undefined) return false;
+    return record.sourceResourceId != null;
+};
+
+const openAnchor = (record: DatasetRecord, field: DatasetField, event: MouseEvent) => {
+    const anchor = record.cellMetadata?.[field.key];
+    if (!anchor) return;
+    const trigger = (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
+    const rect = trigger?.getBoundingClientRect() ?? null;
+    anchorPopover.show = true;
+    anchorPopover.anchor = anchor;
+    anchorPopover.fieldName = field.name;
+    anchorPopover.value = record.data?.[field.key];
+    anchorPopover.rect = rect;
+    anchorPopover.recordId = record.id;
+    anchorPopover.fieldKey = field.key;
+};
+
+const closeAnchor = () => {
+    anchorPopover.show = false;
+    anchorPopover.anchor = null;
+};
+
+const emitReExtract = () => {
+    if (anchorPopover.recordId && anchorPopover.fieldKey) {
+        emit('reExtractCell', anchorPopover.recordId, anchorPopover.fieldKey);
+    }
+    closeAnchor();
+};
 
 // Inline editing
 const editingCells = ref<Map<string, any>>(new Map()); // key: "recordId:fieldKey" -> edited value

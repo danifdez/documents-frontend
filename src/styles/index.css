@@ -49,6 +49,14 @@ html.dark {
   color-scheme: dark;
 }
 
+/* ─── Icon Color Override ─── */
+/* Force all SVG icons to render white regardless of theme or parent text color.
+   Icons use stroke/fill="currentColor", so setting `color` on the svg itself
+   wins over inherited `text-*` classes on wrappers. */
+svg {
+  color: #ffffff;
+}
+
 /* ─── Base Styles ─── */
 @layer base {
   html {

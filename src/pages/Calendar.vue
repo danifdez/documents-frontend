@@ -37,7 +37,8 @@
 
         <!-- Event Modal -->
         <EventModal v-model="showEventModal" :event="selectedEvent" :projects="projects" :defaultDate="selectedDate"
-            :defaultProjectId="projectId" @submit="handleEventSubmit" @delete="handleEventDelete" />
+            :defaultProjectId="projectId" @submit="handleEventSubmit" @delete="handleEventDelete"
+            @unmarkOccurrence="handleUnmarkOccurrence" />
 
         <!-- Delete Confirm -->
         <ConfirmModal :isOpen="showDeleteDialog" title="Delete Event"
@@ -160,6 +161,20 @@ async function handleEventSubmit(data: Record<string, any>) {
 function handleEventDelete() {
     showEventModal.value = false;
     showDeleteDialog.value = true;
+}
+
+async function handleUnmarkOccurrence() {
+    const ev = selectedEvent.value;
+    if (!ev?.occurrenceStart) return;
+    try {
+        const encoded = encodeURIComponent(ev.occurrenceStart);
+        await apiClient.delete(`/calendar-events/${ev.id}/occurrences/${encoded}/complete`);
+        await loadMonthEvents();
+        showEventModal.value = false;
+        selectedEvent.value = null;
+    } catch (err) {
+        console.error('Error unmarking occurrence:', err);
+    }
 }
 
 async function confirmDeleteEvent() {

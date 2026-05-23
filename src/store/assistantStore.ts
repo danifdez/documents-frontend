@@ -215,6 +215,8 @@ export const useAssistantStore = defineStore('assistant', () => {
                         memoryStore.ingestSocketEntry(ev.event.entry);
                     } else if (ev.event?.kind === 'memory_forgotten' && ev.event.entry) {
                         memoryStore.dropSocketEntry(event.assistantId, ev.event.entry.id);
+                    } else if (ev.event?.kind === 'memory_replaced' && ev.event.entry) {
+                        memoryStore.replaceSocketEntry(ev.event.entry);
                     }
                 }
             }

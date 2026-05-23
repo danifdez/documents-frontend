@@ -102,6 +102,31 @@ export const useAssistantMemoryStore = defineStore('assistantMemory', () => {
         };
     }
 
+    /**
+     * Replace a memory entry in place. Used when a `memory_replaced` event
+     * arrives over the socket — either because the worker detected a
+     * correction (via: 'llm') or because the backend auto-dedup converted a
+     * save into a replace (via: 'auto_dedup').
+     */
+    function replaceSocketEntry(entry: MemoryEntry): void {
+        if (!entry || typeof entry.id !== 'number') return;
+        const current = entriesByAssistant.value[entry.assistantId] ?? [];
+        const idx = current.findIndex((e) => e.id === entry.id);
+        if (idx === -1) {
+            entriesByAssistant.value = {
+                ...entriesByAssistant.value,
+                [entry.assistantId]: [entry, ...current],
+            };
+            return;
+        }
+        const next = current.slice();
+        next[idx] = entry;
+        entriesByAssistant.value = {
+            ...entriesByAssistant.value,
+            [entry.assistantId]: next,
+        };
+    }
+
     return {
         entriesByAssistant,
         loading,
@@ -115,5 +140,6 @@ export const useAssistantMemoryStore = defineStore('assistantMemory', () => {
         clear,
         ingestSocketEntry,
         dropSocketEntry,
+        replaceSocketEntry,
     };
 });

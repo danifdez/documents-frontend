@@ -16,6 +16,13 @@ export type AssistantMessageEvent =
     | { kind: 'memory_saved'; entry: import('./AssistantMemory').MemoryEntry }
     | { kind: 'memory_forgotten'; entry: import('./AssistantMemory').MemoryEntry }
     | {
+        kind: 'memory_replaced';
+        entry: import('./AssistantMemory').MemoryEntry;
+        previousId: number;
+        via: 'llm' | 'auto_dedup';
+        score?: number;
+    }
+    | {
         kind: 'tool_executed';
         tool: {
             name: string;

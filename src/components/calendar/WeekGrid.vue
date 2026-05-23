@@ -25,8 +25,11 @@
                     <div v-for="event in getEventsForDay(day.date)" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                         @click.stop="$emit('eventClick', event)"
                         class="px-2 py-1.5 rounded text-[11px] font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                        :class="{ 'opacity-50 line-through': event.trackCompletion && event.completed }"
                         :style="{ backgroundColor: event.color + '20', color: event.color }">
-                        <p class="truncate">{{ event.title }}</p>
+                        <p class="truncate">
+                            <span v-if="event.trackCompletion && event.completed" class="mr-0.5">✓</span>{{ event.title }}
+                        </p>
                         <p class="text-[10px] opacity-75 mt-0.5" v-if="!event.allDay">
                             {{ formatTime(event) }}
                         </p>

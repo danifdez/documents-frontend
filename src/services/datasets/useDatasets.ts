@@ -4,12 +4,21 @@ import apiClient from '../api';
 export interface DatasetField {
     key: string;
     name: string;
+    description?: string;
     type: 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'time' | 'select';
     required: boolean;
     options?: string[];
     linkedDatasetId?: number;
     linkedLookupField?: string;
     linkedDisplayField?: string;
+}
+
+export type DatasetSourceMode = 'manual' | 'project_resources' | 'resource_selection';
+
+export interface DatasetExtractionConfig {
+    model: string;
+    promptVersion: string;
+    lastRunAt: string | null;
 }
 
 export interface DatasetDataSource {
@@ -28,13 +37,32 @@ export interface Dataset {
     project: { id: number; name: string } | null;
     dataSources?: DatasetDataSource[];
     recordCount?: number;
+    sourceMode: DatasetSourceMode;
+    sourceConfig: Record<string, any>;
+    extractionConfig: DatasetExtractionConfig | null;
     createdAt: string;
     updatedAt: string;
 }
 
+export interface CellAnchor {
+    sourceResourceId: number;
+    page: number | null;
+    quote: string;
+    extractedAt: string;
+    model: string;
+    promptVersion: string;
+    editedByUser: boolean;
+}
+
+export type ExtractionStatus = 'pending' | 'in_progress' | 'extracted' | 'failed';
+
 export interface DatasetRecord {
     id: number;
     data: Record<string, any>;
+    cellMetadata: Record<string, CellAnchor>;
+    sourceResourceId: number | null;
+    extractionStatus: ExtractionStatus;
+    extractionError: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -175,7 +203,7 @@ export const useDatasets = () => {
         }
     };
 
-    const createDataset = async (data: { name: string; description?: string; projectId?: number; schema: DatasetField[] }): Promise<Dataset> => {
+    const createDataset = async (data: { name: string; description?: string; projectId?: number; schema: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: Record<string, any> }): Promise<Dataset> => {
         isLoading.value = true;
         error.value = null;
         try {
@@ -189,7 +217,7 @@ export const useDatasets = () => {
         }
     };
 
-    const updateDataset = async (id: number, data: { name?: string; description?: string; projectId?: number; schema?: DatasetField[] }): Promise<Dataset> => {
+    const updateDataset = async (id: number, data: { name?: string; description?: string; projectId?: number; schema?: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: Record<string, any> }): Promise<Dataset> => {
         isLoading.value = true;
         error.value = null;
         try {
@@ -237,6 +265,70 @@ export const useDatasets = () => {
             return response.data;
         } catch (err: any) {
             error.value = err.response?.data?.message || 'Failed to get stats result';
+            throw err;
+        }
+    };
+
+    const extractAll = async (datasetId: number): Promise<{ rowsQueued: number }> => {
+        isLoading.value = true;
+        error.value = null;
+        try {
+            const response = await apiClient.post(`/datasets/${datasetId}/extract`, {});
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to start extraction';
+            throw err;
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    const reExtractRow = async (
+        datasetId: number,
+        recordId: number,
+        columnsToExtract?: string[],
+    ): Promise<{ jobId: number | null }> => {
+        try {
+            const response = await apiClient.post(
+                `/datasets/${datasetId}/records/${recordId}/re-extract`,
+                { columnsToExtract },
+            );
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to re-extract row';
+            throw err;
+        }
+    };
+
+    const proposeColumns = async (
+        resourceIds: number[],
+        projectId?: number,
+    ): Promise<{ jobId: number | null }> => {
+        const response = await apiClient.post('/datasets/propose-columns', { resourceIds, projectId });
+        return response.data;
+    };
+
+    const getProposeColumnsResult = async (
+        jobId: number,
+    ): Promise<{ status: string; result: { columns: DatasetField[] | null; error: string | null } | null }> => {
+        const response = await apiClient.get(`/datasets/propose-columns/${jobId}`);
+        return response.data;
+    };
+
+    const reExtractCell = async (
+        datasetId: number,
+        recordId: number,
+        fieldKey: string,
+        force = false,
+    ): Promise<{ jobId: number | null } | { requiresConfirmation: true; reason: string }> => {
+        try {
+            const response = await apiClient.post(
+                `/datasets/${datasetId}/records/${recordId}/cells/${encodeURIComponent(fieldKey)}/re-extract`,
+                { force },
+            );
+            return response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Failed to re-extract cell';
             throw err;
         }
     };
@@ -432,9 +524,10 @@ export const useDatasets = () => {
 
     // --- Export CSV ---
 
-    const exportDatasetCsv = async (id: number): Promise<void> => {
+    const exportDatasetCsv = async (id: number, includeAnchors = false): Promise<void> => {
         try {
-            const response = await apiClient.get(`/datasets/${id}/export`, { responseType: 'blob' });
+            const params = includeAnchors ? { include_anchors: 'true' } : {};
+            const response = await apiClient.get(`/datasets/${id}/export`, { params, responseType: 'blob' });
             const disposition = response.headers['content-disposition'] || '';
             const filenameMatch = disposition.match(/filename="?(.+?)"?$/);
             const filename = filenameMatch ? filenameMatch[1] : 'dataset.csv';
@@ -585,6 +678,11 @@ export const useDatasets = () => {
         createDataset,
         updateDataset,
         analyzeSchemaChange,
+        extractAll,
+        reExtractRow,
+        reExtractCell,
+        proposeColumns,
+        getProposeColumnsResult,
         requestStats,
         getStatsResult,
         deleteDataset,

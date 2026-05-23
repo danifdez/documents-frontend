@@ -20,8 +20,9 @@
             <div v-for="event in visibleEvents" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                 @click.stop="$emit('eventClick', event)"
                 class="px-1.5 py-0.5 rounded text-[10px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity"
+                :class="{ 'opacity-50 line-through': event.trackCompletion && event.completed }"
                 :style="{ backgroundColor: event.color + '20', color: event.color }">
-                {{ event.title }}
+                <span v-if="event.trackCompletion && event.completed" class="mr-0.5">✓</span>{{ event.title }}
             </div>
             <div v-if="overflowCount > 0" class="text-[10px] text-text-muted px-1.5">
                 +{{ overflowCount }} more

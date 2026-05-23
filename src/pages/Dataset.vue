@@ -49,14 +49,30 @@
                         </svg>
                         Import CSV
                     </button>
-                    <button @click="handleExportCsv"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Export CSV
-                    </button>
+                    <div class="relative">
+                        <button @click="exportMenuOpen = !exportMenuOpen"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Export
+                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div v-if="exportMenuOpen"
+                            class="absolute right-0 mt-1 w-60 rounded-lg border border-border bg-surface-elevated shadow-lg z-30">
+                            <button @click="handleExportCsv(false)"
+                                class="block w-full text-left px-3 py-2 text-xs text-text-primary hover:bg-surface-hover cursor-pointer">
+                                Values only
+                            </button>
+                            <button v-if="dataset.sourceMode !== 'manual'" @click="handleExportCsv(true)"
+                                class="block w-full text-left px-3 py-2 text-xs text-text-primary hover:bg-surface-hover cursor-pointer">
+                                With sources (anchors)
+                            </button>
+                        </div>
+                    </div>
                     <button @click="activeTab = activeTab === 'schema' ? 'data' : 'schema'"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -137,22 +153,41 @@
                     <!-- Right: fields -->
                     <div class="flex-1 min-w-0 overflow-y-auto">
                         <label class="block text-xs font-medium text-text-secondary mb-1.5">Fields</label>
-                        <DatasetSchemaEditor v-model="editableSchema" />
+                        <DatasetSchemaEditor v-model="editableSchema"
+                            :source-mode="dataset.sourceMode"
+                            :source-config="dataset.sourceConfig"
+                            :project-id="dataset.project?.id ?? null" />
                     </div>
+                </div>
+
+                <!-- Sources tab -->
+                <div v-if="activeTab === 'sources'" class="h-full overflow-y-auto">
+                    <DatasetSourcesPanel v-if="dataset" :dataset="dataset" @save="reloadDataset" />
                 </div>
 
                 <!-- Data tab -->
                 <div v-if="activeTab === 'data'" class="h-full flex flex-col">
-                    <div class="shrink-0 px-4 py-2 border-b border-border-light bg-surface/50">
-                        <DatasetFilterBar :schema="dataset.schema" v-model:filters="filters"
+                    <div class="shrink-0 px-4 py-2 border-b border-border-light bg-surface/50 flex items-center gap-3">
+                        <DatasetFilterBar class="flex-1" :schema="dataset.schema" v-model:filters="filters"
                             v-model:search-term="searchTerm" @apply="applyFilters" @search="applyFilters" />
+                        <button v-if="dataset.sourceMode !== 'manual'"
+                            @click="handleExtractAll" :disabled="extractAllCooldown"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white text-xs font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            {{ extractAllLabel }}
+                        </button>
                     </div>
 
                     <div class="flex-1 overflow-auto">
                         <DatasetRecordTable ref="recordTableRef" :schema="dataset.schema" :records="records" :total="totalRecords" :page="page"
                             :limit="limit" :sort-field="sortField" :sort-order="sortOrder"
+                            :show-status-column="dataset.sourceMode !== 'manual'"
                             @page="changePage" @sort="toggleSort"
-                            @bulk-delete="confirmBulkDelete" @inline-update="handleInlineUpdate" />
+                            @bulk-delete="confirmBulkDelete" @inline-update="handleInlineUpdate"
+                            @re-extract-row="handleReExtractRow"
+                            @re-extract-cell="handleReExtractCell" />
                     </div>
                 </div>
 
@@ -406,6 +441,12 @@
             confirm-text="Delete All" cancel-text="Cancel" confirm-variant="danger" @confirm="handleBulkDelete"
             @cancel="showBulkDeleteModal = false" />
 
+        <!-- Re-extract cell confirm (when cell was manually edited) -->
+        <ConfirmModal :is-open="showReExtractCellConfirm" title="Overwrite manual edit?"
+            message="This cell was edited manually. Re-extracting will replace your edit with the model output."
+            confirm-text="Overwrite" cancel-text="Cancel" confirm-variant="warning"
+            @confirm="confirmReExtractCell" @cancel="showReExtractCellConfirm = false; pendingCellReExtract = null" />
+
         <!-- Schema Change Warning Modal -->
         <Teleport to="body">
             <Transition name="modal">
@@ -512,9 +553,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, h } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDatasets, type Dataset, type DatasetRecord, type DatasetField, type DatasetChart, type CsvPreview, type ImportResult, type SchemaAnalysis } from '../services/datasets/useDatasets';
+import { getSocket, connectSocket } from '../services/notifications/notification';
 import { useNotification } from '../composables/useNotification';
 import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
@@ -528,6 +570,7 @@ import DatasetCorrelationMatrix from '../components/datasets/DatasetCorrelationM
 import DatasetOutlierPanel from '../components/datasets/DatasetOutlierPanel.vue';
 import DatasetPivotTable from '../components/datasets/DatasetPivotTable.vue';
 import CsvImportModal from '../components/datasets/CsvImportModal.vue';
+import DatasetSourcesPanel from '../components/datasets/DatasetSourcesPanel.vue';
 import { useDataSources } from '../services/data-sources/useDataSources';
 
 const chartModes = [
@@ -557,6 +600,7 @@ const TabIcon = (paths: string[]) => ({
 
 const tabs = [
     { key: 'data', label: 'Data', icon: TabIcon(['M3 10h18M3 14h18M3 6h18M3 18h18']) },
+    { key: 'sources', label: 'Sources', icon: TabIcon(['M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2', 'M9 5a2 2 0 012-2h2a2 2 0 012 2v0a2 2 0 01-2 2h-2a2 2 0 01-2-2v0z']) },
     { key: 'charts', label: 'Charts & Analysis', icon: TabIcon(['M4 4v16h16', 'M8 16V9', 'M12 16V4', 'M16 16v-5']) },
     { key: 'saved', label: 'Saved', icon: TabIcon(['M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z']) },
 ];
@@ -572,6 +616,9 @@ const {
     requestStats, getStatsResult,
     exportDatasetCsv, bulkDeleteRecords,
     getSavedCharts, saveChart, deleteSavedChart,
+    extractAll: extractAllApi,
+    reExtractRow: reExtractRowApi,
+    reExtractCell: reExtractCellApi,
 } = useDatasets();
 const { triggerSync } = useDataSources();
 
@@ -670,6 +717,92 @@ const loadRecords = async () => {
     const result = await getRecords(datasetId, params);
     records.value = result.records;
     totalRecords.value = result.total;
+};
+
+// Extraction state
+const extractAllCooldown = ref(false);
+const pendingCellReExtract = ref<{ recordId: number; fieldKey: string } | null>(null);
+const showReExtractCellConfirm = ref(false);
+
+const pendingRowsCount = computed(() => records.value.filter((r) => r.extractionStatus === 'pending' || r.extractionStatus === 'in_progress').length);
+
+const extractAllLabel = computed(() => {
+    if (!dataset.value) return 'Extract';
+    if (dataset.value.sourceMode === 'manual') return 'Extract';
+    if (pendingRowsCount.value > 0) return `Extract pending (${pendingRowsCount.value})`;
+    return 'Extract all';
+});
+
+const handleExtractAll = async () => {
+    if (!dataset.value || extractAllCooldown.value) return;
+    extractAllCooldown.value = true;
+    try {
+        const { rowsQueued } = await extractAllApi(dataset.value.id);
+        notification.success(`Extraction started: ${rowsQueued} row${rowsQueued === 1 ? '' : 's'} queued`);
+        await loadRecords();
+    } catch {
+        notification.error('Failed to start extraction');
+    } finally {
+        setTimeout(() => { extractAllCooldown.value = false; }, 3000);
+    }
+};
+
+const handleReExtractRow = async (recordId: number) => {
+    if (!dataset.value) return;
+    try {
+        await reExtractRowApi(dataset.value.id, recordId);
+        notification.success('Row queued for re-extraction');
+        await loadRecords();
+    } catch {
+        notification.error('Failed to re-extract row');
+    }
+};
+
+const handleReExtractCell = async (recordId: number, fieldKey: string, force = false) => {
+    if (!dataset.value) return;
+    try {
+        const res = await reExtractCellApi(dataset.value.id, recordId, fieldKey, force);
+        if ((res as any).requiresConfirmation) {
+            pendingCellReExtract.value = { recordId, fieldKey };
+            showReExtractCellConfirm.value = true;
+            return;
+        }
+        notification.success('Cell queued for re-extraction');
+    } catch {
+        notification.error('Failed to re-extract cell');
+    }
+};
+
+const confirmReExtractCell = async () => {
+    showReExtractCellConfirm.value = false;
+    const pending = pendingCellReExtract.value;
+    pendingCellReExtract.value = null;
+    if (!pending) return;
+    await handleReExtractCell(pending.recordId, pending.fieldKey, true);
+};
+
+// Socket listener for live updates
+let socketHandler: ((data: any) => void) | null = null;
+
+const installSocketHandler = () => {
+    const socket = getSocket();
+    connectSocket();
+    socketHandler = (data: any) => {
+        if (!data || data.type !== 'dataset.extract-row') return;
+        if (data.datasetId !== datasetId) return;
+        // Refresh the affected row from server to pick data + cellMetadata.
+        loadRecords();
+    };
+    socket.on('notification', socketHandler);
+};
+
+const reloadDataset = async () => {
+    try {
+        dataset.value = await getDataset(datasetId);
+        notification.success('Sources updated');
+    } catch {
+        notification.error('Failed to reload dataset');
+    }
 };
 
 const handleSync = async () => {
@@ -800,10 +933,12 @@ const handleBulkDelete = async () => {
 };
 
 // Export CSV
-const handleExportCsv = async () => {
+const exportMenuOpen = ref(false);
+const handleExportCsv = async (includeAnchors = false) => {
+    exportMenuOpen.value = false;
     try {
-        await exportDatasetCsv(datasetId);
-        notification.success('CSV exported');
+        await exportDatasetCsv(datasetId, includeAnchors);
+        notification.success(includeAnchors ? 'CSV exported with sources' : 'CSV exported');
     } catch {
         notification.error('Failed to export CSV');
     }
@@ -1037,10 +1172,18 @@ onMounted(async () => {
             loadRecords(),
             loadSavedCharts(),
         ]);
+        installSocketHandler();
     } catch {
         notification.error('Failed to load dataset');
     } finally {
         loading.value = false;
+    }
+});
+
+onBeforeUnmount(() => {
+    if (socketHandler) {
+        try { getSocket().off('notification', socketHandler); } catch { /* ignore */ }
+        socketHandler = null;
     }
 });
 </script>

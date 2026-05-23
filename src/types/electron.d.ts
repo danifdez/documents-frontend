@@ -31,8 +31,20 @@ export interface ElectronAPI {
         themeId?: string;
         defaultBrowserUrl?: string;
         disabledFeatures?: string[];
+        // Cambio #11 (residente / tray) preferences.
+        closeBehavior?: 'tray' | 'quit';
+        launchAtLogin?: boolean;
+        toggleShortcut?: string | null;
+        hideDockIcon?: boolean;
+        preloadVoiceModel?: boolean;
     }>;
-    setSettings: (settings: any) => Promise<void>;
+    // Returns `{ ok, shortcutOk }` post Cambio #11 — T04. Older callers that
+    // ignore the return value keep working since the IPC channel itself is
+    // unchanged.
+    setSettings: (settings: any) => Promise<{ ok: boolean; shortcutOk: boolean } | void>;
+    // Cambio #11 — T04/T08. Runtime info about residente/tray support.
+    getTrayAvailable?: () => Promise<boolean>;
+    getPlatform?: () => Promise<NodeJS.Platform>;
     openExternalBrowser: (projectId: string) => Promise<void>;
     navigateTo: (url: string) => Promise<boolean>;
     goBack: () => Promise<boolean>;

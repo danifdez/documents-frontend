@@ -49,6 +49,10 @@
                                 @keydown.backspace="handleBackspace(task, index, $event)"
                                 @keydown.up.prevent="focusInput(index - 1)"
                                 @keydown.down.prevent="focusInput(index + 1)" @keydown.esc="close" />
+                            <span v-if="task.reminderAt"
+                                class="shrink-0 text-[13px] cursor-default"
+                                :title="`Reminder · ${formatLocal(task.reminderAt)}`"
+                                @click.stop="expandedTask = task.id">🔔</span>
                             <button @click="removeTask(task)"
                                 class="shrink-0 p-1.5 rounded-lg text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -57,11 +61,23 @@
                                 </svg>
                             </button>
                         </div>
-                        <!-- Description (expanded) -->
-                        <div v-if="expandedTask === task.id" class="pl-[52px] pr-4 pb-3">
+                        <!-- Description + reminder (expanded) -->
+                        <div v-if="expandedTask === task.id" class="pl-[52px] pr-4 pb-3 space-y-2">
                             <textarea :value="task.description || ''" rows="2" placeholder="Add a note..."
                                 class="w-full bg-surface rounded-xl border border-border text-sm text-text-secondary outline-none px-4 py-2.5 resize-none placeholder:text-text-muted focus:ring-1 focus:ring-accent/20 focus:border-accent transition-all"
                                 @blur="saveDescription(task, $event)" @keydown.esc="close"></textarea>
+                            <div class="flex items-center gap-2">
+                                <label class="text-[11px] text-text-muted">Remind me at</label>
+                                <input :value="toLocalInput(task.reminderAt)" type="datetime-local"
+                                    class="bg-surface rounded-md border border-border text-xs px-2 py-1"
+                                    @change="saveReminder(task, $event)" />
+                                <button v-if="task.reminderAt" type="button"
+                                    class="text-[11px] text-text-muted hover:text-text-primary"
+                                    @click="clearReminder(task)">clear</button>
+                                <span v-if="reminderError === task.id" class="text-[11px] text-red-500">
+                                    Reminder must be in the future.
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -74,6 +90,18 @@
                             class="flex-1 bg-transparent text-[15px] text-text-primary outline-none placeholder:text-text-muted"
                             @keydown.enter="addTask" @keydown.up.prevent="focusInput(pendingTasks.length - 1)"
                             @keydown.esc="close" @focus="expandedTask = null" />
+                    </div>
+                    <!-- Optional reminder for the new task -->
+                    <div class="flex items-center gap-2 pl-[52px] pr-4 pb-2">
+                        <label class="text-[11px] text-text-muted">Remind me at</label>
+                        <input v-model="newReminderAt" type="datetime-local"
+                            class="bg-surface rounded-md border border-border text-xs px-2 py-1" />
+                        <button v-if="newReminderAt" type="button"
+                            class="text-[11px] text-text-muted hover:text-text-primary"
+                            @click="newReminderAt = ''">clear</button>
+                        <span v-if="newReminderError" class="text-[11px] text-red-500">
+                            Reminder must be in the future.
+                        </span>
                     </div>
 
                     <!-- Completed section -->
@@ -138,10 +166,31 @@ const { tasks: allTasks, loadTasks, createTask, updateTask, deleteTask } = useUs
 const assistantStore = useAssistantStore();
 
 const newTitle = ref('');
+const newReminderAt = ref('');
+const newReminderError = ref(false);
+const reminderError = ref<number | null>(null);
 const newTaskInput = ref<HTMLInputElement | null>(null);
 const inputRefs = ref<(HTMLInputElement | null)[]>([]);
 const showCompleted = ref(false);
 const expandedTask = ref<number | null>(null);
+
+function formatLocal(iso: string | null | undefined): string {
+    if (!iso) return '';
+    try {
+        return new Date(iso).toLocaleString();
+    } catch {
+        return iso;
+    }
+}
+
+function toLocalInput(iso: string | null | undefined): string {
+    // `datetime-local` expects "YYYY-MM-DDTHH:MM" in local time.
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const offsetMs = d.getTimezoneOffset() * 60_000;
+    return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
+}
 
 const pendingTasks = computed(() => allTasks.value.filter(t => t.status !== 'completed'));
 const completedTasks = computed(() => allTasks.value.filter(t => t.status === 'completed'));
@@ -178,11 +227,48 @@ const focusInput = (index: number) => {
 const addTask = async () => {
     const title = newTitle.value.trim();
     if (!title) return;
+    let reminderAt: string | undefined;
+    if (newReminderAt.value) {
+        // datetime-local emits naive local time; the browser interprets it as
+        // local and toISOString() converts to UTC.
+        const parsed = new Date(newReminderAt.value);
+        if (isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
+            newReminderError.value = true;
+            return;
+        }
+        reminderAt = parsed.toISOString();
+    }
+    newReminderError.value = false;
     newTitle.value = '';
-    await createTask({ title });
+    newReminderAt.value = '';
+    const payload: { title: string; reminderAt?: string } = { title };
+    if (reminderAt) payload.reminderAt = reminderAt;
+    await createTask(payload);
     await loadTasks();
     await nextTick();
     newTaskInput.value?.focus();
+};
+
+const saveReminder = async (task: UserTask, event: Event) => {
+    const raw = (event.target as HTMLInputElement).value;
+    if (!raw) {
+        await clearReminder(task);
+        return;
+    }
+    const parsed = new Date(raw);
+    if (isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
+        reminderError.value = task.id;
+        return;
+    }
+    reminderError.value = null;
+    await updateTask(task.id, { reminderAt: parsed.toISOString() });
+    await loadTasks();
+};
+
+const clearReminder = async (task: UserTask) => {
+    reminderError.value = null;
+    await updateTask(task.id, { reminderAt: null });
+    await loadTasks();
 };
 
 const saveTitle = async (task: UserTask, event: Event) => {

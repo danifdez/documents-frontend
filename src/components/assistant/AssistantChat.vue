@@ -129,6 +129,8 @@ function eventIcon(event: AssistantMessageEvent | null): string {
             return '🧠';
         case 'memory_forgotten':
             return '🗑️';
+        case 'memory_replaced':
+            return '✏️';
         case 'tool_executed':
             return '🔍';
         default:
@@ -140,11 +142,19 @@ const TOOL_NAME_LABEL: Record<string, string> = {
     search_workspace: 'Workspace search',
     update_task: 'Update task',
     delete_task: 'Delete task',
+    mark_event_occurrence_done: 'Mark event done',
+    set_task_reminder: 'Set task reminder',
+    clear_task_reminder: 'Clear task reminder',
 };
 
 function eventTitle(msg: AssistantMessage): string {
     const event = msg.event;
-    if ((event?.kind === 'memory_saved' || event?.kind === 'memory_forgotten') && event.entry) {
+    if (
+        (event?.kind === 'memory_saved'
+            || event?.kind === 'memory_forgotten'
+            || event?.kind === 'memory_replaced')
+        && event.entry
+    ) {
         return event.entry.name;
     }
     if (event?.kind === 'tool_executed' && event.tool) {
@@ -162,6 +172,11 @@ function eventMeta(event: AssistantMessageEvent | null): string {
     if (event.kind === 'memory_forgotten' && event.entry) {
         const type = MEMORY_TYPE_LABEL[event.entry.type as keyof typeof MEMORY_TYPE_LABEL] || event.entry.type;
         return `Memory forgotten · ${type}`;
+    }
+    if (event.kind === 'memory_replaced' && event.entry) {
+        const type = MEMORY_TYPE_LABEL[event.entry.type as keyof typeof MEMORY_TYPE_LABEL] || event.entry.type;
+        const suffix = event.via === 'auto_dedup' ? ' · auto-detected' : '';
+        return `Memory updated · ${type}${suffix}`;
     }
     if (event.kind === 'tool_executed' && event.tool) {
         const label = TOOL_NAME_LABEL[event.tool.name] || event.tool.name;

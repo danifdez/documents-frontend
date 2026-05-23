@@ -149,6 +149,31 @@
                 </div>
             </div>
 
+            <!-- Track completion -->
+            <div :class="['flex items-start gap-2', form.alarmPreset === 'none' ? 'opacity-60' : '']">
+                <input id="track-completion" v-model="form.trackCompletion" type="checkbox"
+                    class="mt-0.5 w-4 h-4 rounded border-border text-accent focus:ring-accent/20" />
+                <div class="flex flex-col">
+                    <label for="track-completion" class="text-xs text-text-secondary cursor-pointer">
+                        I want to mark it as done
+                    </label>
+                    <span class="text-[11px] text-text-muted">
+                        {{ form.alarmPreset === 'none'
+                            ? 'Set an alarm to receive a "Done" button on the notification.'
+                            : 'Adds a "Done" button on the alarm so you can check it off per occurrence.' }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Undo completion for the specific occurrence -->
+            <div v-if="canUndoOccurrence"
+                class="flex items-center gap-2 rounded-md border border-border bg-surface/40 p-2">
+                <span class="text-[11px] text-text-muted">This occurrence is marked as done.</span>
+                <Button type="button" variant="secondary" size="small" @click="$emit('unmarkOccurrence')">
+                    Mark as not done
+                </Button>
+            </div>
+
             <div class="flex justify-between pt-2">
                 <div>
                     <Button v-if="isEditing" type="button" variant="danger" size="small" @click="$emit('delete')">
@@ -181,7 +206,7 @@ const props = defineProps<{
     defaultProjectId?: number | null;
 }>();
 
-const emit = defineEmits(['update:modelValue', 'submit', 'delete']);
+const emit = defineEmits(['update:modelValue', 'submit', 'delete', 'unmarkOccurrence']);
 
 const showModal = ref(false);
 const isSubmitting = ref(false);
@@ -222,7 +247,19 @@ const form = reactive({
     customUntil: '',
     alarmPreset: 'none' as AlarmPreset,
     alarmCustomMinutes: 15,
+    trackCompletion: false,
 });
+
+// Show the "Mark as not done" button only when the modal was opened on a
+// specific completed occurrence (per-occurrence info comes from
+// /calendar-events/range, not from the single-event endpoint).
+const canUndoOccurrence = computed(
+    () =>
+        isEditing.value &&
+        !!props.event?.trackCompletion &&
+        !!props.event?.completed &&
+        !!props.event?.occurrenceStart,
+);
 
 function formatDateForInput(date: Date, allDay: boolean): string {
     if (allDay) {
@@ -252,6 +289,7 @@ function resetForm() {
     form.customUntil = '';
     form.alarmPreset = 'none';
     form.alarmCustomMinutes = 15;
+    form.trackCompletion = false;
     isEditing.value = false;
 }
 
@@ -396,6 +434,7 @@ watch(() => props.modelValue, (v) => {
                 form.recurrenceRuleRaw = '';
             }
             applyAlarmFromDescriptor(props.event.alarm ?? null);
+            form.trackCompletion = props.event.trackCompletion ?? false;
         } else {
             resetForm();
             if (props.defaultDate) {
@@ -423,6 +462,7 @@ function handleSubmit() {
         allDay: form.allDay,
         recurrenceRule: buildRRule(),
         alarm: buildAlarm(),
+        trackCompletion: form.trackCompletion,
     };
 
     if (form.projectId) {

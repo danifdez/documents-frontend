@@ -6,6 +6,7 @@ export interface CalendarAlarmPayload {
   occurrenceStart: string;
   title: string;
   alarmLabel: string | null;
+  trackCompletion: boolean;
 }
 
 export interface CalendarMissedPayload {

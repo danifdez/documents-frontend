@@ -78,6 +78,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openMultipleFileDialog: () => ipcRenderer.invoke('open-multiple-file-dialog'),
     getSettings: () => ipcRenderer.invoke('settings:get'),
     setSettings: (settings: any) => ipcRenderer.invoke('settings:set', settings),
+    // Cambio #11 — T04/T08. Exposes the residente/tray runtime info that
+    // the Settings UI needs to gate platform-specific controls.
+    getTrayAvailable: (): Promise<boolean> => ipcRenderer.invoke('app:tray-available'),
+    getPlatform: (): Promise<NodeJS.Platform> => ipcRenderer.invoke('app:get-platform'),
     showSelectionContextMenu: () => ipcRenderer.invoke('show-selection-context-menu'),
     navigateMainWindow: (route: string) => ipcRenderer.invoke('navigate-main-window', route),
     onNavigateToRoute: (callback: (route: string) => void) =>
@@ -152,9 +156,16 @@ contextBridge.exposeInMainWorld('calendarAlarms', {
         occurrenceStart: string;
         title: string;
         alarmLabel: string | null;
+        trackCompletion: boolean;
     }) => ipcRenderer.invoke('calendar:show-alarm', payload),
     showMissedAggregate: (payload: {
-        items: Array<{ eventId: number; occurrenceStart: string; title: string; alarmLabel: string | null }>;
+        items: Array<{
+            eventId: number;
+            occurrenceStart: string;
+            title: string;
+            alarmLabel: string | null;
+            trackCompletion: boolean;
+        }>;
     }) => ipcRenderer.invoke('calendar:show-missed-aggregate', payload),
     onNavigateToEvent: (callback: (eventId: number) => void) => {
         const handler = (_e: unknown, eventId: number) => callback(eventId);
@@ -165,5 +176,26 @@ contextBridge.exposeInMainWorld('calendarAlarms', {
         const handler = () => callback();
         ipcRenderer.on('calendar:navigate-missed-panel', handler);
         return () => ipcRenderer.off('calendar:navigate-missed-panel', handler);
+    },
+});
+
+contextBridge.exposeInMainWorld('taskReminders', {
+    showReminderNotification: (payload: {
+        taskId: number;
+        title: string;
+        reminderAt: string;
+    }) => ipcRenderer.invoke('task:show-reminder', payload),
+    showMissedAggregate: (payload: {
+        items: Array<{ taskId: number; title: string; reminderAt: string }>;
+    }) => ipcRenderer.invoke('task:show-missed-aggregate', payload),
+    onNavigateToTask: (callback: (taskId: number) => void) => {
+        const handler = (_e: unknown, taskId: number) => callback(taskId);
+        ipcRenderer.on('task:navigate', handler);
+        return () => ipcRenderer.off('task:navigate', handler);
+    },
+    onNavigateMissedTasksPanel: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on('task:navigate-missed-panel', handler);
+        return () => ipcRenderer.off('task:navigate-missed-panel', handler);
     },
 });

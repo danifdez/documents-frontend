@@ -123,6 +123,119 @@
                 </div>
             </div>
 
+            <!-- Application Tab — Cambio #11 (residente / tray) -->
+            <div v-show="activeTab === 'application'">
+                <p class="text-sm text-text-muted mb-4">
+                    Control how the app behaves when you close the window, how it starts with your session, and the
+                    global shortcut to bring it back from the tray.
+                </p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    <!-- Close behavior -->
+                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Close behavior
+                        </h2>
+                        <div v-if="!trayAvailable"
+                            class="mb-3 text-xs text-text-secondary p-2 bg-surface rounded border border-border">
+                            Your environment does not expose a system tray. The app will run in classic mode (close =
+                            quit).
+                        </div>
+                        <div class="space-y-2">
+                            <label class="flex items-start gap-2 cursor-pointer">
+                                <input type="radio" value="tray" v-model="closeBehavior" :disabled="!trayAvailable"
+                                    @change="saveAppSettings" class="accent-accent mt-1" />
+                                <div>
+                                    <div class="text-sm text-text-primary">Keep running in tray (recommended)</div>
+                                    <div class="text-xs text-text-muted">Closing the window hides it. Use Exit from the
+                                        tray icon to quit.</div>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-2 cursor-pointer">
+                                <input type="radio" value="quit" v-model="closeBehavior" @change="saveAppSettings"
+                                    class="accent-accent mt-1" />
+                                <div>
+                                    <div class="text-sm text-text-primary">Quit on close</div>
+                                    <div class="text-xs text-text-muted">Closing the window quits the app entirely
+                                        (classic mode).</div>
+                                </div>
+                            </label>
+                        </div>
+                    </section>
+
+                    <!-- Launch at login -->
+                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Startup</h2>
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input type="checkbox" v-model="launchAtLogin" :disabled="platform === 'linux'"
+                                @change="saveAppSettings" class="accent-accent mt-1" />
+                            <div>
+                                <div class="text-sm text-text-primary">Launch at login</div>
+                                <div class="text-xs text-text-muted">
+                                    <span v-if="platform === 'linux'">Not supported on Linux yet.</span>
+                                    <span v-else>Starts hidden in the tray, without opening the window.</span>
+                                </div>
+                            </div>
+                        </label>
+                    </section>
+
+                    <!-- Global shortcut -->
+                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Global
+                            shortcut</h2>
+                        <div class="text-xs text-text-muted mb-2">Show or hide the window from anywhere.</div>
+                        <div class="flex items-center gap-2">
+                            <button @click="startShortcutCapture" type="button"
+                                class="flex-1 px-3 py-1.5 text-sm bg-surface border border-border rounded-lg text-text-primary hover:bg-surface-hover transition-colors cursor-pointer text-left">
+                                <span v-if="shortcutCaptureMode" class="text-text-muted">Press a key combination… (Esc
+                                    to cancel)</span>
+                                <span v-else-if="toggleShortcut">{{ toggleShortcut }}</span>
+                                <span v-else class="text-text-muted">Click to set</span>
+                            </button>
+                            <button v-if="toggleShortcut" @click="clearShortcut" type="button"
+                                class="px-3 py-1.5 text-sm bg-surface border border-border rounded-lg text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
+                                Clear
+                            </button>
+                        </div>
+                        <div v-if="shortcutError" class="mt-2 text-xs text-red-500">{{ shortcutError }}</div>
+                        <p class="mt-2 text-xs text-text-muted">If the shortcut stops working, another app may have
+                            taken it — re-set it here.</p>
+                    </section>
+
+                    <!-- macOS dock -->
+                    <section v-if="platform === 'darwin'"
+                        class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">macOS dock
+                        </h2>
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input type="checkbox" v-model="hideDockIcon" @change="saveAppSettings"
+                                class="accent-accent mt-1" />
+                            <div>
+                                <div class="text-sm text-text-primary">Hide dock icon</div>
+                                <div class="text-xs text-text-muted">The app stays accessible from the menu bar tray
+                                    only.</div>
+                            </div>
+                        </label>
+                    </section>
+
+                    <!-- Voice preload (Cambio #11 — T10) -->
+                    <section v-if="voiceLocalAvailable"
+                        class="bg-surface-elevated rounded-xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice</h2>
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input type="checkbox" v-model="preloadVoiceModel" @change="saveAppSettings"
+                                class="accent-accent mt-1" />
+                            <div>
+                                <div class="text-sm text-text-primary">Preload voice model on startup</div>
+                                <div class="text-xs text-text-muted">Faster first dictation, ~200 MB more RAM. Applies
+                                    on next launch.</div>
+                            </div>
+                        </label>
+                    </section>
+
+                </div>
+            </div>
+
             <!-- Features Tab -->
             <div v-show="activeTab === 'features'">
                 <p class="text-sm text-text-muted mb-4">Enable or disable application features. Server-disabled
@@ -468,10 +581,11 @@ const featureStore = useFeatureStore();
 const router = useRouter();
 
 // ── Tabs ──
-type TabId = 'general' | 'features' | 'workspaces' | 'server' | 'export';
+type TabId = 'general' | 'application' | 'features' | 'workspaces' | 'server' | 'export';
 const activeTab = ref<TabId>('general');
 const tabs: { id: TabId; label: string }[] = [
     { id: 'general', label: 'General' },
+    { id: 'application', label: 'Application' },
     { id: 'features', label: 'Features' },
     { id: 'workspaces', label: 'Workspaces' },
     { id: 'server', label: 'Server' },
@@ -611,6 +725,17 @@ const language = ref('en');
 const theme = ref<ThemeMode>('system');
 const defaultBrowserUrl = ref('https://github.com/electron/electron');
 
+// ── Application tab — Cambio #11 (residente / tray) ──
+const closeBehavior = ref<'tray' | 'quit'>('tray');
+const launchAtLogin = ref(false);
+const toggleShortcut = ref<string | null>(null);
+const hideDockIcon = ref(false);
+const preloadVoiceModel = ref(false);
+const shortcutCaptureMode = ref(false);
+const shortcutError = ref<string | null>(null);
+const platform = ref<'darwin' | 'win32' | 'linux' | 'other'>('other');
+const trayAvailable = ref(true);
+
 // Export state
 const exportScope = ref<'all' | 'selected'>('all');
 const selectedProjectIds = ref<number[]>([]);
@@ -635,24 +760,108 @@ const loadSettings = async () => {
             theme.value = (settings.theme as ThemeMode) || 'system';
             activeThemeId.value = settings.themeId || 'default';
             defaultBrowserUrl.value = settings.defaultBrowserUrl || 'https://github.com/electron/electron';
+            closeBehavior.value = settings.closeBehavior === 'quit' ? 'quit' : 'tray';
+            launchAtLogin.value = !!settings.launchAtLogin;
+            toggleShortcut.value = settings.toggleShortcut ?? null;
+            hideDockIcon.value = !!settings.hideDockIcon;
+            preloadVoiceModel.value = !!settings.preloadVoiceModel;
         }
     }
 };
 
+async function loadAppRuntimeInfo() {
+    const api: any = window.electronAPI;
+    if (api?.getPlatform) {
+        try {
+            const p = (await api.getPlatform()) as string;
+            platform.value = (p === 'darwin' || p === 'win32' || p === 'linux') ? p : 'other';
+        } catch { /* keep default */ }
+    }
+    if (api?.getTrayAvailable) {
+        try {
+            trayAvailable.value = !!(await api.getTrayAvailable());
+        } catch { /* keep default */ }
+    }
+}
+
+function currentSettingsPayload() {
+    return {
+        fontSize: fontSize.value,
+        fontFamily: fontFamily.value,
+        paragraphSpacing: paragraphSpacing.value,
+        language: language.value,
+        theme: theme.value,
+        themeId: activeThemeId.value,
+        defaultBrowserUrl: defaultBrowserUrl.value,
+        // Cambio #11 — keep the residente prefs in every settings payload so
+        // unrelated saves don't drop them.
+        closeBehavior: closeBehavior.value,
+        launchAtLogin: launchAtLogin.value,
+        toggleShortcut: toggleShortcut.value,
+        hideDockIcon: hideDockIcon.value,
+        preloadVoiceModel: preloadVoiceModel.value,
+    };
+}
+
 const saveSettings = () => {
     if (window.electronAPI && window.electronAPI.setSettings) {
         setTheme(theme.value);
-        window.electronAPI.setSettings({
-            fontSize: fontSize.value,
-            fontFamily: fontFamily.value,
-            paragraphSpacing: paragraphSpacing.value,
-            language: language.value,
-            theme: theme.value,
-            themeId: activeThemeId.value,
-            defaultBrowserUrl: defaultBrowserUrl.value,
-        });
+        window.electronAPI.setSettings(currentSettingsPayload());
     }
 };
+
+async function saveAppSettings() {
+    if (!window.electronAPI?.setSettings) return;
+    const result: any = await window.electronAPI.setSettings(currentSettingsPayload());
+    if (result && typeof result === 'object' && result.shortcutOk === false) {
+        shortcutError.value = 'Shortcut is already in use by another application.';
+    } else {
+        shortcutError.value = null;
+    }
+}
+
+function startShortcutCapture() {
+    if (shortcutCaptureMode.value) return;
+    shortcutCaptureMode.value = true;
+    shortcutError.value = null;
+
+    const cleanup = () => {
+        window.removeEventListener('keydown', handler, true);
+        window.removeEventListener('keydown', escHandler, true);
+        shortcutCaptureMode.value = false;
+    };
+
+    const handler = (e: KeyboardEvent) => {
+        // Use capture phase + preventDefault so TipTap and other editors
+        // don't swallow the combo while the user is configuring it.
+        e.preventDefault();
+        e.stopPropagation();
+        const parts: string[] = [];
+        if (e.ctrlKey || e.metaKey) parts.push('CommandOrControl');
+        if (e.altKey) parts.push('Alt');
+        if (e.shiftKey) parts.push('Shift');
+        const k = e.key;
+        if (k && !['Control', 'Shift', 'Alt', 'Meta'].includes(k)) {
+            parts.push(k.length === 1 ? k.toUpperCase() : k);
+            toggleShortcut.value = parts.join('+');
+            cleanup();
+            void saveAppSettings();
+        }
+    };
+    const escHandler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            cleanup();
+        }
+    };
+    window.addEventListener('keydown', handler, true);
+    window.addEventListener('keydown', escHandler, true);
+}
+
+function clearShortcut() {
+    toggleShortcut.value = null;
+    void saveAppSettings();
+}
 
 const loadProjects = async () => {
     try {
@@ -704,6 +913,7 @@ const startExport = async () => {
 
 onMounted(() => {
     loadSettings();
+    loadAppRuntimeInfo();
     refreshThemes();
     loadProjects();
     loadStandaloneStatus();

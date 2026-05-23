@@ -67,6 +67,7 @@ import { useGlobalKeyboard } from './composables/useGlobalKeyboard';
 import { useTaskPanel } from './composables/useTaskPanel';
 import { getSocket, connectSocket } from './services/notifications/notification';
 import { bindCalendarAlarms } from './services/calendar/useCalendarAlarms';
+import { bindTaskReminders } from './services/user-tasks/useTaskReminders';
 import { useRouter, useRoute } from 'vue-router';
 import { useNotification } from './composables/useNotification';
 import { useTheme } from './composables/useTheme';
@@ -133,6 +134,7 @@ function setupSocket() {
     }
   });
   bindCalendarAlarms();
+  bindTaskReminders();
 }
 
 onMounted(async () => {
@@ -148,6 +150,13 @@ onMounted(async () => {
   });
   window.calendarAlarms?.onNavigateMissedPanel?.(() => {
     router.push({ path: '/calendar/missed' });
+  });
+
+  window.taskReminders?.onNavigateToTask?.(() => {
+    showTaskPanel.value = true;
+  });
+  window.taskReminders?.onNavigateMissedTasksPanel?.(() => {
+    showTaskPanel.value = true;
   });
 
   // Initialize workspace before anything else

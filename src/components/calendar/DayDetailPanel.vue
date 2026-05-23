@@ -10,9 +10,10 @@
         <div v-if="allDayEvents.length > 0" class="px-2 py-1.5 border-b border-border shrink-0">
             <div v-for="event in allDayEvents" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                 class="px-2 py-1 rounded text-[11px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity mb-0.5"
+                :class="{ 'opacity-50 line-through': event.trackCompletion && event.completed }"
                 :style="{ backgroundColor: event.color + '20', color: event.color }"
                 @click="$emit('eventClick', event)">
-                {{ event.title }}
+                <span v-if="event.trackCompletion && event.completed" class="mr-0.5">✓</span>{{ event.title }}
             </div>
         </div>
 
@@ -33,6 +34,7 @@
                 <!-- Timed events positioned by time -->
                 <div v-for="evt in positionedEvents" :key="`${evt.event.id}-${evt.event.occurrenceStart ?? evt.event.startDate}`"
                     class="absolute rounded px-1.5 py-1 text-[11px] font-medium cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
+                    :class="{ 'opacity-50': evt.event.trackCompletion && evt.event.completed }"
                     :style="{
                         top: evt.top + 'px',
                         height: Math.max(evt.height, 20) + 'px',
@@ -43,7 +45,10 @@
                         borderLeft: '3px solid ' + evt.event.color,
                     }"
                     @click.stop="$emit('eventClick', evt.event)">
-                    <p class="truncate font-semibold">{{ evt.event.title }}</p>
+                    <p class="truncate font-semibold"
+                       :class="{ 'line-through': evt.event.trackCompletion && evt.event.completed }">
+                        <span v-if="evt.event.trackCompletion && evt.event.completed" class="mr-0.5">✓</span>{{ evt.event.title }}
+                    </p>
                     <p class="text-[10px] opacity-75 truncate">{{ formatTime(evt.event) }}</p>
                 </div>
 
