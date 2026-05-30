@@ -1,4 +1,4 @@
-export type MemoryEntryType = 'fact' | 'event' | 'instruction';
+export type MemoryEntryType = 'fact' | 'episode' | 'instruction';
 export type MemoryEntrySource = 'manual' | 'detected' | 'imported';
 
 export interface MemoryEntry {
@@ -20,10 +20,10 @@ export interface CreateMemoryEntryPayload {
 
 export type UpdateMemoryEntryPayload = Partial<CreateMemoryEntryPayload>;
 
-export const MEMORY_TYPES: MemoryEntryType[] = ['fact', 'event', 'instruction'];
+export const MEMORY_TYPES: MemoryEntryType[] = ['fact', 'episode', 'instruction'];
 
 export const MEMORY_TYPE_LABEL: Record<MemoryEntryType, string> = {
     fact: 'fact',
-    event: 'event',
+    episode: 'episode',
     instruction: 'instruction',
 };
