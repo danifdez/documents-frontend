@@ -9,6 +9,13 @@ import type {
 } from '../types/Agent';
 import { useAgents } from '../services/agents/useAgents';
 import { getSocket } from '../services/notifications/notification';
+import {
+    FOLDER_MUTATING_TOOLS,
+    coerceRunningToolsToDone,
+    mergeToolEventMessage,
+    withToolStatus,
+    withEntityDeleted,
+} from '../composables/chatMessageEvents';
 
 export const useAgentStore = defineStore('agent', () => {
     const api = useAgents();
@@ -24,12 +31,6 @@ export const useAgentStore = defineStore('agent', () => {
     const error = ref<string | null>(null);
     const folderFilesVersionByAgent = ref<Record<number, number>>({});
     let socketAttached = false;
-
-    const FOLDER_MUTATING_TOOLS = new Set([
-        'folder_write',
-        'folder_delete',
-        'folder_overwrite',
-    ]);
 
     function bumpFolderFilesVersion(agentId: number) {
         const prev = folderFilesVersionByAgent.value[agentId] ?? 0;
@@ -86,34 +87,9 @@ export const useAgentStore = defineStore('agent', () => {
             if (toolName && FOLDER_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
                 bumpFolderFilesVersion(event.agentId);
             }
-            const existingIdx = arr.findIndex((m) => m.id === incoming.id);
-            if (existingIdx >= 0) {
-                const next = [...arr];
-                next[existingIdx] = incoming;
-                messagesByAgent.value = {
-                    ...messagesByAgent.value,
-                    [event.agentId]: next,
-                };
-                return;
-            }
-            const runningIdx = arr.findIndex((m) =>
-                m.role === 'event'
-                && m.event?.kind === 'tool_executed'
-                && m.event.tool?.name === incoming.event?.tool?.name
-                && m.event.tool?.status === 'running',
-            );
-            if (runningIdx >= 0 && incoming.event?.tool?.status === 'done') {
-                const next = [...arr];
-                next[runningIdx] = incoming;
-                messagesByAgent.value = {
-                    ...messagesByAgent.value,
-                    [event.agentId]: next,
-                };
-                return;
-            }
             messagesByAgent.value = {
                 ...messagesByAgent.value,
-                [event.agentId]: [...arr, incoming],
+                [event.agentId]: mergeToolEventMessage(arr, incoming),
             };
         });
 
@@ -138,21 +114,9 @@ export const useAgentStore = defineStore('agent', () => {
             if (!event?.agentId || !event?.message) return;
             let arr = messagesByAgent.value[event.agentId] ?? [];
 
-            let mutated = false;
-            arr = arr.map((m) => {
-                if (m.role === 'event' && m.event?.kind === 'tool_executed'
-                    && m.event.tool?.status === 'running') {
-                    mutated = true;
-                    return {
-                        ...m,
-                        event: {
-                            ...m.event,
-                            tool: { ...m.event.tool, status: 'done' as const },
-                        },
-                    };
-                }
-                return m;
-            });
+            const coerced = coerceRunningToolsToDone(arr);
+            arr = coerced.messages;
+            let mutated = coerced.mutated;
 
             if (!arr.some((m) => m.id === event.message.id)) {
                 arr = [...arr, event.message];
@@ -216,17 +180,7 @@ export const useAgentStore = defineStore('agent', () => {
         const next = [...arr];
         const toolName = msg.event.tool.name;
         const toolKind = (msg.event.tool as any).kind as string | undefined;
-        next[idx] = {
-            ...msg,
-            event: {
-                ...msg.event,
-                tool: {
-                    ...msg.event.tool,
-                    status,
-                    summary: summary ?? msg.event.tool.summary,
-                },
-            },
-        };
+        next[idx] = withToolStatus(msg, status, summary);
         messagesByAgent.value = { ...messagesByAgent.value, [aid]: next };
         if (status === 'done' && (
             FOLDER_MUTATING_TOOLS.has(toolName)
@@ -250,16 +204,7 @@ export const useAgentStore = defineStore('agent', () => {
         const msg = arr[idx];
         if (msg.event?.kind !== 'tool_executed' || !msg.event.tool?.entity) return;
         const next = [...arr];
-        next[idx] = {
-            ...msg,
-            event: {
-                ...msg.event,
-                tool: {
-                    ...msg.event.tool,
-                    entity: { ...msg.event.tool.entity, deleted: true },
-                },
-            },
-        };
+        next[idx] = withEntityDeleted(msg);
         messagesByAgent.value = { ...messagesByAgent.value, [aid]: next };
     }
 
@@ -268,19 +213,7 @@ export const useAgentStore = defineStore('agent', () => {
         if (!messagesByAgent.value[id]) {
             try {
                 const msgs = await api.getMessages(id);
-                const sanitized = msgs.map((m) => {
-                    if (m.role === 'event' && m.event?.kind === 'tool_executed'
-                        && m.event.tool?.status === 'running') {
-                        return {
-                            ...m,
-                            event: {
-                                ...m.event,
-                                tool: { ...m.event.tool, status: 'done' as const },
-                            },
-                        };
-                    }
-                    return m;
-                });
+                const sanitized = coerceRunningToolsToDone(msgs).messages;
                 messagesByAgent.value = { ...messagesByAgent.value, [id]: sanitized };
             } catch (e: any) {
                 error.value = e?.message || 'Failed to load messages';

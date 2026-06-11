@@ -9,6 +9,13 @@ import type {
 import { useAssistants } from '../services/assistants/useAssistants';
 import { useAssistantMemoryStore } from './assistantMemoryStore';
 import { getSocket } from '../services/notifications/notification';
+import {
+    FOLDER_MUTATING_TOOLS,
+    coerceRunningToolsToDone,
+    mergeToolEventMessage,
+    withToolStatus,
+    withEntityDeleted,
+} from '../composables/chatMessageEvents';
 
 export const useAssistantStore = defineStore('assistant', () => {
     const api = useAssistants();
@@ -36,12 +43,6 @@ export const useAssistantStore = defineStore('assistant', () => {
     // than per-assistant since tasks are global. TaskPanel watches it.
     const userTasksVersion = ref(0);
     let socketAttached = false;
-
-    const FOLDER_MUTATING_TOOLS = new Set([
-        'folder_write',
-        'folder_delete',
-        'folder_overwrite',
-    ]);
 
     const TASK_MUTATING_TOOLS = new Set(['create_task', 'update_task']);
 
@@ -122,40 +123,9 @@ export const useAssistantStore = defineStore('assistant', () => {
             if (toolName && TASK_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
                 bumpUserTasksVersion();
             }
-            const existingIdx = arr.findIndex((m) => m.id === incoming.id);
-            if (existingIdx >= 0) {
-                // Update in place — `running` → `done` transitions on the same id.
-                const next = [...arr];
-                next[existingIdx] = incoming;
-                messagesByAssistant.value = {
-                    ...messagesByAssistant.value,
-                    [event.assistantId]: next,
-                };
-                return;
-            }
-            // Look for any earlier `running` card we can replace. Match on the
-            // tool NAME only (not args) — assumes one tool runs at a time per
-            // turn, which is the current MAX_TOOL_ROUNDS=3 sequential model.
-            // Args match was too strict: tiny encoding/whitespace differences
-            // between the running and done labels left orphan spinners.
-            const runningIdx = arr.findIndex((m) =>
-                m.role === 'event'
-                && m.event?.kind === 'tool_executed'
-                && m.event.tool?.name === incoming.event?.tool?.name
-                && m.event.tool?.status === 'running',
-            );
-            if (runningIdx >= 0 && incoming.event?.tool?.status === 'done') {
-                const next = [...arr];
-                next[runningIdx] = incoming;
-                messagesByAssistant.value = {
-                    ...messagesByAssistant.value,
-                    [event.assistantId]: next,
-                };
-                return;
-            }
             messagesByAssistant.value = {
                 ...messagesByAssistant.value,
-                [event.assistantId]: [...arr, incoming],
+                [event.assistantId]: mergeToolEventMessage(arr, incoming),
             };
         });
 
@@ -188,21 +158,9 @@ export const useAssistantStore = defineStore('assistant', () => {
             // `done` event never matched them — network reorder, mismatched
             // args, etc.), force them to `done` now that the assistant has
             // produced its final reply. The model can't still be searching.
-            let mutated = false;
-            arr = arr.map((m) => {
-                if (m.role === 'event' && m.event?.kind === 'tool_executed'
-                    && m.event.tool?.status === 'running') {
-                    mutated = true;
-                    return {
-                        ...m,
-                        event: {
-                            ...m.event,
-                            tool: { ...m.event.tool, status: 'done' as const },
-                        },
-                    };
-                }
-                return m;
-            });
+            const coerced = coerceRunningToolsToDone(arr);
+            arr = coerced.messages;
+            const mutated = coerced.mutated;
 
             // Append event messages (cards) first, then the assistant reply.
             const toAppend: AssistantMessage[] = [];
@@ -300,17 +258,7 @@ export const useAssistantStore = defineStore('assistant', () => {
         const next = [...arr];
         const toolName = msg.event.tool.name;
         const toolKind = (msg.event.tool as any).kind as string | undefined;
-        next[idx] = {
-            ...msg,
-            event: {
-                ...msg.event,
-                tool: {
-                    ...msg.event.tool,
-                    status,
-                    summary: summary ?? msg.event.tool.summary,
-                },
-            },
-        };
+        next[idx] = withToolStatus(msg, status, summary);
         messagesByAssistant.value = { ...messagesByAssistant.value, [aid]: next };
         // A confirmed folder action mutates disk; tell the panel to refetch.
         if (status === 'done' && (
@@ -338,16 +286,7 @@ export const useAssistantStore = defineStore('assistant', () => {
         const msg = arr[idx];
         if (msg.event?.kind !== 'tool_executed' || !msg.event.tool?.entity) return;
         const next = [...arr];
-        next[idx] = {
-            ...msg,
-            event: {
-                ...msg.event,
-                tool: {
-                    ...msg.event.tool,
-                    entity: { ...msg.event.tool.entity, deleted: true },
-                },
-            },
-        };
+        next[idx] = withEntityDeleted(msg);
         messagesByAssistant.value = { ...messagesByAssistant.value, [aid]: next };
     }
 
@@ -359,19 +298,7 @@ export const useAssistantStore = defineStore('assistant', () => {
                 // Any tool card persisted as `running` is necessarily stale —
                 // the worker process that emitted it is long gone. Coerce to
                 // `done` so the spinner doesn't hang forever on reload.
-                const sanitized = msgs.map((m) => {
-                    if (m.role === 'event' && m.event?.kind === 'tool_executed'
-                        && m.event.tool?.status === 'running') {
-                        return {
-                            ...m,
-                            event: {
-                                ...m.event,
-                                tool: { ...m.event.tool, status: 'done' as const },
-                            },
-                        };
-                    }
-                    return m;
-                });
+                const sanitized = coerceRunningToolsToDone(msgs).messages;
                 messagesByAssistant.value = { ...messagesByAssistant.value, [id]: sanitized };
             } catch (e: any) {
                 error.value = e?.message || 'Failed to load messages';
