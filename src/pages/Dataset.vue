@@ -197,7 +197,7 @@
                         <!-- Left sidebar -->
                         <div class="w-72 shrink-0 space-y-3 overflow-y-auto">
                             <!-- Charts section -->
-                            <div class="bg-surface-elevated rounded-xl border border-border p-3 space-y-2">
+                            <div class="bg-surface-elevated rounded-2xl border border-border p-3 space-y-2">
                                 <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Charts</span>
                                 <div class="grid grid-cols-2 gap-1.5">
                                     <button v-for="ct in chartModes" :key="ct.id" @click="selectChartMode(ct.id)"
@@ -212,7 +212,7 @@
                             </div>
 
                             <!-- Analysis section -->
-                            <div class="bg-surface-elevated rounded-xl border border-border p-3 space-y-2">
+                            <div class="bg-surface-elevated rounded-2xl border border-border p-3 space-y-2">
                                 <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Analysis</span>
                                 <div class="grid grid-cols-2 gap-1.5">
                                     <button v-for="op in analysisModes" :key="op.id" @click="visualMode = op.id"
@@ -265,7 +265,7 @@
 
                             <!-- Saved views for current mode -->
                             <div v-if="savedViewsForCurrentMode.length > 0"
-                                class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+                                class="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
                                 <div class="px-3 py-2 border-b border-border-light bg-surface">
                                     <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved</span>
                                 </div>
@@ -291,7 +291,7 @@
                         <div class="flex-1 min-w-0 flex flex-col">
                             <!-- Empty state: no results yet -->
                             <div v-if="!activeResult && !activeRunning"
-                                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-xl border border-border">
+                                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-2xl border border-border">
                                 <div class="text-center">
                                     <svg class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16" />
@@ -306,7 +306,7 @@
 
                             <!-- Loading -->
                             <div v-else-if="activeRunning && !activeResult"
-                                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-xl border border-border">
+                                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-2xl border border-border">
                                 <div class="flex flex-col items-center gap-3">
                                     <div class="animate-spin rounded-full h-8 w-8 border-2 border-accent border-t-transparent"></div>
                                     <span class="text-sm text-text-muted">Running {{ activeModeName }}...</span>
@@ -314,7 +314,7 @@
                             </div>
 
                             <!-- Results -->
-                            <div v-else class="flex-1 min-h-0 overflow-hidden bg-surface-elevated rounded-xl border border-border p-4 flex flex-col">
+                            <div v-else class="flex-1 min-h-0 overflow-hidden bg-surface-elevated rounded-2xl border border-border p-4 flex flex-col">
                                 <DatasetChartBuilder v-if="isChartMode"
                                     :schema="dataset.schema" :result="chartResult" :running="chartRunning"
                                     :filters="activeChartFilters" :dataset-id="datasetId" :saved-charts="savedCharts"

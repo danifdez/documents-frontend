@@ -3,7 +3,7 @@
         <!-- Existing relations -->
         <div v-if="relations.length > 0" class="space-y-3">
             <div v-for="relation in relations" :key="relation.id"
-                class="rounded-xl border border-border bg-surface-elevated overflow-hidden">
+                class="rounded-2xl border border-border bg-surface-elevated overflow-hidden">
                 <!-- Relation visual -->
                 <div class="px-4 py-3 flex items-center gap-3">
                     <!-- Source dataset -->
@@ -110,7 +110,7 @@
         </div>
 
         <!-- Add relation form -->
-        <div class="rounded-xl border border-border bg-surface-elevated overflow-hidden">
+        <div class="rounded-2xl border border-border bg-surface-elevated overflow-hidden">
             <div class="px-4 py-2.5 border-b border-border-light bg-surface">
                 <p class="text-xs font-semibold text-text-muted uppercase tracking-wider">New Relation</p>
             </div>

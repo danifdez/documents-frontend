@@ -1,7 +1,7 @@
 <template>
     <div :class="mode === 'display' ? 'h-full flex flex-col gap-3 overflow-hidden' : 'space-y-4'">
         <!-- Configuration -->
-        <div v-if="showControls" class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
+        <div v-if="showControls" class="bg-surface-elevated rounded-2xl border border-border p-4 space-y-3">
             <p class="text-xs text-text-muted leading-relaxed">Compute Pearson correlations between numeric fields. Values near +1 indicate a strong positive relationship, near -1 strong negative, and near 0 no linear relationship. Click any cell to see a scatter plot.</p>
             <div>
                 <label class="block text-xs font-medium text-text-secondary mb-1.5">Numeric fields to include
@@ -34,7 +34,7 @@
 
         <!-- Saved views for this type -->
         <div v-if="showControls && savedViews && savedViews.length > 0"
-            class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            class="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
             <div class="px-3 py-2 border-b border-border-light bg-surface">
                 <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved</span>
             </div>
@@ -76,7 +76,7 @@
             </div>
 
             <!-- Heatmap table -->
-            <div class="rounded-xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
+            <div class="rounded-2xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
                 <div class="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface">
                     <span class="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                         Correlation Matrix ({{ result.chartData.fields.length }} fields)
@@ -139,7 +139,7 @@
 
             <!-- Scatter detail -->
             <div v-if="scatterResult && !scatterResult.error"
-                class="rounded-xl border border-border overflow-hidden flex flex-col shrink-0" style="max-height: 40%;">
+                class="rounded-2xl border border-border overflow-hidden flex flex-col shrink-0" style="max-height: 40%;">
                 <div class="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface">
                     <span class="text-sm font-medium text-text-primary">
                         {{ scatterResult.field1Name }} vs {{ scatterResult.field2Name }}

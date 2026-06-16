@@ -3,7 +3,7 @@
         <!-- Left sidebar: Configuration -->
         <div v-if="showSidebar" :class="effectiveMode === 'full' ? 'w-72 shrink-0 space-y-3 overflow-y-auto' : 'space-y-3'">
             <!-- Chart type selector (only when not controlled externally) -->
-            <div v-if="!preselectedChartType" class="bg-surface-elevated rounded-xl border border-border p-3 space-y-3">
+            <div v-if="!preselectedChartType" class="bg-surface-elevated rounded-2xl border border-border p-3 space-y-3">
                 <label class="block text-xs font-medium text-text-secondary">Chart Type
                     <HelpTip>Select how to visualize your data. Bar and Line work best for categories, Pie for proportions, Scatter for comparing two numeric fields.</HelpTip>
                 </label>
@@ -18,7 +18,7 @@
             </div>
 
             <!-- Field selectors -->
-            <div class="bg-surface-elevated rounded-xl border border-border p-3 space-y-3">
+            <div class="bg-surface-elevated rounded-2xl border border-border p-3 space-y-3">
                 <div>
                     <label class="block text-xs font-medium text-text-secondary mb-1">
                         {{ config.chartType === 'scatter' ? 'X Axis' : 'Category / Labels' }}
@@ -106,7 +106,7 @@
 
             <!-- Saved charts list (filtered by current chart type) -->
             <div v-if="filteredSavedCharts.length > 0"
-                class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+                class="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
                 <div class="px-3 py-2 border-b border-border-light bg-surface">
                     <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved Charts</span>
                 </div>
@@ -136,7 +136,7 @@
         <div v-if="showDisplay" class="flex-1 min-w-0 flex flex-col">
             <!-- Empty state -->
             <div v-if="!result && !running"
-                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-xl border border-border">
+                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-2xl border border-border">
                 <div class="text-center">
                     <svg class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16" />
@@ -151,7 +151,7 @@
 
             <!-- Loading -->
             <div v-else-if="running && !result"
-                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-xl border border-border">
+                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-2xl border border-border">
                 <div class="flex flex-col items-center gap-3">
                     <div class="animate-spin rounded-full h-8 w-8 border-2 border-accent border-t-transparent"></div>
                     <span class="text-sm text-text-muted">Generating chart...</span>
@@ -160,7 +160,7 @@
 
             <!-- Error -->
             <div v-else-if="result?.error"
-                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-xl border border-border">
+                class="flex-1 flex items-center justify-center bg-surface-elevated rounded-2xl border border-border">
                 <div class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 max-w-sm text-center">
                     {{ result.error }}
                 </div>
@@ -168,7 +168,7 @@
 
             <!-- Chart result -->
             <div v-else-if="result && !result.error && result.chartData"
-                class="flex-1 flex flex-col bg-surface-elevated rounded-xl border border-border overflow-hidden">
+                class="flex-1 flex flex-col bg-surface-elevated rounded-2xl border border-border overflow-hidden">
                 <!-- Chart header with export buttons -->
                 <div class="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-border-light">
                     <h3 class="text-sm font-medium text-text-primary">{{ result.title || 'Chart' }}</h3>

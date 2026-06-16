@@ -1,6 +1,6 @@
 <template>
     <router-link :to="to"
-        class="group block bg-surface-elevated rounded-xl border border-border hover:border-accent/30 transition-all duration-300 ease-out overflow-hidden hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5">
+        class="group block bg-surface-elevated rounded-2xl border border-border hover:border-accent/30 transition-all duration-300 ease-out overflow-hidden hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5">
         <div class="p-3">
             <div class="flex items-start justify-between mb-2">
                 <div
@@ -65,13 +65,13 @@ const props = defineProps({
 const iconBgClasses = computed(() => {
     switch (props.variant) {
         case 'thread':
-            return 'bg-violet-50 text-violet-500 group-hover:bg-violet-500 group-hover:text-white';
+            return 'bg-violet-500/10 text-violet-500 group-hover:bg-violet-500 group-hover:text-white';
         case 'document':
             return 'bg-accent-subtle text-accent group-hover:bg-accent group-hover:text-white';
         case 'canvas':
-            return 'bg-amber-50 text-amber-500 group-hover:bg-amber-500 group-hover:text-white';
+            return 'bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white';
         case 'timeline':
-            return 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white';
+            return 'bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white';
         default:
             return 'bg-accent-subtle text-accent group-hover:bg-accent group-hover:text-white';
     }

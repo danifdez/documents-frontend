@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-surface-elevated rounded-xl border border-border h-full flex flex-col">
+  <div class="bg-surface-elevated rounded-2xl border border-border h-full flex flex-col">
     <!-- Search input -->
     <div class="p-3 border-b border-border-light">
       <div class="relative">

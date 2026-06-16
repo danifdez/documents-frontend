@@ -10,13 +10,13 @@
       <div class="flex flex-col gap-3 w-full">
         <button @click="handleSetupLocal"
           :disabled="localSetupInProgress"
-          class="w-full p-4 rounded-xl border border-border bg-surface-elevated hover:bg-surface-hover transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-wait">
+          class="w-full p-4 rounded-2xl border border-border bg-surface-elevated hover:bg-surface-hover transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-wait">
           <div class="font-medium text-text-primary mb-1">Standalone</div>
           <div class="text-xs text-text-muted">Run everything locally on this machine. Services will be downloaded on first use (~350 MB).</div>
         </button>
 
         <button @click="showRemoteForm = true"
-          class="w-full p-4 rounded-xl border border-border bg-surface-elevated hover:bg-surface-hover transition-colors cursor-pointer text-left">
+          class="w-full p-4 rounded-2xl border border-border bg-surface-elevated hover:bg-surface-hover transition-colors cursor-pointer text-left">
           <div class="font-medium text-text-primary mb-1">Connect to server</div>
           <div class="text-xs text-text-muted">Connect to an existing Documents server on your network.</div>
         </button>

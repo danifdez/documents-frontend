@@ -1,5 +1,5 @@
 <template>
-  <div class="comment-sidebar bg-surface-elevated rounded-xl border border-border h-full flex flex-col">
+  <div class="comment-sidebar bg-surface-elevated rounded-2xl border border-border h-full flex flex-col">
     <div v-if="isLoading" class="flex items-center justify-center py-8">
       <LoadingSpinner size="sm" />
     </div>

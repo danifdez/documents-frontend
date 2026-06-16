@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-surface-elevated rounded-xl border border-border">
+    <div class="bg-surface-elevated rounded-2xl border border-border">
         <!-- Header with progress -->
         <div class="px-4 py-3 border-b border-border-light">
             <div class="flex items-center justify-between mb-2">

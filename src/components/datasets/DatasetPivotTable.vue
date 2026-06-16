@@ -1,7 +1,7 @@
 <template>
     <div :class="mode === 'display' ? 'h-full flex flex-col gap-3 overflow-hidden' : 'space-y-4'">
         <!-- Configuration -->
-        <div v-if="showControls" class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
+        <div v-if="showControls" class="bg-surface-elevated rounded-2xl border border-border p-4 space-y-3">
             <p class="text-xs text-text-muted leading-relaxed">Cross-tabulate two categorical fields and aggregate a numeric value in each cell. Useful for comparing totals, averages or counts across two dimensions.</p>
             <div class="space-y-3">
                 <div>
@@ -56,7 +56,7 @@
 
         <!-- Saved views for this type -->
         <div v-if="showControls && savedViews && savedViews.length > 0"
-            class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            class="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
             <div class="px-3 py-2 border-b border-border-light bg-surface">
                 <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved</span>
             </div>
@@ -94,7 +94,7 @@
             </div>
 
             <!-- Data / Chart tabs -->
-            <div class="rounded-xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
+            <div class="rounded-2xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
                 <!-- Tab bar -->
                 <div class="flex items-center justify-between px-4 py-2 border-b border-border bg-surface">
                     <div class="flex items-center gap-1">

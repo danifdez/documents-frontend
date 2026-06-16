@@ -5,7 +5,7 @@
       <router-link to="/calendar" class="text-xs text-accent hover:underline">Back to calendar</router-link>
     </div>
 
-    <div v-if="items.length === 0" class="rounded-xl border border-dashed border-border py-10 text-center">
+    <div v-if="items.length === 0" class="rounded-2xl border border-dashed border-border py-10 text-center">
       <p class="text-sm text-text-muted">No missed alerts.</p>
     </div>
 

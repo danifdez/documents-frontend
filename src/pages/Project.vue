@@ -73,7 +73,7 @@
         <div class="mt-4 mb-6 flex flex-wrap gap-4">
           <router-link v-if="featureStore.isEnabled('relationships')" :to="`/project/${route.params.id}/relationships`"
             title="Entities and relationships in this project"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
@@ -81,7 +81,7 @@
           </router-link>
           <router-link v-if="featureStore.isEnabled('bibliography')" :to="`/project/${route.params.id}/bibliography`"
             title="Manage citations and references for this project"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
@@ -89,7 +89,7 @@
           </router-link>
           <button v-if="featureStore.isEnabled('notes')" @click="openNotesPanel"
             title="Notes for this project"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
@@ -97,7 +97,7 @@
           </button>
           <router-link v-if="featureStore.isEnabled('calendar')" :to="`/project/${route.params.id}/calendar`"
             title="View project calendar"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -105,7 +105,7 @@
           </router-link>
           <router-link v-if="featureStore.isEnabled('datasets')" to="/datasets"
             title="Structured data tables and analysis"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
             </svg>
@@ -132,7 +132,7 @@
                 <div class="animate-spin rounded-full h-5 w-5 border-2 border-accent border-t-transparent"></div>
               </div>
 
-              <div v-else class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+              <div v-else class="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
                 <div class="flex flex-col divide-y divide-border-light">
                   <div v-for="item in allDocsAndCanvases" :key="item.key"
                     class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group border-l-3"
@@ -186,7 +186,7 @@
               </div>
 
               <div v-if="!isLoading && !isDocsLoading && !isCanvasesLoading && !isTimelinesLoading && allDocsAndCanvases.length === 0"
-                class="text-center py-8 rounded-xl border border-dashed border-border">
+                class="text-center py-8 rounded-2xl border border-dashed border-border">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mx-auto text-text-muted mb-2" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round"
@@ -222,7 +222,7 @@
               </div>
 
               <div v-if="!isResourcesLoading && filteredResources.length === 0"
-                class="text-center py-8 rounded-xl border border-dashed border-border">
+                class="text-center py-8 rounded-2xl border border-dashed border-border">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mx-auto text-text-muted mb-2" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round"

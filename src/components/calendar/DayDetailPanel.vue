@@ -1,5 +1,5 @@
 <template>
-    <div class="h-full flex flex-col bg-surface-elevated rounded-xl border border-border overflow-hidden">
+    <div class="h-full flex flex-col bg-surface-elevated rounded-2xl border border-border overflow-hidden">
         <!-- Day header -->
         <div class="px-4 py-3 border-b border-border shrink-0">
             <p class="text-xs text-text-muted uppercase tracking-wider font-semibold">{{ dayLabel }}</p>

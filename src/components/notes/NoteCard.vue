@@ -1,6 +1,6 @@
 <template>
     <router-link :to="`/notes/${note.id}`"
-        class="group block bg-surface-elevated rounded-xl border border-border hover:border-accent/30 transition-all duration-300 ease-out overflow-hidden hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5">
+        class="group block bg-surface-elevated rounded-2xl border border-border hover:border-accent/30 transition-all duration-300 ease-out overflow-hidden hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5">
         <div class="p-3">
             <div class="flex items-start justify-between mb-2">
                 <div

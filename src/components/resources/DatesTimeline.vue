@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-surface-elevated rounded-xl border border-border p-4">
+    <div class="bg-surface-elevated rounded-2xl border border-border p-4">
         <div class="flex items-center justify-between mb-3">
             <span class="text-sm font-semibold text-text-primary">Timeline</span>
             <span class="text-xs text-text-muted">{{ resolved.length }} event{{ resolved.length === 1 ? '' : 's' }}</span>

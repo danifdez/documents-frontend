@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-surface-elevated rounded-xl border border-border overflow-hidden flex flex-col h-full">
+    <div class="bg-surface-elevated rounded-2xl border border-border overflow-hidden flex flex-col h-full">
         <!-- Day names header -->
         <div class="grid grid-cols-7 border-b border-border shrink-0">
             <div v-for="(day, i) in weekDays" :key="i"

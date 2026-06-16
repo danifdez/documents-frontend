@@ -376,7 +376,7 @@
             <!-- Split View Document Area -->
             <div v-if="splitViewActive && splitDocument"
                 class="lg:col-span-1 flex flex-col overflow-hidden min-h-0 split-document-panel">
-                <div class="bg-surface-elevated rounded-xl border border-border p-4 flex-shrink-0">
+                <div class="bg-surface-elevated rounded-2xl border border-border p-4 flex-shrink-0">
                     <div class="flex items-center justify-between mb-3">
                         <input v-model="splitDocument.name" @input="handleDocumentNameChange" type="text"
                             class="flex-1 px-3 py-1.5 bg-transparent border-0 border-b border-border text-base font-semibold text-text-primary focus:outline-none focus:border-accent transition-colors tracking-tight"
@@ -405,7 +405,7 @@
                     </div>
                 </div>
 
-                <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-xl border border-border p-4">
+                <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-2xl border border-border p-4">
                     <EditorContent ref="splitEditor" :content="splitDocument.content || ''"
                         :is-saving="isDocumentSaving" :saved-successfully="documentSavedSuccessfully"
                         @content-change="handleDocumentContentChange" />
@@ -415,7 +415,7 @@
             <!-- Split View Resource Area -->
             <div v-if="splitViewActive && splitResource"
                 class="lg:col-span-1 flex flex-col overflow-hidden min-h-0">
-                <div class="bg-surface-elevated rounded-xl border border-border flex-shrink-0">
+                <div class="bg-surface-elevated rounded-2xl border border-border flex-shrink-0">
                     <div class="flex items-center justify-between px-4 py-3 border-b border-border-light">
                         <div class="flex items-center gap-2 min-w-0 flex-1">
                             <IconType :mimeType="splitResource.mimeType" />
@@ -442,7 +442,7 @@
                     </div>
                 </div>
 
-                <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-xl border border-border p-4">
+                <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-2xl border border-border p-4">
                     <div v-if="splitResource.content" class="prose max-w-none text-sm" v-html="splitResource.content"></div>
                     <div v-else class="flex items-center justify-center py-12 text-sm text-text-muted">
                         No extracted content available
@@ -487,7 +487,7 @@
                 <div class="overflow-y-auto flex-1 min-h-0">
                     <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
                     <CommentSidebar v-else-if="viewSideBar === 'comments'" :resource-id="String(resource.id)" />
-                    <div v-else-if="viewSideBar === 'index'" class="bg-surface-elevated rounded-xl border border-border">
+                    <div v-else-if="viewSideBar === 'index'" class="bg-surface-elevated rounded-2xl border border-border">
                         <div class="px-4 py-3 border-b border-border-light">
                             <span class="text-sm font-semibold text-text-primary">Table of Contents</span>
                         </div>

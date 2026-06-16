@@ -1,6 +1,6 @@
 <template>
     <div
-        class="timeline-view-node my-3 rounded-xl border border-border bg-surface-elevated overflow-hidden select-none">
+        class="timeline-view-node my-3 rounded-2xl border border-border bg-surface-elevated overflow-hidden select-none">
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-2.5 bg-surface border-b border-border">
             <div class="flex items-center gap-2">

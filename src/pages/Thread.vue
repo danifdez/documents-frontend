@@ -68,7 +68,7 @@
           <!-- Sub-threads -->
           <section v-if="childThreads.length > 0">
             <h3 class="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Sub-threads</h3>
-            <div class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            <div class="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
               <div class="flex flex-col divide-y divide-border-light">
                 <router-link v-for="child in childThreads" :key="`st-${child.id}`" :to="`/thread/${child.id}`"
                   class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group border-l-3 border-l-violet-500 bg-violet-500/5">
@@ -94,7 +94,7 @@
               <div class="animate-spin rounded-full h-5 w-5 border-2 border-accent border-t-transparent"></div>
             </div>
 
-            <div v-else-if="allItems.length > 0" class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            <div v-else-if="allItems.length > 0" class="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
               <div class="flex flex-col divide-y divide-border-light">
                 <div v-for="item in allItems" :key="item.key"
                   class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group">
@@ -137,7 +137,7 @@
               </div>
             </div>
 
-            <div v-else class="text-center py-8 rounded-xl border border-dashed border-border">
+            <div v-else class="text-center py-8 rounded-2xl border border-dashed border-border">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mx-auto text-text-muted mb-2" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -176,7 +176,7 @@
               </div>
             </div>
 
-            <div v-else class="text-center py-8 rounded-xl border border-dashed border-border">
+            <div v-else class="text-center py-8 rounded-2xl border border-dashed border-border">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mx-auto text-text-muted mb-2" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round"

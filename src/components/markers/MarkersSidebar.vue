@@ -1,5 +1,5 @@
 <template>
-  <div class="marker-sidebar bg-surface-elevated rounded-xl border border-border h-full flex flex-col">
+  <div class="marker-sidebar bg-surface-elevated rounded-2xl border border-border h-full flex flex-col">
     <div v-if="markers.length === 0" class="flex items-center justify-center py-10 px-4">
       <div class="text-center">
         <span class="text-2xl block mb-2">💡</span>

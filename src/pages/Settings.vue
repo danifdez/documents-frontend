@@ -20,7 +20,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
 
                     <!-- Theme -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Theme</h2>
                         <div>
                             <label class="block text-xs font-medium text-text-secondary mb-2">Appearance</label>
@@ -57,7 +57,7 @@
                     </section>
 
                     <!-- Language -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Language</h2>
                         <div>
                             <label class="block text-xs font-medium text-text-secondary mb-1">Display Language</label>
@@ -70,7 +70,7 @@
                     </section>
 
                     <!-- Browser -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Browser</h2>
                         <div>
                             <label class="block text-xs font-medium text-text-secondary mb-1">Default URL</label>
@@ -83,13 +83,13 @@
                     </section>
 
                     <!-- Voice (only when local engine is bundled) -->
-                    <section v-if="voiceLocalAvailable" class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section v-if="voiceLocalAvailable" class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice</h2>
                         <VoiceSettings />
                     </section>
 
                     <!-- Editor Appearance -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Editor
                             Appearance</h2>
                         <div class="space-y-4">
@@ -131,7 +131,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     <!-- Close behavior -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Close behavior
                         </h2>
                         <div v-if="!trayAvailable"
@@ -162,7 +162,7 @@
                     </section>
 
                     <!-- Launch at login -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Startup</h2>
                         <label class="flex items-start gap-2 cursor-pointer">
                             <input type="checkbox" v-model="launchAtLogin" :disabled="platform === 'linux'"
@@ -178,7 +178,7 @@
                     </section>
 
                     <!-- Global shortcut -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Global
                             shortcut</h2>
                         <div class="text-xs text-text-muted mb-2">Show or hide the window from anywhere.</div>
@@ -202,7 +202,7 @@
 
                     <!-- macOS dock -->
                     <section v-if="platform === 'darwin'"
-                        class="bg-surface-elevated rounded-xl border border-border p-5">
+                        class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">macOS dock
                         </h2>
                         <label class="flex items-start gap-2 cursor-pointer">
@@ -217,7 +217,7 @@
                     </section>
 
                     <!-- Voice preload -->
-                    <section v-if="voiceLocalAvailable" class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section v-if="voiceLocalAvailable" class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice</h2>
                         <label class="flex items-start gap-2 cursor-pointer">
                             <input type="checkbox" v-model="preloadVoiceModel" @change="saveAppSettings"
@@ -240,7 +240,7 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div v-for="flag in featureStore.featureFlags" :key="flag.key"
-                        class="bg-surface-elevated rounded-xl border border-border p-4 flex items-center justify-between">
+                        class="bg-surface-elevated rounded-2xl border border-border p-4 flex items-center justify-between">
                         <div>
                             <span class="text-sm font-medium text-text-primary">{{ flag.label }}</span>
                             <p v-if="!flag.backendEnabled" class="text-xs text-text-muted mt-0.5">Disabled by server
@@ -297,7 +297,7 @@
                     </div>
 
                     <button @click="showWorkspaceModal = true"
-                        class="bg-surface-elevated rounded-xl border border-dashed border-border p-4 flex items-center justify-center gap-2 text-sm text-text-muted hover:bg-surface-hover hover:border-text-muted transition-colors cursor-pointer">
+                        class="bg-surface-elevated rounded-2xl border border-dashed border-border p-4 flex items-center justify-center gap-2 text-sm text-text-muted hover:bg-surface-hover hover:border-text-muted transition-colors cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -314,7 +314,7 @@
             <div v-show="activeTab === 'server'">
                 <p class="text-sm text-text-muted mb-4">Install and run all services locally on this machine</p>
 
-                <div class="bg-surface-elevated rounded-xl border border-border p-5 max-w-lg">
+                <div class="bg-surface-elevated rounded-2xl border border-border p-5 max-w-lg">
                     <!-- Core services -->
                     <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Core Services
                     </h3>
@@ -419,7 +419,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
 
                     <!-- Project Selection -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Project
                             Selection</h2>
                         <div class="space-y-3">
@@ -450,7 +450,7 @@
                     </section>
 
                     <!-- Export Options -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Include in
                             Export</h2>
                         <div class="space-y-3">
@@ -482,7 +482,7 @@
                     </section>
 
                     <!-- Export Action -->
-                    <section class="bg-surface-elevated rounded-xl border border-border p-5">
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Download
                         </h2>
                         <div class="space-y-4">
@@ -529,7 +529,7 @@
     <div v-if="showThemeManager" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
         @click.self="showThemeManager = false">
         <div
-            class="bg-surface-elevated rounded-xl border border-border shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6">
+            class="bg-surface-elevated rounded-2xl border border-border shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-base font-semibold text-text-primary">Themes</h2>
                 <button type="button" class="text-text-muted hover:text-text-primary cursor-pointer"

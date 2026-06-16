@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-surface-elevated rounded-xl border border-border">
+    <div class="bg-surface-elevated rounded-2xl border border-border">
         <div class="px-4 py-3 border-b border-border-light flex items-center justify-between">
             <h3 class="text-sm font-semibold text-text-primary">Entities</h3>
             <span class="text-xs text-text-muted">{{ displayedEntities.length }}/{{ entities.length }}</span>
@@ -115,7 +115,7 @@
 
         <!-- Merge Modal -->
         <div v-if="showMerge" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div class="bg-surface-elevated rounded-xl border border-border shadow-2xl shadow-black/10 p-6 w-full max-w-md mx-4">
+            <div class="bg-surface-elevated rounded-2xl border border-border shadow-2xl shadow-black/10 p-6 w-full max-w-md mx-4">
                 <h3 class="text-base font-semibold text-text-primary mb-4">
                     Merge: {{ selectedEntity ? displayEntityName(selectedEntity) : '' }}
                 </h3>

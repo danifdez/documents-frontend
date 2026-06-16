@@ -64,7 +64,7 @@
                         <!-- Description + reminder (expanded) -->
                         <div v-if="expandedTask === task.id" class="pl-[52px] pr-4 pb-3 space-y-2">
                             <textarea :value="task.description || ''" rows="2" placeholder="Add a note..."
-                                class="w-full bg-surface rounded-xl border border-border text-sm text-text-secondary outline-none px-4 py-2.5 resize-none placeholder:text-text-muted focus:ring-1 focus:ring-accent/20 focus:border-accent transition-all"
+                                class="w-full bg-surface rounded-2xl border border-border text-sm text-text-secondary outline-none px-4 py-2.5 resize-none placeholder:text-text-muted focus:ring-1 focus:ring-accent/20 focus:border-accent transition-all"
                                 @blur="saveDescription(task, $event)" @keydown.esc="close"></textarea>
                             <div class="flex items-center gap-2">
                                 <label class="text-[11px] text-text-muted">Remind me at</label>

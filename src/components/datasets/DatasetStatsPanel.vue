@@ -1,7 +1,7 @@
 <template>
     <div :class="mode === 'display' ? 'h-full flex flex-col gap-3 overflow-hidden' : 'space-y-4'">
         <!-- Operation selector / Controls -->
-        <div v-if="showControls" class="bg-surface-elevated rounded-xl border border-border p-4 space-y-3">
+        <div v-if="showControls" class="bg-surface-elevated rounded-2xl border border-border p-4 space-y-3">
             <p class="text-xs text-text-muted leading-relaxed">
                 <template v-if="selectedOp === 'summary'">Quick overview of every field: record counts, averages, ranges, null percentages and most frequent values.</template>
                 <template v-else-if="selectedOp === 'distribution'">Visualize how values are spread across a single field. Numeric fields produce a histogram, text and select fields a frequency chart.</template>
@@ -70,7 +70,7 @@
 
         <!-- Saved views for this type -->
         <div v-if="showControls && savedViews && savedViews.length > 0"
-            class="bg-surface-elevated rounded-xl border border-border overflow-hidden">
+            class="bg-surface-elevated rounded-2xl border border-border overflow-hidden">
             <div class="px-3 py-2 border-b border-border-light bg-surface">
                 <span class="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Saved</span>
             </div>
@@ -110,7 +110,7 @@
 
             <!-- Chart -->
             <div v-if="result.chartType && result.chartType !== 'none' && result.chartData"
-                class="rounded-xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
+                class="rounded-2xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
                 <div class="flex items-center justify-end px-4 py-2 border-b border-border-light bg-surface shrink-0">
                     <button @click="exportPng"
                         class="text-xs text-accent hover:text-accent-dark cursor-pointer transition-colors">
@@ -124,7 +124,7 @@
 
             <!-- Summary table (for summary operation) -->
             <div v-if="result.operation === 'summary' && result.tableData?.fields"
-                class="rounded-xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
+                class="rounded-2xl border border-border overflow-hidden flex flex-col flex-1 min-h-0">
                 <div class="px-4 py-2.5 border-b border-border bg-surface text-[11px] font-semibold text-text-muted uppercase tracking-wider shrink-0">
                     Fields Overview
                 </div>
@@ -170,7 +170,7 @@
 
             <!-- Data table (for chart-based results) -->
             <div v-if="result.tableData && result.operation !== 'summary'"
-                class="rounded-xl border border-border overflow-hidden flex flex-col shrink-0" style="max-height: 30%;">
+                class="rounded-2xl border border-border overflow-hidden flex flex-col shrink-0" style="max-height: 30%;">
                 <div class="px-4 py-2.5 border-b border-border bg-surface flex items-center justify-between shrink-0">
                     <span class="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Data</span>
                     <button @click="exportCsv"

@@ -97,7 +97,7 @@
         <!-- Split View: Dropped Document -->
         <div v-if="splitViewActive && splitDocument"
           class="flex-shrink-0 w-full sm:w-[320px] lg:w-[400px] flex flex-col min-h-0">
-          <div class="bg-surface-elevated rounded-xl border border-accent/20 flex-shrink-0">
+          <div class="bg-surface-elevated rounded-2xl border border-accent/20 flex-shrink-0">
             <div class="flex items-center justify-between px-4 py-3 border-b border-border-light">
               <div class="flex items-center gap-2 min-w-0 flex-1">
                 <span
@@ -108,7 +108,7 @@
                 @close="closeSplitView" @swap="swapSplitDocument" />
             </div>
           </div>
-          <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-xl border border-border p-4">
+          <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-2xl border border-border p-4">
             <EditorContent ref="splitEditorRef" :content="splitDocument.content || ''" :is-saving="false"
               :saved-successfully="false" />
           </div>
@@ -117,7 +117,7 @@
         <!-- Split View: Dropped Resource -->
         <div v-if="splitViewActive && splitResource"
           class="flex-shrink-0 w-full sm:w-[320px] lg:w-[400px] flex flex-col min-h-0">
-          <div class="bg-surface-elevated rounded-xl border border-accent/20 flex-shrink-0">
+          <div class="bg-surface-elevated rounded-2xl border border-accent/20 flex-shrink-0">
             <div class="flex items-center justify-between px-4 py-3 border-b border-border-light">
               <div class="flex items-center gap-2 min-w-0 flex-1">
                 <IconType :mimeType="splitResource.mimeType" />
@@ -127,7 +127,7 @@
                 @close="closeSplitView" />
             </div>
           </div>
-          <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-xl border border-border p-4">
+          <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-2xl border border-border p-4">
             <div v-if="splitResource.content" class="prose max-w-none text-sm" v-html="splitResource.content"></div>
             <div v-else class="flex items-center justify-center py-12 text-sm text-text-muted">
               No extracted content available

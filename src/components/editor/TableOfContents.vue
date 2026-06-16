@@ -1,5 +1,5 @@
 <template>
-    <div class="toc-sidebar flex flex-col h-full bg-surface-elevated rounded-xl border border-border">
+    <div class="toc-sidebar flex flex-col h-full bg-surface-elevated rounded-2xl border border-border">
         <div class="flex items-center justify-between px-4 py-3 border-b border-border-light flex-shrink-0">
             <h3 class="text-sm font-semibold text-text-primary">Table of Contents</h3>
             <button @click="extractHeadings" title="Refresh"

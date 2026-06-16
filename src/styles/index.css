@@ -27,35 +27,74 @@
 
 /* ─── Dark Mode Overrides ─── */
 html.dark {
-  --color-surface: #000000;
-  --color-surface-elevated: #111111;
-  --color-surface-hover: #222222;
+  /* Near-black instead of pure #000: full-contrast black causes halation and
+     eye strain in long sessions; these keep the look while easing contrast. */
+  --color-surface: #0b0b0d;
+  --color-surface-elevated: #141417;
+  --color-surface-hover: #1e1e22;
 
   --color-accent: #818cf8;
   --color-accent-light: #a5b4fc;
   --color-accent-dark: #6366f1;
   --color-accent-subtle: rgba(99, 102, 241, 0.15);
 
-  --color-border: #2a2a2a;
-  --color-border-light: #1a1a1a;
+  --color-border: #2a2a2e;
+  --color-border-light: #1c1c1f;
 
-  --color-text-primary: #f1f5f9;
+  --color-text-primary: #e8ecf3;
   --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+  --color-text-muted: #6b7689;
 
-  --color-sidebar-from: #111111;
-  --color-sidebar-to: #000000;
+  --color-sidebar-from: #141417;
+  --color-sidebar-to: #0b0b0d;
 
   color-scheme: dark;
+
+  /* ── Tint palette remap ──
+     Tailwind v4 utilities resolve through these variables, so remapping the
+     light tint shades (-50/-100/-200 backgrounds, -600/-700/-800 text) here
+     makes every `bg-red-50`-style usage readable on dark surfaces without
+     touching each component. Backgrounds become translucent washes of the
+     hue; dark text shades flip to the light end of the same hue. */
+  --color-red-50: rgba(239, 68, 68, 0.10);    --color-red-100: rgba(239, 68, 68, 0.16);    --color-red-200: rgba(239, 68, 68, 0.28);
+  --color-red-600: #f87171;                    --color-red-700: #fca5a5;                    --color-red-800: #fca5a5;
+  --color-green-50: rgba(34, 197, 94, 0.10);   --color-green-100: rgba(34, 197, 94, 0.16);  --color-green-200: rgba(34, 197, 94, 0.28);
+  --color-green-600: #4ade80;                  --color-green-700: #86efac;                  --color-green-800: #86efac;
+  --color-emerald-50: rgba(16, 185, 129, 0.10); --color-emerald-100: rgba(16, 185, 129, 0.16); --color-emerald-200: rgba(16, 185, 129, 0.28);
+  --color-emerald-600: #34d399;                --color-emerald-700: #6ee7b7;                --color-emerald-800: #6ee7b7;
+  --color-amber-50: rgba(245, 158, 11, 0.10);  --color-amber-100: rgba(245, 158, 11, 0.16); --color-amber-200: rgba(245, 158, 11, 0.28);
+  --color-amber-600: #fbbf24;                  --color-amber-700: #fcd34d;                  --color-amber-800: #fcd34d;
+  --color-yellow-50: rgba(234, 179, 8, 0.10);  --color-yellow-100: rgba(234, 179, 8, 0.16); --color-yellow-200: rgba(234, 179, 8, 0.28);
+  --color-yellow-600: #facc15;                 --color-yellow-700: #fde047;                 --color-yellow-800: #fde047;
+  --color-blue-50: rgba(59, 130, 246, 0.10);   --color-blue-100: rgba(59, 130, 246, 0.16);  --color-blue-200: rgba(59, 130, 246, 0.28);
+  --color-blue-600: #60a5fa;                   --color-blue-700: #93c5fd;                   --color-blue-800: #93c5fd;
+  --color-sky-50: rgba(14, 165, 233, 0.10);    --color-sky-100: rgba(14, 165, 233, 0.16);   --color-sky-200: rgba(14, 165, 233, 0.28);
+  --color-sky-600: #38bdf8;                    --color-sky-700: #7dd3fc;                    --color-sky-800: #7dd3fc;
+  --color-cyan-50: rgba(6, 182, 212, 0.10);    --color-cyan-100: rgba(6, 182, 212, 0.16);   --color-cyan-200: rgba(6, 182, 212, 0.28);
+  --color-cyan-600: #22d3ee;                   --color-cyan-700: #67e8f9;                   --color-cyan-800: #67e8f9;
+  --color-violet-50: rgba(139, 92, 246, 0.10); --color-violet-100: rgba(139, 92, 246, 0.16); --color-violet-200: rgba(139, 92, 246, 0.28);
+  --color-violet-600: #a78bfa;                 --color-violet-700: #c4b5fd;                 --color-violet-800: #c4b5fd;
+  --color-purple-50: rgba(168, 85, 247, 0.10); --color-purple-100: rgba(168, 85, 247, 0.16); --color-purple-200: rgba(168, 85, 247, 0.28);
+  --color-purple-600: #c084fc;                 --color-purple-700: #d8b4fe;                 --color-purple-800: #d8b4fe;
+  --color-rose-50: rgba(244, 63, 94, 0.10);    --color-rose-100: rgba(244, 63, 94, 0.16);   --color-rose-200: rgba(244, 63, 94, 0.28);
+  --color-rose-600: #fb7185;                   --color-rose-700: #fda4af;                   --color-rose-800: #fda4af;
+  --color-orange-50: rgba(249, 115, 22, 0.10); --color-orange-100: rgba(249, 115, 22, 0.16); --color-orange-200: rgba(249, 115, 22, 0.28);
+  --color-orange-600: #fb923c;                 --color-orange-700: #fdba74;                 --color-orange-800: #fdba74;
+  --color-indigo-50: rgba(99, 102, 241, 0.10); --color-indigo-100: rgba(99, 102, 241, 0.16); --color-indigo-200: rgba(99, 102, 241, 0.28);
+  --color-indigo-600: #818cf8;                 --color-indigo-700: #a5b4fc;                 --color-indigo-800: #a5b4fc;
+  --color-teal-50: rgba(20, 184, 166, 0.10);   --color-teal-100: rgba(20, 184, 166, 0.16);  --color-teal-200: rgba(20, 184, 166, 0.28);
+  --color-teal-600: #2dd4bf;                   --color-teal-700: #5eead4;                   --color-teal-800: #5eead4;
+  --color-pink-50: rgba(236, 72, 153, 0.10);   --color-pink-100: rgba(236, 72, 153, 0.16);  --color-pink-200: rgba(236, 72, 153, 0.28);
+  --color-pink-600: #f472b6;                   --color-pink-700: #f9a8d4;                   --color-pink-800: #f9a8d4;
+  --color-lime-50: rgba(132, 204, 22, 0.10);   --color-lime-100: rgba(132, 204, 22, 0.16);  --color-lime-200: rgba(132, 204, 22, 0.28);
+  --color-lime-600: #a3e635;                   --color-lime-700: #bef264;                   --color-lime-800: #bef264;
+  --color-gray-50: rgba(255, 255, 255, 0.04);  --color-gray-100: rgba(255, 255, 255, 0.07); --color-gray-200: rgba(255, 255, 255, 0.12);
+  --color-gray-600: #9ca3af;                   --color-gray-700: #d1d5db;                   --color-gray-800: #e5e7eb;
 }
 
-/* ─── Icon Color Override ─── */
-/* Force all SVG icons to render white regardless of theme or parent text color.
-   Icons use stroke/fill="currentColor", so setting `color` on the svg itself
-   wins over inherited `text-*` classes on wrappers. */
-svg {
-  color: #ffffff;
-}
+/* Icons follow `currentColor`, so they pick up the `text-*` class of their
+   wrapper in both themes — required for tinted icon chips to render their
+   hue instead of being forced white. */
 
 /* ─── Base Styles ─── */
 @layer base {

@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-surface-elevated rounded-xl border border-border">
+    <div class="bg-surface-elevated rounded-2xl border border-border">
         <div class="px-4 py-3 border-b border-border-light flex items-center justify-between">
             <span class="text-sm font-semibold text-text-primary">Extracted dates</span>
             <span v-if="loading" class="text-xs text-text-muted">Loading…</span>

@@ -34,62 +34,47 @@
 
         <!-- Quick access to global sections -->
         <div class="mt-4 flex flex-wrap gap-4">
-          <button @click="openBrowser"
-            title="Browse and capture web content"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
+          <QuickTile label="Browser" title="Browse and capture web content" @click="openBrowser">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
             </svg>
-            <span class="text-xs font-medium">Browser</span>
-          </button>
-          <router-link v-if="featureStore.isEnabled('relationships')" to="/relationships"
-            title="Manage entities and explore their relationships"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+          </QuickTile>
+          <QuickTile v-if="featureStore.isEnabled('relationships')" label="Relationships" to="/relationships"
+            title="Manage entities and explore their relationships">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            <span class="text-xs font-medium">Relationships</span>
-          </router-link>
-          <router-link v-if="featureStore.isEnabled('datasets')" to="/datasets"
-            title="Create and analyze structured data tables"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+          </QuickTile>
+          <QuickTile v-if="featureStore.isEnabled('datasets')" label="Datasets" to="/datasets"
+            title="Create and analyze structured data tables">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
             </svg>
-            <span class="text-xs font-medium">Datasets</span>
-          </router-link>
-          <button v-if="featureStore.isEnabled('notes')" @click="openNotesPanel"
-            title="Quick notes and ideas across projects"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
+          </QuickTile>
+          <QuickTile v-if="featureStore.isEnabled('notes')" label="Notes" title="Quick notes and ideas across projects"
+            @click="openNotesPanel">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            <span class="text-xs font-medium">Notes</span>
-          </button>
-          <router-link v-if="featureStore.isEnabled('calendar')" to="/calendar"
-            title="Schedule and track events and deadlines"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+          </QuickTile>
+          <QuickTile v-if="featureStore.isEnabled('calendar')" label="Calendar" to="/calendar"
+            title="Schedule and track events and deadlines">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span class="text-xs font-medium">Calendar</span>
-          </router-link>
-          <router-link v-if="featureStore.isEnabled('knowledge_base')" to="/knowledge-base"
-            title="Curated reference articles and documentation"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+          </QuickTile>
+          <QuickTile v-if="featureStore.isEnabled('knowledge_base')" label="Knowledge" to="/knowledge-base"
+            title="Curated reference articles and documentation">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
-            <span class="text-xs font-medium">Knowledge</span>
-          </router-link>
-          <router-link v-if="featureStore.isEnabled('bibliography')" to="/bibliography"
-            title="Manage citations and references across projects"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+          </QuickTile>
+          <QuickTile v-if="featureStore.isEnabled('bibliography')" label="Bibliography" to="/bibliography"
+            title="Manage citations and references across projects">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            <span class="text-xs font-medium">Bibliography</span>
-          </router-link>
+          </QuickTile>
         </div>
       </div>
 
@@ -104,7 +89,7 @@
             <span class="text-xs font-normal text-text-muted">({{ pendingResources.length }} unassigned)</span>
           </h2>
         </div>
-        <div class="bg-surface-elevated rounded-xl border border-amber-200 dark:border-amber-800/40 overflow-hidden">
+        <div class="bg-surface-elevated rounded-2xl border border-amber-200 dark:border-amber-800/40 overflow-hidden">
           <div class="flex flex-col divide-y divide-border-light">
             <div v-for="resource in pendingResources" :key="resource.id"
               class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors duration-150 group">
@@ -180,6 +165,7 @@ import SearchInput from '../components/search/SearchInput.vue';
 import FilterBadge from '../components/search/FilterBadge.vue';
 import IconType from '../components/resources/IconType.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
+import QuickTile from '../components/ui/QuickTile.vue';
 import { useProjectStore } from '../store/projectStore';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import { useResourceList } from '../services/resources/useResourceList';
