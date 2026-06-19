@@ -89,20 +89,33 @@ export class EmbeddedPostgresService {
 
     // Initialize data directory if needed
     if (!this.isInitialized()) {
-      // Write password to temp file for initdb
-      const pwFile = path.join(dataDir, '.pwfile');
+      // initdb refuses to run unless the target dir is empty. A previous failed
+      // attempt can leave leftovers (e.g. a stray .pwfile) that would block every
+      // retry forever, so wipe and recreate it for a clean init.
+      fs.rmSync(dataDir, { recursive: true, force: true });
+      fs.mkdirSync(dataDir, { recursive: true });
+
+      // The password file must live OUTSIDE the data dir — anything inside it
+      // makes initdb fail with "directory exists but is not empty".
+      const pwFile = path.join(path.dirname(dataDir), '.pg-init-pw');
       fs.writeFileSync(pwFile, creds.password);
+      try {
+        await this.runBin('initdb', [
+          '-D', dataDir,
+          '-U', creds.user,
+          '--auth=password',
+          `--pwfile=${pwFile}`,
+          '--encoding=UTF8',
+          '--no-locale',
+        ]);
+      } finally {
+        try { fs.unlinkSync(pwFile); } catch { /* ignore */ }
+      }
 
-      await this.runBin('initdb', [
-        '-D', dataDir,
-        '-U', creds.user,
-        '--auth=password',
-        `--pwfile=${pwFile}`,
-        '--encoding=UTF8',
-        '--no-locale',
-      ]);
-
-      fs.unlinkSync(pwFile);
+      // initdb only creates the superuser, not our app database. The embedded
+      // bundle ships no createdb/psql, so create it in single-user mode while the
+      // server is still down (it needs an exclusive lock on the data dir).
+      await this.createDatabaseSingleUser(dataDir, creds);
     }
 
     // Start postgres
@@ -131,18 +144,30 @@ export class EmbeddedPostgresService {
     this._port = port;
 
     // Wait for postgres to accept connections
-    await this.waitForReady(port, creds.user, creds.password, 20000);
-
-    // Create the application database if this is a fresh init
-    if (!this.isInitialized() || !(await this.databaseExists(port, creds))) {
-      try {
-        await this.createDatabase(port, creds);
-      } catch {
-        // Database may already exist
-      }
-    }
+    await this.waitForReady(port, 20000);
 
     this._running = true;
+  }
+
+  // Creates the app database in single-user mode using only the bundled
+  // `postgres` binary (the embedded build ships no createdb/psql). Must run while
+  // the server is stopped — single-user mode takes an exclusive lock.
+  private createDatabaseSingleUser(dataDir: string, creds: { user: string; database: string }): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const proc = spawn(this.bin('postgres'), ['--single', '-D', dataDir, 'postgres'], {
+        env: this.pgEnv(),
+        stdio: ['pipe', 'ignore', 'pipe'],
+      });
+      let stderr = '';
+      proc.stderr?.on('data', (d) => { stderr += d.toString(); });
+      proc.on('error', reject);
+      proc.on('exit', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`Failed to create database: ${stderr.slice(-300)}`));
+      });
+      proc.stdin?.write(`CREATE DATABASE ${creds.database} OWNER ${creds.user};\n`);
+      proc.stdin?.end();
+    });
   }
 
   async stop(): Promise<void> {
@@ -182,60 +207,20 @@ export class EmbeddedPostgresService {
       && fs.existsSync(path.join(binDir, 'postgres' + ext));
   }
 
-  private async createDatabase(port: number, creds: { user: string; password: string; database: string }): Promise<void> {
-    // Use createdb binary or psql to create the database
-    const env = {
-      ...this.pgEnv(),
-      PGPASSWORD: creds.password,
-    };
-    return new Promise((resolve, reject) => {
-      execFile(this.bin('createdb'), [
-        '-h', 'localhost',
-        '-p', String(port),
-        '-U', creds.user,
-        creds.database,
-      ], { env }, (err) => {
-        if (err && !err.message.includes('already exists')) reject(err);
-        else resolve();
-      });
-    });
-  }
-
-  private async databaseExists(port: number, creds: { user: string; password: string; database: string }): Promise<boolean> {
-    const env = {
-      ...this.pgEnv(),
-      PGPASSWORD: creds.password,
-    };
-    return new Promise((resolve) => {
-      execFile(this.bin('psql'), [
-        '-h', 'localhost',
-        '-p', String(port),
-        '-U', creds.user,
-        '-d', creds.database,
-        '-c', 'SELECT 1',
-      ], { env }, (err) => {
-        resolve(!err);
-      });
-    });
-  }
-
-  private waitForReady(port: number, user: string, password: string, timeoutMs: number): Promise<void> {
+  // Readiness is a plain TCP connect — the bundle ships no pg_isready, and the
+  // backend does its own authenticated connection retries anyway.
+  private waitForReady(port: number, timeoutMs: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const start = Date.now();
-      const env = { ...this.pgEnv(), PGPASSWORD: password };
-
       const check = () => {
-        execFile(this.bin('pg_isready'), [
-          '-h', 'localhost',
-          '-p', String(port),
-          '-U', user,
-        ], { env }, (err) => {
-          if (!err) {
-            resolve();
-          } else if (Date.now() - start > timeoutMs) {
+        const sock = net.connect(port, '127.0.0.1');
+        sock.once('connect', () => { sock.destroy(); resolve(); });
+        sock.once('error', () => {
+          sock.destroy();
+          if (Date.now() - start > timeoutMs) {
             reject(new Error('PostgreSQL failed to start within timeout'));
           } else {
-            setTimeout(check, 500);
+            setTimeout(check, 300);
           }
         });
       };

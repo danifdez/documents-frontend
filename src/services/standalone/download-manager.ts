@@ -6,7 +6,7 @@ import http from 'http';
 import { execFile, spawn as spawnProcess } from 'child_process';
 import { createGunzip } from 'zlib';
 import { pipeline } from 'stream/promises';
-import { Extract as tarExtract } from 'tar';
+import { Unpack as TarUnpack } from 'tar';
 
 export interface ComponentStatus {
   backend: boolean;
@@ -21,21 +21,37 @@ export interface DownloadProgress {
   downloaded: number;
   total: number;
   percent: number;
+  /** 1-based index of the current step in the whole install. */
+  step?: number;
+  /** Total number of steps in the whole install. */
+  totalSteps?: number;
+  /** Weighted progress across the entire install (0-100). */
+  overallPercent?: number;
 }
 
 export interface GpuInfo {
   available: boolean;
   name: string | null;
   cuda: boolean;
+  vramGB: number;
 }
 
 // GitHub repository for release assets
 const GITHUB_REPO = 'danifdez/documents';
 
+// Base URL for our own release assets (backend, models). Defaults to GitHub
+// Releases, but can be pointed at a local "release" server via
+// DOCUMENTS_RELEASE_BASE_URL so a self-hosted build can stand in for GitHub
+// without changing the download/extract code path. The DB binaries always come
+// from their official sources.
+const RELEASE_BASE_URL =
+  process.env.DOCUMENTS_RELEASE_BASE_URL?.replace(/\/+$/, '') ||
+  `https://github.com/${GITHUB_REPO}/releases/download`;
+
 // Component versions
 const VERSIONS = {
   backend: '1.0.0',
-  postgres: '17.6',
+  postgres: '17.6.0',
   qdrant: '1.14.1',
   neo4j: '5.26.0',
   models: '1.0.0',
@@ -69,13 +85,13 @@ function getAssetUrl(component: string): string {
   const tag = `v${VERSIONS.backend}`;
 
   switch (component) {
-    // Our code — from GitHub Releases
+    // Our code — from the release server (GitHub by default)
     case 'backend':
-      return `https://github.com/${GITHUB_REPO}/releases/download/${tag}/documents-backend-v${VERSIONS.backend}-${platform}.${ext}`;
+      return `${RELEASE_BASE_URL}/${tag}/documents-backend-v${VERSIONS.backend}-${platform}.${ext}`;
     case 'models-cpu':
-      return `https://github.com/${GITHUB_REPO}/releases/download/${tag}/documents-models-v${VERSIONS.models}-${platform}-cpu.${ext}`;
+      return `${RELEASE_BASE_URL}/${tag}/documents-models-v${VERSIONS.models}-${platform}-cpu.${ext}`;
     case 'models-gpu':
-      return `https://github.com/${GITHUB_REPO}/releases/download/${tag}/documents-models-v${VERSIONS.models}-${platform}-gpu.${ext}`;
+      return `${RELEASE_BASE_URL}/${tag}/documents-models-v${VERSIONS.models}-${platform}-gpu.${ext}`;
 
     // Databases — directly from official sources
     case 'postgres':
@@ -127,7 +143,7 @@ export function checkInstalled(): ComponentStatus {
   const ext = process.platform === 'win32' ? '.exe' : '';
 
   return {
-    backend: fs.existsSync(path.join(servicesDir, 'backend', 'dist', 'main.js')),
+    backend: fs.existsSync(path.join(servicesDir, 'backend', 'dist', 'src', 'main.js')),
     postgres: fs.existsSync(path.join(servicesDir, 'postgres', 'bin', 'postgres' + ext)),
     qdrant: fs.existsSync(path.join(servicesDir, 'qdrant', 'qdrant' + ext)),
     neo4j: fs.existsSync(path.join(servicesDir, 'neo4j', 'bin', process.platform === 'win32' ? 'neo4j.bat' : 'neo4j')),
@@ -142,19 +158,21 @@ export function isStandaloneReady(): boolean {
 }
 
 export function detectGpu(): GpuInfo {
-  const result: GpuInfo = { available: false, name: null, cuda: false };
+  const result: GpuInfo = { available: false, name: null, cuda: false, vramGB: 0 };
 
   try {
-    // Try nvidia-smi (Linux/Windows)
+    // Try nvidia-smi (Linux/Windows). memory.total comes back in MiB (nounits).
     const { execFileSync } = require('child_process');
-    const output = execFileSync('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader,nounits'], {
+    const output = execFileSync('nvidia-smi', ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'], {
       timeout: 5000,
       encoding: 'utf-8',
     });
     if (output && output.trim()) {
+      const [name, mib] = output.trim().split('\n')[0].split(',').map((s: string) => s.trim());
       result.available = true;
-      result.name = output.trim().split('\n')[0];
+      result.name = name;
       result.cuda = true;
+      result.vramGB = Math.round((parseInt(mib, 10) || 0) / 1024);
     }
   } catch {
     // nvidia-smi not found or no GPU
@@ -194,27 +212,90 @@ export async function downloadComponent(
   const url = getAssetUrl(component);
   const tmpFile = path.join(app.getPath('temp'), `documents-download-${component}-${Date.now()}`);
 
+  // Emit an initial event so the UI shows what's starting before the first byte
+  // arrives (otherwise the wizard sits on a blank "Preparing…").
+  if (onProgress) {
+    onProgress({ component, downloaded: 0, total: 0, percent: 0 });
+  }
+
   try {
+    // Download is the first half of the component's progress (0-50%).
     await downloadFile(url, tmpFile, (downloaded, total) => {
       if (onProgress) {
-        onProgress({
-          component,
-          downloaded,
-          total,
-          percent: total > 0 ? Math.round((downloaded / total) * 100) : 0,
-        });
+        const frac = total > 0 ? downloaded / total : 0;
+        onProgress({ component, downloaded, total, percent: Math.round(frac * 50) });
       }
     });
 
-    // PostgreSQL jar is a zip, Qdrant/Neo4j are tar.gz or zip
+    // Extraction is the second half (50-100%). Decompressing the multi-GB models
+    // bundle takes a while, so report byte-level progress to keep the bar moving
+    // instead of freezing on a single fixed value.
+    // PostgreSQL jar is a zip, Qdrant/Neo4j are tar.gz or zip.
     const isZip = url.endsWith('.zip') || url.endsWith('.jar');
-    await extractArchive(tmpFile, destDir, isZip);
+    await extractArchive(tmpFile, destDir, isZip, (extractPercent) => {
+      if (onProgress) {
+        onProgress({ component, downloaded: 0, total: 0, percent: 50 + Math.round(extractPercent / 2) });
+      }
+    });
+
+    // Component-specific normalisation so every service ends up at the path
+    // checkInstalled() / the embedded services expect.
+    await normalizeExtraction(component, destDir);
 
     if (process.platform !== 'win32') {
       makeBinariesExecutable(destDir);
     }
   } finally {
     try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+  }
+}
+
+// Flattens/unpacks freshly extracted archives whose internal layout does not
+// match the path the rest of the app expects.
+async function normalizeExtraction(component: string, destDir: string): Promise<void> {
+  if (component === 'postgres') {
+    // The zonky jar (extracted as a zip) holds a <platform>.txz with the real
+    // bin/lib/share tree. Extract it in place via the system tar (xz), then
+    // remove the jar leftovers.
+    const txz = fs.readdirSync(destDir).find((f) => f.endsWith('.txz'));
+    if (!txz) {
+      throw new Error('PostgreSQL archive did not contain the expected .txz payload');
+    }
+    await new Promise<void>((resolve, reject) => {
+      execFile('tar', ['xf', path.join(destDir, txz), '-C', destDir], (err) =>
+        err ? reject(new Error(`Failed to extract PostgreSQL binaries: ${err.message}`)) : resolve(),
+      );
+    });
+    try { fs.unlinkSync(path.join(destDir, txz)); } catch { /* ignore */ }
+    try { fs.rmSync(path.join(destDir, 'META-INF'), { recursive: true, force: true }); } catch { /* ignore */ }
+  } else if (component === 'neo4j') {
+    // Neo4j tarballs nest everything under neo4j-community-<version>/. Lift its
+    // contents up one level so bin/, conf/, lib/ sit directly in destDir.
+    const inner = fs.readdirSync(destDir).find(
+      (f) => f.startsWith('neo4j-community-') && fs.statSync(path.join(destDir, f)).isDirectory(),
+    );
+    if (inner) {
+      const innerPath = path.join(destDir, inner);
+      for (const entry of fs.readdirSync(innerPath)) {
+        fs.renameSync(path.join(innerPath, entry), path.join(destDir, entry));
+      }
+      fs.rmdirSync(innerPath);
+    }
+  } else if (component === 'models-cpu' || component === 'models-gpu') {
+    // Older bundles nest everything under documents-models/ (doubled prefix), so
+    // destDir/documents-models is a dir and spawn() of it returns EACCES. Lift the
+    // contents up one level. Rename the inner dir to a temp name first to avoid
+    // colliding with the binary that is itself named 'documents-models'.
+    const inner = path.join(destDir, 'documents-models');
+    if (fs.existsSync(inner) && fs.statSync(inner).isDirectory()) {
+      const tmp = path.join(destDir, '.unwrap');
+      fs.rmSync(tmp, { recursive: true, force: true });
+      fs.renameSync(inner, tmp);
+      for (const entry of fs.readdirSync(tmp)) {
+        fs.renameSync(path.join(tmp, entry), path.join(destDir, entry));
+      }
+      fs.rmdirSync(tmp);
+    }
   }
 }
 
@@ -226,6 +307,66 @@ export async function downloadAll(
     const status = checkInstalled();
     if (status[component as keyof ComponentStatus]) continue;
     await downloadComponent(component, onProgress);
+  }
+}
+
+/**
+ * Installs exactly the services a wizard profile asks for. `components` comes
+ * from the hardware report (e.g. ['postgres','backend','models-cpu','qdrant']).
+ * The models bundle goes through installModels (bundle + ML model download);
+ * plain services go through downloadComponent. 'diffusers' is not packaged yet
+ * and is skipped.
+ */
+// Rough *time* weight per step (not size), so the global bar tracks where you
+// really are in wall-clock terms. The ML model download (Qwen GGUF + whisper +
+// embeddings, from slower HuggingFace mirrors) dominates everything else.
+const STEP_WEIGHT: Record<string, number> = {
+  postgres: 1,
+  backend: 0.5,
+  qdrant: 0.5,
+  neo4j: 1,
+  'models-cpu': 3,
+  'models-gpu': 5,
+  'ai-models': 12, // setupModels: Qwen GGUF + whisper + embeddings from HuggingFace
+};
+
+interface Step {
+  label: string;
+  weight: number;
+  run: (onProgress?: (p: DownloadProgress) => void) => Promise<void>;
+}
+
+export async function installProfile(
+  components: string[],
+  onProgress?: (progress: DownloadProgress) => void,
+): Promise<void> {
+  // Build the concrete step list up front so we can report "step X of N" and a
+  // weighted overall percentage. Already-installed plain services are skipped;
+  // the models bundle expands into two heavy steps (download + ML setup).
+  const steps: Step[] = [];
+  for (const component of components) {
+    if (component === 'diffusers') continue; // not packaged yet
+    if (component === 'models-cpu' || component === 'models-gpu') {
+      steps.push({ label: component, weight: STEP_WEIGHT[component], run: (op) => downloadComponent(component, op) });
+      steps.push({ label: 'ai-models', weight: STEP_WEIGHT['ai-models'], run: (op) => setupModels(op) });
+      continue;
+    }
+    if (checkInstalled()[component as keyof ComponentStatus]) continue;
+    steps.push({ label: component, weight: STEP_WEIGHT[component] ?? 0.1, run: (op) => downloadComponent(component, op) });
+  }
+
+  const totalWeight = steps.reduce((sum, s) => sum + s.weight, 0) || 1;
+  let doneWeight = 0;
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const emit = (p: DownloadProgress) => {
+      const overallPercent = Math.min(100, Math.round(((doneWeight + step.weight * ((p.percent || 0) / 100)) / totalWeight) * 100));
+      onProgress?.({ ...p, component: p.component || step.label, step: i + 1, totalSteps: steps.length, overallPercent });
+    };
+    emit({ component: step.label, downloaded: 0, total: 0, percent: 0 }); // show the step immediately
+    await step.run(emit);
+    doneWeight += step.weight;
   }
 }
 
@@ -282,7 +423,7 @@ export async function setupModels(
   }
 
   if (onProgress) {
-    onProgress({ component: 'ml-models', downloaded: 0, total: 0, percent: 0 });
+    onProgress({ component: 'ai-models', downloaded: 0, total: 0, percent: 0 });
   }
 
   return new Promise((resolve, reject) => {
@@ -291,6 +432,11 @@ export async function setupModels(
         ...process.env,
         HF_HOME: path.join(modelsDir, 'hf-cache'),
         SPACY_DATA: path.join(modelsDir, 'spacy-data'),
+        MODELS_MODEL_DIR: path.join(modelsDir, 'models'),
+        // Importing the worker writes a .worker_id at module load; without a
+        // writable MODELS_DATA_DIR it falls back to a path inside the read-only
+        // bundle (…/worker/..) that can't be resolved in a frozen build.
+        MODELS_DATA_DIR: modelsDir,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       cwd: modelsDir,
@@ -320,7 +466,7 @@ export async function setupModels(
     proc.on('exit', (code) => {
       if (code === 0) {
         if (onProgress) {
-          onProgress({ component: 'ml-models', downloaded: 100, total: 100, percent: 100 });
+          onProgress({ component: 'ai-models', downloaded: 100, total: 100, percent: 100 });
         }
         resolve();
       } else {
@@ -387,18 +533,40 @@ function downloadFile(
   });
 }
 
-async function extractArchive(archivePath: string, destDir: string, isZip: boolean): Promise<void> {
+async function extractArchive(
+  archivePath: string,
+  destDir: string,
+  isZip: boolean,
+  onProgress?: (percent: number) => void,
+): Promise<void> {
   if (isZip) {
+    // zip/jar extraction is a single opaque shell call — no byte-level progress.
+    onProgress?.(0);
     await extractZip(archivePath, destDir);
+    onProgress?.(100);
   } else {
-    await extractTarGz(archivePath, destDir);
+    await extractTarGz(archivePath, destDir, onProgress);
   }
 }
 
-async function extractTarGz(archivePath: string, destDir: string): Promise<void> {
+async function extractTarGz(
+  archivePath: string,
+  destDir: string,
+  onProgress?: (percent: number) => void,
+): Promise<void> {
+  // Use bytes read from the (compressed) archive as a progress proxy — close
+  // enough to keep the bar fluid while decompressing the multi-GB bundle.
+  const total = fs.statSync(archivePath).size;
+  let read = 0;
   const source = fs.createReadStream(archivePath);
+  if (onProgress && total > 0) {
+    source.on('data', (chunk: Buffer) => {
+      read += chunk.length;
+      onProgress(Math.min(100, Math.round((read / total) * 100)));
+    });
+  }
   const gunzip = createGunzip();
-  const extract = tarExtract({ cwd: destDir, strip: 0 });
+  const extract = new TarUnpack({ cwd: destDir, strip: 0 });
   await pipeline(source, gunzip, extract);
 }
 

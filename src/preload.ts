@@ -101,7 +101,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     standaloneCheckInstalled: () => ipcRenderer.invoke('standalone:check-installed'),
     standaloneIsReady: () => ipcRenderer.invoke('standalone:is-ready'),
     standaloneDetectGpu: () => ipcRenderer.invoke('standalone:detect-gpu'),
+    standaloneHardwareReport: () => ipcRenderer.invoke('standalone:hardware-report'),
     standaloneDownloadAll: () => ipcRenderer.invoke('standalone:download-all'),
+    standaloneInstallProfile: (profile: { key: string; components: string[]; features: string[] }) =>
+        ipcRenderer.invoke('standalone:install-profile', profile),
     standaloneDownloadComponent: (component: string) => ipcRenderer.invoke('standalone:download-component', component),
     standaloneInstallModels: (variant: string) => ipcRenderer.invoke('standalone:install-models', variant),
     standaloneUninstallServices: () => ipcRenderer.invoke('standalone:uninstall-services'),

@@ -134,6 +134,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         }
         setApiBaseUrl(result.url);
         reconnectSocket(result.url);
+        // The local workspace has no login step, so load the feature preset here
+        // — otherwise disabledFeatures stays empty and every section shows.
+        const { useFeatureStore } = await import('./featureStore');
+        await useFeatureStore().loadLocalPreferences();
       } else {
         localServerError.value = result.error || 'Failed to start local server';
       }

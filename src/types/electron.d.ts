@@ -77,8 +77,34 @@ export interface ElectronAPI {
     // Local server (standalone) management
     standaloneCheckInstalled: () => Promise<{ backend: boolean; postgres: boolean; qdrant: boolean; neo4j: boolean; models: boolean }>;
     standaloneIsReady: () => Promise<boolean>;
-    standaloneDetectGpu: () => Promise<{ available: boolean; name: string | null; cuda: boolean }>;
+    standaloneDetectGpu: () => Promise<{ available: boolean; name: string | null; cuda: boolean; vramGB: number }>;
+    standaloneHardwareReport: () => Promise<{
+        hardware: {
+            cpuModel: string;
+            cpuCores: number;
+            arch: string;
+            platform: string;
+            ramGB: number;
+            freeDiskGB: number | null;
+            gpu: { available: boolean; name: string | null; cuda: boolean; vramGB: number };
+        };
+        canInstall: boolean;
+        blockReason: string;
+        profiles: Array<{
+            key: 'essential' | 'balanced' | 'complete';
+            label: string;
+            description: string;
+            status: 'yes' | 'slow' | 'no';
+            reason: string;
+            downloadGB: number;
+            components: string[];
+            features: string[];
+            llm: boolean;
+        }>;
+        recommended: 'essential' | 'balanced' | 'complete';
+    }>;
     standaloneDownloadAll: () => Promise<{ success: boolean; error?: string }>;
+    standaloneInstallProfile: (profile: { key: string; components: string[]; features: string[] }) => Promise<{ success: boolean; error?: string }>;
     standaloneDownloadComponent: (component: string) => Promise<{ success: boolean; error?: string }>;
     standaloneInstallModels: (variant: string) => Promise<{ success: boolean; error?: string }>;
     standaloneUninstallServices: () => Promise<{ success: boolean; error?: string }>;
@@ -87,7 +113,7 @@ export interface ElectronAPI {
     standaloneStop: () => Promise<{ success: boolean; error?: string }>;
     standaloneStatus: () => Promise<{ postgres: string; backend: string; qdrant: string; neo4j: string; models: string }>;
     standaloneGetUrl: () => Promise<string | null>;
-    onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number }) => void) => void;
+    onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number; step?: number; totalSteps?: number; overallPercent?: number }) => void) => void;
 
     // Theme management
     listThemes: () => Promise<{ manifest: ThemeManifestType; builtIn: boolean }[]>;

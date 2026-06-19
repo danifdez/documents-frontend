@@ -15,6 +15,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   relationships: 'Relationships',
   data_sources: 'Data Sources',
   assistants: 'Assistant',
+  images: 'Image Generation',
 };
 
 export const useFeatureStore = defineStore('features', () => {

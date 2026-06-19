@@ -7,9 +7,11 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import FormData from 'form-data';
 import Store from 'electron-store';
+import squirrelStartup from 'electron-squirrel-startup';
 import { registerOfflineHandlers } from './main-offline';
 import { standaloneManager } from './services/standalone/standalone-manager';
-import { checkInstalled, isStandaloneReady, downloadComponent, downloadAll, installModels, uninstallServices, uninstallModels, detectGpu } from './services/standalone/download-manager';
+import { checkInstalled, isStandaloneReady, downloadComponent, downloadAll, installModels, uninstallServices, uninstallModels, detectGpu, installProfile } from './services/standalone/download-manager';
+import { getHardwareReport, ALL_FEATURES } from './services/standalone/hardware';
 import {
   bootstrapBuiltInThemes,
   listThemes,
@@ -51,8 +53,15 @@ function getMimeType(filePath: string): string {
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
-if (require('electron-squirrel-startup')) {
+// Imported (not require()'d) so Vite bundles it into main.js — a bare require()
+// stays external and the dependency is not shipped in the packaged app.
+if (squirrelStartup) {
   app.quit();
+}
+
+if (!app.isPackaged) {
+  app.setName('documents-frontend-dev');
+  app.setPath('userData', path.join(app.getPath('appData'), 'documents-frontend-dev'));
 }
 
 // Single-instance lock. A second invocation of the
@@ -524,8 +533,10 @@ const createWindow = () => {
     mainWindow.maximize();
   }
 
-  // Open the DevTools.
-  //mainWindow.webContents.openDevTools();
+  // Open DevTools automatically in development.
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+  }
 };
 
 const createBrowserWindow = (projectId?: string) => {
@@ -919,6 +930,10 @@ app.whenReady().then(() => {
     return detectGpu();
   });
 
+  ipcMain.handle('standalone:hardware-report', () => {
+    return getHardwareReport();
+  });
+
   ipcMain.handle('standalone:download-all', async () => {
     try {
       await downloadAll((progress) => {
@@ -926,6 +941,20 @@ app.whenReady().then(() => {
       });
       return { success: true };
     } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('standalone:install-profile', async (_, profile: { key: string; components: string[]; features: string[] }) => {
+    try {
+      await installProfile(profile.components, (progress) => {
+        mainWindow?.webContents.send('standalone:download-progress', progress);
+      });
+      // Persist the chosen preset so the backend boots with the right flags off.
+      store.set('standaloneProfile', { key: profile.key, features: profile.features });
+      return { success: true };
+    } catch (err: any) {
+      console.error('Profile install failed:', err);
       return { success: false, error: err.message };
     }
   });
@@ -973,7 +1002,12 @@ app.whenReady().then(() => {
 
   ipcMain.handle('standalone:start', async () => {
     try {
-      const url = await standaloneManager.start();
+      // Boot the backend + ML worker with the chosen profile's feature map
+      // (features the profile omits are off; the rest stay default-on).
+      const profile = store.get('standaloneProfile') as { features?: string[] } | undefined;
+      const enabled = profile?.features ?? (ALL_FEATURES as readonly string[]);
+      const features = Object.fromEntries(ALL_FEATURES.map((f) => [f, enabled.includes(f)]));
+      const url = await standaloneManager.start({ features });
       return { success: true, url };
     } catch (err: any) {
       return { success: false, error: err.message };

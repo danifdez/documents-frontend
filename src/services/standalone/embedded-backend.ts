@@ -17,6 +17,8 @@ export interface BackendConfig {
   storagePath: string;
   featureRag?: boolean;
   authEnabled?: boolean;
+  /** Feature flags to turn OFF (passed as FEATURE_<X>=false). */
+  disabledFeatures?: string[];
 }
 
 export class EmbeddedBackendService {
@@ -30,11 +32,11 @@ export class EmbeddedBackendService {
 
   private getBackendPath(): string {
     // Downloaded standalone services (primary location)
-    const downloadedPath = path.join(app.getPath('userData'), 'standalone-services', 'backend', 'dist', 'main.js');
+    const downloadedPath = path.join(app.getPath('userData'), 'standalone-services', 'backend', 'dist', 'src', 'main.js');
     if (fs.existsSync(downloadedPath)) return downloadedPath;
 
     // In development, look for the backend in the parent project directory
-    const devPath = path.join(app.getAppPath(), '..', '..', 'backend', 'dist', 'main.js');
+    const devPath = path.join(app.getAppPath(), '..', '..', 'backend', 'dist', 'src', 'main.js');
     if (fs.existsSync(devPath)) return devPath;
 
     throw new Error('Backend not found. Install standalone services from Settings.');
@@ -42,7 +44,7 @@ export class EmbeddedBackendService {
 
   static isInstalled(): boolean {
     return fs.existsSync(
-      path.join(app.getPath('userData'), 'standalone-services', 'backend', 'dist', 'main.js')
+      path.join(app.getPath('userData'), 'standalone-services', 'backend', 'dist', 'src', 'main.js')
     );
   }
 
@@ -72,6 +74,9 @@ export class EmbeddedBackendService {
       STORAGE_PATH: config.storagePath,
       PORT: String(port),
       AUTH_ENABLED: config.authEnabled ? 'true' : 'false',
+      // Apply pending DB migrations on boot — the standalone Postgres is created
+      // empty, so this is what builds the schema on first launch.
+      RUN_MIGRATIONS: 'true',
     };
 
     if (config.qdrantHost && config.qdrantPort) {
@@ -83,6 +88,12 @@ export class EmbeddedBackendService {
     if (config.neo4jUri) {
       env.NEO4J_URI = config.neo4jUri;
       env.NEO4J_ENABLED = 'true';
+    }
+
+    // Profile preset: turn off the features this install doesn't include. The
+    // user can re-enable them later from Settings (installing services if needed).
+    for (const flag of config.disabledFeatures || []) {
+      env[`FEATURE_${flag.toUpperCase()}`] = 'false';
     }
 
     this.process = fork(backendPath, [], {

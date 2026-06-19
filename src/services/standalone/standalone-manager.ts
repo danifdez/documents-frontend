@@ -5,6 +5,8 @@ import { EmbeddedPostgresService } from './embedded-postgres';
 import { EmbeddedQdrantService } from './embedded-qdrant';
 import { EmbeddedBackendService } from './embedded-backend';
 import { EmbeddedNeo4jService } from './embedded-neo4j';
+import { EmbeddedModelsService, embeddedModels } from './embedded-models';
+import { detectGpu } from './download-manager';
 
 export interface LocalServiceStatus {
   postgres: 'stopped' | 'starting' | 'running' | 'error';
@@ -34,10 +36,13 @@ class StandaloneManager {
     return path.join(app.getPath('userData'), 'local-server');
   }
 
-  async start(): Promise<string> {
+  async start(opts?: { features?: Record<string, boolean> }): Promise<string> {
     if (this._running && this.backend?.running) {
       return this.backend.url;
     }
+
+    const features = opts?.features ?? {};
+    const disabledFeatures = Object.entries(features).filter(([, on]) => !on).map(([k]) => k);
 
     const dataDir = this.getDataDir();
     fs.mkdirSync(dataDir, { recursive: true });
@@ -99,12 +104,41 @@ class StandaloneManager {
         storagePath,
         featureRag: !!this.qdrant?.running,
         authEnabled: false,
+        disabledFeatures,
       });
       this._status.backend = 'running';
     } catch (err) {
       this._status.backend = 'error';
       await this.stopServices();
       throw new Error(`Backend failed to start: ${err}`);
+    }
+
+    // 5. Start the ML worker (if installed). It polls the same jobs table; the
+    // AI assistant/agents don't work without it, so the wizard installs it in
+    // every profile. Non-fatal: the rest of the app still runs if it fails.
+    if (EmbeddedModelsService.isInstalled()) {
+      this._status.models = 'starting';
+      try {
+        await embeddedModels.start({
+          postgres: {
+            host: 'localhost',
+            port: this.postgres.port,
+            user: creds.user,
+            password: creds.password,
+            database: creds.database,
+          },
+          qdrant: this.qdrant?.running ? { host: 'localhost', port: this.qdrant.port } : undefined,
+          neo4j: this.neo4j?.running
+            ? { host: 'localhost', port: this.neo4j.port, user: 'neo4j', password: 'neo4j' }
+            : undefined,
+          features,
+          gpu: detectGpu().cuda,
+        });
+        this._status.models = 'running';
+      } catch (err) {
+        this._status.models = 'error';
+        console.error('Models worker failed to start (non-fatal):', err);
+      }
     }
 
     this._running = true;
@@ -117,6 +151,10 @@ class StandaloneManager {
   }
 
   private async stopServices(): Promise<void> {
+    if (embeddedModels.running) {
+      try { await embeddedModels.stop(); } catch (e) { console.error('Error stopping models worker:', e); }
+      this._status.models = 'stopped';
+    }
     if (this.backend) {
       try { await this.backend.stop(); } catch (e) { console.error('Error stopping backend:', e); }
       this._status.backend = 'stopped';
