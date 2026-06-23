@@ -76,6 +76,7 @@ if (!gotTheLock) {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let splashWindow: BrowserWindow | null = null;
 
 // Tray state. `trayUnavailable` is consumed by T05
 // (`window-all-closed` / `mainWindow.on('close')`) and by T08 (Settings UI
@@ -480,6 +481,31 @@ function showMissedAggregate(payload: {
     });
   }
   n.show();
+}
+
+function createSplashWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+
+  splashWindow = new BrowserWindow({
+    width: Math.min(420, Math.floor(width * 0.4)),
+    height: Math.min(280, Math.floor(height * 0.35)),
+    resizable: false,
+    frame: false,
+    show: true,
+    alwaysOnTop: true,
+    webPreferences: {
+      devTools: false,
+    },
+  });
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Documents</title><style>html,body{margin:0;height:100%}body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:22px}.spinner{width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,0.15);border-top-color:#2563eb;animation:spin 0.9s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.label{font-size:15px;color:#cbd5e1;letter-spacing:.2px}</style></head><body><div class="spinner"></div><div class="label">Starting Documents…</div></body></html>`;
+
+  splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
 }
 
 const createWindow = () => {
@@ -1060,8 +1086,48 @@ app.whenReady().then(() => {
   // Remove default application menu
   Menu.setApplicationMenu(null);
 
-  createWindow();
-  createTray();
+  // Show a splash window only when the app is packaged and standalone
+  // services are present on disk. Otherwise keep the usual behavior.
+  const services = checkInstalled();
+  const showSplash = app.isPackaged && (services.backend || services.postgres || services.qdrant || services.models);
+
+  if (showSplash) {
+    createSplashWindow();
+    createTray();
+
+    // The splash is just a loading screen, so kick off the local services here
+    // instead of waiting for a user action. Features come from the profile the
+    // wizard saved (omitted features are off; the rest stay default-on).
+    const profile = store.get('standaloneProfile') as { features?: string[] } | undefined;
+    const enabled = profile?.features ?? (ALL_FEATURES as readonly string[]);
+    const features = Object.fromEntries(ALL_FEATURES.map((f) => [f, enabled.includes(f)]));
+    standaloneManager.start({ features }).catch((err) => {
+      console.error('Standalone services failed to start:', err);
+    });
+
+    // Poll until the backend is up, then swap the splash for the main window.
+    const splashPoll = setInterval(() => {
+      try {
+        const status = standaloneManager.getStatus();
+        if (status.backend === 'running') {
+          if (!mainWindow || mainWindow.isDestroyed()) {
+            createWindow();
+          }
+          if (mainWindow && !mainWindow.isVisible()) mainWindow.show();
+          if (splashWindow) {
+            try { splashWindow.close(); } catch {}
+            splashWindow = null;
+          }
+          clearInterval(splashPoll);
+        }
+      } catch (e) {
+        console.error('Error polling standalone status:', e);
+      }
+    }, 1000);
+  } else {
+    createWindow();
+    createTray();
+  }
 
   // Reapply persisted residente settings: register the
   // user's global shortcut (Electron drops it between sessions) and refresh

@@ -59,6 +59,7 @@ class StandaloneManager {
       this._status.postgres = 'running';
     } catch (err) {
       this._status.postgres = 'error';
+      console.error('StandaloneManager: Postgres failed to start', err);
       throw new Error(`PostgreSQL failed to start: ${err}`);
     }
 
@@ -91,26 +92,42 @@ class StandaloneManager {
     const creds = this.postgres.credentials;
 
     this._status.backend = 'starting';
-    try {
-      await this.backend.start({
-        postgresHost: 'localhost',
-        postgresPort: this.postgres.port,
-        postgresUser: creds.user,
-        postgresPassword: creds.password,
-        postgresDatabase: creds.database,
-        qdrantHost: this.qdrant?.running ? 'localhost' : undefined,
-        qdrantPort: this.qdrant?.running ? this.qdrant.port : undefined,
-        neo4jUri: this.neo4j?.running ? `bolt://localhost:${this.neo4j.port}` : undefined,
-        storagePath,
-        featureRag: !!this.qdrant?.running,
-        authEnabled: false,
-        disabledFeatures,
-      });
-      this._status.backend = 'running';
-    } catch (err) {
-      this._status.backend = 'error';
-      await this.stopServices();
-      throw new Error(`Backend failed to start: ${err}`);
+    const backendConfig = {
+      postgresHost: '127.0.0.1',
+      postgresPort: this.postgres.port,
+      postgresUser: creds.user,
+      postgresPassword: creds.password,
+      postgresDatabase: creds.database,
+      qdrantHost: this.qdrant?.running ? '127.0.0.1' : undefined,
+      qdrantPort: this.qdrant?.running ? this.qdrant.port : undefined,
+      neo4jUri: this.neo4j?.running ? `bolt://127.0.0.1:${this.neo4j.port}` : undefined,
+      storagePath,
+      featureRag: !!this.qdrant?.running,
+      authEnabled: false,
+      disabledFeatures,
+    };
+
+    let attempt = 0;
+    const maxAttempts = 2;
+    while (attempt < maxAttempts) {
+      attempt += 1;
+      try {
+        await this.backend.start(backendConfig as any);
+        this._status.backend = 'running';
+        break;
+      } catch (err) {
+        console.error(`Backend start attempt ${attempt} failed:`, err);
+        if (attempt >= maxAttempts) {
+          this._status.backend = 'error';
+          // Do NOT stop Postgres/Qdrant here so the user can inspect logs and
+          // re-attempt startup from the UI. Leaving the DBs running helps
+          // diagnose boot races or migration problems.
+          console.error(`Backend failed to start after ${attempt} attempts; leaving services running for inspection.`);
+          throw new Error(`Backend failed to start after ${attempt} attempts: ${err}`);
+        }
+        // small backoff before retrying
+        await new Promise((res) => setTimeout(res, 2000 * attempt));
+      }
     }
 
     // 5. Start the ML worker (if installed). It polls the same jobs table; the
@@ -121,23 +138,26 @@ class StandaloneManager {
       try {
         await embeddedModels.start({
           postgres: {
-            host: 'localhost',
+            host: '127.0.0.1',
             port: this.postgres.port,
             user: creds.user,
             password: creds.password,
             database: creds.database,
           },
-          qdrant: this.qdrant?.running ? { host: 'localhost', port: this.qdrant.port } : undefined,
+          qdrant: this.qdrant?.running ? { host: '127.0.0.1', port: this.qdrant.port } : undefined,
           neo4j: this.neo4j?.running
-            ? { host: 'localhost', port: this.neo4j.port, user: 'neo4j', password: 'neo4j' }
+            ? { host: '127.0.0.1', port: this.neo4j.port, user: 'neo4j', password: 'neo4j' }
             : undefined,
           features,
           gpu: detectGpu().cuda,
         });
         this._status.models = 'running';
       } catch (err) {
-        this._status.models = 'error';
-        console.error('Models worker failed to start (non-fatal):', err);
+        // Treat models startup failures as "not_installed" in the UI so the
+        // user is prompted to (re)install models via the wizard rather than
+        // exposing a low-level "error" state. This is non-fatal for the app.
+        this._status.models = 'not_installed';
+        console.error('Models worker failed to start — marking as not_installed (non-fatal):', err);
       }
     }
 

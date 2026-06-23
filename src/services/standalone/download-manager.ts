@@ -9,6 +9,7 @@ import { pipeline } from 'stream/promises';
 import { Unpack as TarUnpack } from 'tar';
 
 export interface ComponentStatus {
+  node: boolean;
   backend: boolean;
   postgres: boolean;
   qdrant: boolean;
@@ -50,6 +51,10 @@ const RELEASE_BASE_URL =
 
 // Component versions
 const VERSIONS = {
+  // Node runtime the backend is spawned with — bundled so a standalone install
+  // never depends on a system Node being present (or matching). Pinned to the
+  // version the backend is built/tested against.
+  node: '20.19.5',
   backend: '1.0.0',
   postgres: '17.6.0',
   qdrant: '1.14.1',
@@ -93,6 +98,10 @@ function getAssetUrl(component: string): string {
     case 'models-gpu':
       return `${RELEASE_BASE_URL}/${tag}/documents-models-v${VERSIONS.models}-${platform}-gpu.${ext}`;
 
+    // Node runtime — directly from nodejs.org
+    case 'node':
+      return getNodeUrl(platform);
+
     // Databases — directly from official sources
     case 'postgres':
       return getPostgresUrl(platform);
@@ -103,6 +112,18 @@ function getAssetUrl(component: string): string {
 
     default:
       throw new Error(`Unknown component: ${component}`);
+  }
+}
+
+function getNodeUrl(platform: string): string {
+  const base = `https://nodejs.org/dist/v${VERSIONS.node}`;
+  switch (platform) {
+    case 'linux-x64':    return `${base}/node-v${VERSIONS.node}-linux-x64.tar.gz`;
+    case 'linux-arm64':  return `${base}/node-v${VERSIONS.node}-linux-arm64.tar.gz`;
+    case 'darwin-x64':   return `${base}/node-v${VERSIONS.node}-darwin-x64.tar.gz`;
+    case 'darwin-arm64': return `${base}/node-v${VERSIONS.node}-darwin-arm64.tar.gz`;
+    case 'win32-x64':    return `${base}/node-v${VERSIONS.node}-win-x64.zip`;
+    default: throw new Error(`No Node.js binary for: ${platform}`);
   }
 }
 
@@ -138,11 +159,26 @@ function getNeo4jUrl(platform: string): string {
   return `${base}-unix.tar.gz`;
 }
 
+/**
+ * Absolute path to the bundled Node executable, or null if it isn't installed.
+ * On Unix the tarball puts it at node/bin/node; the Windows zip puts node.exe
+ * at the package root.
+ */
+export function getBundledNodePath(): string | null {
+  const nodeDir = path.join(getServicesDir(), 'node');
+  const unix = path.join(nodeDir, 'bin', 'node');
+  if (fs.existsSync(unix)) return unix;
+  const win = path.join(nodeDir, 'node.exe');
+  if (fs.existsSync(win)) return win;
+  return null;
+}
+
 export function checkInstalled(): ComponentStatus {
   const servicesDir = getServicesDir();
   const ext = process.platform === 'win32' ? '.exe' : '';
 
   return {
+    node: getBundledNodePath() !== null,
     backend: fs.existsSync(path.join(servicesDir, 'backend', 'dist', 'src', 'main.js')),
     postgres: fs.existsSync(path.join(servicesDir, 'postgres', 'bin', 'postgres' + ext)),
     qdrant: fs.existsSync(path.join(servicesDir, 'qdrant', 'qdrant' + ext)),
@@ -268,6 +304,19 @@ async function normalizeExtraction(component: string, destDir: string): Promise<
     });
     try { fs.unlinkSync(path.join(destDir, txz)); } catch { /* ignore */ }
     try { fs.rmSync(path.join(destDir, 'META-INF'), { recursive: true, force: true }); } catch { /* ignore */ }
+  } else if (component === 'node') {
+    // Node archives nest everything under node-v<version>-<platform>/. Lift its
+    // contents up one level so bin/ (or node.exe on Windows) sits in destDir.
+    const inner = fs.readdirSync(destDir).find(
+      (f) => f.startsWith('node-v') && fs.statSync(path.join(destDir, f)).isDirectory(),
+    );
+    if (inner) {
+      const innerPath = path.join(destDir, inner);
+      for (const entry of fs.readdirSync(innerPath)) {
+        fs.renameSync(path.join(innerPath, entry), path.join(destDir, entry));
+      }
+      fs.rmdirSync(innerPath);
+    }
   } else if (component === 'neo4j') {
     // Neo4j tarballs nest everything under neo4j-community-<version>/. Lift its
     // contents up one level so bin/, conf/, lib/ sit directly in destDir.
@@ -302,7 +351,7 @@ async function normalizeExtraction(component: string, destDir: string): Promise<
 export async function downloadAll(
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
-  const coreComponents = ['postgres', 'backend', 'qdrant', 'neo4j'];
+  const coreComponents = ['node', 'postgres', 'backend', 'qdrant', 'neo4j'];
   for (const component of coreComponents) {
     const status = checkInstalled();
     if (status[component as keyof ComponentStatus]) continue;
@@ -321,6 +370,7 @@ export async function downloadAll(
 // really are in wall-clock terms. The ML model download (Qwen GGUF + whisper +
 // embeddings, from slower HuggingFace mirrors) dominates everything else.
 const STEP_WEIGHT: Record<string, number> = {
+  node: 0.5,
   postgres: 1,
   backend: 0.5,
   qdrant: 0.5,
@@ -343,8 +393,15 @@ export async function installProfile(
   // Build the concrete step list up front so we can report "step X of N" and a
   // weighted overall percentage. Already-installed plain services are skipped;
   // the models bundle expands into two heavy steps (download + ML setup).
+  // The backend is spawned with the bundled Node runtime, so pull it in
+  // whenever the backend is installed even though the hardware report doesn't
+  // list it as a separate component.
+  const comps = components.includes('backend') && !components.includes('node')
+    ? ['node', ...components]
+    : components;
+
   const steps: Step[] = [];
-  for (const component of components) {
+  for (const component of comps) {
     if (component === 'diffusers') continue; // not packaged yet
     if (component === 'models-cpu' || component === 'models-gpu') {
       steps.push({ label: component, weight: STEP_WEIGHT[component], run: (op) => downloadComponent(component, op) });

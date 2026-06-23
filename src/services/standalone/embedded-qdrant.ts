@@ -123,7 +123,7 @@ export class EmbeddedQdrantService {
     return new Promise((resolve, reject) => {
       const start = Date.now();
       const check = () => {
-        const req = http.get(`http://localhost:${port}/readyz`, (res) => {
+        const req = http.get(`http://127.0.0.1:${port}/readyz`, (res) => {
           if (res.statusCode === 200) {
             resolve();
           } else {

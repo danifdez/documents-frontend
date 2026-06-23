@@ -1,9 +1,10 @@
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { ChildProcess, fork } from 'child_process';
+import { ChildProcess, fork, spawn, spawnSync } from 'child_process';
 import http from 'http';
 import { findFreePort } from './embedded-postgres';
+import { getBundledNodePath } from './download-manager';
 
 export interface BackendConfig {
   postgresHost: string;
@@ -28,6 +29,32 @@ export class EmbeddedBackendService {
 
   constructor(_workspaceId?: string) {
     // workspaceId kept for API compatibility but paths are now global
+  }
+
+  // Resolve the Node executable used to spawn the backend. A standalone install
+  // ships its own Node (downloaded alongside Postgres/Qdrant/etc.), so it never
+  // depends on a system Node being present or matching the expected version.
+  // The system-node / fork fallbacks only matter in development, where no
+  // bundled Node is downloaded.
+  private resolveNode(): string | null {
+    return getBundledNodePath() ?? this.findSystemNode();
+  }
+
+  // Try to locate a system `node` executable (which/where). Return its path
+  // or null if not found. This lets packaged Electron use the system Node to
+  // spawn the backend JS instead of forking from the Electron binary.
+  private findSystemNode(): string | null {
+    try {
+      const cmd = process.platform === 'win32' ? 'where' : 'which';
+      const res = spawnSync(cmd, ['node'], { encoding: 'utf-8' });
+      if (res && res.status === 0 && res.stdout) {
+        const p = res.stdout.toString().split(/\r?\n/)[0].trim();
+        if (p) return p;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
   }
 
   private getBackendPath(): string {
@@ -96,26 +123,59 @@ export class EmbeddedBackendService {
       env[`FEATURE_${flag.toUpperCase()}`] = 'false';
     }
 
-    this.process = fork(backendPath, [], {
-      env: { ...process.env, ...env },
-      silent: true,
-    });
+    // Prefer spawning with a real `node` executable (the bundled one in a
+    // standalone install) — packaged Electron's fork can produce processes that
+    // don't behave the same as a normal Node process on all systems. Fall back
+    // to `fork` only when no Node binary can be resolved (shouldn't happen in a
+    // standalone install, where Node is downloaded with the other services).
+    let child: ChildProcess | null = null;
+    const nodeBin = this.resolveNode();
+    if (nodeBin) {
+      try {
+        child = spawn(nodeBin, [backendPath], {
+          env: { ...process.env, ...env },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      } catch (err) {
+        console.error('EmbeddedBackendService: spawn(node) failed, falling back to fork', err);
+        child = null;
+      }
+    }
 
-    this.process.stdout?.pipe(logStream);
-    this.process.stderr?.pipe(logStream);
+    if (!child) {
+      child = fork(backendPath, [], {
+        env: { ...process.env, ...env },
+        silent: true,
+      });
+    }
 
-    this.process.on('exit', (code) => {
+    this.process = child;
+
+    // Pipe logs to the persistent log stream when available
+    if (this.process.stdout) this.process.stdout.pipe(logStream);
+    if (this.process.stderr) this.process.stderr.pipe(logStream);
+
+    this.process.on('error', (err) => {
       this._running = false;
       this.process = null;
+      console.error('EmbeddedBackendService: child process error', err && (err.stack || err));
+      try { logStream.write(`[${new Date().toISOString()}] [ERR] child process error: ${err && (err.stack || err)}\n`); } catch {}
+    });
+
+    this.process.on('exit', (code, signal) => {
+      this._running = false;
+      this.process = null;
+      try { logStream.write(`[${new Date().toISOString()}] [LOG] child exit code=${code} signal=${signal}\n`); } catch {}
       if (code !== 0 && code !== null) {
-        console.error(`Backend exited with code ${code}`);
+        console.error(`Backend exited with code ${code} signal ${signal}`);
       }
     });
 
     this._port = port;
 
-    // Wait for the backend to be ready
-    await this.waitForReady(port, 30000);
+    // Wait for the backend to be ready (increase timeout for packaged installs)
+    const waitTimeout = 120000; // 120 seconds
+    await this.waitForReady(port, waitTimeout);
     this._running = true;
   }
 
@@ -145,14 +205,14 @@ export class EmbeddedBackendService {
   }
 
   get url(): string {
-    return `http://localhost:${this._port}`;
+    return `http://127.0.0.1:${this._port}`;
   }
 
   private waitForReady(port: number, timeoutMs: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const start = Date.now();
       const check = () => {
-        const req = http.get(`http://localhost:${port}`, () => {
+        const req = http.get(`http://127.0.0.1:${port}`, () => {
           resolve();
         });
         req.on('error', retry);

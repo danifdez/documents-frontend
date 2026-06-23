@@ -13,6 +13,10 @@ export class EmbeddedPostgresService {
   private _port: number = 0;
   private _running = false;
   private workspaceId: string;
+  // PID of a postmaster we adopted from a previous run (orphaned by an Electron
+  // crash) instead of spawning ourselves. We don't own its ChildProcess handle,
+  // so `stop()` must signal it by PID.
+  private _adoptedPid: number | null = null;
 
   constructor(workspaceId: string) {
     this.workspaceId = workspaceId;
@@ -32,6 +36,36 @@ export class EmbeddedPostgresService {
 
   private isInitialized(): boolean {
     return fs.existsSync(path.join(this.getDataDir(), 'PG_VERSION'));
+  }
+
+  private getPidFilePath(): string {
+    return path.join(this.getDataDir(), 'postmaster.pid');
+  }
+
+  // Parse `postmaster.pid`. Line 1 is the postmaster PID, line 4 is the TCP
+  // port (see PostgreSQL's pidfile format). Returns null when the file is
+  // missing or malformed.
+  private readPostmasterPid(): { pid: number; port: number } | null {
+    try {
+      const lines = fs.readFileSync(this.getPidFilePath(), 'utf-8').split('\n');
+      const pid = parseInt(lines[0], 10);
+      const port = parseInt(lines[3], 10);
+      if (!Number.isInteger(pid) || !Number.isInteger(port)) return null;
+      return { pid, port };
+    } catch {
+      return null;
+    }
+  }
+
+  // `kill(pid, 0)` probes for existence without sending a signal: it throws
+  // ESRCH when the process is gone, EPERM when it exists but we can't signal it.
+  private isProcessAlive(pid: number): boolean {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (err: any) {
+      return err?.code === 'EPERM';
+    }
   }
 
   private getCredentials(): { user: string; password: string; database: string } {
@@ -85,6 +119,31 @@ export class EmbeddedPostgresService {
     fs.mkdirSync(logDir, { recursive: true });
 
     const creds = this.getCredentials();
+
+    // A previous app run can leave its postmaster alive: on Linux, child
+    // processes spawned by Electron survive a crash of the main process. Since
+    // PostgreSQL locks the data dir via `postmaster.pid`, a second postmaster on
+    // the same dir is impossible regardless of the port — so don't try to start
+    // another. Adopt the live one (read its port from the pidfile); if the lock
+    // is stale (the process is gone), remove it so a fresh start can proceed.
+    if (this.isInitialized()) {
+      const existing = this.readPostmasterPid();
+      if (existing && this.isProcessAlive(existing.pid)) {
+        try {
+          await this.waitForReady(existing.port, 3000);
+          this._adoptedPid = existing.pid;
+          this._port = existing.port;
+          this._running = true;
+          return;
+        } catch {
+          // PID alive but not accepting connections on that port — fall through
+          // and let the spawn below surface the real error.
+        }
+      } else if (existing) {
+        try { fs.rmSync(this.getPidFilePath()); } catch { /* ignore */ }
+      }
+    }
+
     const port = preferredPort || await findFreePort();
 
     // Initialize data directory if needed
@@ -171,6 +230,14 @@ export class EmbeddedPostgresService {
   }
 
   async stop(): Promise<void> {
+    // Adopted postmaster from a prior run: we hold only its PID, so signal it
+    // directly. SIGTERM triggers PostgreSQL's fast shutdown.
+    if (!this.process && this._adoptedPid !== null) {
+      try { process.kill(this._adoptedPid, 'SIGTERM'); } catch { /* already gone */ }
+      this._adoptedPid = null;
+      this._running = false;
+      return;
+    }
     if (!this.process) return;
     return new Promise((resolve) => {
       this.process!.on('exit', () => {

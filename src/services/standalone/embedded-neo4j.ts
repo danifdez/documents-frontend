@@ -119,7 +119,7 @@ export class EmbeddedNeo4jService {
     return new Promise((resolve, reject) => {
       const start = Date.now();
       const check = () => {
-        const req = http.get(`http://localhost:${httpPort}`, (res) => {
+        const req = http.get(`http://127.0.0.1:${httpPort}`, (res) => {
           if (res.statusCode && res.statusCode < 500) {
             resolve();
           } else {
