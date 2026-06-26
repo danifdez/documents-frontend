@@ -33,7 +33,7 @@ Under the hood, the app talks to a [NestJS backend](../backend/README.md) (docum
 - **Bibliography** — manage and export bibliographic references
 - **Threads** — discussion threads linked to documents or projects
 - **Timeline** — plot events and milestones from extracted data
-- **Canvas** — free-form visual workspace for arranging and connecting ideas, with AI-powered image generation and editing using local Stable Diffusion models
+- **Canvas** — free-form visual workspace for arranging and connecting ideas
 - **Datasets** — create and manage structured datasets from your documents
 
 ### Workspace & Collaboration

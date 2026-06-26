@@ -366,7 +366,7 @@
                         <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">AI /
                             Inference</h3>
                         <p class="text-xs text-text-muted mb-3">Document extraction, transcription, translation, entity
-                            recognition, summarization, semantic search, image generation.</p>
+                            recognition, summarization, semantic search.</p>
 
                         <!-- GPU detection -->
                         <div v-if="gpuInfo" class="mb-3 text-xs px-3 py-2 rounded-lg"

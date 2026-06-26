@@ -36,12 +36,11 @@ import { detectGpu, GpuInfo } from './download-manager';
 export type ProfileStatus = 'yes' | 'slow' | 'no';
 export type ProfileKey = 'essential' | 'balanced' | 'complete';
 
-// Backend feature flags (FEATURE_<X>). 'images' is a new flag to be added to the
-// backend FEATURE_FLAGS list and the frontend feature store when wired.
+// Backend feature flags (FEATURE_<X>).
 export type FeatureKey =
   | 'notes' | 'tasks' | 'calendar' | 'timelines' | 'authors' | 'canvas' | 'bibliography'
   | 'datasets' | 'rag' | 'assistants' | 'knowledge_base' | 'data_sources'
-  | 'entities' | 'relationships' | 'images';
+  | 'entities' | 'relationships';
 
 /**
  * Extra infrastructure a feature needs on top of the always-present base
@@ -50,9 +49,9 @@ export type FeatureKey =
  * Profiles are only a convenience preset: the wizard turns these features on as a
  * starting point, but the user can toggle any feature later from Settings. This
  * map is what lets Settings know, when a feature is switched on, whether a service
- * must be downloaded first (e.g. relationships → neo4j, images → diffusers).
+ * must be downloaded first (e.g. relationships → neo4j).
  */
-export type ServiceNeed = 'qdrant' | 'neo4j' | 'diffusers';
+export type ServiceNeed = 'qdrant' | 'neo4j';
 
 export const FEATURE_REQUIREMENTS: Record<FeatureKey, ServiceNeed[]> = {
   notes: [],
@@ -69,7 +68,6 @@ export const FEATURE_REQUIREMENTS: Record<FeatureKey, ServiceNeed[]> = {
   data_sources: ['qdrant'],
   entities: ['neo4j'],
   relationships: ['neo4j'],
-  images: ['diffusers'],
 };
 
 const ESSENTIAL_FEATURES: FeatureKey[] = ['notes', 'tasks', 'calendar', 'rag', 'assistants'];
@@ -77,7 +75,7 @@ const BALANCED_FEATURES: FeatureKey[] = [
   ...ESSENTIAL_FEATURES,
   'authors', 'timelines', 'canvas', 'bibliography', 'datasets', 'knowledge_base', 'data_sources',
 ];
-const COMPLETE_FEATURES: FeatureKey[] = [...BALANCED_FEATURES, 'entities', 'relationships', 'images'];
+const COMPLETE_FEATURES: FeatureKey[] = [...BALANCED_FEATURES, 'entities', 'relationships'];
 
 /** Every feature any profile can enable — the universe used to compute what a
  * given profile leaves disabled (FEATURE_<X>=false at the embedded backend). */
@@ -282,7 +280,7 @@ export function getHardwareReport(): HardwareReport {
     status: c.status,
     reason: c.reason,
     downloadGB: round1(fpComplete),
-    components: ['postgres', 'backend', bundle, 'qdrant', 'neo4j', 'diffusers'],
+    components: ['postgres', 'backend', bundle, 'qdrant', 'neo4j'],
     features: COMPLETE_FEATURES,
     llm: true,
   };

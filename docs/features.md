@@ -81,21 +81,7 @@ The Timeline page (`/projects/:projectId/timeline`) plots dated events extracted
 
 ## Canvas
 
-The Canvas (`/projects/:projectId/canvas`) is a free-form visual workspace. You can place documents, notes, entities, and free-text boxes as cards and draw connections between them. It is intended for visual thinking and mapping relationships between pieces of information.
-
-### AI Image Generation
-
-The canvas includes a dedicated AI Image panel (toggled via the sparkles button in the toolbar) for generating and editing images using local Stable Diffusion models. The panel has three tabs:
-
-| Tab | Description |
-|-----|-------------|
-| **Generate** | Create new images from a text prompt. Configure size, inference steps, guidance scale, and seed. Generated images appear as a preview and can be added to the canvas as image nodes. |
-| **Edit** | Select an existing image node on the canvas to modify it with AI. Provide an edit prompt and adjust the strength slider (how much the image changes). The result can replace the original node or be added as a new one. |
-| **History** | Grid of all previously generated images for this canvas (persisted in localStorage). Click any image to add it to the canvas. |
-
-Generated and edited images are stored as project resources (`type: image`, `mimeType: image/png`), so they appear in the project's resource list and can be reused in other canvases or documents.
-
-The feature communicates with the backend via `POST /model/image-generate` and `POST /model/image-edit`, using WebSocket events (`imageGenerateResponse`, `imageEditResponse`) for real-time completion notifications.
+The Canvas (`/projects/:projectId/canvas`) is a free-form visual workspace. You can place documents, notes, entities, and free-text boxes as cards and draw connections between them. It is intended for visual thinking and mapping relationships between pieces of information. Images can be added from a URL, a local file, or the project's resources.
 
 ## Datasets
 

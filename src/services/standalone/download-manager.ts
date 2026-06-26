@@ -363,8 +363,7 @@ export async function downloadAll(
  * Installs exactly the services a wizard profile asks for. `components` comes
  * from the hardware report (e.g. ['postgres','backend','models-cpu','qdrant']).
  * The models bundle goes through installModels (bundle + ML model download);
- * plain services go through downloadComponent. 'diffusers' is not packaged yet
- * and is skipped.
+ * plain services go through downloadComponent.
  */
 // Rough *time* weight per step (not size), so the global bar tracks where you
 // really are in wall-clock terms. The ML model download (Qwen GGUF + whisper +
@@ -402,7 +401,6 @@ export async function installProfile(
 
   const steps: Step[] = [];
   for (const component of comps) {
-    if (component === 'diffusers') continue; // not packaged yet
     if (component === 'models-cpu' || component === 'models-gpu') {
       steps.push({ label: component, weight: STEP_WEIGHT[component], run: (op) => downloadComponent(component, op) });
       steps.push({ label: 'ai-models', weight: STEP_WEIGHT['ai-models'], run: (op) => setupModels(op) });

@@ -21,21 +21,18 @@
     <div class="flex-1 min-h-0 flex">
       <div class="flex-1 min-h-0 flex flex-col">
         <CanvasToolbar :is-saving="isSaving" :saved-successfully="savedSuccessfully"
-          :pending-tool="pendingTool?.type || null" :ai-panel-open="showAiPanel"
+          :pending-tool="pendingTool?.type || null"
           @select-tool="onSelectTool" @clear-tool="pendingTool = null"
           @pick-doc="openDocPicker" @pick-resource="openResourcePicker"
           @pick-image="openImageModal" @pick-infographic="openInfographicModal"
-          @export="handleExport" @toggle-ai-panel="showAiPanel = !showAiPanel" />
+          @export="handleExport" />
         <div class="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
           <CanvasEditor ref="canvasEditorRef" :canvas-data="canvasData.canvasData"
             :pending-tool="pendingTool"
             @canvas-change="handleCanvasChange" @edit-image="handleEditImage"
-            @node-placed="pendingTool = null" @node-selected="handleNodeSelected" />
+            @node-placed="pendingTool = null" />
         </div>
       </div>
-      <AiImagePanel v-if="showAiPanel" :canvas-id="canvasData.id" :project-id="projectStore.currentProject?.id" :selected-image-node="selectedImageNodeForAi"
-        @close="showAiPanel = false" @add-to-canvas="handleAddGeneratedImage"
-        @replace-image="handleReplaceImage" />
     </div>
 
     <!-- Confirm Remove Modal -->
@@ -463,14 +460,11 @@ import { useResource } from '../services/resources/useResource';
 import { useProjectStore } from '../store/projectStore';
 import CanvasEditor from '../components/canvas/CanvasEditor.vue';
 import CanvasToolbar from '../components/canvas/CanvasToolbar.vue';
-import AiImagePanel from '../components/canvas/AiImagePanel.vue';
-import type { GeneratedImage } from '../services/canvas/useImageGeneration';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import Modal from '../components/ui/Modal/Modal.vue';
 import type { CanvasData } from '../types/canvas';
-import apiClient from '../services/api';
 import DatasetChartConfigModal from '../components/editor/DatasetChartConfigModal.vue';
 import TimelinePickerModal from '../components/canvas/TimelinePickerModal.vue';
 import EntityPickerModal from '../components/canvas/EntityPickerModal.vue';
@@ -684,9 +678,6 @@ const imageTab = ref<'url' | 'file' | 'project'>('url');
 const imageResources = ref<Record<string, any>[]>([]);
 const editingImageNodeId = ref<string | null>(null);
 
-// AI Image Panel
-const showAiPanel = ref(false);
-const selectedImageNodeForAi = ref<{ id: string; data: Record<string, any> } | null>(null);
 const projectDocs = ref<Record<string, any>[]>([]);
 const projectResources = ref<Record<string, any>[]>([]);
 const pickerSelectedItem = ref<{ id: number; name: string; htmlContent: string; type: 'doc' | 'resource' } | null>(null);
@@ -1025,25 +1016,6 @@ const handleFileSelect = (e: Event) => {
 
 const selectImageResource = (res: Record<string, any>) => {
   imageUrl.value = getResourceViewUrl(res.id);
-};
-
-// AI Image Panel handlers
-const handleNodeSelected = (node: { id: string; type: string; data: Record<string, any> } | null) => {
-  if (node && node.type === 'image') {
-    selectedImageNodeForAi.value = { id: node.id, data: node.data };
-  } else {
-    selectedImageNodeForAi.value = null;
-  }
-};
-
-const handleAddGeneratedImage = (image: GeneratedImage) => {
-  apiClient.post(`/resources/${image.resourceId}/promote`).catch(() => {});
-  handleAddNode('image', { src: image.url, alt: image.prompt });
-};
-
-const handleReplaceImage = (nodeId: string, image: GeneratedImage) => {
-  apiClient.post(`/resources/${image.resourceId}/promote`).catch(() => {});
-  canvasEditorRef.value?.updateNodeData(nodeId, { src: image.url, alt: image.prompt });
 };
 
 // Resource picker

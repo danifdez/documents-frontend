@@ -214,7 +214,7 @@ import FormField from '../components/ui/FormField.vue';
 const allPermissions = [
   // AI features
   'ask', 'summarize', 'translate', 'entity-extraction',
-  'key-points', 'keywords', 'image-generate',
+  'key-points', 'keywords',
   // Core data
   'projects', 'documents', 'upload', 'export', 'write', 'delete',
   // Features
