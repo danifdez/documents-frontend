@@ -91,7 +91,6 @@ const error = ref('');
 const COMPONENT_LABELS: Record<string, string> = {
   postgres: 'database',
   backend: 'server',
-  qdrant: 'search index',
   neo4j: 'knowledge graph',
   'models-cpu': 'AI engine',
   'models-gpu': 'AI engine',

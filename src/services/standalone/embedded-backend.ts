@@ -12,11 +12,8 @@ export interface BackendConfig {
   postgresUser: string;
   postgresPassword: string;
   postgresDatabase: string;
-  qdrantHost?: string;
-  qdrantPort?: number;
   neo4jUri?: string;
   storagePath: string;
-  featureRag?: boolean;
   authEnabled?: boolean;
   /** Feature flags to turn OFF (passed as FEATURE_<X>=false). */
   disabledFeatures?: string[];
@@ -32,7 +29,7 @@ export class EmbeddedBackendService {
   }
 
   // Resolve the Node executable used to spawn the backend. A standalone install
-  // ships its own Node (downloaded alongside Postgres/Qdrant/etc.), so it never
+  // ships its own Node (downloaded alongside Postgres/etc.), so it never
   // depends on a system Node being present or matching the expected version.
   // The system-node / fork fallbacks only matter in development, where no
   // bundled Node is downloaded.
@@ -106,11 +103,9 @@ export class EmbeddedBackendService {
       RUN_MIGRATIONS: 'true',
     };
 
-    if (config.qdrantHost && config.qdrantPort) {
-      env.QDRANT_HOST = config.qdrantHost;
-      env.QDRANT_PORT = String(config.qdrantPort);
-      env.FEATURE_RAG = config.featureRag ? 'true' : 'false';
-    }
+    // RAG is always available: embeddings live in Postgres via pgvector, which
+    // ships with the embedded Postgres — there's no separate vector service.
+    env.FEATURE_RAG = 'true';
 
     if (config.neo4jUri) {
       env.NEO4J_URI = config.neo4jUri;

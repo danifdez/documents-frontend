@@ -22,8 +22,8 @@ function waitForBackend(maxRetries = 60) {
 }
 
 export default function globalSetup() {
-  // 1. Reset data (stops services, drops DB, clears docs/qdrant/config, runs migrations)
-  console.log('\n[global-setup] Resetting database, documents and Qdrant...');
+  // 1. Reset data (stops services, drops DB, clears docs/config, runs migrations)
+  console.log('\n[global-setup] Resetting database and documents...');
   run(`bash ${MANAGE_SCRIPT} reset --yes`);
   console.log('[global-setup] Reset complete.');
 

@@ -20,7 +20,7 @@ user wants to run the app:
 Selecting **Standalone** immediately:
 
 1. Checks whether the required services are already installed.
-2. Downloads them if not (PostgreSQL, Qdrant, Neo4j, and the backend).
+2. Downloads them if not (PostgreSQL, Neo4j, and the backend).
 3. Starts all services and registers the local workspace automatically.
 
 The setup runs in the background; the app shows a *Starting local server…*
@@ -28,14 +28,17 @@ message while it progresses.
 
 ## Services and Storage
 
-### Core services (~350 MB, required)
+### Core services (~310 MB, required)
 
 | Service | Role |
 |---------|------|
 | Backend API | REST API and job orchestration |
-| PostgreSQL | Stores documents, projects, and application state |
-| Qdrant | Vector index for semantic search |
+| PostgreSQL | Stores documents, projects, application state, and embeddings (pgvector) for semantic search |
 | Neo4j | Graph database for knowledge relationships |
+
+The PostgreSQL asset ships with the `vector` (pgvector) extension baked in — it
+is the zonky binaries repackaged at build time with the prebuilt extension `.deb`
+from the PostgreSQL APT repository — so semantic search works out of the box.
 
 All binaries are saved under the `standalone-services/` folder inside the
 Electron user-data directory. Application data (documents, uploads) is stored in
@@ -58,7 +61,7 @@ automatically.
 Services start in sequence when a local workspace is opened:
 
 1. PostgreSQL starts first (required; the app will not proceed without it).
-2. Qdrant and Neo4j start next if they are installed.
+2. Neo4j starts next if it is installed.
 3. The backend starts last, once the databases are ready.
 
 All services stop automatically when the application is closed. They can also be

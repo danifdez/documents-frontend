@@ -12,7 +12,6 @@ export interface ComponentStatus {
   node: boolean;
   backend: boolean;
   postgres: boolean;
-  qdrant: boolean;
   neo4j: boolean;
   models: boolean;
 }
@@ -57,7 +56,6 @@ const VERSIONS = {
   node: '20.19.5',
   backend: '1.0.0',
   postgres: '17.6.0',
-  qdrant: '1.14.1',
   neo4j: '5.26.0',
   models: '1.0.0',
 };
@@ -102,11 +100,13 @@ function getAssetUrl(component: string): string {
     case 'node':
       return getNodeUrl(platform);
 
-    // Databases — directly from official sources
+    // PostgreSQL — our own build, repackaged from the zonky binaries with the
+    // pgvector extension baked in (see build-release). Hosted alongside our
+    // other assets so the embedded server has vector support out of the box.
     case 'postgres':
-      return getPostgresUrl(platform);
-    case 'qdrant':
-      return getQdrantUrl(platform);
+      return `${RELEASE_BASE_URL}/${tag}/documents-postgres-v${VERSIONS.backend}-${platform}.${ext}`;
+
+    // Neo4j — directly from the official source
     case 'neo4j':
       return getNeo4jUrl(platform);
 
@@ -127,31 +127,6 @@ function getNodeUrl(platform: string): string {
   }
 }
 
-function getPostgresUrl(platform: string): string {
-  const base = 'https://repo1.maven.org/maven2/io/zonky/test/postgres';
-  let jarPlatform: string;
-  switch (platform) {
-    case 'linux-x64':   jarPlatform = 'linux-amd64'; break;
-    case 'linux-arm64':  jarPlatform = 'linux-arm64v8'; break;
-    case 'darwin-x64':  jarPlatform = 'darwin-amd64'; break;
-    case 'darwin-arm64': jarPlatform = 'darwin-arm64v8'; break;
-    case 'win32-x64':   jarPlatform = 'windows-amd64'; break;
-    default: throw new Error(`No PostgreSQL binary for: ${platform}`);
-  }
-  return `${base}/embedded-postgres-binaries-${jarPlatform}/${VERSIONS.postgres}/embedded-postgres-binaries-${jarPlatform}-${VERSIONS.postgres}.jar`;
-}
-
-function getQdrantUrl(platform: string): string {
-  const base = `https://github.com/qdrant/qdrant/releases/download/v${VERSIONS.qdrant}`;
-  switch (platform) {
-    case 'linux-x64':   return `${base}/qdrant-x86_64-unknown-linux-musl.tar.gz`;
-    case 'linux-arm64':  return `${base}/qdrant-aarch64-unknown-linux-musl.tar.gz`;
-    case 'darwin-x64':  return `${base}/qdrant-x86_64-apple-darwin.tar.gz`;
-    case 'darwin-arm64': return `${base}/qdrant-aarch64-apple-darwin.tar.gz`;
-    case 'win32-x64':   return `${base}/qdrant-x86_64-pc-windows-msvc.zip`;
-    default: throw new Error(`No Qdrant binary for: ${platform}`);
-  }
-}
 
 function getNeo4jUrl(platform: string): string {
   const base = `https://dist.neo4j.org/neo4j-community-${VERSIONS.neo4j}`;
@@ -181,7 +156,6 @@ export function checkInstalled(): ComponentStatus {
     node: getBundledNodePath() !== null,
     backend: fs.existsSync(path.join(servicesDir, 'backend', 'dist', 'src', 'main.js')),
     postgres: fs.existsSync(path.join(servicesDir, 'postgres', 'bin', 'postgres' + ext)),
-    qdrant: fs.existsSync(path.join(servicesDir, 'qdrant', 'qdrant' + ext)),
     neo4j: fs.existsSync(path.join(servicesDir, 'neo4j', 'bin', process.platform === 'win32' ? 'neo4j.bat' : 'neo4j')),
     models: fs.existsSync(path.join(getModelsDir(), 'documents-models' + ext))
       || fs.existsSync(path.join(getModelsDir(), 'jobs' + ext)),
@@ -266,7 +240,7 @@ export async function downloadComponent(
     // Extraction is the second half (50-100%). Decompressing the multi-GB models
     // bundle takes a while, so report byte-level progress to keep the bar moving
     // instead of freezing on a single fixed value.
-    // PostgreSQL jar is a zip, Qdrant/Neo4j are tar.gz or zip.
+    // PostgreSQL jar is a zip, Neo4j is tar.gz or zip.
     const isZip = url.endsWith('.zip') || url.endsWith('.jar');
     await extractArchive(tmpFile, destDir, isZip, (extractPercent) => {
       if (onProgress) {
@@ -289,22 +263,7 @@ export async function downloadComponent(
 // Flattens/unpacks freshly extracted archives whose internal layout does not
 // match the path the rest of the app expects.
 async function normalizeExtraction(component: string, destDir: string): Promise<void> {
-  if (component === 'postgres') {
-    // The zonky jar (extracted as a zip) holds a <platform>.txz with the real
-    // bin/lib/share tree. Extract it in place via the system tar (xz), then
-    // remove the jar leftovers.
-    const txz = fs.readdirSync(destDir).find((f) => f.endsWith('.txz'));
-    if (!txz) {
-      throw new Error('PostgreSQL archive did not contain the expected .txz payload');
-    }
-    await new Promise<void>((resolve, reject) => {
-      execFile('tar', ['xf', path.join(destDir, txz), '-C', destDir], (err) =>
-        err ? reject(new Error(`Failed to extract PostgreSQL binaries: ${err.message}`)) : resolve(),
-      );
-    });
-    try { fs.unlinkSync(path.join(destDir, txz)); } catch { /* ignore */ }
-    try { fs.rmSync(path.join(destDir, 'META-INF'), { recursive: true, force: true }); } catch { /* ignore */ }
-  } else if (component === 'node') {
+  if (component === 'node') {
     // Node archives nest everything under node-v<version>-<platform>/. Lift its
     // contents up one level so bin/ (or node.exe on Windows) sits in destDir.
     const inner = fs.readdirSync(destDir).find(
@@ -351,7 +310,7 @@ async function normalizeExtraction(component: string, destDir: string): Promise<
 export async function downloadAll(
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
-  const coreComponents = ['node', 'postgres', 'backend', 'qdrant', 'neo4j'];
+  const coreComponents = ['node', 'postgres', 'backend', 'neo4j'];
   for (const component of coreComponents) {
     const status = checkInstalled();
     if (status[component as keyof ComponentStatus]) continue;
@@ -361,7 +320,7 @@ export async function downloadAll(
 
 /**
  * Installs exactly the services a wizard profile asks for. `components` comes
- * from the hardware report (e.g. ['postgres','backend','models-cpu','qdrant']).
+ * from the hardware report (e.g. ['postgres','backend','models-cpu']).
  * The models bundle goes through installModels (bundle + ML model download);
  * plain services go through downloadComponent.
  */
@@ -372,7 +331,6 @@ const STEP_WEIGHT: Record<string, number> = {
   node: 0.5,
   postgres: 1,
   backend: 0.5,
-  qdrant: 0.5,
   neo4j: 1,
   'models-cpu': 3,
   'models-gpu': 5,

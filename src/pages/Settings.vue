@@ -613,34 +613,32 @@ async function deleteWorkspace(id: string) {
 }
 
 // ── Local server install state ──
-const standaloneInstalled = ref({ backend: false, postgres: false, qdrant: false, neo4j: false, models: false });
+const standaloneInstalled = ref({ backend: false, postgres: false, neo4j: false, models: false });
 const standaloneDownloading = ref(false);
 const standaloneDownloadError = ref('');
 const downloadProgress = ref({ component: '', downloaded: 0, total: 0, percent: 0 });
 const gpuInfo = ref<{ available: boolean; name: string | null; cuda: boolean } | null>(null);
 const standaloneFullyInstalled = computed(() =>
     standaloneInstalled.value.backend && standaloneInstalled.value.postgres
-    && standaloneInstalled.value.qdrant && standaloneInstalled.value.neo4j
+    && standaloneInstalled.value.neo4j
 );
 
 const coreServices = [
     { key: 'backend' as const, label: 'Backend (NestJS)', size: '~50 MB' },
     { key: 'postgres' as const, label: 'PostgreSQL', size: '~200 MB' },
-    { key: 'qdrant' as const, label: 'Qdrant', size: '~40 MB' },
     { key: 'neo4j' as const, label: 'Neo4j', size: '~60 MB' },
 ];
 
 // ── Live service status (observability, shown once standalone is installed) ──
-type ServiceKey = 'postgres' | 'backend' | 'qdrant' | 'neo4j' | 'models';
+type ServiceKey = 'postgres' | 'backend' | 'neo4j' | 'models';
 const serviceStatusList: { key: ServiceKey; label: string }[] = [
     { key: 'postgres', label: 'PostgreSQL' },
     { key: 'backend', label: 'Backend (NestJS)' },
-    { key: 'qdrant', label: 'Qdrant' },
     { key: 'neo4j', label: 'Neo4j' },
     { key: 'models', label: 'Models Service' },
 ];
 const serviceStatus = ref<Record<ServiceKey, string>>({
-    postgres: 'stopped', backend: 'stopped', qdrant: 'stopped', neo4j: 'stopped', models: 'not_installed',
+    postgres: 'stopped', backend: 'stopped', neo4j: 'stopped', models: 'not_installed',
 });
 const serviceErrors = ref<Partial<Record<ServiceKey, string>>>({});
 

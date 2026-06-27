@@ -1058,7 +1058,7 @@ app.whenReady().then(() => {
   // Show a splash window only when the app is packaged and standalone
   // services are present on disk. Otherwise keep the usual behavior.
   const services = checkInstalled();
-  const showSplash = app.isPackaged && (services.backend || services.postgres || services.qdrant || services.models);
+  const showSplash = app.isPackaged && (services.backend || services.postgres || services.models);
 
   if (showSplash) {
     createSplashWindow();

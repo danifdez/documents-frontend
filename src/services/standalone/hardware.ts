@@ -16,7 +16,7 @@ import { detectGpu, GpuInfo } from './download-manager';
  * offers connecting to a server instead).
  *
  * A single install covers the base: postgres + backend + the models bundle
- * (LLM + embeddings) + Qdrant, with the always-on base features (notes,
+ * (LLM + embeddings), with the always-on base features (notes,
  * calendar, tasks, and the AI). Optional features are off by default; the user
  * enables what they need later from Settings, which downloads any service they
  * require.
@@ -37,18 +37,18 @@ export type FeatureKey =
 
 /**
  * Extra infrastructure a feature needs on top of the always-present base
- * (postgres + backend + models LLM/embeddings + qdrant). Empty = runs on the
+ * (postgres + backend + models LLM/embeddings). Empty = runs on the
  * base alone. This map lets Settings know, when a feature is switched on,
  * whether a service must be downloaded first (e.g. relationships → neo4j).
  */
-export type ServiceNeed = 'qdrant' | 'neo4j';
+export type ServiceNeed = 'neo4j';
 
 export const FEATURE_REQUIREMENTS: Record<FeatureKey, ServiceNeed[]> = {
   timelines: [],
   canvas: [],
   bibliography: [],
   datasets: [],
-  knowledge_base: ['qdrant'],
+  knowledge_base: [],
   relationships: ['neo4j'],
 };
 
@@ -100,7 +100,7 @@ const MIN = {
   // GPU wants ~7 GB VRAM for all layers; 5–7 GB runs with partial offload.
   aiGpuVram: 7,
   aiGpuVramFloor: 5,
-  // GPU path still needs some system RAM for Postgres/Qdrant/etc.
+  // GPU path still needs some system RAM for Postgres/etc.
   aiGpuSysRam: 8,
   // CPU path: only a strong CPU qualifies, and the honest verdict is 'slow'
   // (no GPU = slow token generation). Below this it's 'no'.
@@ -193,7 +193,7 @@ export function getHardwareReport(): HardwareReport {
   const bundle = llm.mode === 'gpu' ? 'models-gpu' : 'models-cpu';
   const bundleSize = llm.mode === 'gpu' ? BUNDLE_GPU : BUNDLE_CPU;
 
-  // The base install: core + LLM + embeddings + Qdrant.
+  // The base install: core + LLM + embeddings.
   const footprint = FP_CORE + bundleSize + EMBEDDINGS + LLM_WEIGHTS;
   const gate = diskGate(llm.status, llm.reason, footprint, hardware);
 
@@ -204,7 +204,7 @@ export function getHardwareReport(): HardwareReport {
     status: gate.status,
     reason: gate.reason,
     downloadGB: round1(footprint),
-    components: ['postgres', 'backend', bundle, 'qdrant'],
+    components: ['postgres', 'backend', bundle],
     bundle,
   };
 

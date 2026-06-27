@@ -14,7 +14,6 @@ import { ChildProcess, spawn } from 'child_process';
  */
 export interface ModelsConfig {
   postgres: { host: string; port: number; user: string; password: string; database: string };
-  qdrant?: { host: string; port: number };
   neo4j?: { host: string; port: number; user: string; password: string };
   /** Worker feature flags (config.features) — keyed like the profile features. */
   features: Record<string, boolean>;
@@ -68,9 +67,6 @@ export class EmbeddedModelsService {
         user: config.postgres.user,
         password: config.postgres.password,
       },
-      qdrant: config.qdrant
-        ? { enabled: true, host: config.qdrant.host, port: config.qdrant.port }
-        : { enabled: false },
       neo4j: config.neo4j
         ? {
             enabled: true,
