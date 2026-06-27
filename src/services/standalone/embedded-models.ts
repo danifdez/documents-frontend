@@ -96,10 +96,6 @@ export class EmbeddedModelsService {
       MODELS_DATA_DIR: dataDir,
       MODELS_MODEL_DIR: path.join(this.servicesDir(), 'models'),
       HF_HOME: path.join(this.servicesDir(), 'hf-cache'),
-      SPACY_DATA: path.join(this.servicesDir(), 'spacy-data'),
-      // Bundle ships en_core_web_sm only; without this the GPU path would ask for
-      // en_core_web_trf (not bundled, not downloaded) and entity extraction fails.
-      SPACY_MODEL: 'en_core_web_sm',
       LLM_N_GPU_LAYERS: config.gpu ? '-1' : '0',
     };
 

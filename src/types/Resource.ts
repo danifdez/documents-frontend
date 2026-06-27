@@ -14,7 +14,6 @@ export interface Resource {
   publicationDate: string | null;
   content: string | null;
   translatedContent: string | null;
-  workingContent: string | null;
   summary: string | null;
   keyPoints: string[] | null;
   keywords: string[] | null;

@@ -112,7 +112,7 @@ const MIN = {
 const FP_CORE = 0.5; // postgres + backend
 const BUNDLE_CPU = 2;
 const BUNDLE_GPU = 5;
-const EMBEDDINGS = 0.15; // bge + spaCy (used by the assistant)
+const EMBEDDINGS = 0.5; // multilingual-e5-small (RAG / search / memory)
 const LLM_WEIGHTS = 6.5; // Qwen3-8B Q5_K_M GGUF
 const DISK_SAFETY = 2;
 

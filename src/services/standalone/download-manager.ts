@@ -441,7 +441,7 @@ export async function uninstallModels(): Promise<void> {
 
 /**
  * Downloads the models service bundle AND runs --setup to download
- * the actual ML models (embeddings, spaCy, Whisper, etc.)
+ * the actual ML models (embeddings, Whisper, the LLM, etc.)
  */
 export async function installModels(
   variant: 'models-cpu' | 'models-gpu',
@@ -457,8 +457,7 @@ export async function installModels(
 /**
  * Spawns the models service binary with --setup flag.
  * The models service downloads all required ML models:
- *  - BAAI/bge-small-en-v1.5 (embeddings, ~130 MB)
- *  - en_core_web_sm (spaCy NER, ~12 MB)
+ *  - intfloat/multilingual-e5-small (embeddings, ~470 MB)
  *  - faster-whisper-small (transcription, ~460 MB)
  *  - Qwen3-8B GGUF Q5_K_M (LLM, ~5.7 GB)
  */
@@ -486,7 +485,6 @@ export async function setupModels(
       env: {
         ...process.env,
         HF_HOME: path.join(modelsDir, 'hf-cache'),
-        SPACY_DATA: path.join(modelsDir, 'spacy-data'),
         MODELS_MODEL_DIR: path.join(modelsDir, 'models'),
         // Importing the worker writes a .worker_id at module load; without a
         // writable MODELS_DATA_DIR it falls back to a path inside the read-only

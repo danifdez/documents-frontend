@@ -204,8 +204,9 @@ const formatAliases = (aliases: EntityAlias[]): string => {
 
 /**
  * Get the display text for an entity based on current display mode.
- * Since entities are ALWAYS extracted from working_content (English),
- * entity.name is always in English and translations contain other languages.
+ * Entities are extracted in the document's original language; entity.name is
+ * then normalized to English by the entity-translation step, while
+ * translations contains the other languages.
  */
 const displayEntityName = (entity: Entity | null): string => {
     if (!entity) return '';
