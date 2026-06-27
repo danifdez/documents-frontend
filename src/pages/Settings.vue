@@ -39,21 +39,6 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="mt-4">
-                            <label class="block text-xs font-medium text-text-secondary mb-1">Active theme</label>
-                            <div class="flex items-center gap-2">
-                                <select v-model="activeThemeId" @change="onActiveThemeChange"
-                                    class="flex-1 px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
-                                    <option v-for="entry in themes" :key="entry.manifest.id" :value="entry.manifest.id">
-                                        {{ entry.manifest.name }}
-                                    </option>
-                                </select>
-                                <button type="button" class="btn-secondary text-xs whitespace-nowrap"
-                                    @click="showThemeManager = true">
-                                    Manage themes…
-                                </button>
-                            </div>
-                        </div>
                     </section>
 
                     <!-- Language -->
@@ -312,104 +297,171 @@
 
             <!-- Server Tab -->
             <div v-show="activeTab === 'server'">
-                <p class="text-sm text-text-muted mb-4">Install and run all services locally on this machine</p>
 
-                <div class="bg-surface-elevated rounded-2xl border border-border p-5 max-w-lg">
-                    <!-- Core services -->
-                    <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Core Services
-                    </h3>
-                    <div class="space-y-3 mb-4">
-                        <div v-for="svc in coreServices" :key="svc.key" class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full"
-                                    :class="standaloneInstalled[svc.key] ? 'bg-green-500' : 'bg-border'"></span>
-                                <span class="text-sm text-text-primary">{{ svc.label }}</span>
+                <!-- ════ Installed → live service status (observability) ════ -->
+                <template v-if="standaloneFullyInstalled">
+                    <p class="text-sm text-text-muted mb-4">Local server status — services running on this machine</p>
+
+                    <div class="bg-surface-elevated rounded-2xl border border-border p-5 max-w-lg">
+                        <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Services</h3>
+                        <div class="space-y-3">
+                            <div v-for="svc in serviceStatusList" :key="svc.key">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full"
+                                            :class="statusDotClass(serviceStatus[svc.key])"></span>
+                                        <span class="text-sm text-text-primary">{{ svc.label }}</span>
+                                    </div>
+                                    <span class="text-xs" :class="statusTextClass(serviceStatus[svc.key])">{{
+                                        statusLabel(serviceStatus[svc.key]) }}</span>
+                                </div>
+                                <p v-if="serviceErrors[svc.key]"
+                                    class="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2 mt-1.5 ml-4 break-words whitespace-pre-wrap">
+                                    {{ serviceErrors[svc.key] }}</p>
                             </div>
-                            <span class="text-xs text-text-muted">{{ svc.size }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Download progress -->
-                    <div v-if="standaloneDownloading" class="mb-4">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs text-text-secondary">Downloading {{ downloadProgress.component
-                                }}...</span>
-                            <span class="text-xs text-text-muted">{{ downloadProgress.percent }}%</span>
-                        </div>
-                        <div class="w-full h-1.5 bg-border rounded-full overflow-hidden">
-                            <div class="h-full bg-accent rounded-full transition-all duration-300"
-                                :style="{ width: downloadProgress.percent + '%' }"></div>
-                        </div>
-                    </div>
-
-                    <!-- Error -->
-                    <div v-if="standaloneDownloadError"
-                        class="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
-                        {{ standaloneDownloadError }}
-                    </div>
-
-                    <!-- Install / Uninstall -->
-                    <div class="flex gap-2">
-                        <button v-if="!standaloneFullyInstalled" @click="installStandalone"
-                            :disabled="standaloneDownloading"
-                            class="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                            {{ standaloneDownloading ? 'Installing...' : 'Install Local Server (~350 MB)' }}
-                        </button>
-                        <button v-if="standaloneFullyInstalled" @click="uninstallStandalone"
-                            class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
-                            Uninstall
-                        </button>
-                    </div>
-
-                    <!-- AI / Inference Models -->
-                    <div class="mt-5 pt-4 border-t border-border">
-                        <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">AI /
-                            Inference</h3>
-                        <p class="text-xs text-text-muted mb-3">Document extraction, transcription, translation, entity
-                            recognition, summarization, semantic search.</p>
-
-                        <!-- GPU detection -->
-                        <div v-if="gpuInfo" class="mb-3 text-xs px-3 py-2 rounded-lg"
-                            :class="gpuInfo.available && gpuInfo.cuda ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-surface-hover text-text-muted'">
-                            <template v-if="gpuInfo.available && gpuInfo.cuda">
-                                GPU detected: {{ gpuInfo.name }} (CUDA) — GPU acceleration will be used
-                            </template>
-                            <template v-else-if="gpuInfo.available">
-                                {{ gpuInfo.name }} detected — CPU inference will be used
-                            </template>
-                            <template v-else>
-                                No GPU detected — CPU inference will be used
-                            </template>
                         </div>
 
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full"
-                                    :class="standaloneInstalled.models ? 'bg-green-500' : 'bg-border'"></span>
-                                <span class="text-sm text-text-primary">Models Service</span>
+                        <!-- AI / Inference Models (optional — manage here) -->
+                        <div class="mt-5 pt-4 border-t border-border">
+                            <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">AI /
+                                Inference</h3>
+                            <p class="text-xs text-text-muted mb-3">Document extraction, transcription, translation,
+                                entity recognition, summarization, semantic search.</p>
+
+                            <!-- GPU detection -->
+                            <div v-if="gpuInfo" class="mb-3 text-xs px-3 py-2 rounded-lg"
+                                :class="gpuInfo.available && gpuInfo.cuda ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-surface-hover text-text-muted'">
+                                <template v-if="gpuInfo.available && gpuInfo.cuda">
+                                    GPU detected: {{ gpuInfo.name }} (CUDA) — GPU acceleration will be used
+                                </template>
+                                <template v-else-if="gpuInfo.available">
+                                    {{ gpuInfo.name }} detected — CPU inference will be used
+                                </template>
+                                <template v-else>
+                                    No GPU detected — CPU inference will be used
+                                </template>
                             </div>
-                            <span class="text-xs text-text-muted">{{ modelsSize }}</span>
+
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full"
+                                        :class="standaloneInstalled.models ? 'bg-green-500' : 'bg-border'"></span>
+                                    <span class="text-sm text-text-primary">Models Service</span>
+                                </div>
+                                <span class="text-xs text-text-muted">{{ modelsSize }}</span>
+                            </div>
+
+                            <!-- Download progress -->
+                            <div v-if="standaloneDownloading" class="mb-3">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs text-text-secondary">Downloading {{ downloadProgress.component
+                                        }}...</span>
+                                    <span class="text-xs text-text-muted">{{ downloadProgress.percent }}%</span>
+                                </div>
+                                <div class="w-full h-1.5 bg-border rounded-full overflow-hidden">
+                                    <div class="h-full bg-accent rounded-full transition-all duration-300"
+                                        :style="{ width: downloadProgress.percent + '%' }"></div>
+                                </div>
+                            </div>
+
+                            <!-- Error -->
+                            <div v-if="standaloneDownloadError"
+                                class="mb-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+                                {{ standaloneDownloadError }}
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button v-if="!standaloneInstalled.models" @click="installModels"
+                                    :disabled="standaloneDownloading"
+                                    class="px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {{ standaloneDownloading ? 'Installing...' : 'Install AI Features' }}
+                                </button>
+                                <button v-else @click="uninstallModels"
+                                    class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
+                                    Remove AI Features
+                                </button>
+                                <!-- Force CPU toggle when GPU is available -->
+                                <label v-if="gpuInfo?.cuda && !standaloneInstalled.models"
+                                    class="flex items-center gap-1.5 text-xs text-text-muted cursor-pointer ml-2">
+                                    <input type="checkbox" v-model="forceCpu" class="accent-accent w-3 h-3" />
+                                    Force CPU only
+                                </label>
+                            </div>
                         </div>
 
-                        <div class="flex items-center gap-2">
-                            <button v-if="!standaloneInstalled.models" @click="installModels"
-                                :disabled="standaloneDownloading"
-                                class="px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                {{ standaloneDownloading ? 'Installing...' : 'Install AI Features' }}
-                            </button>
-                            <button v-else @click="uninstallModels"
+                        <!-- Uninstall local server -->
+                        <div class="mt-5 pt-4 border-t border-border">
+                            <button @click="uninstallStandalone"
                                 class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
-                                Remove AI Features
+                                Uninstall local server
                             </button>
-                            <!-- Force CPU toggle when GPU is available -->
-                            <label v-if="gpuInfo?.cuda && !standaloneInstalled.models"
-                                class="flex items-center gap-1.5 text-xs text-text-muted cursor-pointer ml-2">
-                                <input type="checkbox" v-model="forceCpu" class="accent-accent w-3 h-3" />
-                                Force CPU only
-                            </label>
                         </div>
                     </div>
-                </div>
+                </template>
+
+                <!-- ════ Not installed → install offer (hardware-gated) ════ -->
+                <template v-else>
+                    <p class="text-sm text-text-muted mb-4">Install and run all services locally on this machine</p>
+
+                    <div class="bg-surface-elevated rounded-2xl border border-border p-5 max-w-lg">
+                        <!-- Checking hardware -->
+                        <p v-if="!hardwareReport" class="text-sm text-text-muted">Checking your hardware…</p>
+
+                        <!-- Hardware can't run it locally -->
+                        <template v-else-if="!hardwareReport.canInstall">
+                            <p class="text-sm text-text-secondary">This machine can't run Documents locally.</p>
+                            <p class="text-xs text-text-muted mt-1">{{ hardwareReport.blockReason }}</p>
+                        </template>
+
+                        <!-- Hardware allows installing -->
+                        <template v-else>
+                            <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Core
+                                Services</h3>
+                            <div class="space-y-3 mb-4">
+                                <div v-for="svc in coreServices" :key="svc.key"
+                                    class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full"
+                                            :class="standaloneInstalled[svc.key] ? 'bg-green-500' : 'bg-border'"></span>
+                                        <span class="text-sm text-text-primary">{{ svc.label }}</span>
+                                    </div>
+                                    <span class="text-xs text-text-muted">{{ svc.size }}</span>
+                                </div>
+                            </div>
+
+                            <p class="text-xs text-text-muted mb-3">{{ hardwareSummary }}</p>
+                            <div v-if="hardwareReport.install.status === 'slow'"
+                                class="mb-3 text-xs text-amber-600 dark:text-amber-500">
+                                Runs slowly<template v-if="hardwareReport.install.reason"> — {{
+                                    hardwareReport.install.reason }}</template>
+                            </div>
+
+                            <!-- Download progress -->
+                            <div v-if="standaloneDownloading" class="mb-4">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs text-text-secondary">Downloading {{ downloadProgress.component
+                                        }}...</span>
+                                    <span class="text-xs text-text-muted">{{ downloadProgress.percent }}%</span>
+                                </div>
+                                <div class="w-full h-1.5 bg-border rounded-full overflow-hidden">
+                                    <div class="h-full bg-accent rounded-full transition-all duration-300"
+                                        :style="{ width: downloadProgress.percent + '%' }"></div>
+                                </div>
+                            </div>
+
+                            <!-- Error -->
+                            <div v-if="standaloneDownloadError"
+                                class="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+                                {{ standaloneDownloadError }}
+                            </div>
+
+                            <button @click="installStandalone" :disabled="standaloneDownloading"
+                                class="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                {{ standaloneDownloading ? 'Installing...' : 'Install Local Server (~350 MB)' }}
+                            </button>
+                        </template>
+                    </div>
+                </template>
             </div>
 
             <!-- Export Tab -->
@@ -446,38 +498,6 @@
                                     <span class="text-sm text-text-primary truncate">{{ project.name }}</span>
                                 </label>
                             </div>
-                        </div>
-                    </section>
-
-                    <!-- Export Options -->
-                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
-                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Include in
-                            Export</h2>
-                        <div class="space-y-3">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" v-model="exportOptions.includeOriginalFiles"
-                                    class="accent-accent w-3.5 h-3.5" />
-                                <div>
-                                    <span class="text-sm text-text-primary">Original files</span>
-                                    <p class="text-xs text-text-muted">PDF, Word, images and other uploaded files</p>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" v-model="exportOptions.includeMetadata"
-                                    class="accent-accent w-3.5 h-3.5" />
-                                <div>
-                                    <span class="text-sm text-text-primary">Metadata</span>
-                                    <p class="text-xs text-text-muted">Summaries, keywords, entities and authors</p>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" v-model="exportOptions.includeContent"
-                                    class="accent-accent w-3.5 h-3.5" />
-                                <div>
-                                    <span class="text-sm text-text-primary">Extracted content</span>
-                                    <p class="text-xs text-text-muted">HTML content and translations</p>
-                                </div>
-                            </label>
                         </div>
                     </section>
 
@@ -526,27 +546,10 @@
         </div>
     </div>
 
-    <div v-if="showThemeManager" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-        @click.self="showThemeManager = false">
-        <div
-            class="bg-surface-elevated rounded-2xl border border-border shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-base font-semibold text-text-primary">Themes</h2>
-                <button type="button" class="text-text-muted hover:text-text-primary cursor-pointer"
-                    @click="showThemeManager = false" aria-label="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <ThemeManager />
-        </div>
-    </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import PageHeader from '../components/ui/PageHeader.vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
 import apiClient from '../services/api';
@@ -556,19 +559,12 @@ import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useRouter } from 'vue-router';
 import WorkspaceModal from '../components/WorkspaceModal.vue';
-import ThemeManager from '../components/settings/ThemeManager.vue';
 import VoiceSettings from '../components/settings/VoiceSettings.vue';
 import { isLocalEngineAvailable } from '../services/voice/availability';
-import { useThemes } from '../composables/useThemes';
 import type { Workspace } from '../types/Workspace';
 
-const { themeMode, setTheme } = useTheme();
-const showThemeManager = ref(false);
+const { setTheme } = useTheme();
 const voiceLocalAvailable = isLocalEngineAvailable();
-const { themes, activeThemeId, refresh: refreshThemes, activateTheme } = useThemes();
-const onActiveThemeChange = async () => {
-    await activateTheme(activeThemeId.value);
-};
 const workspaceStore = useWorkspaceStore();
 const authStore = useAuthStore();
 const projectStore = useProjectStore();
@@ -633,6 +629,86 @@ const coreServices = [
     { key: 'qdrant' as const, label: 'Qdrant', size: '~40 MB' },
     { key: 'neo4j' as const, label: 'Neo4j', size: '~60 MB' },
 ];
+
+// ── Live service status (observability, shown once standalone is installed) ──
+type ServiceKey = 'postgres' | 'backend' | 'qdrant' | 'neo4j' | 'models';
+const serviceStatusList: { key: ServiceKey; label: string }[] = [
+    { key: 'postgres', label: 'PostgreSQL' },
+    { key: 'backend', label: 'Backend (NestJS)' },
+    { key: 'qdrant', label: 'Qdrant' },
+    { key: 'neo4j', label: 'Neo4j' },
+    { key: 'models', label: 'Models Service' },
+];
+const serviceStatus = ref<Record<ServiceKey, string>>({
+    postgres: 'stopped', backend: 'stopped', qdrant: 'stopped', neo4j: 'stopped', models: 'not_installed',
+});
+const serviceErrors = ref<Partial<Record<ServiceKey, string>>>({});
+
+function statusDotClass(state: string): string {
+    if (state === 'running') return 'bg-green-500';
+    if (state === 'starting') return 'bg-amber-500 animate-pulse';
+    if (state === 'error') return 'bg-red-500';
+    return 'bg-border';
+}
+function statusLabel(state: string): string {
+    if (state === 'not_installed') return 'Not installed';
+    return state.charAt(0).toUpperCase() + state.slice(1);
+}
+function statusTextClass(state: string): string {
+    if (state === 'running') return 'text-green-600 dark:text-green-400';
+    if (state === 'error') return 'text-red-500';
+    return 'text-text-muted';
+}
+
+async function refreshServiceStatus() {
+    if (!window.electronAPI?.standaloneStatus) return;
+    const res = await window.electronAPI.standaloneStatus();
+    serviceStatus.value = res.services as Record<ServiceKey, string>;
+    serviceErrors.value = (res.errors ?? {}) as Partial<Record<ServiceKey, string>>;
+}
+
+let statusPollTimer: ReturnType<typeof setInterval> | null = null;
+function startStatusPolling() {
+    if (statusPollTimer) return;
+    refreshServiceStatus();
+    statusPollTimer = setInterval(refreshServiceStatus, 3000);
+}
+function stopStatusPolling() {
+    if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
+}
+// Poll only while the Server tab is open and the local server is installed.
+watch(
+    [activeTab, standaloneFullyInstalled],
+    ([tab, installed]) => {
+        if (tab === 'server' && installed) startStatusPolling();
+        else stopStatusPolling();
+    },
+    { immediate: true },
+);
+onUnmounted(stopStatusPolling);
+
+// ── Hardware report (gates the install offer when not yet installed) ──
+interface HardwareReport {
+    hardware: { cpuModel: string; cpuCores: number; ramGB: number; freeDiskGB: number | null; gpu: { name: string | null; vramGB: number } };
+    canInstall: boolean;
+    blockReason: string;
+    install: { status: 'yes' | 'slow' | 'no'; reason: string; downloadGB: number; components: string[]; bundle: string };
+}
+const hardwareReport = ref<HardwareReport | null>(null);
+const hardwareSummary = computed(() => {
+    const h = hardwareReport.value?.hardware;
+    if (!h) return '';
+    const parts = [`${h.ramGB} GB RAM`, `${h.cpuCores} cores`];
+    if (h.gpu?.name) parts.push(`${h.gpu.name} (${h.gpu.vramGB} GB)`);
+    if (h.freeDiskGB !== null) parts.push(`${h.freeDiskGB} GB free`);
+    return parts.join(' · ');
+});
+
+async function loadHardwareReport() {
+    if (window.electronAPI?.standaloneHardwareReport) {
+        hardwareReport.value = await window.electronAPI.standaloneHardwareReport();
+    }
+}
 
 async function loadStandaloneStatus() {
     if (window.electronAPI?.standaloneCheckInstalled) {
@@ -738,11 +814,6 @@ const availableProjects = ref<{ id: number; name: string; description?: string }
 const exporting = ref(false);
 const exportError = ref('');
 const exportSuccess = ref(false);
-const exportOptions = ref({
-    includeOriginalFiles: true,
-    includeMetadata: true,
-    includeContent: true,
-});
 
 const loadSettings = async () => {
     if (window.electronAPI && window.electronAPI.getSettings) {
@@ -753,7 +824,6 @@ const loadSettings = async () => {
             paragraphSpacing.value = settings.paragraphSpacing || 1.5;
             language.value = settings.language || 'en';
             theme.value = (settings.theme as ThemeMode) || 'system';
-            activeThemeId.value = settings.themeId || 'default';
             defaultBrowserUrl.value = settings.defaultBrowserUrl || 'https://github.com/electron/electron';
             closeBehavior.value = settings.closeBehavior === 'quit' ? 'quit' : 'tray';
             launchAtLogin.value = !!settings.launchAtLogin;
@@ -786,7 +856,6 @@ function currentSettingsPayload() {
         paragraphSpacing: paragraphSpacing.value,
         language: language.value,
         theme: theme.value,
-        themeId: activeThemeId.value,
         defaultBrowserUrl: defaultBrowserUrl.value,
         // keep the residente prefs in every settings payload so
         // unrelated saves don't drop them.
@@ -875,9 +944,6 @@ const startExport = async () => {
     try {
         const response = await apiClient.post('/export', {
             projectIds: exportScope.value === 'all' ? [] : selectedProjectIds.value,
-            includeOriginalFiles: exportOptions.value.includeOriginalFiles,
-            includeMetadata: exportOptions.value.includeMetadata,
-            includeContent: exportOptions.value.includeContent,
         }, {
             responseType: 'blob',
         });
@@ -909,9 +975,9 @@ const startExport = async () => {
 onMounted(() => {
     loadSettings();
     loadAppRuntimeInfo();
-    refreshThemes();
     loadProjects();
     loadStandaloneStatus();
+    loadHardwareReport();
     if (window.electronAPI?.onStandaloneDownloadProgress) {
         window.electronAPI.onStandaloneDownloadProgress(onDownloadProgress);
     }

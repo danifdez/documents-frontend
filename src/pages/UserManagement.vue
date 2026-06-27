@@ -218,8 +218,8 @@ const allPermissions = [
   // Core data
   'projects', 'documents', 'upload', 'export', 'write', 'delete',
   // Features
-  'canvas', 'datasets', 'notes', 'calendar',
-  'timelines', 'knowledge-base', 'bibliography', 'relationships', 'tasks',
+  'canvas', 'datasets',
+  'timelines', 'knowledge-base', 'bibliography', 'relationships',
   // Administration
   'user-management',
 ];

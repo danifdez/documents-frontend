@@ -514,7 +514,7 @@
                         <ButtonGroup>
                             <Button variant="secondary" size="small" :active="datesView === 'list'"
                                 @click="datesView = 'list'">List</Button>
-                            <Button variant="secondary" size="small" :active="datesView === 'timeline'"
+                            <Button v-if="featureStore.isEnabled('timelines')" variant="secondary" size="small" :active="datesView === 'timeline'"
                                 @click="datesView = 'timeline'">Timeline</Button>
                             <Button variant="secondary" size="small" @click="refreshDates">Refresh</Button>
                         </ButtonGroup>
@@ -522,7 +522,7 @@
                             :resource-publication-date="resource.publicationDate"
                             @select="handleDateSelect" @remove="handleDateRemove"
                             @set-anchor="handleDatesAnchor" />
-                        <DatesTimeline v-else :dates="resourceDates" :can-promote="!!resource?.project?.id"
+                        <DatesTimeline v-else :dates="resourceDates" :can-promote="!!resource?.project?.id && featureStore.isEnabled('timelines')"
                             @select="handleDateSelect" @promote="handleDatePromote" />
                     </div>
                 </div>
@@ -566,6 +566,7 @@ import OfflineToggle from '../components/OfflineToggle.vue';
 import EditorContent from '../components/editor/EditorContent.vue';
 import axios from 'axios';
 import { useProjectStore } from '../store/projectStore';
+import { useFeatureStore } from '../store/featureStore';
 import { useNotification } from '../composables/useNotification';
 import apiClient from '../services/api';
 import { useDragDrop } from '../composables/useDragDrop';
@@ -605,6 +606,7 @@ const { loadResource, updateResource, error, isLoading } = useResource();
 const { saveDocument, loadDocument } = useDocument();
 const resource = ref<Record<string, any>>({});
 const projectStore = useProjectStore();
+const featureStore = useFeatureStore();
 const notification = useNotification();
 const rawHtmlContent = ref<string>('');
 const displayMode = ref<'extracted' | 'raw' | 'translated' | 'overview' | 'workspace' | 'relationships'>('extracted');
@@ -711,9 +713,11 @@ const isExtracting = computed(() => {
 });
 const canInteract = computed(() => !isPendingConfirmation.value && !isExtracting.value);
 const shouldShowEntitiesTab = computed(() =>
-    resource.value.status === 'entities' ||
-    hasPendingEntities.value ||
-    (resource.value.entities && resource.value.entities.length > 0)
+    featureStore.isEnabled('relationships') && (
+        resource.value.status === 'entities' ||
+        hasPendingEntities.value ||
+        (resource.value.entities && resource.value.entities.length > 0)
+    )
 );
 const isWorkspaceSplitView = computed(() => splitViewActive.value && splitDocument.value?.id === workspaceDocument.value?.id);
 const showSidebar = computed(() => !isWorkspaceSplitView.value);

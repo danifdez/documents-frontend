@@ -1,5 +1,5 @@
 <template>
-    <div v-if="currentProjectId && canvases.length > 0" class="canvases-sidebar pt-3">
+    <div v-if="featureStore.isEnabled('canvas') && currentProjectId && canvases.length > 0" class="canvases-sidebar pt-3">
         <div class="px-3 mb-2 flex items-center justify-between">
             <h3 v-if="!isSearching" @click="startSearch"
                 class="text-[11px] font-semibold uppercase tracking-wider text-text-muted cursor-pointer hover:text-text-secondary transition-colors"
@@ -46,6 +46,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
 import { useRoute } from 'vue-router';
 import { useCanvasList } from '../services/canvas/useCanvasList';
 import { useProjectStore } from '../store/projectStore';
+import { useFeatureStore } from '../store/featureStore';
 
 const props = defineProps({
     collapsed: {
@@ -58,6 +59,7 @@ const emit = defineEmits(['expand']);
 
 const route = useRoute();
 const projectStore = useProjectStore();
+const featureStore = useFeatureStore();
 const { loadCanvasesByProject, isLoading } = useCanvasList();
 const canvases = ref([]);
 const searchTerm = ref('');

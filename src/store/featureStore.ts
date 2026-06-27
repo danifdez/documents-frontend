@@ -2,19 +2,12 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export const FEATURE_LABELS: Record<string, string> = {
-  authors: 'Authors',
   canvas: 'Canvas',
   datasets: 'Datasets',
-  notes: 'Notes',
-  calendar: 'Calendar',
   timelines: 'Timelines',
   knowledge_base: 'Knowledge Base',
   bibliography: 'Bibliography',
-  tasks: 'Tasks',
-  rag: 'AI / RAG',
   relationships: 'Relationships',
-  data_sources: 'Data Sources',
-  assistants: 'Assistant',
 };
 
 export const useFeatureStore = defineStore('features', () => {

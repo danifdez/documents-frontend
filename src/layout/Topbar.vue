@@ -60,7 +60,7 @@
                 </svg>
             </NavItem>
 
-            <NavItem v-if="featureStore.isEnabled('calendar')" label="Calendar" :to="calendarRoute">
+            <NavItem label="Calendar" :to="calendarRoute">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="1.75">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -71,7 +71,7 @@
 
         <!-- Right cluster -->
         <div class="flex items-center gap-1 shrink-0">
-            <button v-if="featureStore.isEnabled('assistants')"
+            <button
                 @click="showAssistant = !showAssistant"
                 title="Assistant (Ctrl+J)"
                 class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors cursor-pointer text-sm font-medium">

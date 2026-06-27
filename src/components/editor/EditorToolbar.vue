@@ -277,7 +277,7 @@
       </Button>
 
       <!-- Convert Table to Dataset -->
-      <Button v-if="editor?.isActive('table')" @click="emit('convert-table-to-dataset')"
+      <Button v-if="featureStore.isEnabled('datasets') && editor?.isActive('table')" @click="emit('convert-table-to-dataset')"
         title="Convert Table to Dataset" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
@@ -329,7 +329,7 @@
     <!-- References (document + knowledge) -->
     <template v-if="context === 'document' || context === 'knowledge'">
       <div v-if="context === 'knowledge'" class="h-6 w-px bg-border mx-0.5"></div>
-      <Button @click="emit('add-reference')" title="Insert Reference" size="small" borderless>
+      <Button v-if="featureStore.isEnabled('bibliography')" @click="emit('add-reference')" title="Insert Reference" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
           <path d="M4 4H16C16.5523 4 17 4.44772 17 5V15C17 15.5523 16.5523 16 16 16H4C3.44772 16 3 15.5523 3 15V5C3 4.44772 3.44772 4 4 4Z" stroke="currentColor" stroke-width="1.5" fill="none" />
           <path d="M6 8L8 7V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
@@ -341,7 +341,7 @@
 
     <!-- Dataset view (document-only) -->
     <template v-if="context === 'document'">
-      <Button @click="emit('add-dataset-view')" title="Insert Dataset View" size="small" borderless>
+      <Button v-if="featureStore.isEnabled('datasets')" @click="emit('add-dataset-view')" title="Insert Dataset View" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7" />
@@ -350,7 +350,7 @@
           <path d="M4 12c0 2.21 3.582 4 8 4s8-1.79 8-4" />
         </svg>
       </Button>
-      <Button @click="emit('add-dataset-chart')" title="Insert Dataset Chart" size="small" borderless>
+      <Button v-if="featureStore.isEnabled('datasets')" @click="emit('add-dataset-chart')" title="Insert Dataset Chart" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4v16h16" />
@@ -359,7 +359,7 @@
           <path d="M16 16v-5" />
         </svg>
       </Button>
-      <Button @click="emit('add-canvas-view')" title="Insert Canvas" size="small" borderless>
+      <Button v-if="featureStore.isEnabled('canvas')" @click="emit('add-canvas-view')" title="Insert Canvas" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -368,7 +368,7 @@
           <path d="M10.5 9.5L13.5 14" />
         </svg>
       </Button>
-      <Button @click="emit('add-timeline-view')" title="Insert Timeline" size="small" borderless>
+      <Button v-if="featureStore.isEnabled('timelines')" @click="emit('add-timeline-view')" title="Insert Timeline" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -409,6 +409,9 @@ import { ref, nextTick, watch, onMounted, onBeforeUnmount } from 'vue';
 import Button from '../ui/Button.vue';
 import { generateMarkerId } from './extensions/CalloutExtension';
 import type { MarkerType } from './extensions/CalloutExtension';
+import { useFeatureStore } from '../../store/featureStore';
+
+const featureStore = useFeatureStore();
 
 const props = defineProps({
   editor: {

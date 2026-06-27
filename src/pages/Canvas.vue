@@ -245,10 +245,10 @@
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
                 <option value="resourceCount">Resource Count</option>
                 <option value="docCount">Document Count</option>
-                <option value="entityCount">Entity Count</option>
-                <option value="bibliographyCount">Bibliography Count</option>
+                <option v-if="featureStore.isEnabled('relationships')" value="entityCount">Entity Count</option>
+                <option v-if="featureStore.isEnabled('bibliography')" value="bibliographyCount">Bibliography Count</option>
                 <option value="noteCount">Note Count</option>
-                <option value="datasetCount">Dataset Count</option>
+                <option v-if="featureStore.isEnabled('datasets')" value="datasetCount">Dataset Count</option>
                 <option value="custom">Custom Value</option>
               </select>
             </div>
@@ -279,11 +279,11 @@
               <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
               <select v-model="infographicConfig.chartSource"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
-                <option value="bibliographyByYear">Bibliography by Year</option>
-                <option value="bibliographyByType">Bibliography by Type</option>
+                <option v-if="featureStore.isEnabled('bibliography')" value="bibliographyByYear">Bibliography by Year</option>
+                <option v-if="featureStore.isEnabled('bibliography')" value="bibliographyByType">Bibliography by Type</option>
                 <option value="topKeywords">Top Keywords</option>
-                <option value="topEntities">Top Entities</option>
-                <option value="topAuthors">Top Authors</option>
+                <option v-if="featureStore.isEnabled('relationships')" value="topEntities">Top Entities</option>
+                <option v-if="featureStore.isEnabled('bibliography')" value="topAuthors">Top Authors</option>
               </select>
             </div>
             <div>
@@ -312,8 +312,8 @@
               <select v-model="infographicConfig.listSource"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
                 <option value="topKeywords">Top Keywords</option>
-                <option value="topEntities">Top Entities</option>
-                <option value="topAuthors">Top Authors</option>
+                <option v-if="featureStore.isEnabled('relationships')" value="topEntities">Top Entities</option>
+                <option v-if="featureStore.isEnabled('bibliography')" value="topAuthors">Top Authors</option>
               </select>
             </div>
             <div>
@@ -458,6 +458,7 @@ import { useDocumentProjectList } from '../services/documents/useDocumentProject
 import { useResourceList } from '../services/resources/useResourceList';
 import { useResource } from '../services/resources/useResource';
 import { useProjectStore } from '../store/projectStore';
+import { useFeatureStore } from '../store/featureStore';
 import CanvasEditor from '../components/canvas/CanvasEditor.vue';
 import CanvasToolbar from '../components/canvas/CanvasToolbar.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
@@ -472,6 +473,7 @@ import EntityPickerModal from '../components/canvas/EntityPickerModal.vue';
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
+const featureStore = useFeatureStore();
 const { loadCanvas, saveCanvas, createCanvas, removeCanvas } = useCanvas();
 const { loadThread } = useThread();
 const { loadDocument } = useDocument();
@@ -546,7 +548,7 @@ const openInfographicModal = async (type: string) => {
     label: '',
     customValue: '',
     icon: '',
-    chartSource: 'bibliographyByYear',
+    chartSource: 'topKeywords',
     chartType: 'bar',
     title: '',
     listSource: 'topKeywords',

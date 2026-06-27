@@ -1,7 +1,7 @@
 <template>
     <div class="mb-3 flex justify-between">
         <div class="mb-2.5 flex gap-2">
-            <Button v-if="featureStore.isEnabled('rag')" @click="emit('ask')" size="small" title="Ask Assistant">
+            <Button @click="emit('ask')" size="small" title="Ask Assistant">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

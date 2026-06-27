@@ -87,7 +87,7 @@
             </svg>
             <span class="text-xs font-medium">Bibliography</span>
           </router-link>
-          <button v-if="featureStore.isEnabled('notes')" @click="openNotesPanel"
+          <button @click="openNotesPanel"
             title="Notes for this project"
             class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -95,7 +95,7 @@
             </svg>
             <span class="text-xs font-medium">Notes</span>
           </button>
-          <router-link v-if="featureStore.isEnabled('calendar')" :to="`/project/${route.params.id}/calendar`"
+          <router-link :to="`/project/${route.params.id}/calendar`"
             title="View project calendar"
             class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -237,10 +237,10 @@
 
           <!-- Right column: Notes + Events -->
           <div class="flex flex-col gap-6">
-            <RecentNotesPanel v-if="featureStore.isEnabled('notes')"
+            <RecentNotesPanel
               :notes="projectNotes" :isLoading="isNotesLoading" :showProject="false"
               @create="openNotesPanel" @open="openNoteInPanel" />
-            <UpcomingEventsPanel v-if="featureStore.isEnabled('calendar')"
+            <UpcomingEventsPanel
               :events="projectEvents" :isLoading="isEventsLoading" :showProject="false"
               :projectId="route.params.id"
               @create="showCreateEventModal = true" />
@@ -564,7 +564,7 @@ const allDocsAndCanvases = computed(() => {
     type: 'document',
     updatedAt: d.updatedAt || d.createdAt,
   }));
-  const cvs = filteredCanvases.value.map(c => ({
+  const cvs = featureStore.isEnabled('canvas') ? filteredCanvases.value.map(c => ({
     id: c.id,
     key: `cv-${c.id}`,
     name: c.name,
@@ -572,8 +572,8 @@ const allDocsAndCanvases = computed(() => {
     to: `/canvas/${c.id}`,
     type: 'canvas',
     updatedAt: c.updatedAt || c.createdAt,
-  }));
-  const tls = filteredTimelines.value.map(t => ({
+  })) : [];
+  const tls = featureStore.isEnabled('timelines') ? filteredTimelines.value.map(t => ({
     id: t.id,
     key: `tl-${t.id}`,
     name: t.name,
@@ -581,7 +581,7 @@ const allDocsAndCanvases = computed(() => {
     to: `/timeline/${t.id}`,
     type: 'timeline',
     updatedAt: t.updatedAt || t.createdAt,
-  }));
+  })) : [];
   const sortByDate = (arr) => arr.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   return [...sortByDate(ths), ...sortByDate(docs), ...sortByDate(cvs), ...sortByDate(tls)];
 });

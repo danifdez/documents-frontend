@@ -1,26 +1,3 @@
-export interface ThemeManifestType {
-    id: string;
-    name: string;
-    author?: string;
-    version?: string;
-    description?: string;
-    variants: {
-        light: Record<string, string>;
-        dark: Record<string, string>;
-    };
-    typography?: {
-        fontFamily?: string;
-        fontFaces?: { family: string; src: string; weight?: number | string; style?: string }[];
-    };
-    customCss?: string;
-}
-
-export interface ThemeAssetsType {
-    manifest: ThemeManifestType;
-    customCss: string;
-    fonts: { family: string; weight?: number | string; style?: string; dataUrl: string }[];
-}
-
 export interface ElectronAPI {
     getSettings: () => Promise<{
         language?: string;
@@ -28,7 +5,6 @@ export interface ElectronAPI {
         fontFamily?: string;
         paragraphSpacing?: number;
         theme?: 'light' | 'dark' | 'system';
-        themeId?: string;
         defaultBrowserUrl?: string;
         disabledFeatures?: string[];
         closeBehavior?: 'tray' | 'quit';
@@ -90,18 +66,13 @@ export interface ElectronAPI {
         };
         canInstall: boolean;
         blockReason: string;
-        profiles: Array<{
-            key: 'essential' | 'balanced' | 'complete';
-            label: string;
-            description: string;
+        install: {
             status: 'yes' | 'slow' | 'no';
             reason: string;
             downloadGB: number;
             components: string[];
-            features: string[];
-            llm: boolean;
-        }>;
-        recommended: 'essential' | 'balanced' | 'complete';
+            bundle: 'models-cpu' | 'models-gpu';
+        };
     }>;
     standaloneDownloadAll: () => Promise<{ success: boolean; error?: string }>;
     standaloneInstallProfile: (profile: { key: string; components: string[]; features: string[] }) => Promise<{ success: boolean; error?: string }>;
@@ -111,15 +82,12 @@ export interface ElectronAPI {
     standaloneUninstallModels: () => Promise<{ success: boolean; error?: string }>;
     standaloneStart: () => Promise<{ success: boolean; url?: string; error?: string }>;
     standaloneStop: () => Promise<{ success: boolean; error?: string }>;
-    standaloneStatus: () => Promise<{ postgres: string; backend: string; qdrant: string; neo4j: string; models: string }>;
+    standaloneStatus: () => Promise<{
+        services: { postgres: string; backend: string; qdrant: string; neo4j: string; models: string };
+        errors: Partial<Record<'postgres' | 'backend' | 'qdrant' | 'neo4j' | 'models', string>>;
+    }>;
     standaloneGetUrl: () => Promise<string | null>;
     onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number; step?: number; totalSteps?: number; overallPercent?: number }) => void) => void;
-
-    // Theme management
-    listThemes: () => Promise<{ manifest: ThemeManifestType; builtIn: boolean }[]>;
-    installTheme: () => Promise<{ success: true; theme: { manifest: ThemeManifestType; builtIn: boolean } } | { success: false; error: string }>;
-    uninstallTheme: (id: string) => Promise<{ success: boolean; error?: string }>;
-    readThemeAssets: (id: string) => Promise<ThemeAssetsType | null>;
 
     // Offline filesystem storage
     offlinePutItem: (wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) => Promise<void>;

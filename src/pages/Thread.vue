@@ -187,7 +187,7 @@
           </section>
 
           <!-- Notes -->
-          <RecentNotesPanel v-if="featureStore.isEnabled('notes')"
+          <RecentNotesPanel
             :notes="threadNotes" :isLoading="isNotesLoading" :showProject="false"
             @create="openNotesPanel" @open="openNoteInPanel" />
         </div>
@@ -366,14 +366,14 @@ const allItems = computed(() => {
     type: 'document',
     updatedAt: d.updatedAt || d.createdAt,
   }));
-  const cvs = filteredCanvases.value.map(c => ({
+  const cvs = featureStore.isEnabled('canvas') ? filteredCanvases.value.map(c => ({
     id: c.id,
     key: `c-${c.id}`,
     name: c.name,
     to: `/canvas/${c.id}`,
     type: 'canvas',
     updatedAt: c.updatedAt || c.createdAt,
-  }));
+  })) : [];
   return [...docs, ...cvs].sort((a, b) =>
     new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
@@ -528,9 +528,7 @@ onMounted(async () => {
     if (projectStore.currentProject) {
       try { await loadProjectThreads(projectStore.currentProject.id.toString()); } catch { }
     }
-    if (featureStore.isEnabled('notes')) {
-      try { await loadNotesByThread(threadId.value); } catch { }
-    }
+    try { await loadNotesByThread(threadId.value); } catch { }
   } catch (error) {
     isDocsLoading.value = false;
     console.error('Error loading thread:', error);

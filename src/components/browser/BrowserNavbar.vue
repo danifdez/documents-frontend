@@ -88,7 +88,7 @@
                         d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
             </button>
-            <button @click="$emit('add-bibliography')"
+            <button v-if="featureStore.isEnabled('bibliography')" @click="$emit('add-bibliography')"
                 class="p-1.5 rounded-md text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors duration-200 cursor-pointer"
                 title="Add to bibliography">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -102,6 +102,10 @@
 </template>
 
 <script setup lang="ts">
+import { useFeatureStore } from '../../store/featureStore';
+
+const featureStore = useFeatureStore();
+
 defineProps<{
     url: string;
     privateMode: boolean;

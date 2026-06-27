@@ -45,7 +45,7 @@
     <GlobalSearchModal :show="showGlobalSearch" @close="showGlobalSearch = false" />
     <SelectionLookup />
     <TaskPanel v-model="showTaskPanel" />
-    <AssistantModal v-if="featureStore.isEnabled('assistants')" v-model="showAssistant" />
+    <AssistantModal v-model="showAssistant" />
   </MainLayout>
 
   <OfflineBanner v-if="workspaceStore.hasWorkspaces" />
@@ -71,7 +71,6 @@ import { useNotification } from './composables/useNotification';
 import { useTheme } from './composables/useTheme';
 import { useWorkspaceStore } from './store/workspaceStore';
 import { useOfflineStore } from './store/offlineStore';
-import { useFeatureStore } from './store/featureStore';
 
 const notification = useNotification();
 const router = useRouter();
@@ -81,7 +80,6 @@ const { showTaskPanel } = useTaskPanel();
 const { initTheme } = useTheme();
 const workspaceStore = useWorkspaceStore();
 const offlineStore = useOfflineStore();
-const featureStore = useFeatureStore();
 
 const isLoginRoute = computed(() => route.name === 'Login');
 const isBrowserPage = computed(() => route.name === 'BrowserPage' || route.name === 'BrowserToolbar');

@@ -79,7 +79,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import Button from '../ui/Button.vue';
+import { useFeatureStore } from '../../store/featureStore';
+
+const featureStore = useFeatureStore();
 
 const props = defineProps<{
   isSaving: boolean;
@@ -133,11 +137,11 @@ const selectShapeTool = (shape: string) => {
   }
 };
 
-const infographicItems = [
-  { type: 'chart', label: 'Chart', icon: '📊' },
-  { type: 'timeline', label: 'Timeline', icon: '⏱' },
-  { type: 'entityGraph', label: 'Entity Graph', icon: '🔗' },
-];
+const infographicItems = computed(() => [
+  { type: 'chart', label: 'Chart', icon: '📊', feature: 'datasets' },
+  { type: 'timeline', label: 'Timeline', icon: '⏱', feature: 'timelines' },
+  { type: 'entityGraph', label: 'Entity Graph', icon: '🔗', feature: 'relationships' },
+].filter(item => featureStore.isEnabled(item.feature)));
 
 const selectInfographicTool = (type: string) => {
   emit('pick-infographic', type);

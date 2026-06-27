@@ -123,6 +123,9 @@
 import { ref, watch, computed } from 'vue';
 import apiClient from '../services/api';
 import { useProjectStore } from '../store/projectStore';
+import { useFeatureStore } from '../store/featureStore';
+
+const featureStore = useFeatureStore();
 
 const props = defineProps({
     show: {
@@ -143,8 +146,20 @@ const searchPlaceholder = computed(() => {
     if (projectStore.currentProject) {
         return `Search in ${projectStore.currentProject.name}...`;
     }
-    return 'Search notes, events, knowledge base, relationships, datasets...';
+    const targets = ['notes', 'events'];
+    if (featureStore.isEnabled('knowledge_base')) targets.push('knowledge base');
+    if (featureStore.isEnabled('relationships')) targets.push('relationships');
+    if (featureStore.isEnabled('datasets')) targets.push('datasets');
+    return `Search ${targets.join(', ')}...`;
 });
+
+// Search result collections that are gated behind a feature flag.
+const collectionFeature: Record<string, string> = {
+    canvases: 'canvas',
+    knowledge: 'knowledge_base',
+    entities: 'relationships',
+    datasets: 'datasets',
+};
 
 const collectionLabels: Record<string, string> = {
     docs: 'Documents',
@@ -194,6 +209,8 @@ function collectionIconBg(collection: string): string {
 const groupedResults = computed(() => {
     const groups: Record<string, { collection: string; items: any[] }> = {};
     for (const result of results.value) {
+        const feature = collectionFeature[result.collection];
+        if (feature && !featureStore.isEnabled(feature)) continue;
         if (!groups[result.collection]) {
             groups[result.collection] = { collection: result.collection, items: [] };
         }

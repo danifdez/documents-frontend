@@ -12,13 +12,6 @@ import { registerOfflineHandlers } from './main-offline';
 import { standaloneManager } from './services/standalone/standalone-manager';
 import { checkInstalled, isStandaloneReady, downloadComponent, downloadAll, installModels, uninstallServices, uninstallModels, detectGpu, installProfile } from './services/standalone/download-manager';
 import { getHardwareReport, ALL_FEATURES } from './services/standalone/hardware';
-import {
-  bootstrapBuiltInThemes,
-  listThemes,
-  installFromDialog as installThemeFromDialog,
-  uninstall as uninstallTheme,
-  readThemeAssets,
-} from './services/themes/theme-manager';
 
 const MIME_MAP: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -823,7 +816,6 @@ app.whenReady().then(() => {
       paragraphSpacing: 1.5,
       language: 'en',
       theme: 'dark',
-      themeId: 'default',
       defaultBrowserUrl: 'https://github.com/electron/electron',
       disabledFeatures: [],
       // Tray / residente. Defaults only apply when the store
@@ -868,26 +860,6 @@ app.whenReady().then(() => {
   // ── Expose process.platform to the renderer to gate
   // platform-specific toggles (`launchAtLogin` Linux, `hideDockIcon` macOS).
   ipcMain.handle('app:get-platform', () => process.platform);
-
-  // ── Theme IPC handlers ──
-  ipcMain.handle('themes:list', () => {
-    return listThemes().map((t) => ({
-      manifest: t.manifest,
-      builtIn: t.builtIn,
-    }));
-  });
-
-  ipcMain.handle('themes:install', async () => {
-    return installThemeFromDialog();
-  });
-
-  ipcMain.handle('themes:uninstall', (_event, id: string) => {
-    return uninstallTheme(id);
-  });
-
-  ipcMain.handle('themes:read-assets', (_event, id: string) => {
-    return readThemeAssets(id);
-  });
 
   // ── Workspace IPC handlers ──
   ipcMain.handle('workspace:list', () => {
@@ -976,7 +948,7 @@ app.whenReady().then(() => {
       await installProfile(profile.components, (progress) => {
         mainWindow?.webContents.send('standalone:download-progress', progress);
       });
-      // Persist the chosen preset so the backend boots with the right flags off.
+      // Persist the install so the backend boots with the optional flags off.
       store.set('standaloneProfile', { key: profile.key, features: profile.features });
       return { success: true };
     } catch (err: any) {
@@ -1028,8 +1000,8 @@ app.whenReady().then(() => {
 
   ipcMain.handle('standalone:start', async () => {
     try {
-      // Boot the backend + ML worker with the chosen profile's feature map
-      // (features the profile omits are off; the rest stay default-on).
+      // Boot the backend + ML worker with the saved feature map: optional
+      // features the install didn't enable are off; the base stays default-on.
       const profile = store.get('standaloneProfile') as { features?: string[] } | undefined;
       const enabled = profile?.features ?? (ALL_FEATURES as readonly string[]);
       const features = Object.fromEntries(ALL_FEATURES.map((f) => [f, enabled.includes(f)]));
@@ -1080,9 +1052,6 @@ app.whenReady().then(() => {
   // Register offline filesystem handlers
   registerOfflineHandlers();
 
-  // Ensure built-in themes exist on disk
-  bootstrapBuiltInThemes();
-
   // Remove default application menu
   Menu.setApplicationMenu(null);
 
@@ -1109,7 +1078,7 @@ app.whenReady().then(() => {
     const splashPoll = setInterval(() => {
       try {
         const status = standaloneManager.getStatus();
-        if (status.backend === 'running') {
+        if (status.services.backend === 'running') {
           if (!mainWindow || mainWindow.isDestroyed()) {
             createWindow();
           }

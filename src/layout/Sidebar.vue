@@ -96,7 +96,7 @@
                     class="ml-3 text-sm font-medium group-hover:text-text-primary transition-colors">Knowledge Base</span>
             </router-link>
 
-            <router-link v-if="featureStore.isEnabled('calendar')" :to="calendarRoute"
+            <router-link :to="calendarRoute"
                 class="group flex items-center px-3 py-2.5 text-text-secondary rounded-lg transition-all duration-200"
                 :class="{ 'justify-center': collapsed }" active-class="!bg-accent-subtle !text-accent-dark font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"

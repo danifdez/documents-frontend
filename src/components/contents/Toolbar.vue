@@ -48,8 +48,8 @@
                 <span>Summarize selection</span>
                 <span class="ml-auto text-xs text-text-muted">Ctrl+Alt+S</span>
             </button>
-            <div class="border-t border-border my-1"></div>
-            <button @click="handleContextMenuAction('search-kb')"
+            <div v-if="featureStore.isEnabled('knowledge_base')" class="border-t border-border my-1"></div>
+            <button v-if="featureStore.isEnabled('knowledge_base')" @click="handleContextMenuAction('search-kb')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -130,6 +130,9 @@ import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
+import { useFeatureStore } from '../../store/featureStore';
+
+const featureStore = useFeatureStore();
 
 const props = defineProps({
     editor: {

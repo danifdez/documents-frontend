@@ -15,7 +15,7 @@
 
             <!-- Action buttons -->
             <div class="flex border-b border-border">
-                <button @click="searchInKB"
+                <button v-if="featureStore.isEnabled('knowledge_base')" @click="searchInKB"
                     class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-text-secondary hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     :class="{ 'text-accent bg-accent-subtle': activeTab === 'kb' }">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -24,7 +24,7 @@
                     </svg>
                     Search in KB
                 </button>
-                <div class="w-px bg-border"></div>
+                <div v-if="featureStore.isEnabled('knowledge_base')" class="w-px bg-border"></div>
                 <button @click="searchInWikipedia"
                     class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-text-secondary hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     :class="{ 'text-accent bg-accent-subtle': activeTab === 'wiki' }">
@@ -95,7 +95,9 @@ import { useRouter, useRoute } from 'vue-router';
 import { useKnowledgeBase } from '../../services/knowledge/useKnowledgeBase';
 import { useWikipedia } from '../../services/knowledge/useWikipedia';
 import type { KnowledgeEntry } from '../../services/knowledge/useKnowledgeBase';
+import { useFeatureStore } from '../../store/featureStore';
 
+const featureStore = useFeatureStore();
 const router = useRouter();
 const route = useRoute();
 

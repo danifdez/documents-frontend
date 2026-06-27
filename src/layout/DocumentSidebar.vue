@@ -67,6 +67,7 @@ import { useDocumentProjectList } from '../services/documents/useDocumentProject
 import { useCanvasList } from '../services/canvas/useCanvasList';
 import { useTimelines } from '../services/timelines/useTimelines';
 import { useProjectStore } from '../store/projectStore';
+import { useFeatureStore } from '../store/featureStore';
 import { useDragDrop } from '../composables/useDragDrop';
 import { getSocket } from '../services/notifications/notification';
 
@@ -80,6 +81,7 @@ const props = defineProps({
 const emit = defineEmits(['expand']);
 
 const projectStore = useProjectStore();
+const featureStore = useFeatureStore();
 const { loadDocumentsByProject, isLoading } = useDocumentProjectList();
 const { loadCanvasesByProject, isLoading: isCanvasesLoading } = useCanvasList();
 const { loadTimelinesByProject, isLoading: isTimelinesLoading } = useTimelines();
@@ -100,22 +102,22 @@ const allItems = computed(() => {
         updatedAt: d.updatedAt || d.createdAt,
         raw: d,
     }));
-    const cvs = canvases.value.map(c => ({
+    const cvs = featureStore.isEnabled('canvas') ? canvases.value.map(c => ({
         key: `c-${c.id}`,
         name: c.name,
         to: `/canvas/${c.id}`,
         type: 'canvas',
         updatedAt: c.updatedAt || c.createdAt,
         raw: c,
-    }));
-    const tls = timelines.value.map(t => ({
+    })) : [];
+    const tls = featureStore.isEnabled('timelines') ? timelines.value.map(t => ({
         key: `tl-${t.id}`,
         name: t.name,
         to: `/timeline/${t.id}`,
         type: 'timeline',
         updatedAt: t.updatedAt || t.createdAt,
         raw: t,
-    }));
+    })) : [];
     return [...docs, ...cvs, ...tls].sort((a, b) =>
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );

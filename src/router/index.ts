@@ -96,19 +96,16 @@ const routes: RouteRecordRaw[] = [
     path: '/calendar',
     name: 'Calendar',
     component: Calendar,
-    meta: { feature: 'calendar' },
   },
   {
     path: '/calendar/missed',
     name: 'CalendarMissed',
     component: MissedAlarmsPanel,
-    meta: { feature: 'calendar' },
   },
   {
     path: '/project/:id/calendar',
     name: 'ProjectCalendar',
     component: Calendar,
-    meta: { feature: 'calendar' },
   },
   {
     path: '/timeline/:id',

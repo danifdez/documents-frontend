@@ -16,6 +16,17 @@ export interface LocalServiceStatus {
   models: 'not_installed' | 'stopped' | 'starting' | 'running' | 'error';
 }
 
+export type ServiceErrors = Partial<Record<keyof LocalServiceStatus, string>>;
+
+export interface LocalServiceReport {
+  services: LocalServiceStatus;
+  errors: ServiceErrors;
+}
+
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const LOCAL_ID = 'local';
 
 class StandaloneManager {
@@ -30,6 +41,9 @@ class StandaloneManager {
     neo4j: 'stopped',
     models: 'not_installed',
   };
+  // Last error message per service, surfaced read-only in the Settings → Server
+  // tab so the user can see *why* a service failed, not just that it did.
+  private _errors: ServiceErrors = {};
   private _running = false;
 
   private getDataDir(): string {
@@ -43,6 +57,10 @@ class StandaloneManager {
 
     const features = opts?.features ?? {};
     const disabledFeatures = Object.entries(features).filter(([, on]) => !on).map(([k]) => k);
+
+    // Fresh attempt: clear stale errors from a previous run so the UI doesn't
+    // show errors for services that are now starting cleanly.
+    this._errors = {};
 
     const dataDir = this.getDataDir();
     fs.mkdirSync(dataDir, { recursive: true });
@@ -59,6 +77,7 @@ class StandaloneManager {
       this._status.postgres = 'running';
     } catch (err) {
       this._status.postgres = 'error';
+      this._errors.postgres = describeError(err);
       console.error('StandaloneManager: Postgres failed to start', err);
       throw new Error(`PostgreSQL failed to start: ${err}`);
     }
@@ -71,6 +90,7 @@ class StandaloneManager {
         this._status.qdrant = 'running';
       } catch (err) {
         this._status.qdrant = 'error';
+        this._errors.qdrant = describeError(err);
         console.error('Qdrant failed to start (non-fatal):', err);
       }
     }
@@ -83,6 +103,7 @@ class StandaloneManager {
         this._status.neo4j = 'running';
       } catch (err) {
         this._status.neo4j = 'error';
+        this._errors.neo4j = describeError(err);
         console.error('Neo4j failed to start (non-fatal):', err);
       }
     }
@@ -119,6 +140,7 @@ class StandaloneManager {
         console.error(`Backend start attempt ${attempt} failed:`, err);
         if (attempt >= maxAttempts) {
           this._status.backend = 'error';
+          this._errors.backend = describeError(err);
           // Do NOT stop Postgres/Qdrant here so the user can inspect logs and
           // re-attempt startup from the UI. Leaving the DBs running helps
           // diagnose boot races or migration problems.
@@ -167,6 +189,7 @@ class StandaloneManager {
 
   async stop(): Promise<void> {
     await this.stopServices();
+    this._errors = {};
     this._running = false;
   }
 
@@ -193,8 +216,8 @@ class StandaloneManager {
     }
   }
 
-  getStatus(): LocalServiceStatus {
-    return { ...this._status };
+  getStatus(): LocalServiceReport {
+    return { services: { ...this._status }, errors: { ...this._errors } };
   }
 
   getBackendUrl(): string | null {
