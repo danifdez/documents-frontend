@@ -12,7 +12,6 @@ export interface ComponentStatus {
   node: boolean;
   backend: boolean;
   postgres: boolean;
-  neo4j: boolean;
   models: boolean;
 }
 
@@ -56,7 +55,6 @@ const VERSIONS = {
   node: '20.19.5',
   backend: '1.0.0',
   postgres: '17.6.0',
-  neo4j: '5.26.0',
   models: '1.0.0',
 };
 
@@ -101,14 +99,11 @@ function getAssetUrl(component: string): string {
       return getNodeUrl(platform);
 
     // PostgreSQL — our own build, repackaged from the zonky binaries with the
-    // pgvector extension baked in (see build-release). Hosted alongside our
-    // other assets so the embedded server has vector support out of the box.
+    // pgvector AND Apache AGE extensions baked in (see build-release). Hosted
+    // alongside our other assets so the embedded server has both vector search
+    // and the entity graph (GraphRAG) out of the box — no separate graph service.
     case 'postgres':
       return `${RELEASE_BASE_URL}/${tag}/documents-postgres-v${VERSIONS.backend}-${platform}.${ext}`;
-
-    // Neo4j — directly from the official source
-    case 'neo4j':
-      return getNeo4jUrl(platform);
 
     default:
       throw new Error(`Unknown component: ${component}`);
@@ -127,12 +122,6 @@ function getNodeUrl(platform: string): string {
   }
 }
 
-
-function getNeo4jUrl(platform: string): string {
-  const base = `https://dist.neo4j.org/neo4j-community-${VERSIONS.neo4j}`;
-  if (platform === 'win32-x64') return `${base}-windows.zip`;
-  return `${base}-unix.tar.gz`;
-}
 
 /**
  * Absolute path to the bundled Node executable, or null if it isn't installed.
@@ -156,7 +145,6 @@ export function checkInstalled(): ComponentStatus {
     node: getBundledNodePath() !== null,
     backend: fs.existsSync(path.join(servicesDir, 'backend', 'dist', 'src', 'main.js')),
     postgres: fs.existsSync(path.join(servicesDir, 'postgres', 'bin', 'postgres' + ext)),
-    neo4j: fs.existsSync(path.join(servicesDir, 'neo4j', 'bin', process.platform === 'win32' ? 'neo4j.bat' : 'neo4j')),
     models: fs.existsSync(path.join(getModelsDir(), 'documents-models' + ext))
       || fs.existsSync(path.join(getModelsDir(), 'jobs' + ext)),
   };
@@ -240,7 +228,7 @@ export async function downloadComponent(
     // Extraction is the second half (50-100%). Decompressing the multi-GB models
     // bundle takes a while, so report byte-level progress to keep the bar moving
     // instead of freezing on a single fixed value.
-    // PostgreSQL jar is a zip, Neo4j is tar.gz or zip.
+    // PostgreSQL jar is a zip; everything else is tar.gz.
     const isZip = url.endsWith('.zip') || url.endsWith('.jar');
     await extractArchive(tmpFile, destDir, isZip, (extractPercent) => {
       if (onProgress) {
@@ -276,19 +264,6 @@ async function normalizeExtraction(component: string, destDir: string): Promise<
       }
       fs.rmdirSync(innerPath);
     }
-  } else if (component === 'neo4j') {
-    // Neo4j tarballs nest everything under neo4j-community-<version>/. Lift its
-    // contents up one level so bin/, conf/, lib/ sit directly in destDir.
-    const inner = fs.readdirSync(destDir).find(
-      (f) => f.startsWith('neo4j-community-') && fs.statSync(path.join(destDir, f)).isDirectory(),
-    );
-    if (inner) {
-      const innerPath = path.join(destDir, inner);
-      for (const entry of fs.readdirSync(innerPath)) {
-        fs.renameSync(path.join(innerPath, entry), path.join(destDir, entry));
-      }
-      fs.rmdirSync(innerPath);
-    }
   } else if (component === 'models-cpu' || component === 'models-gpu') {
     // Older bundles nest everything under documents-models/ (doubled prefix), so
     // destDir/documents-models is a dir and spawn() of it returns EACCES. Lift the
@@ -310,7 +285,7 @@ async function normalizeExtraction(component: string, destDir: string): Promise<
 export async function downloadAll(
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
-  const coreComponents = ['node', 'postgres', 'backend', 'neo4j'];
+  const coreComponents = ['node', 'postgres', 'backend'];
   for (const component of coreComponents) {
     const status = checkInstalled();
     if (status[component as keyof ComponentStatus]) continue;
@@ -331,7 +306,6 @@ const STEP_WEIGHT: Record<string, number> = {
   node: 0.5,
   postgres: 1,
   backend: 0.5,
-  neo4j: 1,
   'models-cpu': 3,
   'models-gpu': 5,
   'ai-models': 12, // setupModels: Qwen GGUF + whisper + embeddings from HuggingFace

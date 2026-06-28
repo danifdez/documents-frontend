@@ -35,22 +35,9 @@ export type FeatureKey =
   | 'datasets' | 'knowledge_base'
   | 'relationships';
 
-/**
- * Extra infrastructure a feature needs on top of the always-present base
- * (postgres + backend + models LLM/embeddings). Empty = runs on the
- * base alone. This map lets Settings know, when a feature is switched on,
- * whether a service must be downloaded first (e.g. relationships → neo4j).
- */
-export type ServiceNeed = 'neo4j';
-
-export const FEATURE_REQUIREMENTS: Record<FeatureKey, ServiceNeed[]> = {
-  timelines: [],
-  canvas: [],
-  bibliography: [],
-  datasets: [],
-  knowledge_base: [],
-  relationships: ['neo4j'],
-};
+// Every optional feature now runs on the base alone (postgres + backend +
+// models LLM/embeddings): the entity graph lives inside Postgres via Apache AGE,
+// so "relationships" no longer pulls in a separate service to download.
 
 /** Every optional feature. The base install leaves them all off
  * (FEATURE_<X>=false at the embedded backend); the user enables what they

@@ -51,7 +51,7 @@ export interface ElectronAPI {
     getDefaultWorkspace: () => Promise<string | null>;
 
     // Local server (standalone) management
-    standaloneCheckInstalled: () => Promise<{ backend: boolean; postgres: boolean; neo4j: boolean; models: boolean }>;
+    standaloneCheckInstalled: () => Promise<{ backend: boolean; postgres: boolean; models: boolean }>;
     standaloneIsReady: () => Promise<boolean>;
     standaloneDetectGpu: () => Promise<{ available: boolean; name: string | null; cuda: boolean; vramGB: number }>;
     standaloneHardwareReport: () => Promise<{
@@ -83,8 +83,8 @@ export interface ElectronAPI {
     standaloneStart: () => Promise<{ success: boolean; url?: string; error?: string }>;
     standaloneStop: () => Promise<{ success: boolean; error?: string }>;
     standaloneStatus: () => Promise<{
-        services: { postgres: string; backend: string; neo4j: string; models: string };
-        errors: Partial<Record<'postgres' | 'backend' | 'neo4j' | 'models', string>>;
+        services: { postgres: string; backend: string; models: string };
+        errors: Partial<Record<'postgres' | 'backend' | 'models', string>>;
     }>;
     standaloneGetUrl: () => Promise<string | null>;
     onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number; step?: number; totalSteps?: number; overallPercent?: number }) => void) => void;

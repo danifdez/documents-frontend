@@ -3,14 +3,12 @@ import path from 'path';
 import fs from 'fs';
 import { EmbeddedPostgresService } from './embedded-postgres';
 import { EmbeddedBackendService } from './embedded-backend';
-import { EmbeddedNeo4jService } from './embedded-neo4j';
 import { EmbeddedModelsService, embeddedModels } from './embedded-models';
 import { detectGpu } from './download-manager';
 
 export interface LocalServiceStatus {
   postgres: 'stopped' | 'starting' | 'running' | 'error';
   backend: 'stopped' | 'starting' | 'running' | 'error';
-  neo4j: 'stopped' | 'starting' | 'running' | 'error';
   models: 'not_installed' | 'stopped' | 'starting' | 'running' | 'error';
 }
 
@@ -29,12 +27,10 @@ const LOCAL_ID = 'local';
 
 class StandaloneManager {
   private postgres: EmbeddedPostgresService | null = null;
-  private neo4j: EmbeddedNeo4jService | null = null;
   private backend: EmbeddedBackendService | null = null;
   private _status: LocalServiceStatus = {
     postgres: 'stopped',
     backend: 'stopped',
-    neo4j: 'stopped',
     models: 'not_installed',
   };
   // Last error message per service, surfaced read-only in the Settings → Server
@@ -62,10 +58,10 @@ class StandaloneManager {
     fs.mkdirSync(dataDir, { recursive: true });
 
     this.postgres = new EmbeddedPostgresService(LOCAL_ID);
-    this.neo4j = new EmbeddedNeo4jService(LOCAL_ID);
     this.backend = new EmbeddedBackendService(LOCAL_ID);
 
-    // 1. Start PostgreSQL
+    // 1. Start PostgreSQL. The entity graph (Apache AGE) and embeddings
+    // (pgvector) are extensions inside this same instance — no separate service.
     this._status.postgres = 'starting';
     try {
       await this.postgres.start();
@@ -77,20 +73,7 @@ class StandaloneManager {
       throw new Error(`PostgreSQL failed to start: ${err}`);
     }
 
-    // 2. Start Neo4j (if available)
-    if (EmbeddedNeo4jService.isInstalled()) {
-      this._status.neo4j = 'starting';
-      try {
-        await this.neo4j.start();
-        this._status.neo4j = 'running';
-      } catch (err) {
-        this._status.neo4j = 'error';
-        this._errors.neo4j = describeError(err);
-        console.error('Neo4j failed to start (non-fatal):', err);
-      }
-    }
-
-    // 3. Start Backend
+    // 2. Start Backend
     const storagePath = path.join(dataDir, 'documents');
     const creds = this.postgres.credentials;
 
@@ -101,7 +84,6 @@ class StandaloneManager {
       postgresUser: creds.user,
       postgresPassword: creds.password,
       postgresDatabase: creds.database,
-      neo4jUri: this.neo4j?.running ? `bolt://127.0.0.1:${this.neo4j.port}` : undefined,
       storagePath,
       authEnabled: false,
       disabledFeatures,
@@ -131,7 +113,7 @@ class StandaloneManager {
       }
     }
 
-    // 4. Start the ML worker (if installed). It polls the same jobs table; the
+    // 3. Start the ML worker (if installed). It polls the same jobs table; the
     // AI assistant/agents don't work without it, so the wizard installs it in
     // every profile. Non-fatal: the rest of the app still runs if it fails.
     if (EmbeddedModelsService.isInstalled()) {
@@ -145,9 +127,6 @@ class StandaloneManager {
             password: creds.password,
             database: creds.database,
           },
-          neo4j: this.neo4j?.running
-            ? { host: '127.0.0.1', port: this.neo4j.port, user: 'neo4j', password: 'neo4j' }
-            : undefined,
           features,
           gpu: detectGpu().cuda,
         });
@@ -179,10 +158,6 @@ class StandaloneManager {
     if (this.backend) {
       try { await this.backend.stop(); } catch (e) { console.error('Error stopping backend:', e); }
       this._status.backend = 'stopped';
-    }
-    if (this.neo4j) {
-      try { await this.neo4j.stop(); } catch (e) { console.error('Error stopping neo4j:', e); }
-      this._status.neo4j = 'stopped';
     }
     if (this.postgres) {
       try { await this.postgres.stop(); } catch (e) { console.error('Error stopping postgres:', e); }

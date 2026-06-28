@@ -1,5 +1,4 @@
 export { EmbeddedPostgresService, findFreePort } from './embedded-postgres';
-export { EmbeddedNeo4jService } from './embedded-neo4j';
 export { EmbeddedBackendService } from './embedded-backend';
 export type { BackendConfig } from './embedded-backend';
 export { standaloneManager } from './standalone-manager';

@@ -14,7 +14,6 @@ import { ChildProcess, spawn } from 'child_process';
  */
 export interface ModelsConfig {
   postgres: { host: string; port: number; user: string; password: string; database: string };
-  neo4j?: { host: string; port: number; user: string; password: string };
   /** Worker feature flags (config.features) — keyed like the profile features. */
   features: Record<string, boolean>;
   /** Offload LLM layers to GPU when true. */
@@ -67,15 +66,8 @@ export class EmbeddedModelsService {
         user: config.postgres.user,
         password: config.postgres.password,
       },
-      neo4j: config.neo4j
-        ? {
-            enabled: true,
-            host: config.neo4j.host,
-            port: config.neo4j.port,
-            user: config.neo4j.user,
-            password: config.neo4j.password,
-          }
-        : { enabled: false },
+      // The graph (Apache AGE) shares this same Postgres, so it needs no extra
+      // connection config. Whether it's active follows features.relationships.
       features: config.features,
       // GGUF models live in a writable dir (the bundle is read-only); the worker
       // reads them from here, matching MODELS_MODEL_DIR used at download time.

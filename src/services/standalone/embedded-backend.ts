@@ -12,7 +12,6 @@ export interface BackendConfig {
   postgresUser: string;
   postgresPassword: string;
   postgresDatabase: string;
-  neo4jUri?: string;
   storagePath: string;
   authEnabled?: boolean;
   /** Feature flags to turn OFF (passed as FEATURE_<X>=false). */
@@ -105,12 +104,9 @@ export class EmbeddedBackendService {
 
     // RAG is always available: embeddings live in Postgres via pgvector, which
     // ships with the embedded Postgres — there's no separate vector service.
+    // The entity graph (GraphRAG) likewise lives in Postgres via Apache AGE, so
+    // it needs no extra service or connection settings either.
     env.FEATURE_RAG = 'true';
-
-    if (config.neo4jUri) {
-      env.NEO4J_URI = config.neo4jUri;
-      env.NEO4J_ENABLED = 'true';
-    }
 
     // Profile preset: turn off the features this install doesn't include. The
     // user can re-enable them later from Settings (installing services if needed).

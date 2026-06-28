@@ -394,7 +394,7 @@
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
           </div>
           <p class="text-xs text-text-muted">
-            Shows entity relationships extracted from your project's resources. Data loads from Neo4j when the node is created.
+            Shows entity relationships extracted from your project's resources. Data loads from the graph when the node is created.
           </p>
         </template>
 
