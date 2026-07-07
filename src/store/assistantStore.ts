@@ -17,12 +17,17 @@ import {
     withEntityDeleted,
 } from '../composables/chatMessageEvents';
 
+const MESSAGE_PAGE_SIZE = 50;
+
 export const useAssistantStore = defineStore('assistant', () => {
     const api = useAssistants();
 
     const assistants = ref<Assistant[]>([]);
     const activeId = ref<number | null>(null);
     const messagesByAssistant = ref<Record<number, AssistantMessage[]>>({});
+    // Whether older history remains beyond what's loaded, per assistant.
+    const hasMoreByAssistant = ref<Record<number, boolean>>({});
+    const loadingOlderByAssistant = ref<Record<number, boolean>>({});
     const pendingByAssistant = ref<Record<number, boolean>>({});
     // Partial reply being streamed in for an assistant. Cleared when the
     // final `assistantResponse` arrives. Keyed by assistantId so concurrent
@@ -78,6 +83,16 @@ export const useAssistantStore = defineStore('assistant', () => {
     const activeMessages = computed<AssistantMessage[]>(() => {
         if (activeId.value == null) return [];
         return messagesByAssistant.value[activeId.value] ?? [];
+    });
+
+    const activeHasMore = computed<boolean>(() => {
+        if (activeId.value == null) return false;
+        return !!hasMoreByAssistant.value[activeId.value];
+    });
+
+    const activeLoadingOlder = computed<boolean>(() => {
+        if (activeId.value == null) return false;
+        return !!loadingOlderByAssistant.value[activeId.value];
     });
 
     const isActivePending = computed(() => {
@@ -294,15 +309,43 @@ export const useAssistantStore = defineStore('assistant', () => {
         activeId.value = id;
         if (!messagesByAssistant.value[id]) {
             try {
-                const msgs = await api.getMessages(id);
+                const { messages, hasMore } = await api.getMessages(id, { limit: MESSAGE_PAGE_SIZE });
                 // Any tool card persisted as `running` is necessarily stale —
                 // the worker process that emitted it is long gone. Coerce to
                 // `done` so the spinner doesn't hang forever on reload.
-                const sanitized = coerceRunningToolsToDone(msgs).messages;
+                const sanitized = coerceRunningToolsToDone(messages).messages;
                 messagesByAssistant.value = { ...messagesByAssistant.value, [id]: sanitized };
+                hasMoreByAssistant.value = { ...hasMoreByAssistant.value, [id]: hasMore };
             } catch (e: any) {
                 error.value = e?.message || 'Failed to load messages';
             }
+        }
+    }
+
+    // Page backwards: fetch the slice immediately older than the oldest message
+    // currently in memory and prepend it (deduped by id). The component is
+    // responsible for preserving scroll position around this call.
+    async function loadOlder(id: number) {
+        const current = messagesByAssistant.value[id];
+        if (!current || current.length === 0) return;
+        if (loadingOlderByAssistant.value[id]) return;
+        if (hasMoreByAssistant.value[id] === false) return;
+        const before = current[0].id;
+        loadingOlderByAssistant.value = { ...loadingOlderByAssistant.value, [id]: true };
+        try {
+            const { messages, hasMore } = await api.getMessages(id, { limit: MESSAGE_PAGE_SIZE, before });
+            const older = coerceRunningToolsToDone(messages).messages;
+            const seen = new Set(current.map((m) => m.id));
+            const fresh = older.filter((m) => !seen.has(m.id));
+            messagesByAssistant.value = {
+                ...messagesByAssistant.value,
+                [id]: [...fresh, ...current],
+            };
+            hasMoreByAssistant.value = { ...hasMoreByAssistant.value, [id]: hasMore };
+        } catch (e: any) {
+            error.value = e?.message || 'Failed to load older messages';
+        } finally {
+            loadingOlderByAssistant.value = { ...loadingOlderByAssistant.value, [id]: false };
         }
     }
 
@@ -365,11 +408,14 @@ export const useAssistantStore = defineStore('assistant', () => {
         sortedAssistants,
         activeAssistant,
         activeMessages,
+        activeHasMore,
+        activeLoadingOlder,
         isActivePending,
         activeStreaming,
         activeStreamDone,
         load,
         selectAssistant,
+        loadOlder,
         sendMessage,
         updateAssistant,
         deleteAssistant,

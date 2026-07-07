@@ -26,8 +26,17 @@ export function useAssistants() {
         await apiClient.delete(`/assistants/${id}`);
     };
 
-    const getMessages = async (id: number): Promise<AssistantMessage[]> => {
-        const { data } = await apiClient.get<AssistantMessage[]>(`/assistants/${id}/messages`);
+    const getMessages = async (
+        id: number,
+        opts: { limit?: number; before?: number } = {},
+    ): Promise<{ messages: AssistantMessage[]; hasMore: boolean }> => {
+        const params: Record<string, number> = {};
+        if (opts.limit != null) params.limit = opts.limit;
+        if (opts.before != null) params.before = opts.before;
+        const { data } = await apiClient.get<{ messages: AssistantMessage[]; hasMore: boolean }>(
+            `/assistants/${id}/messages`,
+            { params },
+        );
         return data;
     };
 

@@ -31,8 +31,17 @@ export function useAgents() {
         await apiClient.delete(`/agents/${id}`);
     };
 
-    const getMessages = async (id: number): Promise<AgentMessage[]> => {
-        const { data } = await apiClient.get<AgentMessage[]>(`/agents/${id}/messages`);
+    const getMessages = async (
+        id: number,
+        opts: { limit?: number; before?: number } = {},
+    ): Promise<{ messages: AgentMessage[]; hasMore: boolean }> => {
+        const params: Record<string, number> = {};
+        if (opts.limit != null) params.limit = opts.limit;
+        if (opts.before != null) params.before = opts.before;
+        const { data } = await apiClient.get<{ messages: AgentMessage[]; hasMore: boolean }>(
+            `/agents/${id}/messages`,
+            { params },
+        );
         return data;
     };
 

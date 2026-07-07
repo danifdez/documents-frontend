@@ -13,6 +13,13 @@
         </template>
 
         <template v-else>
+            <div v-if="store.activeHasMore" class="flex justify-center pb-1">
+                <button @click="loadOlder"
+                    :disabled="store.activeLoadingOlder"
+                    class="load-older-btn">
+                    {{ store.activeLoadingOlder ? 'Loading…' : 'Load earlier messages' }}
+                </button>
+            </div>
             <template v-for="msg in store.activeMessages" :key="msg.id">
                 <!-- Inline event card (memory saved, tool executed, …) -->
                 <div v-if="msg.role === 'event'" class="flex justify-center">
@@ -280,8 +287,31 @@ async function scrollToBottom() {
     }
 }
 
+// Prepend older messages while keeping the viewport anchored on the same
+// message: restore scrollTop by the height delta the new rows added on top.
+async function loadOlder() {
+    const id = store.activeId;
+    if (id == null) return;
+    const el = scrollContainer.value;
+    const prevHeight = el?.scrollHeight ?? 0;
+    const prevTop = el?.scrollTop ?? 0;
+    await store.loadOlder(id);
+    await nextTick();
+    if (el) {
+        el.scrollTop = prevTop + (el.scrollHeight - prevHeight);
+    }
+}
+
+// Auto-scroll to the bottom only on append or conversation switch — keyed on
+// the last message id (not length), so a prepend from loadOlder never yanks
+// the view down.
 watch(
-    () => [store.activeMessages.length, store.isActivePending, store.activeId, visibleStream.value.length],
+    () => [
+        store.activeMessages[store.activeMessages.length - 1]?.id,
+        store.isActivePending,
+        store.activeId,
+        visibleStream.value.length,
+    ],
     () => {
         scrollToBottom();
     },
@@ -290,6 +320,25 @@ watch(
 </script>
 
 <style scoped>
+.load-older-btn {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+.load-older-btn:hover:not(:disabled) {
+    color: var(--color-text-primary);
+    border-color: var(--color-text-muted);
+}
+.load-older-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
 .typing-dot {
     width: 6px;
     height: 6px;

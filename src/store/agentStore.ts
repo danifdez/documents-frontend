@@ -17,12 +17,17 @@ import {
     withEntityDeleted,
 } from '../composables/chatMessageEvents';
 
+const MESSAGE_PAGE_SIZE = 50;
+
 export const useAgentStore = defineStore('agent', () => {
     const api = useAgents();
 
     const agents = ref<Agent[]>([]);
     const activeId = ref<number | null>(null);
     const messagesByAgent = ref<Record<number, AgentMessage[]>>({});
+    // Whether older history remains beyond what's loaded, per agent.
+    const hasMoreByAgent = ref<Record<number, boolean>>({});
+    const loadingOlderByAgent = ref<Record<number, boolean>>({});
     const pendingByAgent = ref<Record<number, boolean>>({});
     const streamingByAgent = ref<Record<number, string>>({});
     const streamDoneByAgent = ref<Record<number, boolean>>({});
@@ -53,6 +58,16 @@ export const useAgentStore = defineStore('agent', () => {
     const activeMessages = computed<AgentMessage[]>(() => {
         if (activeId.value == null) return [];
         return messagesByAgent.value[activeId.value] ?? [];
+    });
+
+    const activeHasMore = computed<boolean>(() => {
+        if (activeId.value == null) return false;
+        return !!hasMoreByAgent.value[activeId.value];
+    });
+
+    const activeLoadingOlder = computed<boolean>(() => {
+        if (activeId.value == null) return false;
+        return !!loadingOlderByAgent.value[activeId.value];
     });
 
     const isActivePending = computed(() => {
@@ -212,12 +227,40 @@ export const useAgentStore = defineStore('agent', () => {
         activeId.value = id;
         if (!messagesByAgent.value[id]) {
             try {
-                const msgs = await api.getMessages(id);
-                const sanitized = coerceRunningToolsToDone(msgs).messages;
+                const { messages, hasMore } = await api.getMessages(id, { limit: MESSAGE_PAGE_SIZE });
+                const sanitized = coerceRunningToolsToDone(messages).messages;
                 messagesByAgent.value = { ...messagesByAgent.value, [id]: sanitized };
+                hasMoreByAgent.value = { ...hasMoreByAgent.value, [id]: hasMore };
             } catch (e: any) {
                 error.value = e?.message || 'Failed to load messages';
             }
+        }
+    }
+
+    // Page backwards: fetch the slice immediately older than the oldest message
+    // currently in memory and prepend it (deduped by id). The component is
+    // responsible for preserving scroll position around this call.
+    async function loadOlder(id: number) {
+        const current = messagesByAgent.value[id];
+        if (!current || current.length === 0) return;
+        if (loadingOlderByAgent.value[id]) return;
+        if (hasMoreByAgent.value[id] === false) return;
+        const before = current[0].id;
+        loadingOlderByAgent.value = { ...loadingOlderByAgent.value, [id]: true };
+        try {
+            const { messages, hasMore } = await api.getMessages(id, { limit: MESSAGE_PAGE_SIZE, before });
+            const older = coerceRunningToolsToDone(messages).messages;
+            const seen = new Set(current.map((m) => m.id));
+            const fresh = older.filter((m) => !seen.has(m.id));
+            messagesByAgent.value = {
+                ...messagesByAgent.value,
+                [id]: [...fresh, ...current],
+            };
+            hasMoreByAgent.value = { ...hasMoreByAgent.value, [id]: hasMore };
+        } catch (e: any) {
+            error.value = e?.message || 'Failed to load older messages';
+        } finally {
+            loadingOlderByAgent.value = { ...loadingOlderByAgent.value, [id]: false };
         }
     }
 
@@ -284,11 +327,14 @@ export const useAgentStore = defineStore('agent', () => {
         sortedAgents,
         activeAgent,
         activeMessages,
+        activeHasMore,
+        activeLoadingOlder,
         isActivePending,
         activeStreaming,
         activeStreamDone,
         load,
         selectAgent,
+        loadOlder,
         sendMessage,
         createAgent,
         updateAgent,
