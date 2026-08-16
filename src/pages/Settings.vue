@@ -54,19 +54,6 @@
                         </div>
                     </section>
 
-                    <!-- Browser -->
-                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
-                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Browser</h2>
-                        <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1">Default URL</label>
-                            <input type="text" v-model="defaultBrowserUrl" @change="saveSettings"
-                                placeholder="https://example.com"
-                                class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
-                            <p class="mt-1.5 text-xs text-text-muted">The page that opens by default in the built-in
-                                browser</p>
-                        </div>
-                    </section>
-
                     <!-- Voice (only when local engine is bundled) -->
                     <section v-if="voiceLocalAvailable" class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice</h2>
@@ -789,7 +776,6 @@ const fontFamily = ref('sans-serif');
 const paragraphSpacing = ref(1.5);
 const language = ref('en');
 const theme = ref<ThemeMode>('system');
-const defaultBrowserUrl = ref('https://github.com/electron/electron');
 
 // ── Application tab ──
 const closeBehavior = ref<'tray' | 'quit'>('tray');
@@ -819,7 +805,6 @@ const loadSettings = async () => {
             paragraphSpacing.value = settings.paragraphSpacing || 1.5;
             language.value = settings.language || 'en';
             theme.value = (settings.theme as ThemeMode) || 'system';
-            defaultBrowserUrl.value = settings.defaultBrowserUrl || 'https://github.com/electron/electron';
             closeBehavior.value = settings.closeBehavior === 'quit' ? 'quit' : 'tray';
             launchAtLogin.value = !!settings.launchAtLogin;
             toggleShortcut.value = settings.toggleShortcut ?? null;
@@ -851,7 +836,6 @@ function currentSettingsPayload() {
         paragraphSpacing: paragraphSpacing.value,
         language: language.value,
         theme: theme.value,
-        defaultBrowserUrl: defaultBrowserUrl.value,
         // keep the residente prefs in every settings payload so
         // unrelated saves don't drop them.
         closeBehavior: closeBehavior.value,

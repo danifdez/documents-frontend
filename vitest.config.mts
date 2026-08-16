@@ -16,6 +16,10 @@ export default defineConfig({
       '**/coverage/**',
       '**/e2e/**'
     ],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,vue}'],
+    },
   },
   resolve: {
     alias: {

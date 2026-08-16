@@ -128,7 +128,7 @@ import { useResourceList } from '../../services/resources/useResourceList';
 import { useProjectList } from '../../services/projects/useProjectList';
 import PropertyRow from './PropertyRow.vue';
 
-const { loadResourceTypes, getResourceTypeName, resourceTypes } = useResourceType();
+const { loadResourceTypes, resourceTypes } = useResourceType();
 const { updateResource } = useResource();
 
 // Generic field update for PropertyRow components
@@ -151,64 +151,18 @@ const projectDropdown = ref<HTMLSelectElement | null>(null);
 const isEditingType = ref(false);
 const editResourceType = ref('');
 const typeDropdown = ref<HTMLSelectElement | null>(null);
-const typeSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const isEditingLanguage = ref(false);
-const editResourceLanguage = ref('');
-const languageSavedSuccessfully = ref(false);
-const languageDropdown = ref<HTMLSelectElement | null>(null);
-const isTypeSaving = ref(false);
-const isCancelingLanguageEdit = ref(false);
-const languageSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const isLanguageSaving = ref(false);
-
-const typeSavedSuccessfully = ref(false);
 const isCancelingTypeEdit = ref(false);
-
-const isEditingUrl = ref(false);
-const editResourceUrl = ref('');
-const urlInput = ref<HTMLInputElement | null>(null);
-const urlSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const urlSavedSuccessfully = ref(false);
-const isCancelingUrlEdit = ref(false);
-const isUrlSaving = ref(false);
-
-const isEditingTitle = ref(false);
-const editResourceTitle = ref('');
-const titleInput = ref<HTMLInputElement | null>(null);
-const titleSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const titleSavedSuccessfully = ref(false);
-const isCancelingTitleEdit = ref(false);
-const isTitleSaving = ref(false);
 
 const isEditingAuthors = ref(false);
 const editResourceAuthors = ref('');
 const authorsInput = ref<HTMLInputElement | null>(null);
-const authorsSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const authorsSavedSuccessfully = ref(false);
 const isCancelingAuthorsEdit = ref(false);
-const isAuthorsSaving = ref(false);
 
 // Autocomplete state for authors
 const allAuthors = ref<Author[]>([]);
 const showAuthorSuggestions = ref(false);
 const filteredAuthorSuggestions = ref<Author[]>([]);
 const selectedSuggestionIndex = ref(-1);
-
-const isEditingPublicationDate = ref(false);
-const editResourcePublicationDate = ref('');
-const publicationDateInput = ref<HTMLInputElement | null>(null);
-const publicationDateSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const publicationDateSavedSuccessfully = ref(false);
-const isCancelingPublicationDateEdit = ref(false);
-const isPublicationDateSaving = ref(false);
-
-const isEditingLicense = ref(false);
-const editResourceLicense = ref('');
-const licenseInput = ref<HTMLInputElement | null>(null);
-const licenseSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const licenseSavedSuccessfully = ref(false);
-const isCancelingLicenseEdit = ref(false);
-const isLicenseSaving = ref(false);
 
 const props = defineProps({
     resource: {
@@ -346,7 +300,6 @@ const startTypeEdit = () => {
     } else {
         editResourceType.value = '';
     }
-    typeSavedSuccessfully.value = false;
 
     setTimeout(() => {
         typeDropdown.value?.focus();
@@ -357,11 +310,6 @@ const cancelTypeEdit = () => {
     isCancelingTypeEdit.value = true;
     isEditingType.value = false;
     editResourceType.value = '';
-    typeSavedSuccessfully.value = false;
-
-    if (typeSaveTimeout.value) {
-        clearTimeout(typeSaveTimeout.value);
-    }
 
     setTimeout(() => {
         isCancelingTypeEdit.value = false;
@@ -374,16 +322,6 @@ const handleTypeChange = async () => {
     }
 
     await saveResourceType();
-};
-
-const startLanguageEdit = () => {
-    isEditingLanguage.value = true;
-    editResourceLanguage.value = props.resource.language || '';
-    languageSavedSuccessfully.value = false;
-
-    setTimeout(() => {
-        languageDropdown.value?.focus();
-    }, 50);
 };
 
 const saveResourceType = async () => {
@@ -402,13 +340,6 @@ const saveResourceType = async () => {
         return;
     }
 
-    if (typeSaveTimeout.value) {
-        clearTimeout(typeSaveTimeout.value);
-    }
-
-    isTypeSaving.value = true;
-    typeSavedSuccessfully.value = false;
-
     try {
         await updateResource(props.resource.id, {
             type: editResourceType.value || null
@@ -416,219 +347,11 @@ const saveResourceType = async () => {
 
         props.resource.type = editResourceType.value || null;
 
-        typeSavedSuccessfully.value = true;
-
         setTimeout(() => {
-            typeSavedSuccessfully.value = false;
             isEditingType.value = false;
         }, 1500);
     } catch (error) {
         isEditingType.value = false;
-    } finally {
-        isTypeSaving.value = false;
-    }
-};
-
-const cancelLanguageEdit = () => {
-    isCancelingLanguageEdit.value = true;
-    isEditingLanguage.value = false;
-    editResourceLanguage.value = '';
-    languageSavedSuccessfully.value = false;
-
-    if (languageSaveTimeout.value) {
-        clearTimeout(languageSaveTimeout.value);
-    }
-
-    setTimeout(() => {
-        isCancelingLanguageEdit.value = false;
-    }, 100);
-};
-
-const handleLanguageChange = async () => {
-    if (isCancelingLanguageEdit.value) {
-        return;
-    }
-
-    await saveResourceLanguage();
-};
-
-
-const saveResourceLanguage = async () => {
-    if (isCancelingLanguageEdit.value) {
-        return;
-    }
-
-    if (editResourceLanguage.value === props.resource.language) {
-        isEditingLanguage.value = false;
-        return;
-    }
-
-    if (languageSaveTimeout.value) {
-        clearTimeout(languageSaveTimeout.value);
-    }
-
-    isLanguageSaving.value = true;
-    languageSavedSuccessfully.value = false;
-
-    try {
-        await updateResource(props.resource.id, {
-            language: editResourceLanguage.value || null
-        });
-
-        props.resource.language = editResourceLanguage.value || null;
-
-        languageSavedSuccessfully.value = true;
-
-        setTimeout(() => {
-            languageSavedSuccessfully.value = false;
-            isEditingLanguage.value = false;
-        }, 1500);
-
-        const languageName = editResourceLanguage.value ? getLanguageName(editResourceLanguage.value) : 'No language';
-    } catch (error) {
-        isEditingLanguage.value = false;
-    } finally {
-        isLanguageSaving.value = false;
-    }
-};
-
-const startUrlEdit = () => {
-    isEditingUrl.value = true;
-    editResourceUrl.value = props.resource.url || '';
-    urlSavedSuccessfully.value = false;
-
-    setTimeout(() => {
-        urlInput.value?.focus();
-    }, 50);
-};
-
-const cancelUrlEdit = () => {
-    isCancelingUrlEdit.value = true;
-    isEditingUrl.value = false;
-    editResourceUrl.value = '';
-    urlSavedSuccessfully.value = false;
-
-    if (urlSaveTimeout.value) {
-        clearTimeout(urlSaveTimeout.value);
-    }
-
-    setTimeout(() => {
-        isCancelingUrlEdit.value = false;
-    }, 100);
-};
-
-const handleUrlChange = async () => {
-    if (isCancelingUrlEdit.value) {
-        return;
-    }
-
-    await saveResourceUrl();
-};
-
-const saveResourceUrl = async () => {
-    if (isCancelingUrlEdit.value) {
-        return;
-    }
-
-    if (editResourceUrl.value === props.resource.url) {
-        isEditingUrl.value = false;
-        return;
-    }
-
-    if (urlSaveTimeout.value) {
-        clearTimeout(urlSaveTimeout.value);
-    }
-
-    isUrlSaving.value = true;
-    urlSavedSuccessfully.value = false;
-
-    try {
-        await updateResource(props.resource.id, {
-            url: editResourceUrl.value || null
-        });
-
-        props.resource.url = editResourceUrl.value || null;
-
-        urlSavedSuccessfully.value = true;
-
-        setTimeout(() => {
-            urlSavedSuccessfully.value = false;
-            isEditingUrl.value = false;
-        }, 1500);
-    } catch (error) {
-        isEditingUrl.value = false;
-    } finally {
-        isUrlSaving.value = false;
-    }
-};
-
-const startTitleEdit = () => {
-    isEditingTitle.value = true;
-    editResourceTitle.value = props.resource.title || '';
-    titleSavedSuccessfully.value = false;
-
-    setTimeout(() => {
-        titleInput.value?.focus();
-    }, 50);
-};
-
-const cancelTitleEdit = () => {
-    isCancelingTitleEdit.value = true;
-    isEditingTitle.value = false;
-    editResourceTitle.value = '';
-    titleSavedSuccessfully.value = false;
-
-    if (titleSaveTimeout.value) {
-        clearTimeout(titleSaveTimeout.value);
-    }
-
-    setTimeout(() => {
-        isCancelingTitleEdit.value = false;
-    }, 100);
-};
-
-const handleTitleChange = async () => {
-    if (isCancelingTitleEdit.value) {
-        return;
-    }
-
-    await saveResourceTitle();
-};
-
-const saveResourceTitle = async () => {
-    if (isCancelingTitleEdit.value) {
-        return;
-    }
-
-    if (editResourceTitle.value === props.resource.title) {
-        isEditingTitle.value = false;
-        return;
-    }
-
-    if (titleSaveTimeout.value) {
-        clearTimeout(titleSaveTimeout.value);
-    }
-
-    isTitleSaving.value = true;
-    titleSavedSuccessfully.value = false;
-
-    try {
-        await updateResource(props.resource.id, {
-            title: editResourceTitle.value || null
-        });
-
-        props.resource.title = editResourceTitle.value || null;
-
-        titleSavedSuccessfully.value = true;
-
-        setTimeout(() => {
-            titleSavedSuccessfully.value = false;
-            isEditingTitle.value = false;
-        }, 1500);
-    } catch (error) {
-        isEditingTitle.value = false;
-    } finally {
-        isTitleSaving.value = false;
     }
 };
 
@@ -637,7 +360,6 @@ const startAuthorsEdit = async () => {
     // Convert authors array to comma-separated string
     const authorNames = props.resource.authors?.map((a: Author) => a.name).join(', ') || '';
     editResourceAuthors.value = authorNames;
-    authorsSavedSuccessfully.value = false;
 
     // Load all authors for autocomplete
     try {
@@ -749,13 +471,8 @@ const cancelAuthorsEdit = () => {
     isCancelingAuthorsEdit.value = true;
     isEditingAuthors.value = false;
     editResourceAuthors.value = '';
-    authorsSavedSuccessfully.value = false;
     showAuthorSuggestions.value = false;
     filteredAuthorSuggestions.value = [];
-
-    if (authorsSaveTimeout.value) {
-        clearTimeout(authorsSaveTimeout.value);
-    }
 
     setTimeout(() => {
         isCancelingAuthorsEdit.value = false;
@@ -790,175 +507,15 @@ const saveResourceAuthors = async () => {
         return;
     }
 
-    if (authorsSaveTimeout.value) {
-        clearTimeout(authorsSaveTimeout.value);
-    }
-
-    isAuthorsSaving.value = true;
-    authorsSavedSuccessfully.value = false;
-
     try {
         const updatedAuthors = await updateResourceAuthors(props.resource.id, newAuthorNames);
         props.resource.authors = updatedAuthors;
 
-        authorsSavedSuccessfully.value = true;
-
         setTimeout(() => {
-            authorsSavedSuccessfully.value = false;
             isEditingAuthors.value = false;
         }, 1500);
     } catch (error) {
         isEditingAuthors.value = false;
-    } finally {
-        isAuthorsSaving.value = false;
-    }
-};
-
-const startPublicationDateEdit = () => {
-    isEditingPublicationDate.value = true;
-    if (props.resource.publicationDate) {
-        const date = new Date(props.resource.publicationDate);
-        editResourcePublicationDate.value = date.toISOString().slice(0, 16);
-    } else {
-        editResourcePublicationDate.value = '';
-    }
-    publicationDateSavedSuccessfully.value = false;
-
-    setTimeout(() => {
-        publicationDateInput.value?.focus();
-    }, 50);
-};
-
-const cancelPublicationDateEdit = () => {
-    isCancelingPublicationDateEdit.value = true;
-    isEditingPublicationDate.value = false;
-    editResourcePublicationDate.value = '';
-    publicationDateSavedSuccessfully.value = false;
-
-    if (publicationDateSaveTimeout.value) {
-        clearTimeout(publicationDateSaveTimeout.value);
-    }
-
-    setTimeout(() => {
-        isCancelingPublicationDateEdit.value = false;
-    }, 100);
-};
-
-const handlePublicationDateChange = async () => {
-    if (isCancelingPublicationDateEdit.value) {
-        return;
-    }
-
-    await saveResourcePublicationDate();
-};
-
-const saveResourcePublicationDate = async () => {
-    if (isCancelingPublicationDateEdit.value) {
-        return;
-    }
-
-    const currentDate = props.resource.publicationDate ? new Date(props.resource.publicationDate).toISOString().slice(0, 16) : '';
-    if (editResourcePublicationDate.value === currentDate) {
-        isEditingPublicationDate.value = false;
-        return;
-    }
-
-    if (publicationDateSaveTimeout.value) {
-        clearTimeout(publicationDateSaveTimeout.value);
-    }
-
-    isPublicationDateSaving.value = true;
-    publicationDateSavedSuccessfully.value = false;
-
-    try {
-        const dateValue = editResourcePublicationDate.value ? new Date(editResourcePublicationDate.value).toISOString() : null;
-
-        await updateResource(props.resource.id, {
-            publicationDate: dateValue
-        });
-
-        props.resource.publicationDate = dateValue;
-
-        publicationDateSavedSuccessfully.value = true;
-
-        setTimeout(() => {
-            publicationDateSavedSuccessfully.value = false;
-            isEditingPublicationDate.value = false;
-        }, 1500);
-    } catch (error) {
-        isEditingPublicationDate.value = false;
-    } finally {
-        isPublicationDateSaving.value = false;
-    }
-};
-
-const startLicenseEdit = () => {
-    isEditingLicense.value = true;
-    editResourceLicense.value = props.resource.license || '';
-    licenseSavedSuccessfully.value = false;
-
-    setTimeout(() => {
-        licenseInput.value?.focus();
-    }, 50);
-};
-
-const cancelLicenseEdit = () => {
-    isCancelingLicenseEdit.value = true;
-    isEditingLicense.value = false;
-    editResourceLicense.value = '';
-    licenseSavedSuccessfully.value = false;
-
-    if (licenseSaveTimeout.value) {
-        clearTimeout(licenseSaveTimeout.value);
-    }
-
-    setTimeout(() => {
-        isCancelingLicenseEdit.value = false;
-    }, 100);
-};
-
-const handleLicenseChange = async () => {
-    if (isCancelingLicenseEdit.value) {
-        return;
-    }
-
-    await saveResourceLicense();
-};
-
-const saveResourceLicense = async () => {
-    if (isCancelingLicenseEdit.value) {
-        return;
-    }
-
-    if (editResourceLicense.value === props.resource.license) {
-        isEditingLicense.value = false;
-        return;
-    }
-
-    if (licenseSaveTimeout.value) {
-        clearTimeout(licenseSaveTimeout.value);
-    }
-
-    isLicenseSaving.value = true;
-    licenseSavedSuccessfully.value = false;
-
-    try {
-        await updateResource(props.resource.id, {
-            license: editResourceLicense.value || null
-        });
-
-        props.resource.license = editResourceLicense.value || null;
-
-        licenseSavedSuccessfully.value = true;
-
-        setTimeout(() => {
-            licenseSavedSuccessfully.value = false;
-            isEditingLicense.value = false;
-        }, 1500);
-    } catch (error) {
-        isEditingLicense.value = false;
-    } finally {
-        isLicenseSaving.value = false;
     }
 };
 

@@ -13,7 +13,7 @@
 │  │  - Window mgmt   │           │  - Pages & Components      │ │
 │  │  - File dialogs  │           │  - TipTap Editor           │ │
 │  │  - Settings store│           │  - State Management        │ │
-│  │  - Browser views │           │  - Service Composables     │ │
+│  │                  │           │  - Service Composables     │ │
 │  └──────────────────┘           └─────────┬──────────────────┘ │
 │                                           │                     │
 └───────────────────────────────────────────┼─────────────────────┘
@@ -33,8 +33,7 @@
 The main process handles system-level operations:
 
 - **Window creation** — Full-screen `BrowserWindow` using primary display dimensions
-- **IPC handlers** — Registers handlers for file dialogs, settings, browser management, and file uploads
-- **Browser window** — Creates per-project embedded browser with `WebContentsView` (toolbar + browser content)
+- **IPC handlers** — Registers handlers for file dialogs, settings, and file uploads
 - **Settings persistence** — Uses `electron-store` for user preferences (font, spacing, language)
 
 ### Preload Script (`src/preload.ts`)
@@ -43,9 +42,6 @@ The preload script bridges main and renderer processes via `contextBridge.expose
 
 ```typescript
 contextBridge.exposeInMainWorld('electronAPI', {
-    openExternalBrowser: (projectId) => ipcRenderer.invoke('open-external-browser', projectId),
-    navigateTo: (url) => ipcRenderer.invoke('navigate-to', url),
-    extractContent: (idProject) => ipcRenderer.invoke('extract-content', idProject),
     uploadDocument: (idProject, filePath) => ipcRenderer.invoke('upload-document', idProject, filePath),
     openMultipleFileDialog: () => ipcRenderer.invoke('open-multiple-file-dialog'),
     getSettings: () => ipcRenderer.invoke('settings:get'),

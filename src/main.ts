@@ -2,8 +2,6 @@ import { app, BrowserWindow, ipcMain, Notification, screen, dialog, Menu, global
 import { localEngine } from './main/voice/localEngine';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
-import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import FormData from 'form-data';
 import Store from 'electron-store';
@@ -348,6 +346,36 @@ function maybeShowFirstCloseToast() {
   store.set('flags', { ...flags, hasSeenTrayHint: true });
 }
 
+// Every app notification shares one shape: click routes into the window, and an
+// optional "Done" button completes the underlying item where the OS supports
+// notification actions.
+function showActionableNotification(opts: {
+  title: string;
+  body: string;
+  onClick: () => void;
+  onDone?: () => void;
+}) {
+  if (!Notification.isSupported()) return;
+  const canShowDone = !!opts.onDone && SUPPORTS_NOTIFICATION_ACTIONS;
+  const n = new Notification({
+    title: opts.title,
+    body: opts.body,
+    silent: false,
+    actions: canShowDone ? [{ type: 'button', text: 'Done' }] : undefined,
+  });
+  n.on('click', opts.onClick);
+  if (canShowDone) {
+    n.on('action', (_e, index) => {
+      if (index === 0) opts.onDone!();
+    });
+  }
+  n.show();
+}
+
+function summarizeLabels(labels: string[]): string {
+  return labels.slice(0, 4).join(', ') + (labels.length > 4 ? ', …' : '');
+}
+
 function showAlarmNotification(payload: {
   eventId: number;
   occurrenceStart: string;
@@ -355,25 +383,14 @@ function showAlarmNotification(payload: {
   alarmLabel: string | null;
   trackCompletion: boolean;
 }) {
-  if (!Notification.isSupported()) return;
-  const canShowDone = payload.trackCompletion && SUPPORTS_NOTIFICATION_ACTIONS;
-  const n = new Notification({
+  showActionableNotification({
     title: payload.alarmLabel || payload.title,
     body: formatLocalTime(payload.occurrenceStart),
-    silent: false,
-    actions: canShowDone ? [{ type: 'button', text: 'Done' }] : undefined,
+    onClick: () => focusMainWindowAndSend('calendar:navigate', payload.eventId),
+    onDone: payload.trackCompletion
+      ? () => markEventOccurrenceDone(payload.eventId, payload.occurrenceStart)
+      : undefined,
   });
-  n.on('click', () => {
-    focusMainWindowAndSend('calendar:navigate', payload.eventId);
-  });
-  if (canShowDone) {
-    n.on('action', (_e, index) => {
-      if (index === 0) {
-        markEventOccurrenceDone(payload.eventId, payload.occurrenceStart);
-      }
-    });
-  }
-  n.show();
 }
 
 async function completeTask(taskId: number) {
@@ -389,52 +406,26 @@ function showTaskReminderNotification(payload: {
   title: string;
   reminderAt: string;
 }) {
-  if (!Notification.isSupported()) return;
-  const canShowDone = SUPPORTS_NOTIFICATION_ACTIONS;
-  const n = new Notification({
+  showActionableNotification({
     title: payload.title,
     body: `Reminder · ${formatLocalTime(payload.reminderAt)}`,
-    silent: false,
-    actions: canShowDone ? [{ type: 'button', text: 'Done' }] : undefined,
+    onClick: () => focusMainWindowAndSend('task:navigate', payload.taskId),
+    onDone: () => completeTask(payload.taskId),
   });
-  n.on('click', () => {
-    focusMainWindowAndSend('task:navigate', payload.taskId);
-  });
-  if (canShowDone) {
-    n.on('action', (_e, index) => {
-      if (index === 0) {
-        completeTask(payload.taskId);
-      }
-    });
-  }
-  n.show();
 }
 
 function showTaskMissedAggregate(payload: {
   items: Array<{ taskId: number; title: string; reminderAt: string }>;
 }) {
-  if (!Notification.isSupported()) return;
   const count = payload.items.length;
   if (count === 0) return;
-  const titles = payload.items.slice(0, 4).map((i) => i.title).join(', ');
-  const suffix = count > 4 ? ', …' : '';
   const singleItem = count === 1 ? payload.items[0] : null;
-  const canShowDone = singleItem !== null && SUPPORTS_NOTIFICATION_ACTIONS;
-  const n = new Notification({
+  showActionableNotification({
     title: `${count} missed task reminder${count === 1 ? '' : 's'}`,
-    body: `${titles}${suffix}`,
-    silent: false,
-    actions: canShowDone ? [{ type: 'button', text: 'Done' }] : undefined,
+    body: summarizeLabels(payload.items.map((i) => i.title)),
+    onClick: () => focusMainWindowAndSend('task:navigate-missed-panel'),
+    onDone: singleItem ? () => completeTask(singleItem.taskId) : undefined,
   });
-  n.on('click', () => {
-    focusMainWindowAndSend('task:navigate-missed-panel');
-  });
-  if (canShowDone && singleItem) {
-    n.on('action', (_e, index) => {
-      if (index === 0) completeTask(singleItem.taskId);
-    });
-  }
-  n.show();
 }
 
 function showMissedAggregate(payload: {
@@ -446,34 +437,17 @@ function showMissedAggregate(payload: {
     trackCompletion: boolean;
   }>;
 }) {
-  if (!Notification.isSupported()) return;
   const count = payload.items.length;
   if (count === 0) return;
-  const titles = payload.items
-    .slice(0, 4)
-    .map((i) => i.alarmLabel || i.title)
-    .join(', ');
-  const suffix = count > 4 ? ', …' : '';
-  const singleTrackable = count === 1 && payload.items[0].trackCompletion;
-  const canShowDone = singleTrackable && SUPPORTS_NOTIFICATION_ACTIONS;
-  const n = new Notification({
+  const single = count === 1 && payload.items[0].trackCompletion ? payload.items[0] : null;
+  showActionableNotification({
     title: `${count} missed alert${count === 1 ? '' : 's'}`,
-    body: `${titles}${suffix}`,
-    silent: false,
-    actions: canShowDone ? [{ type: 'button', text: 'Done' }] : undefined,
+    body: summarizeLabels(payload.items.map((i) => i.alarmLabel || i.title)),
+    onClick: () => focusMainWindowAndSend('calendar:navigate-missed-panel'),
+    onDone: single
+      ? () => markEventOccurrenceDone(single.eventId, single.occurrenceStart)
+      : undefined,
   });
-  n.on('click', () => {
-    focusMainWindowAndSend('calendar:navigate-missed-panel');
-  });
-  if (canShowDone) {
-    const item = payload.items[0];
-    n.on('action', (_e, index) => {
-      if (index === 0) {
-        markEventOccurrenceDone(item.eventId, item.occurrenceStart);
-      }
-    });
-  }
-  n.show();
 }
 
 function createSplashWindow() {
@@ -558,38 +532,6 @@ const createWindow = () => {
   }
 };
 
-const createBrowserWindow = (projectId?: string) => {
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width, height } = primaryDisplay.workAreaSize;
-
-  const win = new BrowserWindow({
-    width,
-    height,
-    backgroundColor: '#000000',
-    show: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      webviewTag: true,
-    },
-  });
-
-  win.once('ready-to-show', () => {
-    win.show();
-  });
-
-  win.maximize();
-
-  const hash = projectId ? `/browser/${projectId}` : '/browser';
-
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${hash}`);
-  } else {
-    win.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-      { hash }
-    );
-  }
-};
 
 app.whenReady().then(() => {
   // Grant microphone permissions to the renderer. Without this getUserMedia
@@ -626,16 +568,6 @@ app.whenReady().then(() => {
   ipcMain.handle('voice:local:stop', (_e, sessionId: string) => localEngine.stopSession(sessionId));
   ipcMain.handle('voice:local:cancel', (_e, sessionId: string) => localEngine.cancelSession(sessionId));
 
-  ipcMain.handle('open-external-browser', (_, projectId?: string) => {
-    createBrowserWindow(projectId);
-  });
-
-  ipcMain.handle('navigate-main-window', (_, route: string) => {
-    // Use the robust helper so navigation works also when
-    // the main window is hidden in the tray or had to be recreated.
-    focusMainWindowAndSend('navigate-to-route', route);
-  });
-
   ipcMain.handle('calendar:show-alarm', (_, payload: {
     eventId: number;
     occurrenceStart: string;
@@ -670,42 +602,6 @@ app.whenReady().then(() => {
     items: Array<{ taskId: number; title: string; reminderAt: string }>;
   }) => {
     showTaskMissedAggregate(payload);
-  });
-
-  ipcMain.handle("extract-webpage", async (_, { content, title, url, projectId }) => {
-    try {
-      const tempDir = path.join(os.tmpdir(), 'document-manager');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-      const tempFilePath = path.join(tempDir, `webpage-${uuidv4()}.html`);
-      await fs.promises.writeFile(tempFilePath, content);
-
-      const formData = new FormData();
-      const fileStream = fs.createReadStream(tempFilePath);
-      formData.append('file', fileStream);
-      formData.append('name', title);
-      if (projectId) {
-        formData.append('projectId', projectId);
-      }
-      formData.append('type', 'webpage');
-      formData.append('url', url);
-
-      const uploadResponse = await axios.post(`${getApiUrl()}/resources/upload`, formData, {
-        headers: {
-          ...formData.getHeaders(),
-        },
-      });
-
-      await fs.promises.unlink(tempFilePath);
-
-      return {
-        resourceId: uploadResponse.data.resourceId,
-      };
-    } catch (error) {
-      console.error("Error extracting content:", error);
-      return { error: `Failed to extract content: ${error.message}` };
-    }
   });
 
   ipcMain.handle("upload-document", async (_, idProject, filePath) => {
@@ -816,7 +712,6 @@ app.whenReady().then(() => {
       paragraphSpacing: 1.5,
       language: 'en',
       theme: 'dark',
-      defaultBrowserUrl: 'https://github.com/electron/electron',
       disabledFeatures: [],
       // Tray / residente. Defaults only apply when the store
       // has no `settings` yet; users with existing persisted settings will
@@ -1027,26 +922,6 @@ app.whenReady().then(() => {
 
   ipcMain.handle('standalone:get-url', () => {
     return standaloneManager.getBackendUrl();
-  });
-
-  ipcMain.handle('show-selection-context-menu', (event) => {
-    return new Promise((resolve) => {
-      const menu = Menu.buildFromTemplate([
-        {
-          label: 'Send to document',
-          click: () => resolve('send-to-doc'),
-        },
-        {
-          label: 'Lookup related information',
-          click: () => resolve('lookup'),
-        },
-      ]);
-      const win = BrowserWindow.fromWebContents(event.sender);
-      menu.popup({
-        window: win ?? undefined,
-        callback: () => resolve(null),
-      });
-    });
   });
 
   // Register offline filesystem handlers

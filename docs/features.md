@@ -10,10 +10,7 @@ From the Dashboard you can create, open, and delete projects. Switching projects
 
 ### Importing Documents
 
-Documents can be imported into a project in two ways:
-
-- **From disk** — Open the `ImportDocumentModal` via the Project page, pick one or more files (PDF, Word, TXT, HTML, images). The Electron main process reads the selected files and uploads them to the backend via `POST /resources/upload`.
-- **From the web** — Use the built-in browser (see [Embedded Browser](#embedded-browser)) to navigate to a page and click **Extract**. The main process captures the full page HTML, writes it to a temporary file, and uploads it as a `webpage` resource.
+Documents are imported into a project from disk: open the `ImportDocumentModal` via the Project page, pick one or more files (PDF, Word, TXT, HTML, images). The Electron main process reads the selected files and uploads them to the backend via `POST /resources/upload`.
 
 Supported file types: `pdf`, `doc`, `docx`, `txt`, `htm`, `html`, `jpg`, `jpeg`, `png`, `gif`, `bmp`, `svg`, `webp`.
 
@@ -90,15 +87,6 @@ The Datasets pages (`/projects/:projectId/datasets`) allow you to define and pop
 ## Calendar
 
 The Calendar (`/projects/:projectId/calendar`) displays events associated with the project in a monthly view. Events can be created manually or extracted from document content.
-
-## Embedded Browser
-
-The Browser page (`/projects/:projectId/browser`) opens an embedded Chromium window inside the Electron shell via `WebContentsView`. Each project gets its own isolated browser session (cookies, storage, and cache are partitioned by project ID).
-
-The **toolbar** (a separate `BrowserToolbar` route running inside the browser window) shows the current URL and exposes two actions:
-
-- **Navigate** — type a URL and press Enter to load it
-- **Extract** — capture the current page HTML and upload it as a new resource in the active project (see [Importing Documents](#importing-documents))
 
 ## Search
 

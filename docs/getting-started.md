@@ -98,7 +98,6 @@ Environment variables prefixed with `VITE_` are exposed to the renderer process 
 
 - **Renderer process:** Press `Ctrl+Shift+I` to open Chrome DevTools in the application window.
 - **Main process:** Uncomment `mainWindow.webContents.openDevTools()` in `src/main.ts` (line 42).
-- **Browser view:** Uncomment `browserView.webContents.openDevTools()` in `src/main.ts` (line 87).
 
 ### Common Issues
 

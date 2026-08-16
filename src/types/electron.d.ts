@@ -5,7 +5,6 @@ export interface ElectronAPI {
         fontFamily?: string;
         paragraphSpacing?: number;
         theme?: 'light' | 'dark' | 'system';
-        defaultBrowserUrl?: string;
         disabledFeatures?: string[];
         closeBehavior?: 'tray' | 'quit';
         launchAtLogin?: boolean;
@@ -20,14 +19,6 @@ export interface ElectronAPI {
     // Runtime info about residente/tray support.
     getTrayAvailable?: () => Promise<boolean>;
     getPlatform?: () => Promise<NodeJS.Platform>;
-    openExternalBrowser: (projectId: string) => Promise<void>;
-    navigateTo: (url: string) => Promise<boolean>;
-    goBack: () => Promise<boolean>;
-    goForward: () => Promise<boolean>;
-    reload: () => Promise<boolean>;
-    onUrlChange: (callback: (url: string) => void) => void;
-    onProjectIdChange: (callback: (projectId: string) => void) => void;
-    extractContent: (idProject: string) => Promise<any>;
     uploadDocument: (idProject: string, filePath: string) => Promise<any>;
     openMultipleFileDialog: () => Promise<{ path: string; name: string }[]>;
     platform: string;

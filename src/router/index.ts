@@ -3,8 +3,6 @@ import Dashboard from '../pages/Dashboard.vue'
 import Project from '../pages/Project.vue'
 import Thread from '../pages/Thread.vue'
 import Doc from '../pages/Doc.vue'
-import BrowserToolbar from '../pages/BrowserToolbar.vue'
-import BrowserPage from '../pages/BrowserPage.vue'
 import Resource from '../pages/Resource.vue'
 import Settings from '../pages/Settings.vue'
 import Relationships from '../pages/Relationships.vue'
@@ -42,16 +40,6 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/document/:id',
     component: Doc
-  },
-  {
-    path: '/browser-toolbar',
-    name: 'BrowserToolbar',
-    component: BrowserToolbar,
-  },
-  {
-    path: '/browser/:id?',
-    name: 'BrowserPage',
-    component: BrowserPage,
   },
   {
     path: '/resource/:id',

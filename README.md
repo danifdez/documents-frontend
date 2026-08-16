@@ -12,7 +12,7 @@ Under the hood, the app talks to a [NestJS backend](../backend/README.md) (docum
 
 ### Document & Resource Management
 
-- Import documents from disk (PDF, Word, TXT, HTML, audio, video, images) or extract directly from web pages using the built-in browser
+- Import documents from disk (PDF, Word, TXT, HTML, audio, video, images)
 - View, annotate, and organize documents across multiple projects
 - Add comments and marks to specific parts of a document
 - Full-text and semantic search across all your content

@@ -66,14 +66,6 @@ contextBridge.exposeInMainWorld('shellOps', {
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    openExternalBrowser: (projectId: string) => ipcRenderer.invoke('open-external-browser', projectId),
-    navigateTo: (url: string) => ipcRenderer.invoke('navigate-to', url),
-    onUrlChange: (callback: (url: string) => void) =>
-        ipcRenderer.on('url-changed', (_event, url) => callback(url)),
-    onProjectIdChange: (callback: (projectId: string) => void) =>
-        ipcRenderer.on('project-id', (_event, projectId) => callback(projectId)),
-    extractContent: (idProject: string) => ipcRenderer.invoke('extract-content', idProject),
-    extractWebpage: (data: { content: string, title: string, url: string, projectId: string }) => ipcRenderer.invoke('extract-webpage', data),
     uploadDocument: (idProject: string, filePath: string) => ipcRenderer.invoke('upload-document', idProject, filePath),
     openMultipleFileDialog: () => ipcRenderer.invoke('open-multiple-file-dialog'),
     getSettings: () => ipcRenderer.invoke('settings:get'),
@@ -82,10 +74,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // the Settings UI needs to gate platform-specific controls.
     getTrayAvailable: (): Promise<boolean> => ipcRenderer.invoke('app:tray-available'),
     getPlatform: (): Promise<NodeJS.Platform> => ipcRenderer.invoke('app:get-platform'),
-    showSelectionContextMenu: () => ipcRenderer.invoke('show-selection-context-menu'),
-    navigateMainWindow: (route: string) => ipcRenderer.invoke('navigate-main-window', route),
-    onNavigateToRoute: (callback: (route: string) => void) =>
-        ipcRenderer.on('navigate-to-route', (_event, route) => callback(route)),
 
     // Workspace management
     getWorkspaces: () => ipcRenderer.invoke('workspace:list'),

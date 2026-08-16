@@ -172,133 +172,67 @@ export const useDatasets = () => {
     const isLoading = ref(false);
     const error = ref<string | null>(null);
 
-    // --- Datasets ---
+    const captureError = async <R>(failureMessage: string, run: () => Promise<R>): Promise<R> => {
+        try {
+            return await run();
+        } catch (err: any) {
+            error.value = err.response?.data?.message || failureMessage;
+            throw err;
+        }
+    };
 
-    const getAllDatasets = async (projectId?: number): Promise<Dataset[]> => {
+    const withLoading = async <R>(failureMessage: string, run: () => Promise<R>): Promise<R> => {
         isLoading.value = true;
         error.value = null;
         try {
+            return await captureError(failureMessage, run);
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    // --- Datasets ---
+
+    const getAllDatasets = (projectId?: number): Promise<Dataset[]> =>
+        withLoading('Failed to load datasets', async () => {
             const params = projectId ? { projectId } : {};
             const response = await apiClient.get('/datasets', { params });
             return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to load datasets';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
-    const getDataset = async (id: number): Promise<Dataset> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.get(`/datasets/${id}`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to load dataset';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const getDataset = (id: number): Promise<Dataset> =>
+        withLoading('Failed to load dataset', async () => (await apiClient.get(`/datasets/${id}`)).data);
 
-    const createDataset = async (data: { name: string; description?: string; projectId?: number; schema: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: Record<string, any> }): Promise<Dataset> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post('/datasets', data);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to create dataset';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const createDataset = (data: { name: string; description?: string; projectId?: number; schema: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: Record<string, any> }): Promise<Dataset> =>
+        withLoading('Failed to create dataset', async () => (await apiClient.post('/datasets', data)).data);
 
-    const updateDataset = async (id: number, data: { name?: string; description?: string; projectId?: number; schema?: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: Record<string, any> }): Promise<Dataset> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.patch(`/datasets/${id}`, data);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to update dataset';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const updateDataset = (id: number, data: { name?: string; description?: string; projectId?: number; schema?: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: Record<string, any> }): Promise<Dataset> =>
+        withLoading('Failed to update dataset', async () => (await apiClient.patch(`/datasets/${id}`, data)).data);
 
     const deleteDataset = async (id: number): Promise<void> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            await apiClient.delete(`/datasets/${id}`);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to delete dataset';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
+        await withLoading('Failed to delete dataset', () => apiClient.delete(`/datasets/${id}`));
     };
 
-    const requestStats = async (datasetId: number, operation: string = 'summary', params: Record<string, any> = {}): Promise<{ jobId: number; message: string }> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post(`/datasets/${datasetId}/stats`, { operation, params });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to request stats';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const requestStats = (datasetId: number, operation: string = 'summary', params: Record<string, any> = {}): Promise<{ jobId: number; message: string }> =>
+        withLoading('Failed to request stats', async () => (await apiClient.post(`/datasets/${datasetId}/stats`, { operation, params })).data);
 
     const getStatsResult = async (datasetId: number, jobId: number): Promise<{ status: string; result: StatsResult | null }> => {
         error.value = null;
-        try {
-            const response = await apiClient.get(`/datasets/${datasetId}/stats/${jobId}`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to get stats result';
-            throw err;
-        }
+        return captureError('Failed to get stats result', async () => (await apiClient.get(`/datasets/${datasetId}/stats/${jobId}`)).data);
     };
 
-    const extractAll = async (datasetId: number): Promise<{ rowsQueued: number }> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post(`/datasets/${datasetId}/extract`, {});
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to start extraction';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const extractAll = (datasetId: number): Promise<{ rowsQueued: number }> =>
+        withLoading('Failed to start extraction', async () => (await apiClient.post(`/datasets/${datasetId}/extract`, {})).data);
 
-    const reExtractRow = async (
+    const reExtractRow = (
         datasetId: number,
         recordId: number,
         columnsToExtract?: string[],
-    ): Promise<{ jobId: number | null }> => {
-        try {
-            const response = await apiClient.post(
-                `/datasets/${datasetId}/records/${recordId}/re-extract`,
-                { columnsToExtract },
-            );
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to re-extract row';
-            throw err;
-        }
-    };
+    ): Promise<{ jobId: number | null }> =>
+        captureError('Failed to re-extract row', async () => (await apiClient.post(
+            `/datasets/${datasetId}/records/${recordId}/re-extract`,
+            { columnsToExtract },
+        )).data);
 
     const proposeColumns = async (
         resourceIds: number[],
@@ -315,53 +249,24 @@ export const useDatasets = () => {
         return response.data;
     };
 
-    const reExtractCell = async (
+    const reExtractCell = (
         datasetId: number,
         recordId: number,
         fieldKey: string,
         force = false,
-    ): Promise<{ jobId: number | null } | { requiresConfirmation: true; reason: string }> => {
-        try {
-            const response = await apiClient.post(
-                `/datasets/${datasetId}/records/${recordId}/cells/${encodeURIComponent(fieldKey)}/re-extract`,
-                { force },
-            );
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to re-extract cell';
-            throw err;
-        }
-    };
+    ): Promise<{ jobId: number | null } | { requiresConfirmation: true; reason: string }> =>
+        captureError('Failed to re-extract cell', async () => (await apiClient.post(
+            `/datasets/${datasetId}/records/${recordId}/cells/${encodeURIComponent(fieldKey)}/re-extract`,
+            { force },
+        )).data);
 
-    const analyzeSchemaChange = async (id: number, schema: DatasetField[]): Promise<SchemaAnalysis> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post(`/datasets/${id}/analyze-schema`, { schema });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to analyze schema changes';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const analyzeSchemaChange = (id: number, schema: DatasetField[]): Promise<SchemaAnalysis> =>
+        withLoading('Failed to analyze schema changes', async () => (await apiClient.post(`/datasets/${id}/analyze-schema`, { schema })).data);
 
     // --- Records ---
 
-    const getRecords = async (datasetId: number, params: Record<string, any> = {}): Promise<{ records: DatasetRecord[]; total: number }> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.get(`/datasets/${datasetId}/records`, { params });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to load records';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const getRecords = (datasetId: number, params: Record<string, any> = {}): Promise<{ records: DatasetRecord[]; total: number }> =>
+        withLoading('Failed to load records', async () => (await apiClient.get(`/datasets/${datasetId}/records`, { params })).data);
 
     const resolveLinks = async (datasetId: number, values: (string | number)[], lookupField?: string): Promise<Record<string, any>> => {
         if (!values.length) return {};
@@ -373,103 +278,43 @@ export const useDatasets = () => {
         }
     };
 
-    const createRecord = async (datasetId: number, data: Record<string, any>): Promise<DatasetRecord> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post(`/datasets/${datasetId}/records`, { data });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to create record';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const createRecord = (datasetId: number, data: Record<string, any>): Promise<DatasetRecord> =>
+        withLoading('Failed to create record', async () => (await apiClient.post(`/datasets/${datasetId}/records`, { data })).data);
 
-    const updateRecord = async (datasetId: number, recordId: number, data: Record<string, any>): Promise<DatasetRecord> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.patch(`/datasets/${datasetId}/records/${recordId}`, { data });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to update record';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const updateRecord = (datasetId: number, recordId: number, data: Record<string, any>): Promise<DatasetRecord> =>
+        withLoading('Failed to update record', async () => (await apiClient.patch(`/datasets/${datasetId}/records/${recordId}`, { data })).data);
 
     const deleteRecord = async (datasetId: number, recordId: number): Promise<void> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            await apiClient.delete(`/datasets/${datasetId}/records/${recordId}`);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to delete record';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
+        await withLoading('Failed to delete record', () => apiClient.delete(`/datasets/${datasetId}/records/${recordId}`));
     };
 
-    const getLinkedRecords = async (datasetId: number, recordId: number): Promise<RecordLink[]> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.get(`/datasets/${datasetId}/records/${recordId}/links`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to load linked records';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const getLinkedRecords = (datasetId: number, recordId: number): Promise<RecordLink[]> =>
+        withLoading('Failed to load linked records', async () => (await apiClient.get(`/datasets/${datasetId}/records/${recordId}/links`)).data);
 
     // --- Aggregation ---
 
-    const aggregate = async (datasetId: number, field: string, fn: string, groupBy?: string): Promise<AggregateResult[]> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
+    const aggregate = (datasetId: number, field: string, fn: string, groupBy?: string): Promise<AggregateResult[]> =>
+        withLoading('Failed to aggregate data', async () => {
             const params: Record<string, string> = { field, fn };
             if (groupBy) params.groupBy = groupBy;
             const response = await apiClient.get(`/datasets/${datasetId}/aggregate`, { params });
             return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to aggregate data';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
     // --- CSV Import ---
 
-    const uploadCsvPreview = async (datasetId: number, file: File): Promise<CsvPreview> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
+    const uploadCsvPreview = (datasetId: number, file: File): Promise<CsvPreview> =>
+        withLoading('Failed to parse CSV', async () => {
             const formData = new FormData();
             formData.append('file', file);
             const response = await apiClient.post(`/datasets/${datasetId}/import`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to parse CSV';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
-    const confirmCsvImport = async (datasetId: number, file: File, mappings: { csvColumn: string; fieldKey: string }[], skipFirstRow: boolean = true): Promise<ImportResult> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
+    const confirmCsvImport = (datasetId: number, file: File, mappings: { csvColumn: string; fieldKey: string }[], skipFirstRow: boolean = true): Promise<ImportResult> =>
+        withLoading('Failed to import CSV', async () => {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('mappings', JSON.stringify(mappings));
@@ -478,18 +323,10 @@ export const useDatasets = () => {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to import CSV';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
-    const importFromFile = async (file: File, name?: string, projectId?: number): Promise<ImportFromFileResult> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
+    const importFromFile = (file: File, name?: string, projectId?: number): Promise<ImportFromFileResult> =>
+        withLoading('Failed to import file', async () => {
             const formData = new FormData();
             formData.append('file', file);
             if (name) formData.append('name', name);
@@ -498,34 +335,17 @@ export const useDatasets = () => {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to import file';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
-    const createFromTable = async (data: {
+    const createFromTable = (data: {
         name: string; headers: string[]; rows: string[][]; projectId?: number;
-    }): Promise<ImportFromFileResult> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post('/datasets/from-table', data);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to create dataset from table';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    }): Promise<ImportFromFileResult> =>
+        withLoading('Failed to create dataset from table', async () => (await apiClient.post('/datasets/from-table', data)).data);
 
     // --- Export CSV ---
 
-    const exportDatasetCsv = async (id: number, includeAnchors = false): Promise<void> => {
-        try {
+    const exportDatasetCsv = (id: number, includeAnchors = false): Promise<void> =>
+        captureError('Failed to export CSV', async () => {
             const params = includeAnchors ? { include_anchors: 'true' } : {};
             const response = await apiClient.get(`/datasets/${id}/export`, { params, responseType: 'blob' });
             const disposition = response.headers['content-disposition'] || '';
@@ -537,137 +357,45 @@ export const useDatasets = () => {
             a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to export CSV';
-            throw err;
-        }
-    };
+        });
 
     // --- Bulk Delete ---
 
-    const bulkDeleteRecords = async (datasetId: number, recordIds: number[]): Promise<{ deleted: number }> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.delete(`/datasets/${datasetId}/records/bulk`, { data: { recordIds } });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to delete records';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const bulkDeleteRecords = (datasetId: number, recordIds: number[]): Promise<{ deleted: number }> =>
+        withLoading('Failed to delete records', async () => (await apiClient.delete(`/datasets/${datasetId}/records/bulk`, { data: { recordIds } })).data);
 
     // --- Saved Charts ---
 
-    const getSavedCharts = async (datasetId: number): Promise<DatasetChart[]> => {
-        try {
-            const response = await apiClient.get(`/datasets/${datasetId}/charts`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to load charts';
-            throw err;
-        }
-    };
+    const getSavedCharts = (datasetId: number): Promise<DatasetChart[]> =>
+        captureError('Failed to load charts', async () => (await apiClient.get(`/datasets/${datasetId}/charts`)).data);
 
-    const saveChart = async (datasetId: number, name: string, config: Record<string, any>): Promise<DatasetChart> => {
-        try {
-            const response = await apiClient.post(`/datasets/${datasetId}/charts`, { name, config });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to save chart';
-            throw err;
-        }
-    };
+    const saveChart = (datasetId: number, name: string, config: Record<string, any>): Promise<DatasetChart> =>
+        captureError('Failed to save chart', async () => (await apiClient.post(`/datasets/${datasetId}/charts`, { name, config })).data);
 
-    const updateSavedChart = async (chartId: number, data: { name?: string; config?: Record<string, any> }): Promise<DatasetChart> => {
-        try {
-            const response = await apiClient.patch(`/datasets/charts/${chartId}`, data);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to update chart';
-            throw err;
-        }
-    };
+    const updateSavedChart = (chartId: number, data: { name?: string; config?: Record<string, any> }): Promise<DatasetChart> =>
+        captureError('Failed to update chart', async () => (await apiClient.patch(`/datasets/charts/${chartId}`, data)).data);
 
     const deleteSavedChart = async (chartId: number): Promise<void> => {
-        try {
-            await apiClient.delete(`/datasets/charts/${chartId}`);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to delete chart';
-            throw err;
-        }
+        await captureError('Failed to delete chart', () => apiClient.delete(`/datasets/charts/${chartId}`));
     };
 
     // --- Relations ---
 
-    const getRelations = async (datasetId: number): Promise<DatasetRelation[]> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.get(`/datasets/${datasetId}/relations`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to load relations';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const getRelations = (datasetId: number): Promise<DatasetRelation[]> =>
+        withLoading('Failed to load relations', async () => (await apiClient.get(`/datasets/${datasetId}/relations`)).data);
 
-    const createRelation = async (data: { sourceDatasetId: number; targetDatasetId: number; relationType: string; name?: string }): Promise<DatasetRelation> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post('/datasets/relations', data);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to create relation';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const createRelation = (data: { sourceDatasetId: number; targetDatasetId: number; relationType: string; name?: string }): Promise<DatasetRelation> =>
+        withLoading('Failed to create relation', async () => (await apiClient.post('/datasets/relations', data)).data);
 
     const deleteRelation = async (relationId: number): Promise<void> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            await apiClient.delete(`/datasets/relations/${relationId}`);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to delete relation';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
+        await withLoading('Failed to delete relation', () => apiClient.delete(`/datasets/relations/${relationId}`));
     };
 
-    const linkRecords = async (relationId: number, sourceRecordId: number, targetRecordId: number): Promise<any> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post(`/datasets/relations/${relationId}/links`, { sourceRecordId, targetRecordId });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to link records';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const linkRecords = (relationId: number, sourceRecordId: number, targetRecordId: number): Promise<any> =>
+        withLoading('Failed to link records', async () => (await apiClient.post(`/datasets/relations/${relationId}/links`, { sourceRecordId, targetRecordId })).data);
 
     const unlinkRecords = async (relationId: number, linkId: number): Promise<void> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            await apiClient.delete(`/datasets/relations/${relationId}/links/${linkId}`);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to unlink records';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
+        await withLoading('Failed to unlink records', () => apiClient.delete(`/datasets/relations/${relationId}/links/${linkId}`));
     };
 
     return {

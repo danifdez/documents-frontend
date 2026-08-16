@@ -587,6 +587,8 @@ import DatesList from '../components/resources/DatesList.vue';
 import DatesTimeline from '../components/resources/DatesTimeline.vue';
 import PromoteDateToTimelineModal from '../components/resources/PromoteDateToTimelineModal.vue';
 import { useResourceDates } from '../services/resources/useResourceDates';
+import { useModelJobs } from '../services/model/useModelJobs';
+import { useElectronApi } from '../composables/useElectronApi';
 import type { ResourceDate } from '../types/ResourceDate';
 import Button from '../components/ui/Button.vue';
 import ButtonGroup from '../components/ui/ButtonGroup.vue';
@@ -608,6 +610,7 @@ const resource = ref<Record<string, any>>({});
 const projectStore = useProjectStore();
 const featureStore = useFeatureStore();
 const notification = useNotification();
+const { getLanguage } = useElectronApi();
 const rawHtmlContent = ref<string>('');
 const displayMode = ref<'extracted' | 'raw' | 'translated' | 'overview' | 'workspace' | 'relationships'>('extracted');
 const splitViewActive = ref(false);
@@ -1422,11 +1425,7 @@ const saveResourceName = async () => {
 onMounted(async () => {
     loadResourceDetails();
     loadWorkspaceDocument();
-    // Load default language from settings
-    if (window.electronAPI && window.electronAPI.getSettings) {
-        const settings = await window.electronAPI.getSettings();
-        defaultLanguage.value = settings?.language || 'en';
-    }
+    defaultLanguage.value = await getLanguage();
 });
 
 const { showSearch } = useGlobalKeyboard();
@@ -1439,80 +1438,44 @@ function handleSendMessage(msg: string) {
     }
 }
 
-// Helper to get language from settings (async)
-const getLanguageSetting = async (): Promise<string> => {
-    if (window.electronAPI && window.electronAPI.getSettings) {
-        const settings = await window.electronAPI.getSettings();
-        return settings?.language || 'en';
-    }
-    return 'en';
-};
+const {
+    summarizeResource,
+    translateResource,
+    extractKeyPoints,
+    extractKeywords,
+    extractEntities,
+    summarizeSelection,
+} = useModelJobs();
 
-const handleSummarizeJob = async () => {
+const runModelJob = async (
+    label: string,
+    createJob: () => Promise<void>,
+    afterSuccess?: () => Promise<void>,
+) => {
     try {
-        const language = await getLanguageSetting();
-        await apiClient.post('/model/summarize', {
-            targetLanguage: language,
-            resourceId: Number(resourceId.value),
-        });
-        notification.success('Summarization job created successfully');
+        await createJob();
+        notification.success(`${label} job created successfully`);
+        await afterSuccess?.();
     } catch (error) {
-        notification.error('Failed to create summarization job');
-    }
-};
-
-
-
-const handleTranslate = async () => {
-    try {
-        const language = await getLanguageSetting();
-        await apiClient.post('/model/translate', {
-            resourceId: Number(resourceId.value),
-            targetLanguage: language,
-        });
-        notification.success('Translation job created successfully');
-    } catch (error) {
-        notification.error('Failed to create translation job');
-    }
-}
-
-const handleKeyPointsJob = async () => {
-    try {
-        const language = await getLanguageSetting();
-        await apiClient.post('/model/key-points', {
-            resourceId: Number(resourceId.value),
-            targetLanguage: language,
-        });
-        notification.success('Key points job created successfully');
-    } catch (error) {
-        notification.error('Failed to create key points job');
+        notification.error(`Failed to create ${label.toLowerCase()} job`);
     }
 };
 
-const handleKeywordsJob = async () => {
-    try {
-        const language = await getLanguageSetting();
-        await apiClient.post('/model/keywords', {
-            resourceId: Number(resourceId.value),
-            targetLanguage: language,
-        });
-        notification.success('Keywords job created successfully');
-        // Optionally reload resource details to pick up new keywords when available
-        await loadResourceDetails();
-    } catch (error) {
-        notification.error('Failed to create keywords job');
-    }
-};
+const handleSummarizeJob = async () =>
+    runModelJob('Summarization', () => summarizeResource(Number(resourceId.value)));
+
+const handleTranslate = async () =>
+    runModelJob('Translation', () => translateResource(Number(resourceId.value)));
+
+const handleKeyPointsJob = async () =>
+    runModelJob('Key points', () => extractKeyPoints(Number(resourceId.value)));
+
+const handleKeywordsJob = async () =>
+    runModelJob('Keywords', () => extractKeywords(Number(resourceId.value)), loadResourceDetails);
 
 const handleExtractEntities = async () => {
     if (!resourceId.value) return;
-    try {
-        await apiClient.post('/model/extract-entities', { resourceId: Number(resourceId.value) });
-        notification.success('Entity extraction job created successfully');
-        await loadResourceDetails();
-    } catch (error) {
-        notification.error('Failed to create entity extraction job');
-    }
+    await runModelJob('Entity extraction', () => extractEntities(Number(resourceId.value)), loadResourceDetails);
 };
 
 const handleEntityRemoved = (entityId: number) => {
@@ -1570,7 +1533,7 @@ const handleEntityHighlight = async (entity: Record<string, any>) => {
     // For translated content: prioritize target language name
     let primaryForTranslated = entity.name;
     try {
-        const targetLang = await getLanguageSetting();
+        const targetLang = await getLanguage();
         if (translations[targetLang]) {
             primaryForTranslated = translations[targetLang];
         }
@@ -1830,12 +1793,11 @@ const handleSummarizeSelection = async (text: string) => {
         }
 
         // Create a summarize job including the selected text and target document id
-        await apiClient.post('/model/summarize', {
+        await summarizeSelection({
             text: text.trim(),
             sourceLanguage: resource.value.language || defaultLanguage.value,
-            targetLanguage: await getLanguageSetting(),
+            targetLanguage: await getLanguage(),
             targetDocId: workspaceDocument.value.id,
-            type: 'workspace-selection',
         });
 
         notification.success('Summarization job created for selected text');

@@ -10,7 +10,6 @@ export { CanvasPage } from './CanvasPage';
 export { TimelinePage } from './TimelinePage';
 export { EntitiesPage } from './EntitiesPage';
 export { KnowledgeBasePage, KnowledgeEntryPage } from './KnowledgeBasePage';
-export { BrowserPage } from './BrowserPage';
 export { TaskPanel } from './TaskPanel';
 export { SettingsPage } from './SettingsPage';
 export { DatasetsPage, DatasetPage } from './DatasetsPage';

@@ -34,11 +34,6 @@
 
         <!-- Quick access to global sections -->
         <div class="mt-4 flex flex-wrap gap-4">
-          <QuickTile label="Browser" title="Browse and capture web content" @click="openBrowser">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-            </svg>
-          </QuickTile>
           <QuickTile v-if="featureStore.isEnabled('relationships')" label="Relationships" to="/relationships"
             title="Manage entities and explore their relationships">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -178,10 +173,6 @@ import { useFeatureStore } from '../store/featureStore';
 import EventModal from '../components/calendar/EventModal.vue';
 
 const featureStore = useFeatureStore();
-
-const openBrowser = async () => {
-  await window.electronAPI.openExternalBrowser();
-};
 
 const projectsComponent = ref(null);
 const showProjectModal = ref(false);

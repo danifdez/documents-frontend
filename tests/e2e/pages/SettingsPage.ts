@@ -7,14 +7,10 @@ export class SettingsPage extends BasePage {
   // Sections
   get editorAppearanceSection() { return this.page.locator('h2:has-text("Editor Appearance")'); }
   get themeSection() { return this.page.locator('h2:has-text("Theme")'); }
-  get browserSection() { return this.page.locator('h2:has-text("Browser")'); }
   get languageSection() { return this.page.locator('h2:has-text("Language")'); }
 
   // Theme buttons
   themeButton(label: string) { return this.page.locator(`button:has-text("${label}")`); }
-
-  // Browser default URL
-  get defaultBrowserUrlInput() { return this.page.getByPlaceholder('https://example.com'); }
 
   async goto() {
     await this.navigateTo('/settings');
@@ -28,7 +24,6 @@ export class SettingsPage extends BasePage {
   async expectAllSections() {
     await expect(this.editorAppearanceSection).toBeVisible();
     await expect(this.themeSection).toBeVisible();
-    await expect(this.browserSection).toBeVisible();
     await expect(this.languageSection).toBeVisible();
   }
 }

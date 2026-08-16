@@ -20,14 +20,6 @@
 
         <!-- Navigation -->
         <nav class="flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto">
-            <NavItem label="Browser" @click="openBrowser">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="1.75">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-            </NavItem>
-
             <NavItem v-if="featureStore.isEnabled('relationships')" label="Relationships" to="/relationships">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="1.75">
@@ -164,9 +156,5 @@ const currentUser = computed(() => authStore.user);
 const handleLogout = () => {
     authStore.logout();
     router.push('/login');
-};
-
-const openBrowser = async () => {
-    await window.electronAPI.openExternalBrowser(projectStore.currentProject?.id);
 };
 </script>
