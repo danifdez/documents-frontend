@@ -186,6 +186,10 @@
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { Chart, registerables } from 'chart.js';
 import type { DatasetField } from '../../services/datasets/useDatasets';
+import {
+    formatDatasetValue,
+    formatDatasetLabel as formatLabel,
+} from '../../services/datasets/datasetFormatter';
 import HelpTip from '../ui/HelpTip.vue';
 
 Chart.register(...registerables);
@@ -280,18 +284,7 @@ watch(viewTab, (tab) => {
 
 onUnmounted(() => { if (chartInstance) chartInstance.destroy(); });
 
-const formatValue = (val: string | number | null | undefined): string => {
-    if (val === null || val === undefined) return '—';
-    if (typeof val === 'number') {
-        if (Number.isInteger(val)) return val.toLocaleString();
-        return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
-    }
-    return String(val);
-};
-
-const formatLabel = (key: string): string => {
-    return key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
-};
+const formatValue = (val: unknown): string => formatDatasetValue(val, 2);
 
 const exportCsv = () => {
     if (!props.result?.tableData) return;
