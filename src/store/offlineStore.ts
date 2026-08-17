@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import apiClient from '../services/api';
+import { getActiveWorkspaceId } from '../services/workspaceScope';
 import {
   putOfflineItem,
   putOfflineFile,
@@ -49,12 +50,8 @@ export const useOfflineStore = defineStore('offline', () => {
   let recoveryTimer: ReturnType<typeof setTimeout> | null = null;
   let recoveryAttempt = 0;
 
-  function getWsId(): string {
-    return localStorage.getItem('activeWorkspaceId') || 'default';
-  }
-
   async function persistManifest() {
-    const wsId = getWsId();
+    const wsId = getActiveWorkspaceId();
     await updateManifest(wsId, [...offlineItemKeys.value], lastSyncTimestamp.value);
   }
 
@@ -122,7 +119,7 @@ export const useOfflineStore = defineStore('offline', () => {
   }
 
   async function loadOfflineState() {
-    const wsId = getWsId();
+    const wsId = getActiveWorkspaceId();
     const manifest = await getManifest(wsId);
     offlineItemKeys.value = new Set(manifest.keys);
     lastSyncTimestamp.value = manifest.lastSync;
@@ -135,7 +132,7 @@ export const useOfflineStore = defineStore('offline', () => {
   }
 
   async function makeAvailableOffline(type: 'resource' | 'thread' | 'project', id: number) {
-    const wsId = getWsId();
+    const wsId = getActiveWorkspaceId();
     const { data: bundle } = await apiClient.get(`/offline/bundle/${type}/${id}`);
     const now = new Date().toISOString();
 
@@ -197,7 +194,7 @@ export const useOfflineStore = defineStore('offline', () => {
   }
 
   async function removeOffline(type: string, id: number) {
-    const wsId = getWsId();
+    const wsId = getActiveWorkspaceId();
 
     // Find and remove all child items that were saved with this parent
     const allItems = await getAllOfflineItemsByWorkspace(wsId);
@@ -224,7 +221,7 @@ export const useOfflineStore = defineStore('offline', () => {
     entityType: string, entityId: number,
     method: 'PATCH' | 'POST' | 'DELETE', payload: Record<string, any>,
   ) {
-    const wsId = getWsId();
+    const wsId = getActiveWorkspaceId();
     await dbAddPendingChange(wsId, entityType, entityId, method, payload);
     pendingChangeCount.value++;
 
@@ -241,7 +238,7 @@ export const useOfflineStore = defineStore('offline', () => {
   async function syncOnReconnect() {
     if (isSyncing.value) return;
     isSyncing.value = true;
-    const wsId = getWsId();
+    const wsId = getActiveWorkspaceId();
 
     try {
       // Push local changes

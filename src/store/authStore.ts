@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import apiClient from '../services/api';
+import { workspaceKey as tokenKey } from '../services/workspaceScope';
 
 export interface AuthUser {
   id: number;
@@ -9,11 +10,6 @@ export interface AuthUser {
   avatarPath: string | null;
   permissions: Record<string, boolean>;
   groupId: number | null;
-}
-
-function tokenKey(key: string): string {
-  const wsId = localStorage.getItem('activeWorkspaceId') || 'default';
-  return `${key}_${wsId}`;
 }
 
 export const useAuthStore = defineStore('auth', () => {

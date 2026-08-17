@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { workspaceKey } from './workspaceScope';
 
 const apiClient = axios.create({
     headers: {
@@ -14,14 +15,9 @@ export function setApiBaseUrl(url: string) {
     apiClient.defaults.baseURL = url;
 }
 
-function getWorkspaceTokenKey(key: string): string {
-    const wsId = localStorage.getItem('activeWorkspaceId') || 'default';
-    return `${key}_${wsId}`;
-}
-
 // Request interceptor: attach auth token
 apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem(getWorkspaceTokenKey('accessToken'));
+    const token = localStorage.getItem(workspaceKey('accessToken'));
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -72,26 +68,26 @@ apiClient.interceptors.response.use(
         originalRequest._retry = true;
         isRefreshing = true;
 
-        const refreshToken = localStorage.getItem(getWorkspaceTokenKey('refreshToken'));
+        const refreshToken = localStorage.getItem(workspaceKey('refreshToken'));
         if (!refreshToken) {
             isRefreshing = false;
-            localStorage.removeItem(getWorkspaceTokenKey('accessToken'));
-            localStorage.removeItem(getWorkspaceTokenKey('refreshToken'));
+            localStorage.removeItem(workspaceKey('accessToken'));
+            localStorage.removeItem(workspaceKey('refreshToken'));
             window.location.hash = '#/login';
             return Promise.reject(error);
         }
 
         try {
             const { data } = await apiClient.post('/auth/refresh', { refreshToken });
-            localStorage.setItem(getWorkspaceTokenKey('accessToken'), data.accessToken);
-            localStorage.setItem(getWorkspaceTokenKey('refreshToken'), data.refreshToken);
+            localStorage.setItem(workspaceKey('accessToken'), data.accessToken);
+            localStorage.setItem(workspaceKey('refreshToken'), data.refreshToken);
             processQueue(null, data.accessToken);
             originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
             return apiClient(originalRequest);
         } catch (refreshError) {
             processQueue(refreshError, null);
-            localStorage.removeItem(getWorkspaceTokenKey('accessToken'));
-            localStorage.removeItem(getWorkspaceTokenKey('refreshToken'));
+            localStorage.removeItem(workspaceKey('accessToken'));
+            localStorage.removeItem(workspaceKey('refreshToken'));
             window.location.hash = '#/login';
             return Promise.reject(refreshError);
         } finally {

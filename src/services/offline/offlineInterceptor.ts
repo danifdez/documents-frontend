@@ -1,10 +1,7 @@
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getOfflineItem, getAllOfflineItemsByWorkspace } from './offlineDb';
 import { getUrlCache, setUrlCache } from './urlCache';
-
-function getWsId(): string {
-  return localStorage.getItem('activeWorkspaceId') || 'default';
-}
+import { getActiveWorkspaceId, workspaceKey } from '../workspaceScope';
 
 // ── Server reachability state ──
 // Tracks whether the backend is reachable. Once a request fails,
@@ -87,14 +84,14 @@ function matchListUrl(url: string): { type: string; parentId?: number } | null {
 // ── Cache resolution ──
 
 async function resolveFromCache(url: string): Promise<any | undefined> {
-  const wsId = getWsId();
+  const wsId = getActiveWorkspaceId();
 
   // List endpoints
   const listMatch = matchListUrl(url);
   if (listMatch) {
     if (listMatch.type === '__empty__') return [];
     if (listMatch.type === '__auth_status__') {
-      const cachedAuth = localStorage.getItem(`authRequired_${wsId}`);
+      const cachedAuth = localStorage.getItem(workspaceKey('authRequired'));
       return { authEnabled: cachedAuth === 'true', offlineEnabled: true };
     }
 
@@ -191,7 +188,7 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
         const isBinary = response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer';
         if (url && !isBinary && !url.startsWith('/auth/refresh')) {
           try {
-            setUrlCache(getWsId(), 'get', url, response.data);
+            setUrlCache(getActiveWorkspaceId(), 'get', url, response.data);
           } catch { /* ignore caching failures */ }
         }
       }

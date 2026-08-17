@@ -1,10 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { VoiceCancelledError, type VoiceDriver, type VoiceEngine, type VoicePartial, type VoiceQueuedInfo } from '../../types/voice';
-
-function getAuthToken(): string | null {
-  const wsId = localStorage.getItem('activeWorkspaceId') || 'default';
-  return localStorage.getItem(`accessToken_${wsId}`);
-}
+import { getAccessToken } from '../workspaceScope';
 
 function getNamespaceUrl(): string {
   const base = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || 'http://localhost:3000';
@@ -39,7 +35,7 @@ export class BackendWhisperDriver implements VoiceDriver {
       // would leave the socket in a disconnected state without firing
       // `connect_error`.
       const socket = io(getNamespaceUrl(), {
-        auth: { token: getAuthToken() },
+        auth: { token: getAccessToken() },
         autoConnect: false,
         forceNew: true,
         reconnection: false,

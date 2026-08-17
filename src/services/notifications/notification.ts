@@ -1,11 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { ref, readonly } from 'vue';
 import { setServerReachable } from '../offline/offlineInterceptor';
-
-function getAuthToken(): string | null {
-    const wsId = localStorage.getItem('activeWorkspaceId') || 'default';
-    return localStorage.getItem(`accessToken_${wsId}`);
-}
+import { getAccessToken } from '../workspaceScope';
 
 const isConnected = ref(false);
 let connectErrorLogged = false;
@@ -40,7 +36,7 @@ let socket: Socket | null = null;
 function getOrCreateSocket(url?: string): Socket {
     if (socket) return socket;
     socket = io(url || import.meta.env.VITE_API_URL || 'http://localhost:3000', {
-        auth: { token: getAuthToken() },
+        auth: { token: getAccessToken() },
         autoConnect: false,
         ...SOCKET_OPTIONS,
     });
@@ -51,7 +47,7 @@ function getOrCreateSocket(url?: string): Socket {
 export function connectSocket(url?: string) {
     const s = getOrCreateSocket(url);
     if (!s.connected) {
-        s.auth = { token: getAuthToken() };
+        s.auth = { token: getAccessToken() };
         s.connect();
     }
 }
@@ -62,7 +58,7 @@ export function reconnectSocket(url?: string) {
         socket = null;
     }
     socket = io(url || import.meta.env.VITE_API_URL || 'http://localhost:3000', {
-        auth: { token: getAuthToken() },
+        auth: { token: getAccessToken() },
         ...SOCKET_OPTIONS,
     });
     bindConnectionEvents(socket);
