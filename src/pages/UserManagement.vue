@@ -208,8 +208,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue';
-import apiClient from '../services/api';
 import FormField from '../components/ui/FormField.vue';
+import { useUsers, type User, type UserPayload } from '../services/users/useUsers';
+import { usePermissionGroups, type PermissionGroup } from '../services/permission-groups/usePermissionGroups';
+
+const { fetchUsers, createUser, updateUser, deleteUser } = useUsers();
+const { fetchGroups, createGroup, updateGroup, deleteGroup } = usePermissionGroups();
 
 const allPermissions = [
   // AI features
@@ -223,22 +227,6 @@ const allPermissions = [
   // Administration
   'user-management',
 ];
-
-interface User {
-  id: number;
-  username: string;
-  displayName: string | null;
-  permissions: Record<string, boolean>;
-  groupId: number | null;
-  active: boolean;
-}
-
-interface PermissionGroup {
-  id: number;
-  name: string;
-  description: string | null;
-  permissions: Record<string, boolean>;
-}
 
 const activeTab = ref<'users' | 'groups'>('users');
 
@@ -331,8 +319,7 @@ function editUser(u: User) {
 async function loadUsers() {
   isLoading.value = true;
   try {
-    const { data } = await apiClient.get('/users');
-    users.value = data;
+    users.value = await fetchUsers();
   } catch (err: any) {
     console.error('Failed to load users:', err);
   } finally {
@@ -345,7 +332,7 @@ async function submitForm() {
   formError.value = '';
 
   try {
-    const payload: Record<string, any> = {
+    const payload: UserPayload = {
       displayName: form.displayName,
       groupId: form.groupId,
     };
@@ -355,11 +342,11 @@ async function submitForm() {
     if (form.password) payload.password = form.password;
 
     if (editingUser.value) {
-      await apiClient.patch(`/users/${editingUser.value.id}`, payload);
+      await updateUser(editingUser.value.id, payload);
     } else {
       payload.username = form.username;
       payload.password = form.password;
-      await apiClient.post('/users', payload);
+      await createUser(payload);
     }
     closeModal();
     await loadUsers();
@@ -371,12 +358,12 @@ async function submitForm() {
 }
 
 async function deactivateUser(id: number) {
-  await apiClient.delete(`/users/${id}`);
+  await deleteUser(id);
   await loadUsers();
 }
 
 async function activateUser(id: number) {
-  await apiClient.patch(`/users/${id}`, { active: true });
+  await updateUser(id, { active: true });
   await loadUsers();
 }
 
@@ -407,8 +394,7 @@ function editGroup(g: PermissionGroup) {
 async function loadGroups() {
   isLoadingGroups.value = true;
   try {
-    const { data } = await apiClient.get('/groups');
-    groups.value = data;
+    groups.value = await fetchGroups();
   } catch (err: any) {
     console.error('Failed to load groups:', err);
   } finally {
@@ -421,18 +407,15 @@ async function submitGroupForm() {
   groupFormError.value = '';
 
   try {
+    const payload = {
+      name: groupForm.name,
+      description: groupForm.description,
+      permissions: groupForm.permissions,
+    };
     if (editingGroup.value) {
-      await apiClient.patch(`/groups/${editingGroup.value.id}`, {
-        name: groupForm.name,
-        description: groupForm.description,
-        permissions: groupForm.permissions,
-      });
+      await updateGroup(editingGroup.value.id, payload);
     } else {
-      await apiClient.post('/groups', {
-        name: groupForm.name,
-        description: groupForm.description,
-        permissions: groupForm.permissions,
-      });
+      await createGroup(payload);
     }
     closeGroupModal();
     await Promise.all([loadGroups(), loadUsers()]);
@@ -444,7 +427,7 @@ async function submitGroupForm() {
 }
 
 async function removeGroup(id: number) {
-  await apiClient.delete(`/groups/${id}`);
+  await deleteGroup(id);
   await Promise.all([loadGroups(), loadUsers()]);
 }
 
