@@ -8,8 +8,8 @@ import Store from 'electron-store';
 import squirrelStartup from 'electron-squirrel-startup';
 import { registerOfflineHandlers } from './main-offline';
 import { standaloneManager } from './services/standalone/standalone-manager';
-import { checkInstalled, isStandaloneReady, downloadComponent, downloadAll, installModels, uninstallServices, uninstallModels, detectGpu, installProfile } from './services/standalone/download-manager';
-import { getHardwareReport, ALL_FEATURES } from './services/standalone/hardware';
+import { checkInstalled } from './services/standalone/download-manager';
+import { registerStandaloneHandlers, resolveStandaloneFeatures } from './main/standalone-handlers';
 
 const MIME_MAP: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -811,118 +811,7 @@ app.whenReady().then(() => {
   });
 
   // ── Local server (standalone) IPC handlers ──
-  ipcMain.handle('standalone:check-installed', () => {
-    return checkInstalled();
-  });
-
-  ipcMain.handle('standalone:is-ready', () => {
-    return isStandaloneReady();
-  });
-
-  ipcMain.handle('standalone:detect-gpu', () => {
-    return detectGpu();
-  });
-
-  ipcMain.handle('standalone:hardware-report', () => {
-    return getHardwareReport();
-  });
-
-  ipcMain.handle('standalone:download-all', async () => {
-    try {
-      await downloadAll((progress) => {
-        mainWindow?.webContents.send('standalone:download-progress', progress);
-      });
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('standalone:install-profile', async (_, profile: { key: string; components: string[]; features: string[] }) => {
-    try {
-      await installProfile(profile.components, (progress) => {
-        mainWindow?.webContents.send('standalone:download-progress', progress);
-      });
-      // Persist the install so the backend boots with the optional flags off.
-      store.set('standaloneProfile', { key: profile.key, features: profile.features });
-      return { success: true };
-    } catch (err: any) {
-      console.error('Profile install failed:', err);
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('standalone:download-component', async (_, component: string) => {
-    try {
-      await downloadComponent(component, (progress) => {
-        mainWindow?.webContents.send('standalone:download-progress', progress);
-      });
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('standalone:uninstall-services', async () => {
-    try {
-      await standaloneManager.stop();
-      await uninstallServices();
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('standalone:install-models', async (_, variant: string) => {
-    try {
-      await installModels(variant as 'models-cpu' | 'models-gpu', (progress) => {
-        mainWindow?.webContents.send('standalone:download-progress', progress);
-      });
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('standalone:uninstall-models', async () => {
-    try {
-      await uninstallModels();
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('standalone:start', async () => {
-    try {
-      // Boot the backend + ML worker with the saved feature map: optional
-      // features the install didn't enable are off; the base stays default-on.
-      const profile = store.get('standaloneProfile') as { features?: string[] } | undefined;
-      const enabled = profile?.features ?? (ALL_FEATURES as readonly string[]);
-      const features = Object.fromEntries(ALL_FEATURES.map((f) => [f, enabled.includes(f)]));
-      const url = await standaloneManager.start({ features });
-      return { success: true, url };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('standalone:stop', async () => {
-    try {
-      await standaloneManager.stop();
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('standalone:status', () => {
-    return standaloneManager.getStatus();
-  });
-
-  ipcMain.handle('standalone:get-url', () => {
-    return standaloneManager.getBackendUrl();
-  });
+  registerStandaloneHandlers({ store, getMainWindow: () => mainWindow });
 
   // Register offline filesystem handlers
   registerOfflineHandlers();
@@ -942,10 +831,7 @@ app.whenReady().then(() => {
     // The splash is just a loading screen, so kick off the local services here
     // instead of waiting for a user action. Features come from the profile the
     // wizard saved (omitted features are off; the rest stay default-on).
-    const profile = store.get('standaloneProfile') as { features?: string[] } | undefined;
-    const enabled = profile?.features ?? (ALL_FEATURES as readonly string[]);
-    const features = Object.fromEntries(ALL_FEATURES.map((f) => [f, enabled.includes(f)]));
-    standaloneManager.start({ features }).catch((err) => {
+    standaloneManager.start({ features: resolveStandaloneFeatures(store) }).catch((err) => {
       console.error('Standalone services failed to start:', err);
     });
 
