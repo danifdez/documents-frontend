@@ -106,12 +106,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import apiClient from '../services/api';
+import { useProfile } from '../services/auth/useProfile';
+import { useGroupLookup } from '../services/permission-groups/useGroupLookup';
 import FormField from '../components/ui/FormField.vue';
 import Avatar from '../components/ui/Avatar.vue';
 import { useAuthStore } from '../store/authStore';
 
 const authStore = useAuthStore();
+const { fetchMe, updateMe, uploadMyAvatar, removeMyAvatar } = useProfile();
+const { fetchGroup } = useGroupLookup();
 const user = computed(() => authStore.user);
 
 const activePermissions = computed(() => {
@@ -141,12 +144,7 @@ async function onFileSelected(e: Event) {
   avatarMessage.value = '';
 
   try {
-    const fd = new FormData();
-    fd.append('avatar', file);
-    const { data } = await apiClient.post('/auth/me/avatar', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    authStore.user = data;
+    authStore.user = await uploadMyAvatar(file);
     avatarVersion.value++;
     avatarMessage.value = 'Photo updated';
     avatarError.value = false;
@@ -164,7 +162,7 @@ async function removeAvatar() {
   avatarMessage.value = '';
 
   try {
-    await apiClient.delete('/auth/me/avatar');
+    await removeMyAvatar();
     if (authStore.user) authStore.user = { ...authStore.user, avatarPath: null };
     avatarVersion.value++;
     avatarMessage.value = 'Photo removed';
@@ -186,13 +184,13 @@ const passwordError = ref(false);
 
 async function loadProfile() {
   try {
-    const { data } = await apiClient.get('/auth/me');
+    const data = await fetchMe();
     authStore.user = data;
     displayName.value = data.displayName || '';
 
     if (data.groupId) {
       try {
-        const { data: group } = await apiClient.get(`/groups/${data.groupId}`);
+        const group = await fetchGroup(data.groupId);
         groupName.value = group.name;
       } catch {
         groupName.value = '-';
@@ -206,8 +204,7 @@ async function saveProfile() {
   profileMessage.value = '';
 
   try {
-    const { data } = await apiClient.patch('/auth/me', { displayName: displayName.value });
-    authStore.user = data;
+    authStore.user = await updateMe({ displayName: displayName.value });
     profileMessage.value = 'Profile updated';
     profileError.value = false;
   } catch (err: any) {
@@ -236,7 +233,7 @@ async function changePassword() {
   isSavingPassword.value = true;
 
   try {
-    await apiClient.patch('/auth/me', {
+    await updateMe({
       currentPassword: currentPassword.value,
       newPassword: newPassword.value,
     });

@@ -287,8 +287,12 @@
 <script setup lang="ts">
 import { ref, reactive, watch, computed, nextTick } from 'vue';
 import type { DatasetField, DatasetRecord, CellAnchor } from '../../services/datasets/useDatasets';
-import apiClient from '../../services/api';
+import { useDatasets } from '../../services/datasets/useDatasets';
+import { useDatasetLinks } from '../../services/datasets/useDatasetLinks';
 import CellAnchorPopover from './CellAnchorPopover.vue';
+
+const { getDataset } = useDatasets();
+const { resolveDatasetLinks } = useDatasetLinks();
 
 const props = defineProps<{
     schema: DatasetField[];
@@ -523,12 +527,8 @@ const resolveAllLinks = async () => {
     for (const [groupKey, { dsId, lookupField, values }] of byDataset) {
         if (values.size === 0) continue;
         try {
-            const response = await apiClient.post(`/datasets/${dsId}/resolve-links`, {
-                values: [...values],
-                lookupField,
-            });
             // Merge into cache keyed by groupKey so different lookup fields don't collide
-            newLinkedData[groupKey] = response.data;
+            newLinkedData[groupKey] = await resolveDatasetLinks(dsId, [...values], lookupField);
         } catch (err) {
             console.warn(`Failed to resolve links for dataset ${dsId}:`, err);
         }
@@ -573,9 +573,9 @@ const openLinkedPopup = async (field: DatasetField, record: DatasetRecord) => {
     // Fetch schema if not cached
     if (!linkedSchemas.value[dsId]) {
         try {
-            const response = await apiClient.get(`/datasets/${dsId}`);
-            linkedSchemas.value[dsId] = response.data.schema;
-            popup.datasetName = response.data.name;
+            const dataset = await getDataset(dsId);
+            linkedSchemas.value[dsId] = dataset.schema;
+            popup.datasetName = dataset.name;
         } catch {
             popup.datasetName = `Dataset #${dsId}`;
         }

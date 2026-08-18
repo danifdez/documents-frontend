@@ -229,8 +229,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue';
-import apiClient from '../../services/api';
-import type { DatasetField } from '../../services/datasets/useDatasets';
+import { useDatasets, type DatasetField } from '../../services/datasets/useDatasets';
 
 const props = defineProps<{
     datasetId: number;
@@ -239,6 +238,8 @@ const props = defineProps<{
     filters: string;
     editable: boolean;
 }>();
+
+const { getDataset, getRecords, updateRecord } = useDatasets();
 
 const records = ref<any[]>([]);
 const total = ref(0);
@@ -300,8 +301,8 @@ const getFieldOptions = (fieldKey: string): string[] => {
 const loadSchema = async () => {
     if (!props.datasetId) return;
     try {
-        const response = await apiClient.get(`/datasets/${props.datasetId}`);
-        schemaFields.value = response.data.schema || [];
+        const dataset = await getDataset(props.datasetId);
+        schemaFields.value = dataset.schema || [];
     } catch {
         // Schema is optional for display, fail silently
     }
@@ -318,8 +319,7 @@ const loadData = async () => {
                 params[`filter[${f.field}_${f.operator}]`] = f.value;
             }
         }
-        const response = await apiClient.get(`/datasets/${props.datasetId}/records`, { params });
-        const data = response.data;
+        const data: any = await getRecords(props.datasetId, params);
         records.value = data.records || data;
         total.value = data.total || records.value.length;
     } catch (err: any) {
@@ -409,7 +409,7 @@ const applyEdits = async () => {
     let hasError = false;
     for (const [recordId, data] of changes) {
         try {
-            await apiClient.patch(`/datasets/${props.datasetId}/records/${recordId}`, { data });
+            await updateRecord(props.datasetId, recordId, data);
         } catch (err: any) {
             console.error(`Failed to update record ${recordId}:`, err);
             hasError = true;

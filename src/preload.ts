@@ -2,6 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer } from 'electron';
+import { IpcChannels, IpcEvents } from './ipc/channels';
 
 // ── Bridge for the local voice engine (Task 08) ──────────────────────────
 // `isLocalAvailable` is synchronous because it is read by the component and
@@ -11,7 +12,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 let localAvailableCache: boolean | null = null;
 async function refreshLocalAvailable(): Promise<boolean> {
     try {
-        localAvailableCache = await ipcRenderer.invoke('voice:local:isAvailable');
+        localAvailableCache = await ipcRenderer.invoke(IpcChannels.voice.isAvailable);
     } catch {
         localAvailableCache = false;
     }
@@ -24,115 +25,115 @@ void refreshLocalAvailable();
 contextBridge.exposeInMainWorld('voice', {
     isLocalAvailable: (): boolean => localAvailableCache === true,
     refreshAvailability: refreshLocalAvailable,
-    hasModel: (): Promise<boolean> => ipcRenderer.invoke('voice:local:hasModel'),
-    preloadLocal: (): Promise<void> => ipcRenderer.invoke('voice:local:preload'),
-    startLocal: (): Promise<{ sessionId: string }> => ipcRenderer.invoke('voice:local:start'),
+    hasModel: (): Promise<boolean> => ipcRenderer.invoke(IpcChannels.voice.hasModel),
+    preloadLocal: (): Promise<void> => ipcRenderer.invoke(IpcChannels.voice.preload),
+    startLocal: (): Promise<{ sessionId: string }> => ipcRenderer.invoke(IpcChannels.voice.start),
     pushChunkLocal: (sessionId: string, buf: ArrayBuffer): Promise<void> =>
-        ipcRenderer.invoke('voice:local:chunk', sessionId, buf),
-    stopLocal: (sessionId: string): Promise<void> => ipcRenderer.invoke('voice:local:stop', sessionId),
+        ipcRenderer.invoke(IpcChannels.voice.chunk, sessionId, buf),
+    stopLocal: (sessionId: string): Promise<void> => ipcRenderer.invoke(IpcChannels.voice.stop, sessionId),
     cancelLocal: (sessionId: string): Promise<void> =>
-        ipcRenderer.invoke('voice:local:cancel', sessionId),
+        ipcRenderer.invoke(IpcChannels.voice.cancel, sessionId),
     onPartialLocal: (cb: (payload: { sessionId: string; text: string; isFinal: boolean }) => void) => {
         const handler = (_e: unknown, payload: { sessionId: string; text: string; isFinal: boolean }) => {
             console.log('[preload] IPC voice:local:partial', payload);
             cb(payload);
         };
-        ipcRenderer.on('voice:local:partial', handler);
-        return () => ipcRenderer.off('voice:local:partial', handler);
+        ipcRenderer.on(IpcEvents.voice.partial, handler);
+        return () => ipcRenderer.off(IpcEvents.voice.partial, handler);
     },
     onErrorLocal: (cb: (payload: { sessionId: string; message: string }) => void) => {
         const handler = (_e: unknown, payload: { sessionId: string; message: string }) => cb(payload);
-        ipcRenderer.on('voice:local:error', handler);
-        return () => ipcRenderer.off('voice:local:error', handler);
+        ipcRenderer.on(IpcEvents.voice.error, handler);
+        return () => ipcRenderer.off(IpcEvents.voice.error, handler);
     },
     onLoadingProgress: (cb: (p: { downloaded: number; total: number | null; percent: number }) => void) => {
         const handler = (_e: unknown, payload: { downloaded: number; total: number | null; percent: number }) => cb(payload);
-        ipcRenderer.on('voice:local:loading-progress', handler);
-        return () => ipcRenderer.off('voice:local:loading-progress', handler);
+        ipcRenderer.on(IpcEvents.voice.loadingProgress, handler);
+        return () => ipcRenderer.off(IpcEvents.voice.loadingProgress, handler);
     },
 });
 
 
 contextBridge.exposeInMainWorld('folderScope', {
     pick: (opts?: { title?: string }): Promise<string | null> =>
-        ipcRenderer.invoke('folder-scope:pick', opts),
+        ipcRenderer.invoke(IpcChannels.folderScope.pick, opts),
 });
 
 contextBridge.exposeInMainWorld('shellOps', {
     openPath: (p: string): Promise<{ ok: boolean; error?: string }> =>
-        ipcRenderer.invoke('shell:open-path', p),
+        ipcRenderer.invoke(IpcChannels.shell.openPath, p),
     showItemInFolder: (p: string): Promise<{ ok: boolean }> =>
-        ipcRenderer.invoke('shell:show-item-in-folder', p),
+        ipcRenderer.invoke(IpcChannels.shell.showItemInFolder, p),
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    uploadDocument: (idProject: string, filePath: string) => ipcRenderer.invoke('upload-document', idProject, filePath),
-    openMultipleFileDialog: () => ipcRenderer.invoke('open-multiple-file-dialog'),
-    getSettings: () => ipcRenderer.invoke('settings:get'),
-    setSettings: (settings: any) => ipcRenderer.invoke('settings:set', settings),
+    uploadDocument: (idProject: string, filePath: string) => ipcRenderer.invoke(IpcChannels.document.upload, idProject, filePath),
+    openMultipleFileDialog: () => ipcRenderer.invoke(IpcChannels.document.openMultipleFileDialog),
+    getSettings: () => ipcRenderer.invoke(IpcChannels.settings.get),
+    setSettings: (settings: any) => ipcRenderer.invoke(IpcChannels.settings.set, settings),
     // Exposes the residente/tray runtime info that
     // the Settings UI needs to gate platform-specific controls.
-    getTrayAvailable: (): Promise<boolean> => ipcRenderer.invoke('app:tray-available'),
-    getPlatform: (): Promise<NodeJS.Platform> => ipcRenderer.invoke('app:get-platform'),
+    getTrayAvailable: (): Promise<boolean> => ipcRenderer.invoke(IpcChannels.app.trayAvailable),
+    getPlatform: (): Promise<NodeJS.Platform> => ipcRenderer.invoke(IpcChannels.app.getPlatform),
 
     // Workspace management
-    getWorkspaces: () => ipcRenderer.invoke('workspace:list'),
-    addWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => ipcRenderer.invoke('workspace:add', workspace),
-    updateWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => ipcRenderer.invoke('workspace:update', workspace),
-    removeWorkspace: (id: string) => ipcRenderer.invoke('workspace:remove', id),
-    getActiveWorkspace: () => ipcRenderer.invoke('workspace:get-active'),
-    setActiveWorkspace: (id: string) => ipcRenderer.invoke('workspace:set-active', id),
-    setDefaultWorkspace: (id: string | null) => ipcRenderer.invoke('workspace:set-default', id),
-    getDefaultWorkspace: () => ipcRenderer.invoke('workspace:get-default'),
+    getWorkspaces: () => ipcRenderer.invoke(IpcChannels.workspace.list),
+    addWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => ipcRenderer.invoke(IpcChannels.workspace.add, workspace),
+    updateWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => ipcRenderer.invoke(IpcChannels.workspace.update, workspace),
+    removeWorkspace: (id: string) => ipcRenderer.invoke(IpcChannels.workspace.remove, id),
+    getActiveWorkspace: () => ipcRenderer.invoke(IpcChannels.workspace.getActive),
+    setActiveWorkspace: (id: string) => ipcRenderer.invoke(IpcChannels.workspace.setActive, id),
+    setDefaultWorkspace: (id: string | null) => ipcRenderer.invoke(IpcChannels.workspace.setDefault, id),
+    getDefaultWorkspace: () => ipcRenderer.invoke(IpcChannels.workspace.getDefault),
 
     // Local server (standalone) management
-    standaloneCheckInstalled: () => ipcRenderer.invoke('standalone:check-installed'),
-    standaloneIsReady: () => ipcRenderer.invoke('standalone:is-ready'),
-    standaloneDetectGpu: () => ipcRenderer.invoke('standalone:detect-gpu'),
-    standaloneHardwareReport: () => ipcRenderer.invoke('standalone:hardware-report'),
-    standaloneDownloadAll: () => ipcRenderer.invoke('standalone:download-all'),
+    standaloneCheckInstalled: () => ipcRenderer.invoke(IpcChannels.standalone.checkInstalled),
+    standaloneIsReady: () => ipcRenderer.invoke(IpcChannels.standalone.isReady),
+    standaloneDetectGpu: () => ipcRenderer.invoke(IpcChannels.standalone.detectGpu),
+    standaloneHardwareReport: () => ipcRenderer.invoke(IpcChannels.standalone.hardwareReport),
+    standaloneDownloadAll: () => ipcRenderer.invoke(IpcChannels.standalone.downloadAll),
     standaloneInstallProfile: (profile: { key: string; components: string[]; features: string[] }) =>
-        ipcRenderer.invoke('standalone:install-profile', profile),
-    standaloneDownloadComponent: (component: string) => ipcRenderer.invoke('standalone:download-component', component),
-    standaloneInstallModels: (variant: string) => ipcRenderer.invoke('standalone:install-models', variant),
-    standaloneUninstallServices: () => ipcRenderer.invoke('standalone:uninstall-services'),
-    standaloneUninstallModels: () => ipcRenderer.invoke('standalone:uninstall-models'),
-    standaloneStart: () => ipcRenderer.invoke('standalone:start'),
-    standaloneStop: () => ipcRenderer.invoke('standalone:stop'),
-    standaloneStatus: () => ipcRenderer.invoke('standalone:status'),
-    standaloneGetUrl: () => ipcRenderer.invoke('standalone:get-url'),
+        ipcRenderer.invoke(IpcChannels.standalone.installProfile, profile),
+    standaloneDownloadComponent: (component: string) => ipcRenderer.invoke(IpcChannels.standalone.downloadComponent, component),
+    standaloneInstallModels: (variant: string) => ipcRenderer.invoke(IpcChannels.standalone.installModels, variant),
+    standaloneUninstallServices: () => ipcRenderer.invoke(IpcChannels.standalone.uninstallServices),
+    standaloneUninstallModels: () => ipcRenderer.invoke(IpcChannels.standalone.uninstallModels),
+    standaloneStart: () => ipcRenderer.invoke(IpcChannels.standalone.start),
+    standaloneStop: () => ipcRenderer.invoke(IpcChannels.standalone.stop),
+    standaloneStatus: () => ipcRenderer.invoke(IpcChannels.standalone.status),
+    standaloneGetUrl: () => ipcRenderer.invoke(IpcChannels.standalone.getUrl),
     onStandaloneDownloadProgress: (callback: (progress: any) => void) =>
-        ipcRenderer.on('standalone:download-progress', (_event, progress) => callback(progress)),
+        ipcRenderer.on(IpcEvents.standalone.downloadProgress, (_event, progress) => callback(progress)),
 
     // Offline filesystem storage
     offlinePutItem: (wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) =>
-        ipcRenderer.invoke('offline:put-item', wsId, type, id, data, syncedAt, parentType, parentId),
+        ipcRenderer.invoke(IpcChannels.offline.putItem, wsId, type, id, data, syncedAt, parentType, parentId),
     offlineGetItem: (wsId: string, type: string, id: number) =>
-        ipcRenderer.invoke('offline:get-item', wsId, type, id),
+        ipcRenderer.invoke(IpcChannels.offline.getItem, wsId, type, id),
     offlineDeleteItem: (wsId: string, type: string, id: number) =>
-        ipcRenderer.invoke('offline:delete-item', wsId, type, id),
+        ipcRenderer.invoke(IpcChannels.offline.deleteItem, wsId, type, id),
     offlineGetAllItemsByWorkspace: (wsId: string) =>
-        ipcRenderer.invoke('offline:get-all-items-by-workspace', wsId),
+        ipcRenderer.invoke(IpcChannels.offline.getAllItemsByWorkspace, wsId),
     offlinePutFile: (wsId: string, resourceId: number, base64Data: string, mimeType: string, ext: string) =>
-        ipcRenderer.invoke('offline:put-file', wsId, resourceId, base64Data, mimeType, ext),
+        ipcRenderer.invoke(IpcChannels.offline.putFile, wsId, resourceId, base64Data, mimeType, ext),
     offlineGetFilePath: (wsId: string, resourceId: number) =>
-        ipcRenderer.invoke('offline:get-file-path', wsId, resourceId),
+        ipcRenderer.invoke(IpcChannels.offline.getFilePath, wsId, resourceId),
     offlineDeleteFile: (wsId: string, resourceId: number) =>
-        ipcRenderer.invoke('offline:delete-file', wsId, resourceId),
+        ipcRenderer.invoke(IpcChannels.offline.deleteFile, wsId, resourceId),
     offlineAddPendingChange: (wsId: string, entityType: string, entityId: number, method: string, payload: any) =>
-        ipcRenderer.invoke('offline:add-pending-change', wsId, entityType, entityId, method, payload),
+        ipcRenderer.invoke(IpcChannels.offline.addPendingChange, wsId, entityType, entityId, method, payload),
     offlineGetPendingChanges: (wsId: string) =>
-        ipcRenderer.invoke('offline:get-pending-changes', wsId),
+        ipcRenderer.invoke(IpcChannels.offline.getPendingChanges, wsId),
     offlineCountPendingChanges: (wsId: string) =>
-        ipcRenderer.invoke('offline:count-pending-changes', wsId),
+        ipcRenderer.invoke(IpcChannels.offline.countPendingChanges, wsId),
     offlineClearPendingChanges: (wsId: string) =>
-        ipcRenderer.invoke('offline:clear-pending-changes', wsId),
+        ipcRenderer.invoke(IpcChannels.offline.clearPendingChanges, wsId),
     offlineGetManifest: (wsId: string) =>
-        ipcRenderer.invoke('offline:get-manifest', wsId),
+        ipcRenderer.invoke(IpcChannels.offline.getManifest, wsId),
     offlineUpdateManifest: (wsId: string, keys: string[], lastSync: string | null) =>
-        ipcRenderer.invoke('offline:update-manifest', wsId, keys, lastSync),
+        ipcRenderer.invoke(IpcChannels.offline.updateManifest, wsId, keys, lastSync),
     offlineClearAll: (wsId: string) =>
-        ipcRenderer.invoke('offline:clear-all', wsId),
+        ipcRenderer.invoke(IpcChannels.offline.clearAll, wsId),
 });
 
 contextBridge.exposeInMainWorld('calendarAlarms', {
@@ -142,7 +143,7 @@ contextBridge.exposeInMainWorld('calendarAlarms', {
         title: string;
         alarmLabel: string | null;
         trackCompletion: boolean;
-    }) => ipcRenderer.invoke('calendar:show-alarm', payload),
+    }) => ipcRenderer.invoke(IpcChannels.calendar.showAlarm, payload),
     showMissedAggregate: (payload: {
         items: Array<{
             eventId: number;
@@ -151,16 +152,16 @@ contextBridge.exposeInMainWorld('calendarAlarms', {
             alarmLabel: string | null;
             trackCompletion: boolean;
         }>;
-    }) => ipcRenderer.invoke('calendar:show-missed-aggregate', payload),
+    }) => ipcRenderer.invoke(IpcChannels.calendar.showMissedAggregate, payload),
     onNavigateToEvent: (callback: (eventId: number) => void) => {
         const handler = (_e: unknown, eventId: number) => callback(eventId);
-        ipcRenderer.on('calendar:navigate', handler);
-        return () => ipcRenderer.off('calendar:navigate', handler);
+        ipcRenderer.on(IpcEvents.calendar.navigate, handler);
+        return () => ipcRenderer.off(IpcEvents.calendar.navigate, handler);
     },
     onNavigateMissedPanel: (callback: () => void) => {
         const handler = () => callback();
-        ipcRenderer.on('calendar:navigate-missed-panel', handler);
-        return () => ipcRenderer.off('calendar:navigate-missed-panel', handler);
+        ipcRenderer.on(IpcEvents.calendar.navigateMissedPanel, handler);
+        return () => ipcRenderer.off(IpcEvents.calendar.navigateMissedPanel, handler);
     },
 });
 
@@ -169,18 +170,18 @@ contextBridge.exposeInMainWorld('taskReminders', {
         taskId: number;
         title: string;
         reminderAt: string;
-    }) => ipcRenderer.invoke('task:show-reminder', payload),
+    }) => ipcRenderer.invoke(IpcChannels.task.showReminder, payload),
     showMissedAggregate: (payload: {
         items: Array<{ taskId: number; title: string; reminderAt: string }>;
-    }) => ipcRenderer.invoke('task:show-missed-aggregate', payload),
+    }) => ipcRenderer.invoke(IpcChannels.task.showMissedAggregate, payload),
     onNavigateToTask: (callback: (taskId: number) => void) => {
         const handler = (_e: unknown, taskId: number) => callback(taskId);
-        ipcRenderer.on('task:navigate', handler);
-        return () => ipcRenderer.off('task:navigate', handler);
+        ipcRenderer.on(IpcEvents.task.navigate, handler);
+        return () => ipcRenderer.off(IpcEvents.task.navigate, handler);
     },
     onNavigateMissedTasksPanel: (callback: () => void) => {
         const handler = () => callback();
-        ipcRenderer.on('task:navigate-missed-panel', handler);
-        return () => ipcRenderer.off('task:navigate-missed-panel', handler);
+        ipcRenderer.on(IpcEvents.task.navigateMissedPanel, handler);
+        return () => ipcRenderer.off(IpcEvents.task.navigateMissedPanel, handler);
     },
 });

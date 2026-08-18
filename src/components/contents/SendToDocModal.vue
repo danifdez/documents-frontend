@@ -82,7 +82,9 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import apiClient from '../../services/api';
+import { useDocumentProjectList } from '../../services/documents/useDocumentProjectList';
+
+const { loadDocumentsByProject } = useDocumentProjectList();
 
 const props = defineProps({
     isOpen: { type: Boolean, required: true },
@@ -105,8 +107,7 @@ const loadDocs = async () => {
     if (!props.projectId) return;
     isLoading.value = true;
     try {
-        const response = await apiClient.get(`/docs/project/${props.projectId}`);
-        docs.value = response.data;
+        docs.value = await loadDocumentsByProject(String(props.projectId));
     } catch (e) {
         console.error('Failed to load docs', e);
         docs.value = [];

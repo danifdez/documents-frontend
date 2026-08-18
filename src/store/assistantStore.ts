@@ -1,429 +1,121 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import type {
     Assistant,
     AssistantMessage,
     UpdateAssistantPayload,
-    AssistantResponseEvent,
 } from '../types/Assistant';
 import { useAssistants } from '../services/assistants/useAssistants';
 import { useAssistantMemoryStore } from './assistantMemoryStore';
-import { getSocket } from '../services/notifications/notification';
-import {
-    FOLDER_MUTATING_TOOLS,
-    coerceRunningToolsToDone,
-    mergeToolEventMessage,
-    withToolStatus,
-    withEntityDeleted,
-} from '../composables/chatMessageEvents';
-
-const MESSAGE_PAGE_SIZE = 50;
+import { createChatStore } from './createChatStore';
 
 export const useAssistantStore = defineStore('assistant', () => {
     const api = useAssistants();
 
-    const assistants = ref<Assistant[]>([]);
-    const activeId = ref<number | null>(null);
-    const messagesByAssistant = ref<Record<number, AssistantMessage[]>>({});
-    // Whether older history remains beyond what's loaded, per assistant.
-    const hasMoreByAssistant = ref<Record<number, boolean>>({});
-    const loadingOlderByAssistant = ref<Record<number, boolean>>({});
-    const pendingByAssistant = ref<Record<number, boolean>>({});
-    // Partial reply being streamed in for an assistant. Cleared when the
-    // final `assistantResponse` arrives. Keyed by assistantId so concurrent
-    // requests on different assistants don't trample each other.
-    const streamingByAssistant = ref<Record<number, string>>({});
-    // True between "model finished generating" and "final response persisted".
-    // Lets the UI stop the live caret as soon as the LLM is done, even if the
-    // backend is still extracting memory before it can emit assistantResponse.
-    const streamDoneByAssistant = ref<Record<number, boolean>>({});
-    const loading = ref(false);
-    const loaded = ref(false);
-    const error = ref<string | null>(null);
-    // Bumped whenever a chat tool mutates the assistant's working folder. The
-    // files panel watches this counter so it refetches after folder_write /
-    // folder_delete / folder_overwrite without a full reload.
-    const folderFilesVersionByAssistant = ref<Record<number, number>>({});
     // Bumped whenever a chat tool mutates user tasks. Workspace-wide rather
     // than per-assistant since tasks are global. TaskPanel watches it.
     const userTasksVersion = ref(0);
-    let socketAttached = false;
 
     const TASK_MUTATING_TOOLS = new Set(['create_task', 'update_task']);
-
-    function bumpFolderFilesVersion(assistantId: number) {
-        const prev = folderFilesVersionByAssistant.value[assistantId] ?? 0;
-        folderFilesVersionByAssistant.value = {
-            ...folderFilesVersionByAssistant.value,
-            [assistantId]: prev + 1,
-        };
-    }
 
     function bumpUserTasksVersion() {
         userTasksVersion.value += 1;
     }
 
-    const sortedAssistants = computed<Assistant[]>(() => {
-        const list = [...assistants.value];
-        return list.sort((a, b) => {
+    // Captured when the socket attaches (same moment the old monolithic store
+    // instantiated it) so the response handler can sync memory cards.
+    let memoryStore: ReturnType<typeof useAssistantMemoryStore> | null = null;
+
+    const chat = createChatStore<Assistant, AssistantMessage, UpdateAssistantPayload>({
+        api,
+        events: {
+            toolEvent: 'assistantToolEvent',
+            streamChunk: 'assistantStreamChunk',
+            response: 'assistantResponse',
+        },
+        socketIdKey: 'assistantId',
+        loadErrorMessage: 'Failed to load assistants',
+        sortOwners: (list) => list.sort((a, b) => {
             if (a.isSystem !== b.isSystem) return a.isSystem ? -1 : 1;
             if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
             const lsA = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
             const lsB = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
             if (lsA !== lsB) return lsB - lsA;
             return a.id - b.id;
-        });
-    });
-
-    const activeAssistant = computed<Assistant | null>(() => {
-        if (activeId.value == null) return null;
-        return assistants.value.find((a) => a.id === activeId.value) ?? null;
-    });
-
-    const activeMessages = computed<AssistantMessage[]>(() => {
-        if (activeId.value == null) return [];
-        return messagesByAssistant.value[activeId.value] ?? [];
-    });
-
-    const activeHasMore = computed<boolean>(() => {
-        if (activeId.value == null) return false;
-        return !!hasMoreByAssistant.value[activeId.value];
-    });
-
-    const activeLoadingOlder = computed<boolean>(() => {
-        if (activeId.value == null) return false;
-        return !!loadingOlderByAssistant.value[activeId.value];
-    });
-
-    const isActivePending = computed(() => {
-        if (activeId.value == null) return false;
-        return !!pendingByAssistant.value[activeId.value];
-    });
-
-    const activeStreaming = computed<string>(() => {
-        if (activeId.value == null) return '';
-        return streamingByAssistant.value[activeId.value] ?? '';
-    });
-
-    const activeStreamDone = computed<boolean>(() => {
-        if (activeId.value == null) return false;
-        return !!streamDoneByAssistant.value[activeId.value];
-    });
-
-    function _attachSocket() {
-        if (socketAttached) return;
-        const memoryStore = useAssistantMemoryStore();
-        const socket = getSocket();
-
-        // Live tool event (e.g. "🔍 Searching…") pushed by the worker BEFORE
-        // the reply arrives. The backend has already persisted the event
-        // message — we just append it to the chat so the user sees activity
-        // immediately instead of staring at "Thinking…".
-        socket.on('assistantToolEvent', (event: { assistantId: number; eventMessage: AssistantMessage }) => {
-            if (!event?.assistantId || !event?.eventMessage) return;
-            const arr = messagesByAssistant.value[event.assistantId] ?? [];
-            const incoming = event.eventMessage;
-            // Tell the files panel (if open) that the working folder may have changed.
-            // We bump on `done` only — `running` / `pending_confirmation` haven't
-            // touched disk yet.
-            const toolName = incoming.event?.kind === 'tool_executed'
-                ? incoming.event.tool?.name
-                : undefined;
-            const toolStatus = incoming.event?.kind === 'tool_executed'
-                ? incoming.event.tool?.status
-                : undefined;
-            if (toolName && FOLDER_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
-                bumpFolderFilesVersion(event.assistantId);
-            }
-            if (toolName && TASK_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
-                bumpUserTasksVersion();
-            }
-            messagesByAssistant.value = {
-                ...messagesByAssistant.value,
-                [event.assistantId]: mergeToolEventMessage(arr, incoming),
-            };
-        });
-
-        // Live token stream while the worker is generating. We just accumulate
-        // raw chunks; the chat component renders the running text as a typing
-        // bubble. The final, persisted message arrives via assistantResponse
-        // below and replaces this temporary buffer.
-        socket.on('assistantStreamChunk', (event: { assistantId: number; chunk: string; done?: boolean }) => {
-            if (!event?.assistantId) return;
-            if (typeof event.chunk === 'string' && event.chunk.length > 0) {
-                const prev = streamingByAssistant.value[event.assistantId] ?? '';
-                streamingByAssistant.value = {
-                    ...streamingByAssistant.value,
-                    [event.assistantId]: prev + event.chunk,
-                };
-            }
-            if (event.done) {
-                streamDoneByAssistant.value = {
-                    ...streamDoneByAssistant.value,
-                    [event.assistantId]: true,
-                };
-            }
-        });
-
-        socket.on('assistantResponse', (event: AssistantResponseEvent) => {
-            if (!event?.assistantId || !event?.message) return;
-            let arr = messagesByAssistant.value[event.assistantId] ?? [];
-
-            // Defensive cleanup: if any tool cards were left as `running` (a
-            // `done` event never matched them — network reorder, mismatched
-            // args, etc.), force them to `done` now that the assistant has
-            // produced its final reply. The model can't still be searching.
-            const coerced = coerceRunningToolsToDone(arr);
-            arr = coerced.messages;
-            const mutated = coerced.mutated;
-
-            // Append event messages (cards) first, then the assistant reply.
-            const toAppend: AssistantMessage[] = [];
-            for (const ev of event.eventMessages ?? []) {
-                if (ev && !arr.some((m) => m.id === ev.id)) {
-                    toAppend.push(ev);
-                    // Side-effect: keep the memory store in sync with what
-                    // happened on the backend.
-                    if (ev.event?.kind === 'memory_saved' && ev.event.entry) {
-                        memoryStore.ingestSocketEntry(ev.event.entry);
-                    } else if (ev.event?.kind === 'memory_forgotten' && ev.event.entry) {
-                        memoryStore.dropSocketEntry(event.assistantId, ev.event.entry.id);
-                    } else if (ev.event?.kind === 'memory_replaced' && ev.event.entry) {
-                        memoryStore.replaceSocketEntry(ev.event.entry);
+        }),
+        hooks: {
+            onSocketAttached() {
+                memoryStore = useAssistantMemoryStore();
+            },
+            onToolEvent(toolName, toolStatus) {
+                if (toolName && TASK_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
+                    bumpUserTasksVersion();
+                }
+            },
+            collectResponseEventMessages(event, existing) {
+                const toAppend: AssistantMessage[] = [];
+                for (const ev of (event.eventMessages as AssistantMessage[] | undefined) ?? []) {
+                    if (ev && !existing.some((m) => m.id === ev.id)) {
+                        toAppend.push(ev);
+                        // Side-effect: keep the memory store in sync with what
+                        // happened on the backend.
+                        if (ev.event?.kind === 'memory_saved' && ev.event.entry) {
+                            memoryStore?.ingestSocketEntry(ev.event.entry);
+                        } else if (ev.event?.kind === 'memory_forgotten' && ev.event.entry) {
+                            memoryStore?.dropSocketEntry(event.assistantId, ev.event.entry.id);
+                        } else if (ev.event?.kind === 'memory_replaced' && ev.event.entry) {
+                            memoryStore?.replaceSocketEntry(ev.event.entry);
+                        }
                     }
                 }
-            }
-            if (!arr.some((m) => m.id === event.message.id)) {
-                toAppend.push(event.message);
-            }
-            if (toAppend.length > 0 || mutated) {
-                messagesByAssistant.value = {
-                    ...messagesByAssistant.value,
-                    [event.assistantId]: [...arr, ...toAppend],
-                };
-            }
-            pendingByAssistant.value = {
-                ...pendingByAssistant.value,
-                [event.assistantId]: false,
-            };
-            // Wipe the live stream buffer — the persisted message has taken
-            // its place. Done as a fresh object so consumers using `activeStreaming`
-            // re-evaluate cleanly.
-            if (streamingByAssistant.value[event.assistantId]) {
-                const next = { ...streamingByAssistant.value };
-                delete next[event.assistantId];
-                streamingByAssistant.value = next;
-            }
-            if (streamDoneByAssistant.value[event.assistantId]) {
-                const next = { ...streamDoneByAssistant.value };
-                delete next[event.assistantId];
-                streamDoneByAssistant.value = next;
-            }
-            // Bump lastSeenAt locally so the sidebar reorders without a refresh
-            const idx = assistants.value.findIndex((a) => a.id === event.assistantId);
-            if (idx >= 0) {
-                assistants.value[idx] = {
-                    ...assistants.value[idx],
-                    lastSeenAt: event.message.createdAt,
-                };
-            }
-        });
-        socketAttached = true;
-    }
-
-    async function load(force = false) {
-        if (loaded.value && !force) return;
-        loading.value = true;
-        error.value = null;
-        try {
-            assistants.value = await api.list();
-            loaded.value = true;
-            _attachSocket();
-            if (activeId.value == null) {
-                const personal = assistants.value.find((a) => a.isSystem);
-                if (personal) activeId.value = personal.id;
-            }
-        } catch (e: any) {
-            error.value = e?.message || 'Failed to load assistants';
-        } finally {
-            loading.value = false;
-        }
-    }
-
-    /**
-     * Mark the entity attached to a `tool_executed` event card as deleted —
-     * the backend has already removed the underlying note/task and this
-     * flips the card's UI from a Delete button to a "Deleted" badge.
-     */
-    /**
-     * Update the local copy of a `tool_executed` event after the user resolves
-     * a pending-confirmation card (Confirm/Cancel). The backend has already
-     * been patched; this only mirrors the change in the in-memory message list
-     * so the card re-renders without a fresh fetch.
-     */
-    function updateEventToolStatus(messageId: number, status: 'done' | 'cancelled', summary?: string): void {
-        const aid = activeId.value;
-        if (aid == null) return;
-        const arr = messagesByAssistant.value[aid];
-        if (!arr) return;
-        const idx = arr.findIndex((m) => m.id === messageId);
-        if (idx < 0) return;
-        const msg = arr[idx];
-        if (msg.event?.kind !== 'tool_executed' || !msg.event.tool) return;
-        const next = [...arr];
-        const toolName = msg.event.tool.name;
-        const toolKind = (msg.event.tool as any).kind as string | undefined;
-        next[idx] = withToolStatus(msg, status, summary);
-        messagesByAssistant.value = { ...messagesByAssistant.value, [aid]: next };
-        // A confirmed folder action mutates disk; tell the panel to refetch.
-        if (status === 'done' && (
-            FOLDER_MUTATING_TOOLS.has(toolName)
-            || (toolKind && FOLDER_MUTATING_TOOLS.has(toolKind))
-        )) {
-            bumpFolderFilesVersion(aid);
-        }
-        if (status === 'done' && toolKind === 'task_delete') {
-            bumpUserTasksVersion();
-        }
-    }
-
-    function folderFilesVersionFor(assistantId: number): number {
-        return folderFilesVersionByAssistant.value[assistantId] ?? 0;
-    }
-
-    function markEventEntityDeleted(messageId: number): void {
-        const aid = activeId.value;
-        if (aid == null) return;
-        const arr = messagesByAssistant.value[aid];
-        if (!arr) return;
-        const idx = arr.findIndex((m) => m.id === messageId);
-        if (idx < 0) return;
-        const msg = arr[idx];
-        if (msg.event?.kind !== 'tool_executed' || !msg.event.tool?.entity) return;
-        const next = [...arr];
-        next[idx] = withEntityDeleted(msg);
-        messagesByAssistant.value = { ...messagesByAssistant.value, [aid]: next };
-    }
-
-    async function selectAssistant(id: number) {
-        activeId.value = id;
-        if (!messagesByAssistant.value[id]) {
-            try {
-                const { messages, hasMore } = await api.getMessages(id, { limit: MESSAGE_PAGE_SIZE });
-                // Any tool card persisted as `running` is necessarily stale —
-                // the worker process that emitted it is long gone. Coerce to
-                // `done` so the spinner doesn't hang forever on reload.
-                const sanitized = coerceRunningToolsToDone(messages).messages;
-                messagesByAssistant.value = { ...messagesByAssistant.value, [id]: sanitized };
-                hasMoreByAssistant.value = { ...hasMoreByAssistant.value, [id]: hasMore };
-            } catch (e: any) {
-                error.value = e?.message || 'Failed to load messages';
-            }
-        }
-    }
-
-    // Page backwards: fetch the slice immediately older than the oldest message
-    // currently in memory and prepend it (deduped by id). The component is
-    // responsible for preserving scroll position around this call.
-    async function loadOlder(id: number) {
-        const current = messagesByAssistant.value[id];
-        if (!current || current.length === 0) return;
-        if (loadingOlderByAssistant.value[id]) return;
-        if (hasMoreByAssistant.value[id] === false) return;
-        const before = current[0].id;
-        loadingOlderByAssistant.value = { ...loadingOlderByAssistant.value, [id]: true };
-        try {
-            const { messages, hasMore } = await api.getMessages(id, { limit: MESSAGE_PAGE_SIZE, before });
-            const older = coerceRunningToolsToDone(messages).messages;
-            const seen = new Set(current.map((m) => m.id));
-            const fresh = older.filter((m) => !seen.has(m.id));
-            messagesByAssistant.value = {
-                ...messagesByAssistant.value,
-                [id]: [...fresh, ...current],
-            };
-            hasMoreByAssistant.value = { ...hasMoreByAssistant.value, [id]: hasMore };
-        } catch (e: any) {
-            error.value = e?.message || 'Failed to load older messages';
-        } finally {
-            loadingOlderByAssistant.value = { ...loadingOlderByAssistant.value, [id]: false };
-        }
-    }
-
-    async function sendMessage(content: string) {
-        if (activeId.value == null) return;
-        const id = activeId.value;
-        try {
-            const { userMessage } = await api.sendMessage(id, content);
-            const arr = messagesByAssistant.value[id] ?? [];
-            messagesByAssistant.value = {
-                ...messagesByAssistant.value,
-                [id]: [...arr, userMessage],
-            };
-            pendingByAssistant.value = { ...pendingByAssistant.value, [id]: true };
-            // Clear any leftover stream state from a previous turn so the
-            // caret + buffer start fresh.
-            if (streamingByAssistant.value[id] || streamDoneByAssistant.value[id]) {
-                const s = { ...streamingByAssistant.value }; delete s[id];
-                streamingByAssistant.value = s;
-                const d = { ...streamDoneByAssistant.value }; delete d[id];
-                streamDoneByAssistant.value = d;
-            }
-        } catch (e: any) {
-            error.value = e?.message || 'Failed to send message';
-        }
-    }
-
-    async function updateAssistant(id: number, payload: UpdateAssistantPayload) {
-        const updated = await api.update(id, payload);
-        const idx = assistants.value.findIndex((a) => a.id === id);
-        if (idx >= 0) assistants.value[idx] = updated;
-        return updated;
-    }
-
-    async function deleteAssistant(id: number) {
-        await api.remove(id);
-        assistants.value = assistants.value.filter((a) => a.id !== id);
-        delete messagesByAssistant.value[id];
-        delete pendingByAssistant.value[id];
-        if (activeId.value === id) {
-            const personal = assistants.value.find((a) => a.isSystem);
-            activeId.value = personal?.id ?? null;
-        }
-    }
-
-    async function togglePin(id: number) {
-        const a = assistants.value.find((x) => x.id === id);
-        if (!a || a.isSystem) return;
-        await updateAssistant(id, { pinned: !a.pinned });
-    }
+                return toAppend;
+            },
+            afterLoad({ owners, activeId }) {
+                if (activeId.value == null) {
+                    const personal = owners.value.find((a) => a.isSystem);
+                    if (personal) activeId.value = personal.id;
+                }
+            },
+            onToolStatusResolved(status, toolKind) {
+                if (status === 'done' && toolKind === 'task_delete') {
+                    bumpUserTasksVersion();
+                }
+            },
+            canTogglePin: (a) => !a.isSystem,
+            nextActiveIdAfterDelete: ({ owners }) => {
+                const personal = owners.value.find((a) => a.isSystem);
+                return personal?.id ?? null;
+            },
+        },
+    });
 
     return {
-        assistants,
-        activeId,
-        messagesByAssistant,
-        pendingByAssistant,
-        loading,
-        loaded,
-        error,
-        sortedAssistants,
-        activeAssistant,
-        activeMessages,
-        activeHasMore,
-        activeLoadingOlder,
-        isActivePending,
-        activeStreaming,
-        activeStreamDone,
-        load,
-        selectAssistant,
-        loadOlder,
-        sendMessage,
-        updateAssistant,
-        deleteAssistant,
-        togglePin,
-        markEventEntityDeleted,
-        updateEventToolStatus,
-        folderFilesVersionFor,
-        bumpFolderFilesVersion,
+        assistants: chat.owners,
+        activeId: chat.activeId,
+        messagesByAssistant: chat.messagesByOwner,
+        pendingByAssistant: chat.pendingByOwner,
+        loading: chat.loading,
+        loaded: chat.loaded,
+        error: chat.error,
+        sortedAssistants: chat.sortedOwners,
+        activeAssistant: chat.activeOwner,
+        activeMessages: chat.activeMessages,
+        activeHasMore: chat.activeHasMore,
+        activeLoadingOlder: chat.activeLoadingOlder,
+        isActivePending: chat.isActivePending,
+        activeStreaming: chat.activeStreaming,
+        activeStreamDone: chat.activeStreamDone,
+        load: chat.load,
+        selectAssistant: chat.selectOwner,
+        loadOlder: chat.loadOlder,
+        sendMessage: chat.sendMessage,
+        updateAssistant: chat.updateOwner,
+        deleteAssistant: chat.deleteOwner,
+        togglePin: chat.togglePin,
+        markEventEntityDeleted: chat.markEventEntityDeleted,
+        updateEventToolStatus: chat.updateEventToolStatus,
+        folderFilesVersionFor: chat.folderFilesVersionFor,
+        bumpFolderFilesVersion: chat.bumpFolderFilesVersion,
         userTasksVersion,
         bumpUserTasksVersion,
     };

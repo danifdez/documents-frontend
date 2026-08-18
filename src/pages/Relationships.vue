@@ -493,11 +493,11 @@ import PageHeader from '../components/ui/PageHeader.vue';
 import { useEntities, type Entity, type EntityDetail } from '../services/entities/useEntities';
 import { useEntityTypes, type EntityType } from '../services/entity-types/useEntityTypes';
 import { useRelationships } from '../services/relationships/useRelationships';
+import { useGraphCanvas } from '../services/relationships/useGraphCanvas';
 import { useProjectList } from '../services/projects/useProjectList';
 import { useNotification } from '../composables/useNotification';
 import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
-import apiClient from '../services/api';
 import { useKnowledgeBase } from '../services/knowledge/useKnowledgeBase';
 import { useFeatureStore } from '../store/featureStore';
 
@@ -505,7 +505,7 @@ const router = useRouter();
 const route = useRoute();
 const { getAllEntities, updateEntity, deleteEntity, createEntity, mergeEntities, searchEntities, getEntityById } = useEntities();
 const { fetchEntityTypes } = useEntityTypes();
-const { isLoading: relLoading, data: relData, fetchAll, fetchByProject } = useRelationships();
+const { isLoading: relLoading, data: relData, fetchAll, fetchByProject, fetchProjectResources, fetchProjectName } = useRelationships();
 const { projects: allProjects, loadProjects } = useProjectList();
 const notification = useNotification();
 const { createEntry: createKBEntry } = useKnowledgeBase();
@@ -884,7 +884,6 @@ const relSelectedResourceId = ref(0);
 const relSelectedEntityType = ref('');
 const relSelectedPredicate = ref('');
 const relResources = ref<{ id: number; name: string }[]>([]);
-const canvasRef = ref<HTMLCanvasElement | null>(null);
 
 // Initialize from route query (for redirect from /project/:id/relationships)
 if (projectFromRoute.value) {
@@ -948,8 +947,7 @@ const relFilteredEntities = computed(() => {
 
 const loadProjectResources = async (projectId: number) => {
     try {
-        const res = await apiClient.get(`/resources/project/${projectId}`);
-        relResources.value = (res.data || []).map((r: any) => ({ id: r.id, name: r.name }));
+        relResources.value = await fetchProjectResources(projectId);
     } catch {
         relResources.value = [];
     }
@@ -965,542 +963,30 @@ const refreshRelationships = async () => {
     if (relViewMode.value === 'graph') nextTick(buildGraph);
 };
 
-// --- Zoom & Pan ---
-const zoom = ref(1);
-const panX = ref(0);
-const panY = ref(0);
-let isPanning = false;
-let panStartX = 0;
-let panStartY = 0;
-let panStartPanX = 0;
-let panStartPanY = 0;
-let draggedNode: SimNode | null = null;
-let didDrag = false;
-const selectedNodeIdx = ref<number | null>(null);
-// Focused node (dblclick): shows only nodes up to 2 hops away
-const focusedNodeIdx = ref<number | null>(null);
-// Set of entity IDs visible in the focused/selected view — used by entity list
-const activeEntityIds = ref<Set<number | string> | null>(null);
-
-// Esc to clear selection and focus
-const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-        if (focusedNodeIdx.value !== null) {
-            focusedNodeIdx.value = null;
-            activeEntityIds.value = null;
-        }
-        selectedNodeIdx.value = null;
-        drawFrame();
-    }
-};
-
-const zoomIn = () => { zoom.value = Math.min(zoom.value * 1.25, 5); drawFrame(); };
-const zoomOut = () => { zoom.value = Math.max(zoom.value / 1.25, 0.2); drawFrame(); };
-
-const zoomToFit = () => {
-    if (!simNodes.length || !canvasRef.value) return;
-    const w = canvasRef.value.offsetWidth;
-    const h = canvasRef.value.offsetHeight;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const n of simNodes) {
-        minX = Math.min(minX, n.x - n.radius - 40);
-        minY = Math.min(minY, n.y - n.radius - 40);
-        maxX = Math.max(maxX, n.x + n.radius + 40);
-        maxY = Math.max(maxY, n.y + n.radius + 40);
-    }
-    const gw = maxX - minX || 1;
-    const gh = maxY - minY || 1;
-    zoom.value = Math.min((w - 60) / gw, (h - 60) / gh, 3);
-    panX.value = (w / 2) - ((minX + maxX) / 2) * zoom.value;
-    panY.value = (h / 2) - ((minY + maxY) / 2) * zoom.value;
-    drawFrame();
-};
-
-const onWheel = (e: WheelEvent) => {
-    const canvas = canvasRef.value;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const oldZoom = zoom.value;
-    zoom.value = Math.max(0.15, Math.min(5, zoom.value * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
-    panX.value = mx - (mx - panX.value) * (zoom.value / oldZoom);
-    panY.value = my - (my - panY.value) * (zoom.value / oldZoom);
-    drawFrame();
-};
-
-const screenToGraph = (clientX: number, clientY: number): { gx: number; gy: number } => {
-    const canvas = canvasRef.value!;
-    const rect = canvas.getBoundingClientRect();
-    const gx = (clientX - rect.left - panX.value) / zoom.value;
-    const gy = (clientY - rect.top - panY.value) / zoom.value;
-    return { gx, gy };
-};
-
-const findNodeAt = (gx: number, gy: number): SimNode | null => {
-    for (let i = simNodes.length - 1; i >= 0; i--) {
-        const n = simNodes[i];
-        const dx = gx - n.x, dy = gy - n.y;
-        if (dx * dx + dy * dy <= n.radius * n.radius) return n;
-    }
-    return null;
-};
-
-const onMouseDown = (e: MouseEvent) => {
-    didDrag = false;
-    const { gx, gy } = screenToGraph(e.clientX, e.clientY);
-    const node = findNodeAt(gx, gy);
-    if (node) {
-        draggedNode = node;
-    } else {
-        isPanning = true;
-        panStartX = e.clientX; panStartY = e.clientY;
-        panStartPanX = panX.value; panStartPanY = panY.value;
-    }
-};
-
-const onMouseMove = (e: MouseEvent) => {
-    if (draggedNode) {
-        didDrag = true;
-        const { gx, gy } = screenToGraph(e.clientX, e.clientY);
-        draggedNode.x = gx;
-        draggedNode.y = gy;
-        drawFrame();
-    } else if (isPanning) {
-        didDrag = true;
-        panX.value = panStartPanX + (e.clientX - panStartX);
-        panY.value = panStartPanY + (e.clientY - panStartY);
-        drawFrame();
-    }
-};
-
-const onMouseUp = () => {
-    // Click (not drag) on a node → select it (1-hop highlight)
-    if (!didDrag && draggedNode) {
-        const clickedIdx = simNodes.indexOf(draggedNode);
-        if (selectedNodeIdx.value === clickedIdx && focusedNodeIdx.value === null) {
-            selectedNodeIdx.value = null;
-            activeEntityIds.value = null;
-        } else if (focusedNodeIdx.value === null) {
-            selectedNodeIdx.value = clickedIdx;
-            // Set active entity IDs for 1-hop
-            const ids = new Set<number | string>();
-            ids.add(simNodes[clickedIdx].id);
-            for (const l of simLinks) {
-                if (l.source === clickedIdx) ids.add(simNodes[l.target].id);
-                if (l.target === clickedIdx) ids.add(simNodes[l.source].id);
-            }
-            activeEntityIds.value = ids;
-        }
-        drawFrame();
-    }
-    // Click on empty space (no drag) → deselect and unfocus
-    if (!didDrag && !draggedNode) {
-        selectedNodeIdx.value = null;
-        focusedNodeIdx.value = null;
-        activeEntityIds.value = null;
-        drawFrame();
-    }
-    isPanning = false;
-    draggedNode = null;
-};
-
-const onMouseLeave = () => {
-    isPanning = false;
-    draggedNode = null;
-};
-
-const onDblClick = (e: MouseEvent) => {
-    const { gx, gy } = screenToGraph(e.clientX, e.clientY);
-    const node = findNodeAt(gx, gy);
-    if (!node) {
-        focusedNodeIdx.value = null;
-        activeEntityIds.value = null;
-        drawFrame();
-        return;
-    }
-    const nodeIdx = simNodes.indexOf(node);
-    // If already focused on this node, unfocus
-    if (focusedNodeIdx.value === nodeIdx) {
-        focusedNodeIdx.value = null;
-        activeEntityIds.value = null;
-        drawFrame();
-        return;
-    }
-    focusedNodeIdx.value = nodeIdx;
-    selectedNodeIdx.value = nodeIdx;
-
-    // BFS up to depth 2 from the focused node
-    const visited = new Set<number>();
-    visited.add(nodeIdx);
-    let frontier = [nodeIdx];
-    for (let depth = 0; depth < 2; depth++) {
-        const nextFrontier: number[] = [];
-        for (const fi of frontier) {
-            for (const l of simLinks) {
-                if (l.source === fi && !visited.has(l.target)) { visited.add(l.target); nextFrontier.push(l.target); }
-                if (l.target === fi && !visited.has(l.source)) { visited.add(l.source); nextFrontier.push(l.source); }
-            }
-        }
-        frontier = nextFrontier;
-    }
-
-    // Set active entity IDs for the entity list
-    const ids = new Set<number | string>();
-    for (const ni of visited) ids.add(simNodes[ni].id);
-    activeEntityIds.value = ids;
-
-    drawFrame();
-};
-
-// --- Graph rendering ---
-interface SimNode { id: number | string; name: string; type: string; x: number; y: number; vx: number; vy: number; radius: number; }
-interface SimLink { source: number; target: number; predicate: string; weight: number; }
-let simNodes: SimNode[] = [];
-let simLinks: SimLink[] = [];
-let animFrame = 0;
-const SIM_W = 2400;
-const SIM_H = 1800;
-
-const buildGraph = () => {
-    const ents = relFilteredEntities.value;
-    const rels = relFilteredRelationships.value;
-    if (!ents.length || !canvasRef.value) return;
-
-    const idxMap = new Map<number | string, number>();
-
-    // Count connections per entity to determine importance
-    const degreeCount = new Map<number | string, number>();
-    for (const r of rels) {
-        degreeCount.set(r.source, (degreeCount.get(r.source) || 0) + 1);
-        degreeCount.set(r.target, (degreeCount.get(r.target) || 0) + 1);
-    }
-
-    // Sort entities: most connected first
-    const sortedEnts = [...ents].sort((a, b) => (degreeCount.get(b.id) || 0) - (degreeCount.get(a.id) || 0));
-
-    // Build nodes — position with BFS-like radial layout from hubs
-    simNodes = sortedEnts.map((e, i) => {
-        idxMap.set(e.id, i);
-        return { id: e.id, name: e.name, type: e.type || 'default',
-            x: 0, y: 0, vx: 0, vy: 0,
-            radius: Math.max(28, Math.min(50, 10 + e.name.length * 2.2)) };
-    });
-
-    simLinks = [];
-    for (const r of rels) {
-        const si = idxMap.get(r.source); const ti = idxMap.get(r.target);
-        if (si !== undefined && ti !== undefined) simLinks.push({ source: si, target: ti, predicate: r.predicate, weight: r.confidence || 1 });
-    }
-
-    // Initial layout: place hubs at center, radiate neighbors outward
-    const placed = new Set<number>();
-    const queue: number[] = [];
-
-    // Place the top hub at center
-    if (simNodes.length > 0) {
-        simNodes[0].x = SIM_W / 2;
-        simNodes[0].y = SIM_H / 2;
-        placed.add(0);
-        queue.push(0);
-    }
-
-    // BFS radial placement
-    while (queue.length > 0) {
-        const curr = queue.shift()!;
-        const neighbors: number[] = [];
-        for (const l of simLinks) {
-            if (l.source === curr && !placed.has(l.target)) neighbors.push(l.target);
-            if (l.target === curr && !placed.has(l.source)) neighbors.push(l.source);
-        }
-        if (neighbors.length === 0) continue;
-
-        const ringRadius = simNodes[curr].radius + 140 + neighbors.length * 15;
-        // Find existing angle bias from already-placed neighbors
-        let startAngle = Math.random() * Math.PI * 2;
-        const angleStep = (Math.PI * 2) / Math.max(neighbors.length, 1);
-
-        for (let i = 0; i < neighbors.length; i++) {
-            const ni = neighbors[i];
-            const angle = startAngle + i * angleStep;
-            simNodes[ni].x = simNodes[curr].x + Math.cos(angle) * ringRadius;
-            simNodes[ni].y = simNodes[curr].y + Math.sin(angle) * ringRadius;
-            placed.add(ni);
-            queue.push(ni);
-        }
-    }
-
-    // Place any disconnected nodes in a ring around the periphery
-    const unplaced = simNodes.filter((_, i) => !placed.has(i));
-    if (unplaced.length > 0) {
-        const peripheryRadius = SIM_W * 0.35;
-        const angleStep = (Math.PI * 2) / unplaced.length;
-        unplaced.forEach((n, i) => {
-            n.x = SIM_W / 2 + Math.cos(i * angleStep) * peripheryRadius;
-            n.y = SIM_H / 2 + Math.sin(i * angleStep) * peripheryRadius;
-        });
-    }
-
-    runSimulation();
-};
-
-const runSimulation = () => {
-    const maxIter = 500;
-
-    // Build adjacency for quick neighbor lookup
-    const adj = new Map<number, Set<number>>();
-    for (const l of simLinks) {
-        if (!adj.has(l.source)) adj.set(l.source, new Set());
-        if (!adj.has(l.target)) adj.set(l.target, new Set());
-        adj.get(l.source)!.add(l.target);
-        adj.get(l.target)!.add(l.source);
-    }
-
-    for (let iterations = 0; iterations < maxIter; iterations++) {
-        const alpha = Math.max(0.01, 1 - iterations / maxIter);
-
-        // Very light gravity
-        for (const n of simNodes) {
-            n.vx += (SIM_W / 2 - n.x) * 0.0005 * alpha;
-            n.vy += (SIM_H / 2 - n.y) * 0.0005 * alpha;
-        }
-
-        // Repulsion between nodes — radius-aware, stronger for non-neighbors
-        for (let i = 0; i < simNodes.length; i++) {
-            for (let j = i + 1; j < simNodes.length; j++) {
-                let dx = simNodes[j].x - simNodes[i].x;
-                let dy = simNodes[j].y - simNodes[i].y;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                const minDist = simNodes[i].radius + simNodes[j].radius + 60;
-                const areNeighbors = adj.get(i)?.has(j);
-                const repStrength = areNeighbors ? 3000 : 5000;
-                let force = (repStrength * alpha) / (dist * dist);
-                if (dist < minDist) {
-                    force += (minDist - dist) * 1.0;
-                }
-                dx = (dx / dist) * force; dy = (dy / dist) * force;
-                simNodes[i].vx -= dx; simNodes[i].vy -= dy;
-                simNodes[j].vx += dx; simNodes[j].vy += dy;
-            }
-        }
-
-        // Attraction along edges — keeps connected nodes close
-        for (const l of simLinks) {
-            const s = simNodes[l.source], t = simNodes[l.target];
-            const dx = t.x - s.x, dy = t.y - s.y;
-            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            const idealDist = s.radius + t.radius + 130;
-            const force = (dist - idealDist) * 0.004 * alpha;
-            s.vx += (dx / dist) * force; s.vy += (dy / dist) * force;
-            t.vx -= (dx / dist) * force; t.vy -= (dy / dist) * force;
-        }
-
-        // Edge-node repulsion — prevent nodes from sitting on top of edges
-        if (iterations % 4 === 0) {
-            for (const l of simLinks) {
-                const s = simNodes[l.source], t = simNodes[l.target];
-                for (let k = 0; k < simNodes.length; k++) {
-                    if (k === l.source || k === l.target) continue;
-                    const n = simNodes[k];
-                    const ex = t.x - s.x, ey = t.y - s.y;
-                    const edgeLen2 = ex * ex + ey * ey || 1;
-                    const proj = Math.max(0, Math.min(1, ((n.x - s.x) * ex + (n.y - s.y) * ey) / edgeLen2));
-                    const closestX = s.x + proj * ex, closestY = s.y + proj * ey;
-                    const dx2 = n.x - closestX, dy2 = n.y - closestY;
-                    const distToEdge = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
-                    const clearance = n.radius + 35;
-                    if (distToEdge < clearance) {
-                        const push = (clearance - distToEdge) * 0.4 * alpha;
-                        n.vx += (dx2 / distToEdge) * push;
-                        n.vy += (dy2 / distToEdge) * push;
-                    }
-                }
-            }
-        }
-
-        // Damping
-        for (const n of simNodes) { n.vx *= 0.7; n.vy *= 0.7; n.x += n.vx; n.y += n.vy; }
-    }
-
-    zoomToFit();
-};
-
-const drawFrame = () => {
-    const canvas = canvasRef.value;
-    if (!canvas) return;
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = w * dpr; canvas.height = h * dpr;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
-
-    ctx.save();
-    ctx.translate(panX.value, panY.value);
-    ctx.scale(zoom.value, zoom.value);
-
-    const mutedColor = getComputedStyle(canvas).getPropertyValue('--color-text-muted') || '#94a3b8';
-
-    // Highlight set — focus (dblclick, 2-hop) takes priority over selection (click, 1-hop)
-    const focus = focusedNodeIdx.value;
-    const sel = focus ?? selectedNodeIdx.value;
-    const highlightNodes = new Set<number>();
-    const highlightEdges = new Set<number>();
-    if (focus !== null) {
-        // Use the same BFS 2-hop set
-        highlightNodes.add(focus);
-        let frontier = [focus];
-        for (let depth = 0; depth < 2; depth++) {
-            const next: number[] = [];
-            for (const fi of frontier) {
-                simLinks.forEach((l, li) => {
-                    if (l.source === fi && !highlightNodes.has(l.target)) { highlightNodes.add(l.target); next.push(l.target); }
-                    if (l.target === fi && !highlightNodes.has(l.source)) { highlightNodes.add(l.source); next.push(l.source); }
-                });
-            }
-            frontier = next;
-        }
-        // Mark edges where both endpoints are in the highlight set
-        simLinks.forEach((l, li) => {
-            if (highlightNodes.has(l.source) && highlightNodes.has(l.target)) highlightEdges.add(li);
-        });
-    } else if (sel !== null) {
-        highlightNodes.add(sel);
-        simLinks.forEach((l, li) => {
-            if (l.source === sel || l.target === sel) {
-                highlightEdges.add(li);
-                highlightNodes.add(l.source);
-                highlightNodes.add(l.target);
-            }
-        });
-    }
-    const hasSelection = sel !== null;
-
-    // Count parallel edges between same node pairs to curve them
-    const edgePairCount = new Map<string, number>();
-    const edgePairIndex = new Map<string, number>();
-    for (const l of simLinks) {
-        const key = Math.min(l.source, l.target) + '-' + Math.max(l.source, l.target);
-        edgePairCount.set(key, (edgePairCount.get(key) || 0) + 1);
-    }
-    simLinks.forEach((l, li) => {
-        const key = Math.min(l.source, l.target) + '-' + Math.max(l.source, l.target);
-        const idx = edgePairIndex.get(key) || 0;
-        edgePairIndex.set(key, idx + 1);
-        const total = edgePairCount.get(key) || 1;
-
-        const isActive = !hasSelection || highlightEdges.has(li);
-        const edgeAlpha = isActive ? 0.4 : 0.06;
-        const arrowAlpha = isActive ? 0.5 : 0.08;
-        const labelAlpha = isActive ? 1 : 0.15;
-
-        const s = simNodes[l.source], t = simNodes[l.target];
-        const dx = t.x - s.x, dy = t.y - s.y, dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-        // Perpendicular offset for parallel edges
-        const nx = -dy / dist, ny = dx / dist;
-        const curveAmount = total > 1 ? (idx - (total - 1) / 2) * 40 : 0;
-        const cpx = (s.x + t.x) / 2 + nx * curveAmount;
-        const cpy = (s.y + t.y) / 2 + ny * curveAmount;
-
-        // Draw curved edge
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        if (curveAmount !== 0) {
-            ctx.quadraticCurveTo(cpx, cpy, t.x, t.y);
-        } else {
-            ctx.lineTo(t.x, t.y);
-        }
-        ctx.strokeStyle = `rgba(148,163,184,${edgeAlpha})`; ctx.lineWidth = isActive ? Math.min(2.5, 1 + l.weight) : 1; ctx.stroke();
-
-        // Arrow
-        let arrowAngle: number;
-        if (curveAmount !== 0) {
-            arrowAngle = Math.atan2(t.y - cpy, t.x - cpx);
-        } else {
-            arrowAngle = Math.atan2(dy, dx);
-        }
-        const arrowLen = 10;
-        const ex = t.x - Math.cos(arrowAngle) * (t.radius + 3);
-        const ey = t.y - Math.sin(arrowAngle) * (t.radius + 3);
-        ctx.beginPath(); ctx.moveTo(ex, ey);
-        ctx.lineTo(ex - arrowLen * Math.cos(arrowAngle - 0.3), ey - arrowLen * Math.sin(arrowAngle - 0.3));
-        ctx.lineTo(ex - arrowLen * Math.cos(arrowAngle + 0.3), ey - arrowLen * Math.sin(arrowAngle + 0.3));
-        ctx.closePath(); ctx.fillStyle = `rgba(148,163,184,${arrowAlpha})`; ctx.fill();
-
-        // Label
-        const labelX = curveAmount !== 0 ? (s.x + 2 * cpx + t.x) / 4 : (s.x + t.x) / 2;
-        const labelY = curveAmount !== 0 ? (s.y + 2 * cpy + t.y) / 4 : (s.y + t.y) / 2;
-        ctx.globalAlpha = labelAlpha;
-        ctx.fillStyle = mutedColor;
-        ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-        const lbl = l.predicate.replace(/_/g, ' ');
-        ctx.fillText(lbl.length > 24 ? lbl.slice(0, 23) + '…' : lbl, labelX, labelY - 4);
-        ctx.globalAlpha = 1;
-    });
-
-    for (let ni = 0; ni < simNodes.length; ni++) {
-        const n = simNodes[ni];
-        const isActive = !hasSelection || highlightNodes.has(ni);
-        const isSelected = ni === sel;
-        const nodeAlpha = isActive ? 1 : 0.15;
-        const color = getRelEntityColor(n.type);
-
-        ctx.globalAlpha = nodeAlpha;
-
-        // Circle
-        ctx.shadowColor = isSelected ? color : 'rgba(0,0,0,0.2)';
-        ctx.shadowBlur = isSelected ? 16 : 8;
-        ctx.shadowOffsetY = isSelected ? 0 : 2;
-        ctx.beginPath(); ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-        ctx.fillStyle = color + 'cc'; ctx.fill();
-        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-        ctx.strokeStyle = isSelected ? '#ffffff' : color;
-        ctx.lineWidth = isSelected ? 3.5 : 2.5;
-        ctx.stroke();
-
-        // Name inside
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const maxWidth = n.radius * 1.6;
-        const fontSize = Math.max(8, Math.min(12, n.radius * 0.38));
-        ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
-
-        const words = n.name.split(/\s+/);
-        const lines: string[] = [];
-        let currentLine = '';
-        for (const word of words) {
-            const testLine = currentLine ? currentLine + ' ' + word : word;
-            if (ctx.measureText(testLine).width > maxWidth && currentLine) {
-                lines.push(currentLine);
-                currentLine = word;
-            } else {
-                currentLine = testLine;
-            }
-        }
-        if (currentLine) lines.push(currentLine);
-
-        const maxLines = Math.max(1, Math.floor(n.radius / (fontSize * 0.7)));
-        const displayLines = lines.slice(0, maxLines);
-        if (lines.length > maxLines) {
-            displayLines[maxLines - 1] = displayLines[maxLines - 1].slice(0, -1) + '…';
-        }
-
-        const lineHeight = fontSize * 1.2;
-        const startY = n.y - ((displayLines.length - 1) * lineHeight) / 2;
-        for (let i = 0; i < displayLines.length; i++) {
-            ctx.fillText(displayLines[i], n.x, startY + i * lineHeight);
-        }
-
-        ctx.globalAlpha = 1;
-    }
-
-    ctx.restore();
-};
-
-const resizeObserver = new ResizeObserver(() => {
-    if (canvasRef.value && relFilteredEntities.value.length > 0) drawFrame();
+// Graph canvas: pan/zoom, hit-testing, selection/focus and rendering live in
+// useGraphCanvas (interaction layer) + graphEngine (pure layout/drawing)
+const {
+    canvasRef,
+    zoom,
+    activeEntityIds,
+    buildGraph,
+    zoomIn,
+    zoomOut,
+    zoomToFit,
+    onWheel,
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
+    onMouseLeave,
+    onDblClick,
+    onKeyDown,
+    clearSelection,
+    observeCanvas,
+    dispose,
+} = useGraphCanvas({
+    getEntities: () => relFilteredEntities.value,
+    getRelationships: () => relFilteredRelationships.value,
+    getNodeColor: getRelEntityColor,
 });
 
 // ==================== WATCHERS ====================
@@ -1518,9 +1004,7 @@ watch(relSelectedProjectId, async (projectId) => {
 
 watch([relSelectedResourceId, relSelectedEntityType, relSelectedPredicate, checkedEntityIds], () => {
     // Clear graph selection/focus when filters change
-    selectedNodeIdx.value = null;
-    focusedNodeIdx.value = null;
-    activeEntityIds.value = null;
+    clearSelection();
     if (relViewMode.value === 'graph') nextTick(buildGraph);
 });
 
@@ -1551,8 +1035,7 @@ onMounted(async () => {
     // If project was pre-selected (from route query), load its name and resources
     if (projectFromRoute.value) {
         try {
-            const res = await apiClient.get(`/projects/${projectFromRoute.value}`);
-            projectName.value = res.data.name;
+            projectName.value = await fetchProjectName(projectFromRoute.value);
         } catch { /* ignore */ }
         await loadProjectResources(relSelectedProjectId.value);
     }
@@ -1560,16 +1043,13 @@ onMounted(async () => {
     // Load relationships (global or project-scoped)
     await refreshRelationships();
 
-    nextTick(() => {
-        if (canvasRef.value) resizeObserver.observe(canvasRef.value);
-    });
+    nextTick(observeCanvas);
 
     window.addEventListener('keydown', onKeyDown);
 });
 
 onBeforeUnmount(() => {
-    cancelAnimationFrame(animFrame);
-    resizeObserver.disconnect();
+    dispose();
     window.removeEventListener('keydown', onKeyDown);
 });
 </script>

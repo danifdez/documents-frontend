@@ -564,12 +564,16 @@ import { useDocument } from '../services/documents/useDocument';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import OfflineToggle from '../components/OfflineToggle.vue';
 import EditorContent from '../components/editor/EditorContent.vue';
-import axios from 'axios';
 import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useNotification } from '../composables/useNotification';
 import apiClient from '../services/api';
-import { useDragDrop } from '../composables/useDragDrop';
+import { useListEditor } from '../composables/useListEditor';
+import { useResourceSplitDrop } from '../composables/useResourceSplitDrop';
+import { useResourceToc } from '../composables/useResourceToc';
+import { useResourceDocs } from '../services/documents/useResourceDocs';
+import { useResourcePendingEntities } from '../services/entities/useResourcePendingEntities';
+import { useResourceDetails } from '../services/resources/useResourceDetails';
 import Properties from '../components/resources/Properties.vue';
 import Toolbar from '../components/resources/Toolbar.vue';
 import IconType from '../components/resources/IconType.vue';
@@ -606,6 +610,9 @@ const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
 const { loadResource, updateResource, error, isLoading } = useResource();
 const { saveDocument, loadDocument } = useDocument();
+const { fetchTranslatedContent, fetchEntities, fetchRawFileText, confirmExtraction, deleteResource } = useResourceDetails();
+const { fetchWorkspaceDocument, createDocument, appendToDocument } = useResourceDocs();
+const { fetchPendingEntities } = useResourcePendingEntities();
 const resource = ref<Record<string, any>>({});
 const projectStore = useProjectStore();
 const featureStore = useFeatureStore();
@@ -686,8 +693,10 @@ const savedSuccessfully = ref(false);
 
 // Overview edit state
 const editSummary = ref('');
-const editKeyPoints = ref<string[]>([]);
-const editKeywords = ref<string[]>([]);
+const keyPointsEditor = useListEditor();
+const editKeyPoints = keyPointsEditor.items;
+const keywordsEditor = useListEditor();
+const editKeywords = keywordsEditor.items;
 
 const isEditingName = ref(false);
 const editResourceName = ref('');
@@ -700,7 +709,6 @@ const showChat = ref(false);
 const extractedContent = ref<string | null>(null);
 const translatedContent = ref<string | null>(null);
 const summaryContent = ref<string | null>(null);
-const tocItems = ref<{ id: string; text: string; level: number }[]>([]);
 const defaultLanguage = ref<string>('en');
 const isConfirming = ref(false);
 const hasPendingEntities = ref(false);
@@ -742,28 +750,11 @@ const displayModeForEntities = computed<'extracted' | 'raw' | 'translated' | 'su
     return 'extracted';
 });
 
-const refreshTocFromChild = () => {
-    // HtmlContent exposes `toc` and `scrollToHeading`
-    try {
-        if (extractedContent.value && extractedContent.value.toc) {
-            tocItems.value = extractedContent.value.toc;
-        } else {
-            tocItems.value = [];
-        }
-    } catch (e) {
-        tocItems.value = [];
-    }
-};
-
-const scrollToHeadingFromSidebar = (id: string) => {
-    try {
-        if (extractedContent.value && typeof extractedContent.value.scrollToHeading === 'function') {
-            extractedContent.value.scrollToHeading(id);
-        }
-    } catch (e) {
-        console.error('Failed to scroll to heading', e);
-    }
-};
+const {
+    tocItems,
+    refreshToc: refreshTocFromChild,
+    scrollToHeading: scrollToHeadingFromSidebar,
+} = useResourceToc(extractedContent);
 
 
 const { isPdfFile, isHtmlFile, isImageFile, isVideoFile, isAudioFile } = useResourceIcon(computed(() => resource.value.mimeType));
@@ -773,11 +764,17 @@ const showRemoveResourceModal = ref(false);
 
 const {
     isDragOver,
-    handleDragOver,
-    handleDragEnter,
-    handleDragLeave,
-    handleDrop
-} = useDragDrop();
+    onDrop,
+    onDragOver,
+    onDragEnter,
+    onDragLeave,
+} = useResourceSplitDrop({
+    resourceId,
+    splitDocument,
+    splitResource,
+    splitViewActive,
+    loadDocument,
+});
 
 const breadcrumbItems = computed(() => {
     const items = [];
@@ -862,10 +859,7 @@ const loadRawHtmlContent = async () => {
     if (!isHtmlFile.value) return;
 
     try {
-        const response = await axios.get(`${apiBaseUrl}/resources/${resourceId.value}/download`, {
-            responseType: 'text'
-        });
-        rawHtmlContent.value = response.data;
+        rawHtmlContent.value = await fetchRawFileText(resourceId.value);
     } catch (err) {
         rawHtmlContent.value = 'Error loading raw HTML content';
     }
@@ -889,8 +883,7 @@ const loadResourceDetails = async () => {
 
         // Fetch translated content from the new backend endpoint if available
         try {
-            const translatedRes = await apiClient.get(`/resources/${resourceId.value}/translated-content`);
-            const translatedPayload = translatedRes?.data || {};
+            const translatedPayload = await fetchTranslatedContent(resourceId.value);
             resource.value.translatedContent = translatedPayload.translatedContent ?? resource.value.translatedContent ?? null;
         } catch (e) {
             // Ignore not found or other errors retrieving translated content — it's optional
@@ -899,36 +892,9 @@ const loadResourceDetails = async () => {
             }
             resource.value.translatedContent = resource.value.translatedContent ?? null;
         }
-        // Load related entities from the new endpoint and normalize results
+        // Load related entities from the new endpoint (row normalization lives in the service)
         try {
-            const entitiesRes = await apiClient.get(`/resources/${resourceId.value}/entities`);
-            const entitiesData = entitiesRes.data || [];
-            // If backend returned raw rows (getRawMany), normalize keys to id/name/type
-            resource.value.entities = entitiesData.map((row: Record<string, any>) => {
-                // raw row from getRawMany may be like { entity_id: 1, entity_name: 'Name', entity_type: 'Type' }
-                if (row.entity_id || row.entity_name) {
-                    return {
-                        id: row.entity_id ?? row.id,
-                        name: row.entity_name ?? row.name,
-                        description: row.entity_description ?? row.description ?? null,
-                        type: row.entity_type ?? row.type,
-                    };
-                }
-
-                // If backend returned full EntityEntity objects with entityType relation
-                if (row.entityType) {
-                    return {
-                        id: row.id,
-                        name: row.name,
-                        description: row.description ?? null,
-                        type: row.entityType?.name ?? null,
-                        translations: row.translations,
-                        aliases: row.aliases,
-                    };
-                }
-
-                return row;
-            });
+            resource.value.entities = await fetchEntities(resourceId.value);
         } catch (e) {
             resource.value.entities = resource.value.entities || [];
         }
@@ -1079,7 +1045,7 @@ const handleDocumentNameChange = async () => {
 
 const removeResource = async () => {
     try {
-        await apiClient.delete(`/resources/${resourceId.value}`);
+        await deleteResource(resourceId.value);
         notification.success('Resource removed successfully');
 
         if (resource.value?.project?.id) {
@@ -1105,72 +1071,6 @@ const handleRemoveResourceConfirm = () => {
 
 const handleRemoveResourceCancel = () => {
     showRemoveResourceModal.value = false;
-};
-
-const onDrop = async (event: DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const droppedData = handleDrop(event);
-
-    if (droppedData && droppedData.type === 'document') {
-        try {
-            const document = droppedData.document;
-            if (document && document.id) {
-                const fullDocument = await loadDocument(document.id);
-                splitResource.value = null;
-                splitDocument.value = fullDocument;
-                splitViewActive.value = true;
-            }
-        } catch (error) {
-            notification.error('Failed to load document');
-        }
-    } else if (droppedData && droppedData.type === 'resource') {
-        try {
-            const droppedResource = droppedData.resource;
-            if (droppedResource && droppedResource.id && String(droppedResource.id) !== String(resourceId.value)) {
-                const { loadResource: loadSplitResource } = useResource();
-                const fullResource = await loadSplitResource(String(droppedResource.id));
-                splitDocument.value = null;
-                splitResource.value = fullResource;
-                splitViewActive.value = true;
-            }
-        } catch (error) {
-            notification.error('Failed to load resource');
-        }
-    } else {
-        const dataTransfer = event.dataTransfer;
-        const files = dataTransfer?.files;
-
-        if (files && files.length > 0) {
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-            }
-        } else {
-            const url = dataTransfer?.getData('text/uri-list') || dataTransfer?.getData('text/plain');
-            if (url) {
-                notification.info(`Link dropped: ${url}`);
-            }
-        }
-    }
-};
-
-const onDragOver = (event: DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    handleDragOver(event);
-};
-
-const onDragEnter = (event: DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    handleDragEnter(event);
-};
-
-const onDragLeave = (event: DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    handleDragLeave(event);
 };
 
 const startEdit = () => {
@@ -1281,34 +1181,15 @@ const cancelEdit = () => {
     savedSuccessfully.value = false;
 };
 
-// Helper functions for editing key points
-const addKeyPoint = () => {
-    editKeyPoints.value.push('');
-};
+// Key point list operations delegate to useListEditor. addKeyPoint keeps a
+// wrapper because the template click binding would pass the event as the value.
+const addKeyPoint = () => keyPointsEditor.addItem();
+const removeKeyPoint = keyPointsEditor.removeItem;
+const moveKeyPointUp = keyPointsEditor.moveUp;
+const moveKeyPointDown = keyPointsEditor.moveDown;
 
-const removeKeyPoint = (index: number) => {
-    editKeyPoints.value.splice(index, 1);
-};
-
-const moveKeyPointUp = (index: number) => {
-    if (index > 0) {
-        const temp = editKeyPoints.value[index];
-        editKeyPoints.value[index] = editKeyPoints.value[index - 1];
-        editKeyPoints.value[index - 1] = temp;
-    }
-};
-
-const moveKeyPointDown = (index: number) => {
-    if (index < editKeyPoints.value.length - 1) {
-        const temp = editKeyPoints.value[index];
-        editKeyPoints.value[index] = editKeyPoints.value[index + 1];
-        editKeyPoints.value[index + 1] = temp;
-    }
-};
-
-// Helper functions for editing keywords
 const addKeyword = () => {
-    editKeywords.value.push('');
+    keywordsEditor.addItem();
     // Focus on the newly added keyword input
     setTimeout(() => {
         const inputs = document.querySelectorAll('.keyword-input');
@@ -1318,10 +1199,10 @@ const addKeyword = () => {
     }, 0);
 };
 
-const removeKeyword = (index: number) => {
-    editKeywords.value.splice(index, 1);
-};
+const removeKeyword = keywordsEditor.removeItem;
 
+// Kept inline instead of useListEditor.handleBackspace: the original checks the
+// DOM input value (not the model) and moves focus to the previous chip.
 const handleKeywordBackspace = (index: number, event: KeyboardEvent) => {
     const input = event.target as HTMLInputElement;
     // If the input is empty and backspace is pressed, remove the keyword
@@ -1557,7 +1438,7 @@ const confirmResourceExtraction = async () => {
     isConfirming.value = true;
 
     try {
-        await apiClient.post(`/resources/${resourceId.value}/confirm`);
+        await confirmExtraction(resourceId.value);
         notification.success('Resource confirmed successfully. Language detection job created.');
 
         // Update local state
@@ -1580,8 +1461,8 @@ const confirmResourceExtraction = async () => {
 
 const checkPendingEntities = async () => {
     try {
-        const response = await apiClient.get(`/pending-entities/resource/${resourceId.value}`);
-        hasPendingEntities.value = resource.value.status === 'entities' || (response.data && response.data.count > 0);
+        const data = await fetchPendingEntities(resourceId.value);
+        hasPendingEntities.value = resource.value.status === 'entities' || (data && data.count > 0);
     } catch (error) {
         console.warn('Failed to check pending entities:', error);
         hasPendingEntities.value = false;
@@ -1599,8 +1480,7 @@ const loadWorkspaceDocument = async () => {
 
     isLoadingWorkspace.value = true;
     try {
-        const response = await apiClient.get(`/docs/resource/${resourceId.value}`);
-        workspaceDocument.value = response.data;
+        workspaceDocument.value = await fetchWorkspaceDocument(resourceId.value);
     } catch (error: unknown) {
         if ((error as any)?.response?.status !== 404) {
             console.error('Error loading workspace document:', error);
@@ -1619,14 +1499,12 @@ const handleCreateWorkspace = async () => {
     }
 
     try {
-        const newDoc = await apiClient.post('/docs', {
+        workspaceDocument.value = await createDocument({
             name: `${resource.value.name} - Workspace`,
             content: '',
             resource: { id: Number(resourceId.value) },
             project: resource.value.project ? { id: resource.value.project.id } : null,
         });
-
-        workspaceDocument.value = newDoc.data;
         notification.success('Workspace created successfully');
 
         // Switch to workspace view
@@ -1727,10 +1605,8 @@ const handleSendToDoc = (text: string) => {
 const handleSendToExistingDoc = async (docId: number) => {
     showSendToDocModal.value = false;
     try {
-        const doc = await apiClient.get(`/docs/${docId}`);
-        const existing = doc.data.content || '';
         const paragraph = `<p>${escapeHtml(sendToDocText.value)}</p>`;
-        await apiClient.patch(`/docs/${docId}`, { content: existing + paragraph });
+        await appendToDocument(docId, paragraph);
         notification.success('Selection added to document');
     } catch (error) {
         console.error('Failed to send selection to document', error);
@@ -1743,12 +1619,12 @@ const handleCreateNewDocFromSelection = async () => {
     try {
         const projectId = resource.value?.project?.id || projectStore.currentProject?.id;
         const paragraph = `<p>${escapeHtml(sendToDocText.value)}</p>`;
-        const newDoc = await apiClient.post('/docs', {
+        const newDoc = await createDocument({
             name: `Selection from ${resource.value.name || 'Resource'}`,
             content: paragraph,
             project: projectId ? { id: projectId } : null,
         });
-        router.push(`/document/${newDoc.data.id}`);
+        router.push(`/document/${newDoc.id}`);
     } catch (error) {
         console.error('Failed to create document from selection', error);
         notification.error('Failed to create document');
@@ -1781,14 +1657,12 @@ const handleSummarizeSelection = async (text: string) => {
     try {
         // Ensure workspace exists
         if (!workspaceDocument.value) {
-            // create workspace document
-            const newDoc = await apiClient.post('/docs', {
+            workspaceDocument.value = await createDocument({
                 name: `${resource.value.name} - Workspace`,
                 content: '',
                 resource: { id: Number(resourceId.value) },
                 project: resource.value.project ? { id: resource.value.project.id } : null,
             });
-            workspaceDocument.value = newDoc.data;
             notification.success('Workspace created to receive summary');
         }
 

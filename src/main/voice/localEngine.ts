@@ -29,6 +29,7 @@ import { spawn } from 'node:child_process';
 import type { WebContents } from 'electron';
 import type { LocalModelProgress, LocalVoicePartial, StartLocalResult } from './types';
 import { ensureModelDownloaded, isModelReady, modelPath } from './modelManager';
+import { IpcEvents } from '../../ipc/channels';
 
 // Lazy bindings: we load `smart-whisper` and `ffmpeg-static` via lazy
 // `require` so that (1) a native compilation failure does not prevent the
@@ -276,17 +277,17 @@ class LocalEngine extends EventEmitter {
 
   private emitPartial(sessionId: string, p: LocalVoicePartial) {
     if (!this.renderer || this.renderer.isDestroyed()) return;
-    this.renderer.send('voice:local:partial', { sessionId, ...p });
+    this.renderer.send(IpcEvents.voice.partial, { sessionId, ...p });
   }
 
   private emitError(sessionId: string, message: string) {
     if (!this.renderer || this.renderer.isDestroyed()) return;
-    this.renderer.send('voice:local:error', { sessionId, message });
+    this.renderer.send(IpcEvents.voice.error, { sessionId, message });
   }
 
   private emitProgress(p: LocalModelProgress) {
     if (!this.renderer || this.renderer.isDestroyed()) return;
-    this.renderer.send('voice:local:loading-progress', p);
+    this.renderer.send(IpcEvents.voice.loadingProgress, p);
   }
 }
 

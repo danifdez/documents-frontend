@@ -536,10 +536,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import PageHeader from '../components/ui/PageHeader.vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
-import apiClient from '../services/api';
+import { useElectronApi } from '../composables/useElectronApi';
+import { useStandaloneManager, type ServiceKey } from '../composables/useStandaloneManager';
+import { useExport } from '../services/export/useExport';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useAuthStore } from '../store/authStore';
 import { useProjectStore } from '../store/projectStore';
@@ -551,6 +553,7 @@ import { isLocalEngineAvailable } from '../services/voice/availability';
 import type { Workspace } from '../types/Workspace';
 
 const { setTheme } = useTheme();
+const { isElectron, getSettings, setSettings } = useElectronApi();
 const voiceLocalAvailable = isLocalEngineAvailable();
 const workspaceStore = useWorkspaceStore();
 const authStore = useAuthStore();
@@ -599,15 +602,30 @@ async function deleteWorkspace(id: string) {
     await workspaceStore.removeWorkspace(id);
 }
 
-// ── Local server install state ──
-const standaloneInstalled = ref({ backend: false, postgres: false, models: false });
-const standaloneDownloading = ref(false);
-const standaloneDownloadError = ref('');
-const downloadProgress = ref({ component: '', downloaded: 0, total: 0, percent: 0 });
-const gpuInfo = ref<{ available: boolean; name: string | null; cuda: boolean } | null>(null);
-const standaloneFullyInstalled = computed(() =>
-    standaloneInstalled.value.backend && standaloneInstalled.value.postgres
-);
+// ── Local server (standalone) lifecycle ──
+const {
+    standaloneInstalled,
+    standaloneDownloading,
+    standaloneDownloadError,
+    downloadProgress,
+    gpuInfo,
+    forceCpu,
+    modelsSize,
+    standaloneFullyInstalled,
+    serviceStatus,
+    serviceErrors,
+    hardwareReport,
+    hardwareSummary,
+    startStatusPolling,
+    stopStatusPolling,
+    loadStandaloneStatus,
+    loadHardwareReport,
+    installStandalone,
+    uninstallStandalone,
+    installModels,
+    uninstallModels,
+    subscribeDownloadProgress,
+} = useStandaloneManager();
 
 const coreServices = [
     { key: 'backend' as const, label: 'Backend (NestJS)', size: '~50 MB' },
@@ -615,16 +633,11 @@ const coreServices = [
 ];
 
 // ── Live service status (observability, shown once standalone is installed) ──
-type ServiceKey = 'postgres' | 'backend' | 'models';
 const serviceStatusList: { key: ServiceKey; label: string }[] = [
     { key: 'postgres', label: 'PostgreSQL' },
     { key: 'backend', label: 'Backend (NestJS)' },
     { key: 'models', label: 'Models Service' },
 ];
-const serviceStatus = ref<Record<ServiceKey, string>>({
-    postgres: 'stopped', backend: 'stopped', models: 'not_installed',
-});
-const serviceErrors = ref<Partial<Record<ServiceKey, string>>>({});
 
 function statusDotClass(state: string): string {
     if (state === 'running') return 'bg-green-500';
@@ -642,22 +655,6 @@ function statusTextClass(state: string): string {
     return 'text-text-muted';
 }
 
-async function refreshServiceStatus() {
-    if (!window.electronAPI?.standaloneStatus) return;
-    const res = await window.electronAPI.standaloneStatus();
-    serviceStatus.value = res.services as Record<ServiceKey, string>;
-    serviceErrors.value = (res.errors ?? {}) as Partial<Record<ServiceKey, string>>;
-}
-
-let statusPollTimer: ReturnType<typeof setInterval> | null = null;
-function startStatusPolling() {
-    if (statusPollTimer) return;
-    refreshServiceStatus();
-    statusPollTimer = setInterval(refreshServiceStatus, 3000);
-}
-function stopStatusPolling() {
-    if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
-}
 // Poll only while the Server tab is open and the local server is installed.
 watch(
     [activeTab, standaloneFullyInstalled],
@@ -667,85 +664,6 @@ watch(
     },
     { immediate: true },
 );
-onUnmounted(stopStatusPolling);
-
-// ── Hardware report (gates the install offer when not yet installed) ──
-interface HardwareReport {
-    hardware: { cpuModel: string; cpuCores: number; ramGB: number; freeDiskGB: number | null; gpu: { name: string | null; vramGB: number } };
-    canInstall: boolean;
-    blockReason: string;
-    install: { status: 'yes' | 'slow' | 'no'; reason: string; downloadGB: number; components: string[]; bundle: string };
-}
-const hardwareReport = ref<HardwareReport | null>(null);
-const hardwareSummary = computed(() => {
-    const h = hardwareReport.value?.hardware;
-    if (!h) return '';
-    const parts = [`${h.ramGB} GB RAM`, `${h.cpuCores} cores`];
-    if (h.gpu?.name) parts.push(`${h.gpu.name} (${h.gpu.vramGB} GB)`);
-    if (h.freeDiskGB !== null) parts.push(`${h.freeDiskGB} GB free`);
-    return parts.join(' · ');
-});
-
-async function loadHardwareReport() {
-    if (window.electronAPI?.standaloneHardwareReport) {
-        hardwareReport.value = await window.electronAPI.standaloneHardwareReport();
-    }
-}
-
-async function loadStandaloneStatus() {
-    if (window.electronAPI?.standaloneCheckInstalled) {
-        standaloneInstalled.value = await window.electronAPI.standaloneCheckInstalled();
-    }
-    if (window.electronAPI?.standaloneDetectGpu) {
-        gpuInfo.value = await window.electronAPI.standaloneDetectGpu();
-    }
-}
-
-async function installStandalone() {
-    standaloneDownloading.value = true;
-    standaloneDownloadError.value = '';
-    const result = await window.electronAPI.standaloneDownloadAll();
-    standaloneDownloading.value = false;
-    if (!result.success) {
-        standaloneDownloadError.value = result.error || 'Download failed';
-    }
-    await loadStandaloneStatus();
-}
-
-async function uninstallStandalone() {
-    await window.electronAPI.standaloneStop();
-    await window.electronAPI.standaloneUninstallServices();
-    await loadStandaloneStatus();
-}
-
-const forceCpu = ref(false);
-const modelsSize = computed(() => {
-    if (gpuInfo.value?.cuda && !forceCpu.value) return '~3-5 GB (GPU)';
-    return '~1.5-2 GB (CPU)';
-});
-
-async function installModels() {
-    standaloneDownloading.value = true;
-    standaloneDownloadError.value = '';
-    // Auto-detect: use GPU if CUDA available and user hasn't forced CPU
-    const variant = (gpuInfo.value?.cuda && !forceCpu.value) ? 'models-gpu' : 'models-cpu';
-    // Downloads the service bundle AND runs --setup to download ML models
-    const result = await window.electronAPI.standaloneInstallModels(variant);
-    standaloneDownloading.value = false;
-    if (!result.success) {
-        standaloneDownloadError.value = result.error || 'Installation failed';
-    }
-    await loadStandaloneStatus();
-}
-
-async function uninstallModels() {
-    await window.electronAPI.standaloneUninstallModels();
-    await loadStandaloneStatus();
-}
-
-function onDownloadProgress(progress: { component: string; downloaded: number; total: number; percent: number }) {
-    downloadProgress.value = progress;
-}
 
 const fontSizes = [12, 14, 16, 18, 20, 22, 24];
 const fontFamilies = [
@@ -791,40 +709,36 @@ const trayAvailable = ref(true);
 // Export state
 const exportScope = ref<'all' | 'selected'>('all');
 const selectedProjectIds = ref<number[]>([]);
-const availableProjects = ref<{ id: number; name: string; description?: string }[]>([]);
-const exporting = ref(false);
-const exportError = ref('');
-const exportSuccess = ref(false);
+const { availableProjects, exporting, exportError, exportSuccess, loadProjects, exportProjects } = useExport();
 
 const loadSettings = async () => {
-    if (window.electronAPI && window.electronAPI.getSettings) {
-        const settings = await window.electronAPI.getSettings();
-        if (settings) {
-            fontSize.value = settings.fontSize || 16;
-            fontFamily.value = settings.fontFamily || 'sans-serif';
-            paragraphSpacing.value = settings.paragraphSpacing || 1.5;
-            language.value = settings.language || 'en';
-            theme.value = (settings.theme as ThemeMode) || 'system';
-            closeBehavior.value = settings.closeBehavior === 'quit' ? 'quit' : 'tray';
-            launchAtLogin.value = !!settings.launchAtLogin;
-            toggleShortcut.value = settings.toggleShortcut ?? null;
-            hideDockIcon.value = !!settings.hideDockIcon;
-            preloadVoiceModel.value = !!settings.preloadVoiceModel;
-        }
+    const settings = await getSettings();
+    if (settings) {
+        fontSize.value = settings.fontSize || 16;
+        fontFamily.value = settings.fontFamily || 'sans-serif';
+        paragraphSpacing.value = settings.paragraphSpacing || 1.5;
+        language.value = settings.language || 'en';
+        theme.value = (settings.theme as ThemeMode) || 'system';
+        closeBehavior.value = settings.closeBehavior === 'quit' ? 'quit' : 'tray';
+        launchAtLogin.value = !!settings.launchAtLogin;
+        toggleShortcut.value = settings.toggleShortcut ?? null;
+        hideDockIcon.value = !!settings.hideDockIcon;
+        preloadVoiceModel.value = !!settings.preloadVoiceModel;
     }
 };
 
+// getPlatform/getTrayAvailable are not wrapped by useElectronApi, so this is
+// the one place that still reads window.electronAPI directly (typed, guarded).
 async function loadAppRuntimeInfo() {
-    const api: any = window.electronAPI;
-    if (api?.getPlatform) {
+    if (window.electronAPI?.getPlatform) {
         try {
-            const p = (await api.getPlatform()) as string;
+            const p = await window.electronAPI.getPlatform();
             platform.value = (p === 'darwin' || p === 'win32' || p === 'linux') ? p : 'other';
         } catch { /* keep default */ }
     }
-    if (api?.getTrayAvailable) {
+    if (window.electronAPI?.getTrayAvailable) {
         try {
-            trayAvailable.value = !!(await api.getTrayAvailable());
+            trayAvailable.value = !!(await window.electronAPI.getTrayAvailable());
         } catch { /* keep default */ }
     }
 }
@@ -847,15 +761,15 @@ function currentSettingsPayload() {
 }
 
 const saveSettings = () => {
-    if (window.electronAPI && window.electronAPI.setSettings) {
+    if (isElectron) {
         setTheme(theme.value);
-        window.electronAPI.setSettings(currentSettingsPayload());
+        setSettings(currentSettingsPayload());
     }
 };
 
 async function saveAppSettings() {
-    if (!window.electronAPI?.setSettings) return;
-    const result: any = await window.electronAPI.setSettings(currentSettingsPayload());
+    if (!isElectron) return;
+    const result = await setSettings(currentSettingsPayload());
     if (result && typeof result === 'object' && result.shortcutOk === false) {
         shortcutError.value = 'Shortcut is already in use by another application.';
     } else {
@@ -906,50 +820,8 @@ function clearShortcut() {
     void saveAppSettings();
 }
 
-const loadProjects = async () => {
-    try {
-        const { data } = await apiClient.get('/export/projects');
-        availableProjects.value = data;
-    } catch {
-        availableProjects.value = [];
-    }
-};
-
-const startExport = async () => {
-    exporting.value = true;
-    exportError.value = '';
-    exportSuccess.value = false;
-
-    try {
-        const response = await apiClient.post('/export', {
-            projectIds: exportScope.value === 'all' ? [] : selectedProjectIds.value,
-        }, {
-            responseType: 'blob',
-        });
-
-        const contentDisposition = response.headers['content-disposition'];
-        let filename = 'export.zip';
-        if (contentDisposition) {
-            const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
-            if (match) filename = match[1];
-        }
-
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        exportSuccess.value = true;
-    } catch (err: any) {
-        exportError.value = err?.response?.data?.message || 'Failed to export. Please try again.';
-    } finally {
-        exporting.value = false;
-    }
-};
+const startExport = () =>
+    exportProjects(exportScope.value === 'all' ? [] : selectedProjectIds.value);
 
 onMounted(() => {
     loadSettings();
@@ -957,8 +829,6 @@ onMounted(() => {
     loadProjects();
     loadStandaloneStatus();
     loadHardwareReport();
-    if (window.electronAPI?.onStandaloneDownloadProgress) {
-        window.electronAPI.onStandaloneDownloadProgress(onDownloadProgress);
-    }
+    subscribeDownloadProgress();
 });
 </script>

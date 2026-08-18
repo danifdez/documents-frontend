@@ -17,7 +17,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue';
-import apiClient from '../../services/api';
+import { useUserAvatar } from '../../services/users/useUserAvatar';
+
+const { fetchUserAvatar } = useUserAvatar();
 
 interface Props {
   userId?: number | null;
@@ -65,10 +67,8 @@ async function loadAvatar() {
   }
 
   try {
-    const { data } = await apiClient.get(`/users/${props.userId}/avatar`, {
-      responseType: 'blob',
-    });
-    imageUrl.value = URL.createObjectURL(data);
+    const blob = await fetchUserAvatar(props.userId);
+    imageUrl.value = URL.createObjectURL(blob);
   } catch {
     imageUrl.value = null;
   }

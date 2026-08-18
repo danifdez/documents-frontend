@@ -62,10 +62,11 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import apiClient from '../../services/api';
+import { useDatasets } from '../../services/datasets/useDatasets';
 import Button from '../ui/Button.vue';
 
 const modelValue = defineModel<boolean>({ required: true });
+const { getAllDatasets, getSavedCharts } = useDatasets();
 
 const emit = defineEmits<{
     insert: [config: {
@@ -99,8 +100,7 @@ watch(modelValue, async (open) => {
         selectedChartId.value = 0;
         charts.value = [];
         try {
-            const response = await apiClient.get('/datasets');
-            datasets.value = response.data;
+            datasets.value = await getAllDatasets();
         } catch { /* ignore */ }
     }
 });
@@ -112,8 +112,7 @@ watch(selectedDatasetId, async (dsId) => {
 
     loadingCharts.value = true;
     try {
-        const response = await apiClient.get(`/datasets/${dsId}/charts`);
-        charts.value = response.data;
+        charts.value = await getSavedCharts(dsId);
     } catch { /* ignore */ }
     finally {
         loadingCharts.value = false;

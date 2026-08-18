@@ -1,5 +1,3 @@
-import { onUnmounted } from 'vue';
-
 export function useAutoSave(saveFn: () => void | Promise<void>, debounceMs: number = 800) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -25,7 +23,7 @@ export function useAutoSave(saveFn: () => void | Promise<void>, debounceMs: numb
     }
   }
 
-  onUnmounted(() => cancel());
-
+  // Pending saves intentionally survive unmount: callers rely on the last
+  // debounced save still firing after navigation.
   return { trigger, flush, cancel };
 }

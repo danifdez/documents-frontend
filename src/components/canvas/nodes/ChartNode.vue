@@ -55,12 +55,13 @@ import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
 import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 import { Chart, registerables } from 'chart.js';
-import apiClient from '../../../services/api';
+import { useDatasets } from '../../../services/datasets/useDatasets';
 
 Chart.register(...registerables);
 
 defineProps<{ id: string; data: Record<string, any>; selected: boolean }>();
 const { node } = useNode();
+const { getSavedCharts, requestStats, getStatsResult } = useDatasets();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -75,8 +76,8 @@ const loadChart = async () => {
   error.value = null;
 
   try {
-    const chartRes = await apiClient.get(`/datasets/${node.data.datasetId}/charts`);
-    const savedChart = chartRes.data.find((c: any) => c.id === node.data.chartId);
+    const charts = await getSavedCharts(node.data.datasetId);
+    const savedChart = charts.find((c: any) => c.id === node.data.chartId);
 
     if (!savedChart) {
       error.value = 'Chart not found';
@@ -84,21 +85,16 @@ const loadChart = async () => {
       return;
     }
 
-    const statsRes = await apiClient.post(`/datasets/${node.data.datasetId}/stats`, {
-      operation: 'chart',
-      params: savedChart.config,
-    });
-
-    const jobId = statsRes.data.jobId;
+    const { jobId } = await requestStats(node.data.datasetId, 'chart', savedChart.config);
 
     const result = await new Promise<any>((resolve, reject) => {
       const timer = setInterval(async () => {
         try {
-          const res = await apiClient.get(`/datasets/${node.data.datasetId}/stats/${jobId}`);
-          if (res.data.status === 'completed' || res.data.status === 'processed') {
+          const res = await getStatsResult(node.data.datasetId, jobId);
+          if (res.status === 'completed' || res.status === 'processed') {
             clearInterval(timer);
-            resolve(res.data.result);
-          } else if (res.data.status === 'failed') {
+            resolve(res.result);
+          } else if (res.status === 'failed') {
             clearInterval(timer);
             reject(new Error('Chart generation failed'));
           }

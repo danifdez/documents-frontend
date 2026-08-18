@@ -15,7 +15,8 @@ interface Selection {
  */
 export function useEditorAnnotations(
   editor: { value: any },
-  emit: (event: string, ...args: any[]) => void,
+  emit: (event: any, ...args: any[]) => void,
+  props: { context?: string },
 ) {
   const route = useRoute();
 
@@ -30,7 +31,7 @@ export function useEditorAnnotations(
   const showMarkModal = ref(false);
   const selectedMarkText = ref('');
   const markContentMap = ref(new Map<string, string>());
-  const { createMark } = useMarkCreate();
+  const { createMark, isLoading: isMarkLoading } = useMarkCreate();
   const { loadMarks } = useMarks();
 
   // Comment handlers
@@ -49,7 +50,8 @@ export function useEditorAnnotations(
     try {
       if (!commentText.trim() || !route.params.id || route.params.id === 'new') return;
 
-      const newComment = await createComment(route.params.id as string, commentText, 'doc');
+      const entityType = props.context === 'resource' ? 'resource' : 'doc';
+      const newComment = await createComment(String(route.params.id), commentText, entityType);
 
       if (editor.value && currentSelection.value) {
         const { from, to } = currentSelection.value;
@@ -84,7 +86,8 @@ export function useEditorAnnotations(
     try {
       if (!route.params.id || route.params.id === 'new') return;
 
-      const newMark = await createMark(route.params.id as string, selectedMarkText.value, 'doc');
+      const entityType = props.context === 'resource' ? 'resource' : 'doc';
+      const newMark = await createMark(route.params.id as string, selectedMarkText.value, entityType);
 
       if (editor.value && currentSelection.value) {
         const { from, to } = currentSelection.value;
@@ -116,7 +119,10 @@ export function useEditorAnnotations(
           setTimeout(() => {
             loadedMarks.forEach((mark: Record<string, any>) => {
               try {
-                if (!mark.content || !mark.id) return;
+                if (!mark.content || !mark.id) {
+                  console.warn('Invalid mark data:', mark);
+                  return;
+                }
                 const content = editor.value.state.doc.textContent;
                 const position = content.indexOf(mark.content);
                 if (position !== -1) {
@@ -125,6 +131,8 @@ export function useEditorAnnotations(
                     to: position + mark.content.length,
                   });
                   editor.value.commands.setTextMark(mark.id);
+                } else {
+                  console.warn(`Mark content not found in document: ${mark.content}`);
                 }
               } catch (err) {
                 console.error(`Error applying mark ${mark.id}:`, err);
@@ -151,6 +159,7 @@ export function useEditorAnnotations(
     // Mark
     showMarkModal,
     selectedMarkText,
+    isMarkLoading,
     markContentMap,
     handleAddMarkRequest,
     saveMark,

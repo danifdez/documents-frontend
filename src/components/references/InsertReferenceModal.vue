@@ -57,7 +57,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import Modal from '../ui/Modal/Modal.vue';
-import apiClient from '../../services/api';
+import { useReferences } from '../../services/references/useReferences';
 import type { BibliographyEntry, ZoteroCreator } from '../../types/Bibliography';
 import { formatInlineCitation, type CitationStyle } from '../../services/citations/citationFormatter';
 
@@ -106,6 +106,8 @@ const visibleTabs = computed(() => {
     return tabs;
 });
 
+const { searchReferences } = useReferences();
+
 const activeTab = ref<TabValue>('all');
 const searchQuery = ref('');
 const apiResults = ref<SearchResult[]>([]);
@@ -151,13 +153,7 @@ const doSearch = async () => {
     isSearching.value = true;
     try {
         const typeParam = activeTab.value === 'all' ? '' : activeTab.value;
-        const response = await apiClient.get('/reference/search', {
-            params: {
-                q: searchQuery.value,
-                ...(typeParam ? { type: typeParam } : {}),
-            },
-        });
-        apiResults.value = response.data;
+        apiResults.value = await searchReferences(searchQuery.value, typeParam);
     } catch {
         apiResults.value = [];
     } finally {

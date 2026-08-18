@@ -121,11 +121,12 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import apiClient from '../services/api';
+import { useSearch } from '../services/search/useSearch';
 import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 
 const featureStore = useFeatureStore();
+const { search } = useSearch();
 
 const props = defineProps({
     show: {
@@ -223,12 +224,7 @@ async function performSearch() {
     if (!term.value) return;
     loading.value = true;
     try {
-        const payload: any = { term: term.value };
-        if (projectStore.currentProject) {
-            payload.projectId = projectStore.currentProject.id;
-        }
-        const res = await apiClient.post('/search', payload);
-        results.value = res.data;
+        results.value = await search(term.value, projectStore.currentProject?.id);
     } catch (e) {
         results.value = [];
     } finally {

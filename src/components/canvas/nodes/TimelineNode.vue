@@ -53,10 +53,11 @@ import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
 import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
-import apiClient from '../../../services/api';
+import { useTimelines } from '../../../services/timelines/useTimelines';
 
 defineProps<{ id: string; data: Record<string, any>; selected: boolean }>();
 const { node } = useNode();
+const { loadTimeline: fetchTimeline } = useTimelines();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -104,10 +105,10 @@ const loadTimeline = async () => {
   error.value = null;
 
   try {
-    const res = await apiClient.get(`/timelines/${node.data.timelineId}`);
-    events.value = res.data.timelineData || [];
-    epochs.value = res.data.epochs || [];
-    node.data.timelineName = res.data.name;
+    const timeline = await fetchTimeline(node.data.timelineId);
+    events.value = timeline.timelineData || [];
+    epochs.value = timeline.epochs || [];
+    node.data.timelineName = timeline.name;
     renderImage();
   } catch (err: any) {
     error.value = err.message || 'Failed to load timeline';

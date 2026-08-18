@@ -49,9 +49,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import Button from '../ui/Button.vue';
-import apiClient from '../../services/api';
+import { useEntities } from '../../services/entities/useEntities';
 
 const modelValue = defineModel<boolean>({ required: true });
+const { getAllEntities } = useEntities();
 
 const emit = defineEmits<{
     insert: [config: { entityId: number; entityName: string; entityType: string }];
@@ -86,8 +87,7 @@ watch(modelValue, async (open) => {
         entities.value = [];
         loading.value = true;
         try {
-            const res = await apiClient.get('/entities');
-            entities.value = res.data;
+            entities.value = await getAllEntities();
         } catch { /* ignore */ }
         finally { loading.value = false; }
     }

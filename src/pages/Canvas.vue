@@ -469,6 +469,7 @@ import type { CanvasData } from '../types/canvas';
 import DatasetChartConfigModal from '../components/editor/DatasetChartConfigModal.vue';
 import TimelinePickerModal from '../components/canvas/TimelinePickerModal.vue';
 import EntityPickerModal from '../components/canvas/EntityPickerModal.vue';
+import { useAutoSave } from '../composables/useAutoSave';
 
 const route = useRoute();
 const router = useRouter();
@@ -489,7 +490,6 @@ const canvasData = ref<Record<string, any>>({
 const thread = ref(null);
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
-const saveTimeout = ref(null);
 const showRemoveModal = ref(false);
 const pendingTool = ref<{ type: string; data: Record<string, any> } | null>(null);
 
@@ -805,36 +805,37 @@ onMounted(async () => {
   }
 });
 
+let pendingCanvasData: CanvasData;
+
+const autoSave = useAutoSave(async () => {
+  try {
+    if (isNewCanvas.value) {
+      const created = await createCanvas(canvasData.value);
+      canvasData.value.id = created.id;
+      router.replace(`/canvas/${created.id}`);
+    } else {
+      await saveCanvas(canvasData.value.id, { canvasData: pendingCanvasData });
+    }
+    savedSuccessfully.value = true;
+  } catch (error) {
+    console.error('Error saving canvas:', error);
+  } finally {
+    isSaving.value = false;
+    setTimeout(() => {
+      savedSuccessfully.value = false;
+    }, 3000);
+  }
+}, 1000);
+
 const handleCanvasChange = (data: CanvasData) => {
   canvasData.value.canvasData = data;
   if (!canvasData.value.name) return;
 
-  if (saveTimeout.value) {
-    clearTimeout(saveTimeout.value);
-  }
-
   isSaving.value = true;
   savedSuccessfully.value = false;
 
-  saveTimeout.value = setTimeout(async () => {
-    try {
-      if (isNewCanvas.value) {
-        const created = await createCanvas(canvasData.value);
-        canvasData.value.id = created.id;
-        router.replace(`/canvas/${created.id}`);
-      } else {
-        await saveCanvas(canvasData.value.id, { canvasData: data });
-      }
-      savedSuccessfully.value = true;
-    } catch (error) {
-      console.error('Error saving canvas:', error);
-    } finally {
-      isSaving.value = false;
-      setTimeout(() => {
-        savedSuccessfully.value = false;
-      }, 3000);
-    }
-  }, 1000);
+  pendingCanvasData = data;
+  autoSave.trigger();
 };
 
 const handleNameChange = () => {

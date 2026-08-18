@@ -54,7 +54,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import type { CellAnchor } from '../../services/datasets/useDatasets';
-import apiClient from '../../services/api';
+import { useResourceDirectory } from '../../services/resources/useResourceDirectory';
+
+const { fetchResource } = useResourceDirectory();
 
 const props = defineProps<{
     isOpen: boolean;
@@ -104,8 +106,8 @@ const fetchSourceTitle = async () => {
     sourceTitle.value = '';
     if (!props.anchor?.sourceResourceId) return;
     try {
-        const resp = await apiClient.get(`/resources/${props.anchor.sourceResourceId}`);
-        sourceTitle.value = resp.data?.title || resp.data?.name || `Resource ${props.anchor.sourceResourceId}`;
+        const resource = await fetchResource(props.anchor.sourceResourceId);
+        sourceTitle.value = resource?.title || resource?.name || `Resource ${props.anchor.sourceResourceId}`;
     } catch {
         sourceTitle.value = '';
     }

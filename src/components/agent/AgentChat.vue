@@ -82,35 +82,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue';
 import { useAgentStore } from '../../store/agentStore';
 import type { AgentMessage } from '../../types/Agent';
-import type { AssistantMessageEvent } from '../../types/Assistant';
 import MarkdownContent from '../assistant/MarkdownContent.vue';
-import apiClient from '../../services/api';
 import { getConfirmHandler } from '../../services/assistantConfirmHandlers';
+import { useChatEventApi } from '../../services/chat/useChatEventApi';
+import { useChatView } from '../../composables/useChatView';
 
 const store = useAgentStore();
-const scrollContainer = ref<HTMLElement | null>(null);
-
-const THINK_BLOCK_RE = /<think>[\s\S]*?<\/think>/gi;
-const UNCLOSED_THINK_RE = /<think>[\s\S]*/i;
-const visibleStream = computed(() => {
-    const raw = store.activeStreaming;
-    if (!raw) return '';
-    let cleaned = raw.replace(THINK_BLOCK_RE, '');
-    if (/<think>/i.test(cleaned)) {
-        cleaned = cleaned.replace(UNCLOSED_THINK_RE, '');
-    }
-    return cleaned.trimStart();
-});
-
-function bubbleClass(role: 'user' | 'assistant' | 'system' | 'event'): string {
-    if (role === 'user') {
-        return 'max-w-[80%] rounded-2xl rounded-tr-md px-4 py-2.5 bg-accent text-white';
-    }
-    return 'max-w-[80%] rounded-2xl rounded-tl-md px-4 py-2.5 bg-surface-elevated border border-border-light text-text-primary';
-}
+const chatEventApi = useChatEventApi();
 
 const TOOL_NAME_LABEL: Record<string, string> = {
     folder_search: 'Folder search',
@@ -119,74 +99,17 @@ const TOOL_NAME_LABEL: Record<string, string> = {
     folder_delete: 'Folder delete',
 };
 
-function eventIcon(event: AssistantMessageEvent | null): string {
-    if (!event) return '·';
-    if (event.kind === 'tool_executed') return '🔍';
-    return '◇';
-}
-
-function eventTitle(msg: AgentMessage): string {
-    const event = msg.event;
-    if (event?.kind === 'tool_executed' && event.tool) {
-        return event.tool.args || TOOL_NAME_LABEL[event.tool.name] || event.tool.name;
-    }
-    return msg.content;
-}
-
-function eventMeta(event: AssistantMessageEvent | null): string {
-    if (!event) return '';
-    if (event.kind === 'tool_executed' && event.tool) {
-        const label = TOOL_NAME_LABEL[event.tool.name] || event.tool.name;
-        if (event.tool.status === 'running') return `${label} · in progress…`;
-        if (event.tool.status === 'pending_confirmation') return `${label} · waiting for your confirmation`;
-        if (event.tool.status === 'cancelled') return `${label} · cancelled`;
-        return event.tool.summary ? `${label} · ${event.tool.summary}` : label;
-    }
-    return '';
-}
-
-function isRunningTool(event: AssistantMessageEvent | null): boolean {
-    return !!(event && event.kind === 'tool_executed' && event.tool?.status === 'running');
-}
-
-function isPendingConfirmation(event: AssistantMessageEvent | null): boolean {
-    return !!(event && event.kind === 'tool_executed' && event.tool?.status === 'pending_confirmation');
-}
-
-const resolvingIds = ref<Set<number>>(new Set());
-
-async function confirmEvent(msg: AgentMessage) {
-    if (msg.event?.kind !== 'tool_executed' || !msg.event.tool) return;
-    const tool = msg.event.tool as any;
-    const kind = tool.kind;
-    const handler = getConfirmHandler(kind);
-    if (!handler || !store.activeAgent) return;
-    resolvingIds.value.add(msg.id);
-    try {
-        // The folder_* confirm handlers operate via owner-scoped URLs derived
-        // from `assistantId` historically. For agents we override the segment
-        // through a separate keyword (the handler reads `assistantId` but we
-        // need the agent path) — we work around it by patching the URL in the
-        // request layer via apiClient defaults isn't reasonable. Instead the
-        // simplest fix: handlers in this project use POST/DELETE on
-        // `/assistants/:id/indexed-files/...`; for agents we shadow by passing
-        // the agent id under the same key — but the URL is built explicitly
-        // by the handler. We special-case here by hitting the agent endpoint
-        // directly for folder_delete and folder_overwrite — the two pending
-        // confirmation kinds we currently emit.
-        const summary = await runConfirmFor(kind, store.activeAgent.id, tool.payload || {});
-        await apiClient.patch(
-            `/agents/${store.activeAgent.id}/messages/${msg.id}/event-status`,
-            { status: 'done', summary },
-        );
-        store.updateEventToolStatus(msg.id, 'done', summary);
-    } catch (e: any) {
-        alert(e?.response?.data?.message || e?.message || 'Could not perform the action');
-    } finally {
-        resolvingIds.value.delete(msg.id);
-    }
-}
-
+// The folder_* confirm handlers operate via owner-scoped URLs derived
+// from `assistantId` historically. For agents we override the segment
+// through a separate keyword (the handler reads `assistantId` but we
+// need the agent path) — we work around it by patching the URL in the
+// request layer via apiClient defaults isn't reasonable. Instead the
+// simplest fix: handlers in this project use POST/DELETE on
+// `/assistants/:id/indexed-files/...`; for agents we shadow by passing
+// the agent id under the same key — but the URL is built explicitly
+// by the handler. We special-case here by hitting the agent endpoint
+// directly for folder_delete and folder_overwrite — the two pending
+// confirmation kinds we currently emit.
 async function runConfirmFor(
     kind: string,
     agentId: number,
@@ -196,7 +119,7 @@ async function runConfirmFor(
         const filename = payload.filename || '';
         const indexedFileId = payload.indexedFileId;
         if (indexedFileId) {
-            await apiClient.delete(`/agents/${agentId}/indexed-files/${indexedFileId}`);
+            await chatEventApi.deleteAgentIndexedFile(agentId, indexedFileId);
             return `Deleted ${filename}`;
         }
         return 'Deleted';
@@ -209,7 +132,7 @@ async function runConfirmFor(
         };
         if (typeof payload.content === 'string') body.content = payload.content;
         if (typeof payload.contentBase64 === 'string') body.contentBase64 = payload.contentBase64;
-        await apiClient.post(`/agents/${agentId}/indexed-files`, body);
+        await chatEventApi.overwriteAgentIndexedFile(agentId, body);
         return `Overwrote ${filename}`;
     }
     // Fall back to the assistant-pathway handler if present (idempotent).
@@ -220,60 +143,26 @@ async function runConfirmFor(
     return 'Done';
 }
 
-async function cancelEvent(msg: AgentMessage) {
-    if (msg.event?.kind !== 'tool_executed' || !msg.event.tool || !store.activeAgent) return;
-    const summary = 'Cancelled';
-    resolvingIds.value.add(msg.id);
-    try {
-        await apiClient.patch(
-            `/agents/${store.activeAgent.id}/messages/${msg.id}/event-status`,
-            { status: 'cancelled', summary },
-        );
-        store.updateEventToolStatus(msg.id, 'cancelled', summary);
-    } catch (e: any) {
-        alert(e?.response?.data?.message || e?.message || 'Could not cancel');
-    } finally {
-        resolvingIds.value.delete(msg.id);
-    }
-}
-
-async function scrollToBottom() {
-    await nextTick();
-    if (scrollContainer.value) {
-        scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-    }
-}
-
-// Prepend older messages while keeping the viewport anchored on the same
-// message: restore scrollTop by the height delta the new rows added on top.
-async function loadOlder() {
-    const id = store.activeId;
-    if (id == null) return;
-    const el = scrollContainer.value;
-    const prevHeight = el?.scrollHeight ?? 0;
-    const prevTop = el?.scrollTop ?? 0;
-    await store.loadOlder(id);
-    await nextTick();
-    if (el) {
-        el.scrollTop = prevTop + (el.scrollHeight - prevHeight);
-    }
-}
-
-// Auto-scroll to the bottom only on append or conversation switch — keyed on
-// the last message id (not length), so a prepend from loadOlder never yanks
-// the view down.
-watch(
-    () => [
-        store.activeMessages[store.activeMessages.length - 1]?.id,
-        store.isActivePending,
-        store.activeId,
-        visibleStream.value.length,
-    ],
-    () => {
-        scrollToBottom();
-    },
-    { immediate: true },
-);
+const {
+    scrollContainer,
+    visibleStream,
+    bubbleClass,
+    eventIcon,
+    eventTitle,
+    eventMeta,
+    isRunningTool,
+    isPendingConfirmation,
+    resolvingIds,
+    confirmEvent,
+    cancelEvent,
+    loadOlder,
+} = useChatView<AgentMessage>({
+    store,
+    ownerSegment: 'agents',
+    toolNameLabel: TOOL_NAME_LABEL,
+    activeOwner: () => store.activeAgent,
+    executeConfirm: (kind, agentId, tool) => runConfirmFor(kind, agentId, tool.payload || {}),
+});
 </script>
 
 <style scoped>

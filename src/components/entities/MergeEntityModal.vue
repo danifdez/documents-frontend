@@ -213,7 +213,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import Button from '../ui/Button.vue';
-import apiClient from '../../services/api';
+import { usePendingEntityValidation } from '../../services/entities/usePendingEntityValidation';
 import type { PendingEntity, EntityScope } from '../../services/entities/usePendingEntities';
 
 interface ConfirmedEntity {
@@ -240,6 +240,8 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+const { fetchConfirmedEntitiesByResource } = usePendingEntityValidation();
 
 const searchTerm = ref('');
 const selectedTarget = ref<{ type: 'pending' | 'confirmed', id: number } | null>(null);
@@ -287,9 +289,7 @@ watch(() => props.isOpen, async (isOpen) => {
 const loadConfirmedEntities = async () => {
     try {
         const term = searchTerm.value.trim();
-        const url = `/entities/by-resource/${props.resourceId}${term ? `?term=${encodeURIComponent(term)}` : ''}`;
-        const response = await apiClient.get(url);
-        confirmedEntitiesByScope.value = response.data;
+        confirmedEntitiesByScope.value = await fetchConfirmedEntitiesByResource(props.resourceId, term);
     } catch (error) {
         console.error('Failed to load confirmed entities:', error);
         confirmedEntitiesByScope.value = { document: [], project: [], global: [] };

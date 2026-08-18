@@ -337,8 +337,10 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import BibliographyEntryForm from './BibliographyEntryForm.vue';
 import { useBibliography } from '../../services/bibliography/useBibliography';
+import { useBibliographyAssignment } from '../../services/bibliography/useBibliographyAssignment';
 import { useResourceList } from '../../services/resources/useResourceList';
-import apiClient from '../../services/api';
+import { useResourceDirectory } from '../../services/resources/useResourceDirectory';
+import { useProjectDirectory } from '../../services/projects/useProjectDirectory';
 import type { BibliographyEntry, ZoteroCreator } from '../../types/Bibliography';
 
 const route = useRoute();
@@ -363,6 +365,9 @@ const {
 } = useBibliography();
 
 const { loadResourcesByProject } = useResourceList();
+const { fetchAllResources } = useResourceDirectory();
+const { makeEntryGlobal, assignEntryToProject } = useBibliographyAssignment();
+const { fetchProjects } = useProjectDirectory();
 
 const scope = ref<'all' | 'project' | 'global'>('all');
 const searchQuery = ref('');
@@ -482,8 +487,7 @@ const loadResources = async () => {
         if (props.projectId) {
             projectResources.value = (await loadResourcesByProject(String(props.projectId))) || [];
         } else {
-            const response = await apiClient.get('/resources');
-            projectResources.value = response.data || [];
+            projectResources.value = (await fetchAllResources()) || [];
         }
     } catch {
         projectResources.value = [];
@@ -564,14 +568,14 @@ const handleDelete = async (id: number) => {
 };
 
 const handleMakeGlobal = async (id: number) => {
-    await apiClient.patch(`/bibliography/${id}/make-global`);
+    await makeEntryGlobal(id);
     await loadEntries();
     selectedEntry.value = entries.value.find((e) => e.id === id) ?? null;
 };
 
 const handleAssignToProject = async (id: number) => {
     if (!assignProjectId.value) return;
-    await apiClient.patch(`/bibliography/${id}/assign-project`, { projectId: assignProjectId.value });
+    await assignEntryToProject(id, assignProjectId.value);
     showAssignProject.value = false;
     assignProjectId.value = '';
     await loadEntries();
@@ -580,8 +584,8 @@ const handleAssignToProject = async (id: number) => {
 
 const loadProjects = async () => {
     try {
-        const response = await apiClient.get('/projects');
-        availableProjects.value = response.data.map((p: any) => ({ id: p.id, name: p.name }));
+        const projects = await fetchProjects();
+        availableProjects.value = projects.map((p: any) => ({ id: p.id, name: p.name }));
     } catch {
         availableProjects.value = [];
     }

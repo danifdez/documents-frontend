@@ -93,10 +93,11 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import apiClient from '../../services/api';
+import { useDatasets } from '../../services/datasets/useDatasets';
 import Button from '../ui/Button.vue';
 
 const modelValue = defineModel<boolean>({ required: true });
+const { getAllDatasets } = useDatasets();
 
 const emit = defineEmits<{
     insert: [config: {
@@ -129,8 +130,7 @@ watch(modelValue, async (open) => {
         selectedFields.value = [];
         filters.value = [];
         try {
-            const response = await apiClient.get('/datasets');
-            datasets.value = response.data;
+            datasets.value = await getAllDatasets();
         } catch { /* ignore */ }
     }
 });

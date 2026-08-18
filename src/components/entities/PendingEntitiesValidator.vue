@@ -250,7 +250,8 @@ import MergeEntityModal from './MergeEntityModal.vue';
 import ConfirmModal from '../ui/ConfirmModal.vue';
 import { usePendingEntities, type PendingEntity, type EntityAlias, type EntityScope } from '../../services/entities/usePendingEntities';
 import { useEntities } from '../../services/entities/useEntities';
-import apiClient from '../../services/api';
+import { usePendingEntityValidation } from '../../services/entities/usePendingEntityValidation';
+import { useEntityTypes } from '../../services/entity-types/useEntityTypes';
 
 export interface EntityType {
     id: number;
@@ -316,6 +317,11 @@ const showTranslationField = computed(() =>
 // --- Services ---
 const { fetchPendingEntitiesByResourceId, updatePendingEntity, deletePendingEntity, confirmEntities, createPendingEntity } = usePendingEntities();
 const { updateEntity } = useEntities();
+const {
+    fetchEntity, fetchPendingEntity, findEntityByExactName,
+    retranslatePendingEntity, confirmPendingEntity, mergePendingEntity, cancelMergePendingEntity
+} = usePendingEntityValidation();
+const { fetchEntityTypes: fetchEntityTypesRequest } = useEntityTypes();
 
 // --- Helpers ---
 const highlightEntity = (entity: PendingEntity) => emit('entity:highlight', entity);
@@ -351,7 +357,7 @@ const closeConfirmModal = () => { confirmModal.value.isOpen = false; };
 
 // --- Data loading ---
 const fetchEntityTypes = async (): Promise<EntityType[]> => {
-    try { return (await apiClient.get('/entity-types')).data; } catch { return []; }
+    try { return await fetchEntityTypesRequest(); } catch { return []; }
 };
 
 const loadData = async () => {
@@ -376,8 +382,8 @@ watch(() => [props.displayMode, props.targetLanguage, props.resourceLanguage], (
 });
 
 // --- Resolve merged info ---
-const fetchConfirmedEntity = async (id: number) => { try { return (await apiClient.get(`/entities/${id}`)).data; } catch { return null; } };
-const fetchPendingEntityById = async (id: number) => { try { return (await apiClient.get(`/pending-entities/${id}`)).data; } catch { return null; } };
+const fetchConfirmedEntity = async (id: number) => { try { return await fetchEntity(id); } catch { return null; } };
+const fetchPendingEntityById = async (id: number) => { try { return await fetchPendingEntity(id); } catch { return null; } };
 
 const resolveMergedInfo = async (entity: PendingEntity) => {
     if (!entity || entity.status !== 'merged' || !entity.mergedTargetId) return;
@@ -414,8 +420,8 @@ const checkForDuplicates = async (entity: PendingEntity, newName: string): Promi
     const dup = pendingEntities.value.find(e => e.id !== entity.id && e.name.toLowerCase() === newName.toLowerCase() && e.status !== 'merged');
     if (dup) return dup;
     try {
-        const resp = await apiClient.get('/entities/search/exact', { params: { name: newName } });
-        if (resp.data) return { ...resp.data, isConfirmed: true };
+        const match = await findEntityByExactName(newName);
+        if (match) return { ...match, isConfirmed: true };
     } catch { }
     return null;
 };
@@ -451,7 +457,7 @@ const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
             });
             if (nameChanged) {
                 try {
-                    await apiClient.post(`/pending-entities/${entity.id}/retranslate`, {
+                    await retranslatePendingEntity(entity.id, {
                         newName: entity.name, currentLanguage: 'en',
                         resourceLanguage: props.resourceLanguage, targetLanguage: props.targetLanguage
                     });
@@ -521,8 +527,8 @@ const cancelEditEntity = async (entity: PendingEntityWithEdit) => {
 // --- Actions ---
 const quickConfirmEntity = async (entity: PendingEntity) => {
     try {
-        const response = await apiClient.post(`/pending-entities/${entity.id}/confirm`);
-        if (response.data.success) {
+        const result = await confirmPendingEntity(entity.id);
+        if (result.success) {
             pendingEntities.value = pendingEntities.value.filter(e => e.id !== entity.id);
             emit('entities:confirmed');
         }
@@ -586,8 +592,8 @@ const closeMergeModal = () => {
 const handleMerge = async (payload: { targetType: 'pending' | 'confirmed', targetId: number, aliasScope: EntityScope }) => {
     try {
         if (!entityToMerge.value) return;
-        const resp = await apiClient.post(`/pending-entities/${entityToMerge.value.id}/merge`, payload);
-        const updatedPending = resp.data?.pending;
+        const result = await mergePendingEntity(entityToMerge.value.id, payload);
+        const updatedPending = result?.pending;
         if (updatedPending) {
             const idx = pendingEntities.value.findIndex(e => e.id === updatedPending.id);
             if (idx !== -1) {
@@ -605,12 +611,12 @@ const cancelMerge = async (entity: PendingEntity) => {
         confirmText: 'Yes, Cancel Merge', variant: 'danger',
         onConfirm: async () => {
             try {
-                const resp = await apiClient.post(`/pending-entities/${entity.id}/cancel-merge`);
-                if (resp.data?.success) {
-                    const refreshed = await apiClient.get(`/pending-entities/${entity.id}`);
-                    const idx = pendingEntities.value.findIndex(e => e.id === refreshed.data.id);
+                const result = await cancelMergePendingEntity(entity.id);
+                if (result?.success) {
+                    const refreshed = await fetchPendingEntity(entity.id);
+                    const idx = pendingEntities.value.findIndex(e => e.id === refreshed.id);
                     if (idx !== -1) {
-                        pendingEntities.value[idx] = { ...pendingEntities.value[idx], ...refreshed.data };
+                        pendingEntities.value[idx] = { ...pendingEntities.value[idx], ...refreshed };
                         await resolveMergedInfo(pendingEntities.value[idx]);
                     }
                 }

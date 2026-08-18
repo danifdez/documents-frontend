@@ -300,7 +300,8 @@ import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import PageHeader from '../components/ui/PageHeader.vue';
 import OfflineToggle from '../components/OfflineToggle.vue';
 import MoveToThreadModal from '../components/ui/MoveToThreadModal.vue';
-import apiClient from '../services/api';
+import { useDocument } from '../services/documents/useDocument';
+import { useCanvas } from '../services/canvas/useCanvas';
 import Dropdown from '../components/ui/Dropdown.vue';
 import DropdownItem from '../components/ui/DropdownItem.vue';
 import ProjectEditModal from '../components/projects/ProjectEditModal.vue';
@@ -350,6 +351,8 @@ const { isLoading, threads, loadThreads } = useThreadList();
 const { isLoading: isDocsLoading, documents: projectDocuments, loadDocumentsByProject } = useDocumentProjectList();
 const { isLoading: isResourcesLoading, loadResourcesByProject } = useResourceList();
 const { canvases: projectCanvases, isLoading: isCanvasesLoading, loadCanvasesByProject } = useCanvasList();
+const { saveDocument } = useDocument();
+const { saveCanvas } = useCanvas();
 const { loadResourceTypes, getResourceTypeAbbreviation, getResourceTypeName } = useResourceType();
 const { notes: projectNotes, isLoading: isNotesLoading, loadNotesByProject } = useNotes();
 const { events: projectEvents, isLoading: isEventsLoading, loadEventsByProject, createEvent } = useCalendarEvents();
@@ -377,10 +380,12 @@ const handleMoveItem = async (targetThreadId) => {
   if (!moveItem.value) return;
   try {
     const item = moveItem.value;
-    const endpoint = item.type === 'canvas' ? 'canvases' : 'docs';
-    await apiClient.patch(`/${endpoint}/${item.id}`, {
-      thread: targetThreadId ? { id: targetThreadId } : null,
-    });
+    const payload = { thread: targetThreadId ? { id: targetThreadId } : null };
+    if (item.type === 'canvas') {
+      await saveCanvas(item.id, payload);
+    } else {
+      await saveDocument(item.id, payload);
+    }
     notification.success(`Moved "${item.name}" successfully`);
     showMoveModal.value = false;
     const id = route.params.id;

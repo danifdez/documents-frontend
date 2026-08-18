@@ -81,11 +81,9 @@ import EditorToolbar from './EditorToolbar.vue';
 import CommentModal from '../comments/CommentModal.vue';
 import MarkModal from '../marks/MarkModal.vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useCommentCreate } from '../../services/comments/useCommentCreate';
-import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
-import { useMarks } from '../../services/marks/useMarks';
+import { useEditorAnnotations } from './composables/useEditorAnnotations';
 import InsertReferenceModal from '../../components/references/InsertReferenceModal.vue';
 import Image from '@tiptap/extension-image';
 import { ReferenceNode } from './extensions/ReferenceExtension';
@@ -147,21 +145,29 @@ const emit = defineEmits([
 
 const editor = ref(null);
 const isMounted = ref(false);
-const showComments = ref(false);
 const route = useRoute();
 const router = useRouter();
 const notification = useNotification();
-const { createComment, isLoading: isCommentLoading } = useCommentCreate();
-const { createMark, isLoading: isMarkLoading } = useMarkCreate();
 const { updateMark } = useMarkUpdate();
 const { deleteMark } = useMarkDelete();
-const { marks, loadMarks } = useMarks();
-const markContentMap = ref<Map<string, string>>(new Map());
-const showCommentModal = ref(false);
-const showMarkModal = ref(false);
-const selectedCommentText = ref('');
-const selectedMarkText = ref('');
-const currentSelection = ref(null);
+const {
+    showComments,
+    showCommentModal,
+    selectedCommentText,
+    isCommentLoading,
+    toggleComments,
+    handleAddCommentRequest,
+    saveComment,
+    cancelComment,
+    showMarkModal,
+    selectedMarkText,
+    isMarkLoading,
+    markContentMap,
+    handleAddMarkRequest,
+    saveMark,
+    cancelMark,
+    loadDocumentMarks,
+} = useEditorAnnotations(editor, emit, props);
 const matches = ref([]);
 const showInsertReferenceModal = ref(false);
 const showDatasetViewModal = ref(false);
@@ -252,145 +258,12 @@ function createSearchDecorationPlugin(getDecorations) {
     })
 }
 
-const toggleComments = () => {
-    showComments.value = !showComments.value;
-    emit('toggle-comments', showComments.value);
-};
-
-const handleAddCommentRequest = (selection: { text: string; from: number; to: number }) => {
-    selectedCommentText.value = selection.text;
-    currentSelection.value = {
-        from: selection.from,
-        to: selection.to
-    };
-    showCommentModal.value = true;
-};
-
-const saveComment = async (commentText: string) => {
-    try {
-        if (!commentText.trim() || !route.params.id || route.params.id === 'new') {
-            return;
-        }
-
-        const entityType = props.context === 'resource' ? 'resource' : 'doc';
-        const newComment = await createComment(
-            String(route.params.id),
-            commentText,
-            entityType,
-        );
-
-        if (editor.value && currentSelection.value) {
-            const { from, to } = currentSelection.value;
-            editor.value.commands.setTextSelection({ from, to });
-            editor.value.commands.setComment(newComment.id);
-        }
-
-        showCommentModal.value = false;
-        currentSelection.value = null;
-
-        emit('comment-created');
-
-        if (!showComments.value) {
-            toggleComments();
-        }
-    } catch (error) {
-        console.error('Error saving comment:', error);
-    }
-};
-
-const cancelComment = () => {
-    showCommentModal.value = false;
-    currentSelection.value = null;
-    selectedCommentText.value = '';
-};
-
 const highlightComment = (commentId: string) => {
     emit('highlight-comment', commentId);
 };
 
-const handleAddMarkRequest = (selection: { text: string; from: number; to: number }) => {
-    selectedMarkText.value = selection.text;
-    currentSelection.value = {
-        from: selection.from,
-        to: selection.to
-    };
-    showMarkModal.value = true;
-};
-
-const saveMark = async () => {
-    try {
-        if (!route.params.id || route.params.id === 'new') {
-            return;
-        }
-
-        const entityType = props.context === 'resource' ? 'resource' : 'doc';
-        const newMark = await createMark(
-            route.params.id as string,
-            selectedMarkText.value,
-            entityType,
-        );
-
-        if (editor.value && currentSelection.value) {
-            const { from, to } = currentSelection.value;
-            editor.value.commands.setTextSelection({ from, to });
-            editor.value.commands.setTextMark(newMark.id);
-        }
-
-        showMarkModal.value = false;
-        currentSelection.value = null;
-    } catch (error) {
-        console.error('Error creating mark:', error);
-    }
-};
-
-const cancelMark = () => {
-    showMarkModal.value = false;
-    currentSelection.value = null;
-};
-
 const onMarkClick = (markId: string) => {
     console.log('Mark clicked:', markId);
-};
-
-const loadDocumentMarks = async () => {
-    try {
-        if (route.params.id && route.params.id !== 'new') {
-            const loadedMarks = await loadMarks(route.params.id as string);
-
-            if (editor.value && loadedMarks.length > 0) {
-                loadedMarks.forEach(mark => {
-                    markContentMap.value.set(mark.id, mark.content);
-                });
-                setTimeout(() => {
-                    loadedMarks.forEach(mark => {
-                        try {
-                            if (!mark.content || !mark.id) {
-                                console.warn('Invalid mark data:', mark);
-                                return;
-                            }
-
-                            const content = editor.value.state.doc.textContent;
-                            const position = content.indexOf(mark.content);
-
-                            if (position !== -1) {
-                                editor.value.commands.setTextSelection({
-                                    from: position,
-                                    to: position + mark.content.length
-                                });
-                                editor.value.commands.setTextMark(mark.id);
-                            } else {
-                                console.warn(`Mark content not found in document: ${mark.content}`);
-                            }
-                        } catch (err) {
-                            console.error(`Error applying mark ${mark.id}:`, err);
-                        }
-                    });
-                }, 500);
-            }
-        }
-    } catch (error) {
-        console.error('Error loading marks:', error);
-    }
 };
 
 const checkForMarkChanges = (editor: Editor) => {

@@ -209,6 +209,7 @@ import { useThread } from '../services/threads/useThread';
 import { useResource } from '../services/resources/useResource';
 import { useCommentList } from '../services/comments/useCommentList';
 import { useDragDrop } from '../composables/useDragDrop';
+import { useAutoSave } from '../composables/useAutoSave';
 import apiClient from '../services/api';
 import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -234,7 +235,6 @@ const route = useRoute();
 const router = useRouter();
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
-const saveTimeout = ref(null);
 const { loadDocument, saveDocument, createDocument, removeDocument } = useDocument();
 const { loadThread } = useThread();
 const { isDragOver, handleDragOver, handleDragEnter, handleDragLeave, handleDrop } = useDragDrop();
@@ -449,6 +449,31 @@ watch(() => route.params.id, (newId, oldId) => {
   }
 });
 
+const autoSave = useAutoSave(async () => {
+  if (docData.value && htmlContent.value !== docData.value.content) {
+    try {
+      docData.value.content = htmlContent.value;
+
+      if (isNewDocument.value) {
+        await createDocument(docData.value);
+      } else {
+        await saveDocument(docData.value.id, { content: htmlContent.value });
+      }
+      savedSuccessfully.value = true;
+    } catch (error) {
+      console.error('Error saving document:', error);
+    } finally {
+      isSaving.value = false;
+
+      setTimeout(() => {
+        savedSuccessfully.value = false;
+      }, 3000);
+    }
+  } else {
+    isSaving.value = false;
+  }
+}, 1000);
+
 const handleEditorContentChange = (content: string) => {
   if (!docData.value.name) {
     return;
@@ -456,37 +481,10 @@ const handleEditorContentChange = (content: string) => {
 
   htmlContent.value = content;
 
-  if (saveTimeout.value) {
-    clearTimeout(saveTimeout.value);
-  }
-
   isSaving.value = true;
   savedSuccessfully.value = false;
 
-  saveTimeout.value = setTimeout(async () => {
-    if (docData.value && htmlContent.value !== docData.value.content) {
-      try {
-        docData.value.content = htmlContent.value;
-
-        if (isNewDocument.value) {
-          await createDocument(docData.value);
-        } else {
-          await saveDocument(docData.value.id, { content: htmlContent.value });
-        }
-        savedSuccessfully.value = true;
-      } catch (error) {
-        console.error('Error saving document:', error);
-      } finally {
-        isSaving.value = false;
-
-        setTimeout(() => {
-          savedSuccessfully.value = false;
-        }, 3000);
-      }
-    } else {
-      isSaving.value = false;
-    }
-  }, 1000);
+  autoSave.trigger();
 };
 
 // Keyboard shortcuts

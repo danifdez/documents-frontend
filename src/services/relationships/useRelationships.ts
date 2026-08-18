@@ -22,6 +22,11 @@ export interface RelationshipData {
     relationships: Relationship[];
 }
 
+export interface ProjectResource {
+    id: number;
+    name: string;
+}
+
 export function useRelationships() {
     const isLoading = ref(false);
     const error = ref<string | null>(null);
@@ -96,6 +101,18 @@ export function useRelationships() {
                     resolve();
                 });
         });
+    };
+
+    // Plain REST helpers for the relationships view filters — unlike the
+    // socket-backed calls above, they don't touch isLoading/error
+    const fetchProjectResources = (projectId: number): Promise<ProjectResource[]> => {
+        return apiClient.get(`/resources/project/${projectId}`)
+            .then((res: any) => (res.data || []).map((r: any) => ({ id: r.id, name: r.name })));
+    };
+
+    const fetchProjectName = (projectId: number): Promise<string> => {
+        return apiClient.get(`/projects/${projectId}`)
+            .then((res: any) => res.data.name);
     };
 
     const _query = (url: string): Promise<RelationshipData> => {
@@ -176,5 +193,7 @@ export function useRelationships() {
         updateRelationship,
         deleteRelationship,
         extractRelationships,
+        fetchProjectResources,
+        fetchProjectName,
     };
 }

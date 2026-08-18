@@ -25,9 +25,10 @@ import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import BibliographyManager from '../components/bibliography/BibliographyManager.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
-import apiClient from '../services/api';
+import { useProjectDirectory } from '../services/projects/useProjectDirectory';
 
 const route = useRoute();
+const { fetchProject } = useProjectDirectory();
 const projectId = computed(() => {
     const id = route.params.id;
     return id ? Number(id) : null;
@@ -38,8 +39,8 @@ const projectName = ref('');
 onMounted(async () => {
     if (projectId.value) {
         try {
-            const res = await apiClient.get(`/projects/${projectId.value}`);
-            projectName.value = res.data.name;
+            const project = await fetchProject(projectId.value);
+            projectName.value = project.name;
         } catch { }
     }
 });

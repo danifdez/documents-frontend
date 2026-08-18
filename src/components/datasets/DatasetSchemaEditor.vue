@@ -118,7 +118,7 @@
 import { ref, computed, onMounted } from 'vue';
 import type { DatasetField, Dataset, DatasetSourceMode } from '../../services/datasets/useDatasets';
 import { useDatasets } from '../../services/datasets/useDatasets';
-import apiClient from '../../services/api';
+import { useResourceDirectory } from '../../services/resources/useResourceDirectory';
 import SuggestedColumnsModal from './SuggestedColumnsModal.vue';
 
 const fields = defineModel<DatasetField[]>({ required: true });
@@ -129,7 +129,8 @@ const props = defineProps<{
 }>();
 
 const datasets = ref<Dataset[]>([]);
-const { proposeColumns, getProposeColumnsResult } = useDatasets();
+const { proposeColumns, getProposeColumnsResult, getAllDatasets } = useDatasets();
+const { fetchResourcesByProject } = useResourceDirectory();
 
 const extractionEnabled = computed(() => (props.sourceMode ?? 'manual') !== 'manual');
 const existingKeys = computed(() => new Set(fields.value.map((f) => f.key)));
@@ -157,8 +158,8 @@ const suggestColumns = async () => {
         if (props.sourceMode === 'resource_selection') {
             resourceIds = (props.sourceConfig?.resourceIds ?? []) as number[];
         } else if (props.sourceMode === 'project_resources' && props.projectId) {
-            const resp = await apiClient.get(`/resources/project/${props.projectId}`);
-            const all: any[] = Array.isArray(resp.data) ? resp.data : [];
+            const resources = await fetchResourcesByProject(props.projectId);
+            const all: any[] = Array.isArray(resources) ? resources : [];
             const filters: string[] = props.sourceConfig?.resourceTypeFilter ?? [];
             const matched = filters.length > 0
                 ? all.filter((r) => filters.some((f) => f.endsWith('/') ? (r.mimeType || '').startsWith(f) : r.mimeType === f))
@@ -207,8 +208,7 @@ const addSuggested = (selected: DatasetField[]) => {
 
 onMounted(async () => {
     try {
-        const response = await apiClient.get('/datasets');
-        datasets.value = response.data;
+        datasets.value = await getAllDatasets();
     } catch { /* ignore */ }
 });
 

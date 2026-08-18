@@ -264,7 +264,9 @@ import Button from '../components/ui/Button.vue';
 import FormField from '../components/ui/FormField.vue';
 import { useThread } from '../services/threads/useThread';
 import { useNotification } from '../composables/useNotification';
-import apiClient from '../services/api';
+import { useResource } from '../services/resources/useResource';
+import { useDocument } from '../services/documents/useDocument';
+import { useCanvas } from '../services/canvas/useCanvas';
 import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
@@ -277,6 +279,9 @@ const { loadResourcesByThread, assignResourceToThread } = useResourceList();
 const { threads: projectThreads, loadThreads: loadProjectThreads } = useThreadList();
 const { notes: threadNotes, isLoading: isNotesLoading, loadNotesByThread } = useNotes();
 const { loadThread, loadChildThreads, updateThread, deleteThread, archiveThread, unarchiveThread } = useThread();
+const { updateResource } = useResource();
+const { saveDocument } = useDocument();
+const { saveCanvas } = useCanvas();
 const { showSearch, showNotesPanel } = useGlobalKeyboard();
 
 const openNotesPanel = () => {
@@ -489,16 +494,17 @@ const handleMoveItem = async (targetThreadId) => {
     if (item.type === 'resource') {
       if (targetThreadId === null) {
         // Move to project root: set thread to null
-        await apiClient.patch(`/resources/${item.id}`, { thread: null });
+        await updateResource(item.id, { thread: null });
       } else {
         await assignResourceToThread(item.id, targetThreadId);
       }
     } else {
-      // document or canvas — use PATCH /docs/:id or /canvases/:id
-      const endpoint = item.type === 'canvas' ? 'canvases' : 'docs';
-      await apiClient.patch(`/${endpoint}/${item.id}`, {
-        thread: targetThreadId ? { id: targetThreadId } : null,
-      });
+      const payload = { thread: targetThreadId ? { id: targetThreadId } : null };
+      if (item.type === 'canvas') {
+        await saveCanvas(item.id, payload);
+      } else {
+        await saveDocument(item.id, payload);
+      }
     }
     notification.success(`Moved "${item.name}" successfully`);
     showMoveModal.value = false;

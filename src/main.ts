@@ -1,45 +1,20 @@
-import { app, BrowserWindow, ipcMain, Notification, screen, dialog, Menu, globalShortcut, session, shell, Tray, nativeImage } from 'electron';
+import { app, BrowserWindow, Notification, screen, Menu, globalShortcut, session, Tray, nativeImage } from 'electron';
 import { localEngine } from './main/voice/localEngine';
 import path from 'path';
-import fs from 'fs';
 import axios from 'axios';
-import FormData from 'form-data';
 import Store from 'electron-store';
 import squirrelStartup from 'electron-squirrel-startup';
 import { registerOfflineHandlers } from './main-offline';
 import { standaloneManager } from './services/standalone/standalone-manager';
 import { checkInstalled } from './services/standalone/download-manager';
 import { registerStandaloneHandlers, resolveStandaloneFeatures } from './main/standalone-handlers';
-
-const MIME_MAP: Record<string, string> = {
-  '.pdf': 'application/pdf',
-  '.html': 'text/html', '.htm': 'text/html',
-  '.txt': 'text/plain', '.md': 'text/plain', '.csv': 'text/csv',
-  '.doc': 'application/msword',
-  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  '.odt': 'application/vnd.oasis.opendocument.text',
-  '.xls': 'application/vnd.ms-excel',
-  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  '.ppt': 'application/vnd.ms-powerpoint',
-  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
-  '.bmp': 'image/bmp', '.tiff': 'image/tiff', '.tif': 'image/tiff',
-  '.json': 'application/json', '.xml': 'application/xml',
-  '.eml': 'message/rfc822',
-  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
-  '.flac': 'audio/flac', '.aac': 'audio/aac', '.m4a': 'audio/mp4',
-  '.wma': 'audio/x-ms-wma', '.opus': 'audio/opus',
-  '.aiff': 'audio/aiff', '.aif': 'audio/aiff',
-  '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime',
-  '.avi': 'video/x-msvideo', '.mkv': 'video/x-matroska',
-  '.webm': 'video/webm', '.wmv': 'video/x-ms-wmv',
-};
-
-function getMimeType(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase();
-  return MIME_MAP[ext] || 'application/octet-stream';
-}
+import { IpcEvents } from './ipc/channels';
+import { registerIpcHandlers } from './main/ipc/registry';
+import { createVoiceHandlers } from './main/ipc/voice-handlers';
+import { createNotificationHandlers } from './main/ipc/notification-handlers';
+import { createFileHandlers } from './main/ipc/file-handlers';
+import { createSettingsHandlers } from './main/ipc/settings-handlers';
+import { createWorkspaceHandlers } from './main/ipc/workspace-handlers';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -386,7 +361,7 @@ function showAlarmNotification(payload: {
   showActionableNotification({
     title: payload.alarmLabel || payload.title,
     body: formatLocalTime(payload.occurrenceStart),
-    onClick: () => focusMainWindowAndSend('calendar:navigate', payload.eventId),
+    onClick: () => focusMainWindowAndSend(IpcEvents.calendar.navigate, payload.eventId),
     onDone: payload.trackCompletion
       ? () => markEventOccurrenceDone(payload.eventId, payload.occurrenceStart)
       : undefined,
@@ -409,7 +384,7 @@ function showTaskReminderNotification(payload: {
   showActionableNotification({
     title: payload.title,
     body: `Reminder · ${formatLocalTime(payload.reminderAt)}`,
-    onClick: () => focusMainWindowAndSend('task:navigate', payload.taskId),
+    onClick: () => focusMainWindowAndSend(IpcEvents.task.navigate, payload.taskId),
     onDone: () => completeTask(payload.taskId),
   });
 }
@@ -423,7 +398,7 @@ function showTaskMissedAggregate(payload: {
   showActionableNotification({
     title: `${count} missed task reminder${count === 1 ? '' : 's'}`,
     body: summarizeLabels(payload.items.map((i) => i.title)),
-    onClick: () => focusMainWindowAndSend('task:navigate-missed-panel'),
+    onClick: () => focusMainWindowAndSend(IpcEvents.task.navigateMissedPanel),
     onDone: singleItem ? () => completeTask(singleItem.taskId) : undefined,
   });
 }
@@ -443,7 +418,7 @@ function showMissedAggregate(payload: {
   showActionableNotification({
     title: `${count} missed alert${count === 1 ? '' : 's'}`,
     body: summarizeLabels(payload.items.map((i) => i.alarmLabel || i.title)),
-    onClick: () => focusMainWindowAndSend('calendar:navigate-missed-panel'),
+    onClick: () => focusMainWindowAndSend(IpcEvents.calendar.navigateMissedPanel),
     onDone: single
       ? () => markEventOccurrenceDone(single.eventId, single.occurrenceStart)
       : undefined,
@@ -547,267 +522,23 @@ app.whenReady().then(() => {
     return permission === 'media' || permission === 'mediaKeySystem';
   });
 
-  // ── Local voice engine ───────────────────────────────────────────────
-  // The engine is only actually available if the native bindings load
-  // (see `main/voice/localEngine.ts`). When they don't, `isAvailable`
-  // returns `false` and the renderer factory falls back to the remote driver.
-  ipcMain.handle('voice:local:isAvailable', () => localEngine.isAvailable());
-  ipcMain.handle('voice:local:hasModel', () => localEngine.hasModel());
-  ipcMain.handle('voice:local:preload', async (event) => {
-    localEngine.bindRenderer(event.sender);
-    return localEngine.preload();
-  });
-  ipcMain.handle('voice:local:start', async (event) => {
-    localEngine.bindRenderer(event.sender);
-    return localEngine.startSession();
-  });
-  ipcMain.handle('voice:local:chunk', (_e, sessionId: string, buf: ArrayBuffer | Uint8Array) => {
-    const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf as ArrayBuffer);
-    localEngine.pushChunk(sessionId, b);
-  });
-  ipcMain.handle('voice:local:stop', (_e, sessionId: string) => localEngine.stopSession(sessionId));
-  ipcMain.handle('voice:local:cancel', (_e, sessionId: string) => localEngine.cancelSession(sessionId));
-
-  ipcMain.handle('calendar:show-alarm', (_, payload: {
-    eventId: number;
-    occurrenceStart: string;
-    title: string;
-    alarmLabel: string | null;
-    trackCompletion: boolean;
-  }) => {
-    showAlarmNotification(payload);
-  });
-
-  ipcMain.handle('calendar:show-missed-aggregate', (_, payload: {
-    items: Array<{
-      eventId: number;
-      occurrenceStart: string;
-      title: string;
-      alarmLabel: string | null;
-      trackCompletion: boolean;
-    }>;
-  }) => {
-    showMissedAggregate(payload);
-  });
-
-  ipcMain.handle('task:show-reminder', (_, payload: {
-    taskId: number;
-    title: string;
-    reminderAt: string;
-  }) => {
-    showTaskReminderNotification(payload);
-  });
-
-  ipcMain.handle('task:show-missed-aggregate', (_, payload: {
-    items: Array<{ taskId: number; title: string; reminderAt: string }>;
-  }) => {
-    showTaskMissedAggregate(payload);
-  });
-
-  ipcMain.handle("upload-document", async (_, idProject, filePath) => {
-    try {
-      if (!filePath) {
-        return { error: "No file path provided" };
-      }
-
-      // Create a form data object for the file
-      const formData = new FormData();
-      const fileStream = fs.createReadStream(filePath);
-      const fileName = path.basename(filePath);
-      const mimeType = getMimeType(filePath);
-
-      formData.append('file', fileStream, { filename: fileName, contentType: mimeType });
-      formData.append('name', fileName);
-      if (idProject) {
-        formData.append('projectId', idProject);
-      }
-
-      const uploadResponse = await axios.post(`${getApiUrl()}/resources/upload`, formData, {
-        headers: {
-          ...formData.getHeaders(),
-        },
-      });
-
-      return {
-        resourceId: uploadResponse.data.resourceId,
-      };
-    } catch (error) {
-      return { error: `Failed to process document: ${error.message}` };
-    }
-  });
-
-  ipcMain.handle('shell:open-path', async (_event, targetPath: string) => {
-    if (!targetPath || typeof targetPath !== 'string') {
-      return { ok: false, error: 'invalid_path' };
-    }
-    try {
-      const err = await shell.openPath(targetPath);
-      if (err) return { ok: false, error: err };
-      return { ok: true };
-    } catch (e: any) {
-      return { ok: false, error: e?.message ?? 'open_path_failed' };
-    }
-  });
-
-  ipcMain.handle('shell:show-item-in-folder', (_event, targetPath: string) => {
-    if (!targetPath || typeof targetPath !== 'string') {
-      return { ok: false };
-    }
-    try {
-      shell.showItemInFolder(targetPath);
-      return { ok: true };
-    } catch {
-      return { ok: false };
-    }
-  });
-
-  ipcMain.handle('folder-scope:pick', async (_event, opts?: { title?: string }) => {
-    const win = BrowserWindow.getFocusedWindow() ?? mainWindow ?? undefined;
-    console.log('[folder-scope] picker opened');
-    const result = win
-      ? await dialog.showOpenDialog(win, {
-        properties: ['openDirectory', 'createDirectory'],
-        title: opts?.title ?? 'Pick the working folder',
-      })
-      : await dialog.showOpenDialog({
-        properties: ['openDirectory', 'createDirectory'],
-        title: opts?.title ?? 'Pick the working folder',
-      });
-
-    if (result.canceled || result.filePaths.length === 0) {
-      console.log('[folder-scope] picker cancelled');
-      return null;
-    }
-
-    console.log('[folder-scope] picker confirmed');
-    return result.filePaths[0];
-  });
-
-  ipcMain.handle("open-multiple-file-dialog", async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile', 'multiSelections'],
-      filters: [
-        { name: 'All Supported Files', extensions: ['pdf', 'doc', 'docx', 'odt', 'txt', 'htm', 'html', 'eml', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'opus'] },
-        { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'odt', 'txt', 'htm', 'html', 'eml'] },
-        { name: 'Video', extensions: ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv'] },
-        { name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'opus'] },
-        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'] }
-      ]
-    });
-
-    if (result.canceled || result.filePaths.length === 0) {
-      return [];
-    }
-
-    return result.filePaths.map(filePath => ({
-      path: filePath,
-      name: path.basename(filePath)
-    }));
-  });
-
-  ipcMain.handle('settings:get', () => {
-    return store.get('settings', {
-      fontSize: 16,
-      fontFamily: 'sans-serif',
-      paragraphSpacing: 1.5,
-      language: 'en',
-      theme: 'dark',
-      disabledFeatures: [],
-      // Tray / residente. Defaults only apply when the store
-      // has no `settings` yet; users with existing persisted settings will
-      // see `undefined` here and consumers fall back to these values via
-      // `?? <default>` locally.
-      closeBehavior: 'tray',
-      launchAtLogin: false,
-      toggleShortcut: null,
-      hideDockIcon: false,
-      // Preload of the local Whisper model on startup.
-      preloadVoiceModel: false,
-    });
-  });
-
-  ipcMain.handle('settings:set', (_event, settings) => {
-    const previous = store.get('settings') as Record<string, any> | undefined;
-    store.set('settings', settings);
-    applySettingsEffects(settings, previous ?? null);
-    const shortcutOk = settings?.toggleShortcut
-      ? globalShortcut.isRegistered(settings.toggleShortcut)
-      : true;
-    return { ok: true, shortcutOk };
-  });
-
-  // ── Dev-only handler to reset the first-close hint
-  // so the didactic toast can be re-tested without hand-editing the store.
-  if (process.env.NODE_ENV === 'development') {
-    ipcMain.handle('debug:reset-tray-hint', () => {
-      const flags = (store.get('flags') as Record<string, any> | undefined) ?? {};
-      delete flags.hasSeenTrayHint;
-      store.set('flags', flags);
-      return { ok: true };
-    });
-  }
-
-  // ── Expose tray availability to the renderer so the
-  // Settings UI can disable tray-dependent controls when the OS has no
-  // system tray (e.g. GNOME without AppIndicator).
-  ipcMain.handle('app:tray-available', () => !trayUnavailable);
-
-  // ── Expose process.platform to the renderer to gate
-  // platform-specific toggles (`launchAtLogin` Linux, `hideDockIcon` macOS).
-  ipcMain.handle('app:get-platform', () => process.platform);
-
-  // ── Workspace IPC handlers ──
-  ipcMain.handle('workspace:list', () => {
-    return store.get('workspaces', []);
-  });
-
-  ipcMain.handle('workspace:add', (_, workspace: { id: string; name: string; url: string }) => {
-    const workspaces = store.get('workspaces', []) as any[];
-    workspaces.push(workspace);
-    store.set('workspaces', workspaces);
-    return workspace;
-  });
-
-  ipcMain.handle('workspace:update', (_, workspace: { id: string; name: string; url: string }) => {
-    const workspaces = store.get('workspaces', []) as any[];
-    const index = workspaces.findIndex((w: any) => w.id === workspace.id);
-    if (index >= 0) {
-      workspaces[index] = workspace;
-      store.set('workspaces', workspaces);
-    }
-    return workspace;
-  });
-
-  ipcMain.handle('workspace:remove', (_, id: string) => {
-    let workspaces = store.get('workspaces', []) as any[];
-    workspaces = workspaces.filter((w: any) => w.id !== id);
-    store.set('workspaces', workspaces);
-    const activeId = store.get('activeWorkspaceId');
-    if (activeId === id && workspaces.length > 0) {
-      store.set('activeWorkspaceId', workspaces[0].id);
-    }
-    return true;
-  });
-
-  ipcMain.handle('workspace:get-active', () => {
-    const activeId = store.get('activeWorkspaceId') as string;
-    const workspaces = store.get('workspaces', []) as any[];
-    return workspaces.find((w: any) => w.id === activeId) || workspaces[0] || null;
-  });
-
-  ipcMain.handle('workspace:set-active', (_, id: string) => {
-    store.set('activeWorkspaceId', id);
-    const workspaces = store.get('workspaces', []) as any[];
-    return workspaces.find((w: any) => w.id === id) || null;
-  });
-
-  ipcMain.handle('workspace:set-default', (_, id: string | null) => {
-    store.set('defaultWorkspaceId', id);
-    return true;
-  });
-
-  ipcMain.handle('workspace:get-default', () => {
-    return store.get('defaultWorkspaceId', null);
+  // ── Renderer-invoked IPC. One declarative map per domain; spread order
+  // mirrors the previous inline registration order.
+  registerIpcHandlers({
+    ...createVoiceHandlers(),
+    ...createNotificationHandlers({
+      showAlarmNotification,
+      showMissedAggregate,
+      showTaskReminderNotification,
+      showTaskMissedAggregate,
+    }),
+    ...createFileHandlers({ getApiUrl, getMainWindow: () => mainWindow }),
+    ...createSettingsHandlers({
+      store,
+      applySettingsEffects,
+      isTrayAvailable: () => !trayUnavailable,
+    }),
+    ...createWorkspaceHandlers(store),
   });
 
   // ── Local server (standalone) IPC handlers ──

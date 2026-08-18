@@ -61,10 +61,15 @@ import DayDetailPanel from '../components/calendar/DayDetailPanel.vue';
 import EventModal from '../components/calendar/EventModal.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import type { CalendarEvent } from '../types/CalendarEvent';
-import apiClient from '../services/api';
+import { useCalendarOccurrences } from '../services/calendar/useCalendarOccurrences';
+import { useProjectDirectory } from '../services/projects/useProjectDirectory';
 
 const route = useRoute();
 const { events, isLoading, loadEventsByRange, createEvent, updateEvent, deleteEvent } = useCalendarEvents();
+// Separate instance so loadEvent doesn't toggle the page-level isLoading spinner.
+const { loadEvent } = useCalendarEvents();
+const { unmarkOccurrenceComplete } = useCalendarOccurrences();
+const { fetchProject } = useProjectDirectory();
 const { projects, loadProjects } = useProjectList();
 
 const projectId = computed(() => {
@@ -167,8 +172,7 @@ async function handleUnmarkOccurrence() {
     const ev = selectedEvent.value;
     if (!ev?.occurrenceStart) return;
     try {
-        const encoded = encodeURIComponent(ev.occurrenceStart);
-        await apiClient.delete(`/calendar-events/${ev.id}/occurrences/${encoded}/complete`);
+        await unmarkOccurrenceComplete(ev.id, ev.occurrenceStart);
         await loadMonthEvents();
         showEventModal.value = false;
         selectedEvent.value = null;
@@ -199,9 +203,9 @@ async function openEventByIdFromRoute() {
     const id = Number(Array.isArray(raw) ? raw[0] : raw);
     if (!id) return;
     try {
-        const res = await apiClient.get(`/calendar-events/${id}`);
-        if (res.data) {
-            selectedEvent.value = res.data as CalendarEvent;
+        const event = await loadEvent(id);
+        if (event) {
+            selectedEvent.value = event as CalendarEvent;
             showEventModal.value = true;
         }
     } catch {
@@ -212,8 +216,8 @@ async function openEventByIdFromRoute() {
 onMounted(async () => {
     if (projectId.value) {
         try {
-            const res = await apiClient.get(`/projects/${projectId.value}`);
-            projectName.value = res.data.name;
+            const project = await fetchProject(projectId.value);
+            projectName.value = project.name;
         } catch { }
     }
     await loadProjects();

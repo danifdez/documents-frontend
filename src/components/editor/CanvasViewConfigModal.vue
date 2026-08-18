@@ -64,7 +64,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import apiClient from '../../services/api';
+import { useCanvasDirectory } from '../../services/canvas/useCanvasDirectory';
 import Button from '../ui/Button.vue';
 import { useProjectStore } from '../../store/projectStore';
 
@@ -88,16 +88,14 @@ const canvases = ref<CanvasInfo[]>([]);
 const selectedCanvasId = ref<number | null>(null);
 const loadingCanvases = ref(false);
 const projectStore = useProjectStore();
+const { fetchCanvases } = useCanvasDirectory();
 
 watch(modelValue, async (open) => {
     if (open) {
         selectedCanvasId.value = null;
         loadingCanvases.value = true;
         try {
-            const projectId = projectStore.currentProject?.id;
-            const url = projectId ? `/canvases/project/${projectId}` : '/canvases';
-            const response = await apiClient.get(url);
-            canvases.value = response.data;
+            canvases.value = await fetchCanvases(projectStore.currentProject?.id);
         } catch {
             canvases.value = [];
         } finally {

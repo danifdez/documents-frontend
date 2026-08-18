@@ -93,57 +93,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue';
+import { ref } from 'vue';
 import { useAssistantStore } from '../../store/assistantStore';
 import type { AssistantMessage, AssistantMessageEvent } from '../../types/Assistant';
 import { MEMORY_TYPE_LABEL } from '../../types/AssistantMemory';
 import MarkdownContent from './MarkdownContent.vue';
-import apiClient from '../../services/api';
 import { getConfirmHandler } from '../../services/assistantConfirmHandlers';
+import { useChatEventApi } from '../../services/chat/useChatEventApi';
+import { useChatView } from '../../composables/useChatView';
 
 const store = useAssistantStore();
-const scrollContainer = ref<HTMLElement | null>(null);
-
-// Strip Qwen3 thinking blocks from the live stream the same way the worker
-// does for the final reply, so the user never sees raw <think>…</think>
-// internals if thinking is ever enabled. Also drops an unclosed leading
-// <think> tag (mid-stream, the closing tag may not have arrived yet).
-const THINK_BLOCK_RE = /<think>[\s\S]*?<\/think>/gi;
-const UNCLOSED_THINK_RE = /<think>[\s\S]*/i;
-const visibleStream = computed(() => {
-    const raw = store.activeStreaming;
-    if (!raw) return '';
-    let cleaned = raw.replace(THINK_BLOCK_RE, '');
-    // Mid-stream the closing </think> may not have arrived yet. Always drop
-    // everything from an unclosed <think> tag — never show it as text.
-    if (/<think>/i.test(cleaned)) {
-        cleaned = cleaned.replace(UNCLOSED_THINK_RE, '');
-    }
-    return cleaned.trimStart();
-});
-
-function bubbleClass(role: 'user' | 'assistant' | 'system' | 'event'): string {
-    if (role === 'user') {
-        return 'max-w-[80%] rounded-2xl rounded-tr-md px-4 py-2.5 bg-accent text-white';
-    }
-    return 'max-w-[80%] rounded-2xl rounded-tl-md px-4 py-2.5 bg-surface-elevated border border-border-light text-text-primary';
-}
-
-function eventIcon(event: AssistantMessageEvent | null): string {
-    if (!event) return '·';
-    switch (event.kind) {
-        case 'memory_saved':
-            return '🧠';
-        case 'memory_forgotten':
-            return '🗑️';
-        case 'memory_replaced':
-            return '✏️';
-        case 'tool_executed':
-            return '🔍';
-        default:
-            return '◇';
-    }
-}
+const chatEventApi = useChatEventApi();
 
 const TOOL_NAME_LABEL: Record<string, string> = {
     search_workspace: 'Workspace search',
@@ -154,7 +114,22 @@ const TOOL_NAME_LABEL: Record<string, string> = {
     clear_task_reminder: 'Clear task reminder',
 };
 
-function eventTitle(msg: AssistantMessage): string {
+// Memory cards are assistant-only event kinds; they short-circuit the shared
+// tool-card rendering in useChatView via the special* hooks below.
+function memoryEventIcon(event: AssistantMessageEvent): string | null {
+    switch (event.kind) {
+        case 'memory_saved':
+            return '🧠';
+        case 'memory_forgotten':
+            return '🗑️';
+        case 'memory_replaced':
+            return '✏️';
+        default:
+            return null;
+    }
+}
+
+function memoryEventTitle(msg: AssistantMessage): string | null {
     const event = msg.event;
     if (
         (event?.kind === 'memory_saved'
@@ -164,14 +139,10 @@ function eventTitle(msg: AssistantMessage): string {
     ) {
         return event.entry.name;
     }
-    if (event?.kind === 'tool_executed' && event.tool) {
-        return event.tool.args || TOOL_NAME_LABEL[event.tool.name] || event.tool.name;
-    }
-    return msg.content;
+    return null;
 }
 
-function eventMeta(event: AssistantMessageEvent | null): string {
-    if (!event) return '';
+function memoryEventMeta(event: AssistantMessageEvent): string | null {
     if (event.kind === 'memory_saved' && event.entry) {
         const type = MEMORY_TYPE_LABEL[event.entry.type as keyof typeof MEMORY_TYPE_LABEL] || event.entry.type;
         return `Memory saved · ${type}`;
@@ -185,23 +156,41 @@ function eventMeta(event: AssistantMessageEvent | null): string {
         const suffix = event.via === 'auto_dedup' ? ' · auto-detected' : '';
         return `Memory updated · ${type}${suffix}`;
     }
-    if (event.kind === 'tool_executed' && event.tool) {
-        const label = TOOL_NAME_LABEL[event.tool.name] || event.tool.name;
-        if (event.tool.status === 'running') return `${label} · in progress…`;
-        if (event.tool.status === 'pending_confirmation') return `${label} · waiting for your confirmation`;
-        if (event.tool.status === 'cancelled') return `${label} · cancelled`;
-        return event.tool.summary ? `${label} · ${event.tool.summary}` : label;
-    }
-    return '';
+    return null;
 }
 
-function isRunningTool(event: AssistantMessageEvent | null): boolean {
-    return !!(event && event.kind === 'tool_executed' && event.tool?.status === 'running');
-}
-
-function isPendingConfirmation(event: AssistantMessageEvent | null): boolean {
-    return !!(event && event.kind === 'tool_executed' && event.tool?.status === 'pending_confirmation');
-}
+const {
+    scrollContainer,
+    visibleStream,
+    bubbleClass,
+    eventIcon,
+    eventTitle,
+    eventMeta,
+    isRunningTool,
+    isPendingConfirmation,
+    resolvingIds,
+    confirmEvent,
+    cancelEvent,
+    loadOlder,
+} = useChatView<AssistantMessage>({
+    store,
+    ownerSegment: 'assistants',
+    toolNameLabel: TOOL_NAME_LABEL,
+    activeOwner: () => store.activeAssistant,
+    specialEventIcon: memoryEventIcon,
+    specialEventTitle: memoryEventTitle,
+    specialEventMeta: memoryEventMeta,
+    executeConfirm: (kind, assistantId, tool) => getConfirmHandler(kind)!.execute({
+        assistantId,
+        payload: tool.payload || {},
+    }),
+    cancelSummary: (tool, assistantId) => {
+        const handler = getConfirmHandler(tool.kind);
+        return handler?.cancelSummary
+            ? handler.cancelSummary({ assistantId, payload: tool.payload || {} })
+            : 'Cancelled';
+    },
+});
 
 function canDelete(event: AssistantMessageEvent | null): boolean {
     return !!(event && event.kind === 'tool_executed' && event.tool?.entity?.kind && event.tool.status !== 'running');
@@ -217,61 +206,14 @@ function entityKindLabel(event: AssistantMessageEvent | null): string {
 }
 
 const deletingIds = ref<Set<number>>(new Set());
-const resolvingIds = ref<Set<number>>(new Set());
-
-async function confirmEvent(msg: AssistantMessage) {
-    if (msg.event?.kind !== 'tool_executed' || !msg.event.tool) return;
-    const tool = msg.event.tool as any;
-    const kind = tool.kind;
-    const handler = getConfirmHandler(kind);
-    if (!handler || !store.activeAssistant) return;
-    resolvingIds.value.add(msg.id);
-    try {
-        const summary = await handler.execute({
-            assistantId: store.activeAssistant.id,
-            payload: tool.payload || {},
-        });
-        await apiClient.patch(
-            `/assistants/${store.activeAssistant.id}/messages/${msg.id}/event-status`,
-            { status: 'done', summary },
-        );
-        store.updateEventToolStatus(msg.id, 'done', summary);
-    } catch (e: any) {
-        alert(e?.response?.data?.message || e?.message || 'Could not perform the action');
-    } finally {
-        resolvingIds.value.delete(msg.id);
-    }
-}
-
-async function cancelEvent(msg: AssistantMessage) {
-    if (msg.event?.kind !== 'tool_executed' || !msg.event.tool || !store.activeAssistant) return;
-    const tool = msg.event.tool as any;
-    const handler = getConfirmHandler(tool.kind);
-    const summary = handler?.cancelSummary
-        ? handler.cancelSummary({ assistantId: store.activeAssistant.id, payload: tool.payload || {} })
-        : 'Cancelled';
-    resolvingIds.value.add(msg.id);
-    try {
-        await apiClient.patch(
-            `/assistants/${store.activeAssistant.id}/messages/${msg.id}/event-status`,
-            { status: 'cancelled', summary },
-        );
-        store.updateEventToolStatus(msg.id, 'cancelled', summary);
-    } catch (e: any) {
-        alert(e?.response?.data?.message || e?.message || 'Could not cancel');
-    } finally {
-        resolvingIds.value.delete(msg.id);
-    }
-}
 
 async function deleteEntity(msg: AssistantMessage) {
     if (msg.event?.kind !== 'tool_executed' || !msg.event.tool?.entity) return;
     const entity = msg.event.tool.entity;
     if (entity.deleted) return;
-    const path = entity.kind === 'note' ? `/notes/${entity.id}` : `/user-tasks/${entity.id}`;
     deletingIds.value.add(msg.id);
     try {
-        await apiClient.delete(path);
+        await chatEventApi.deleteEventEntity(entity);
         store.markEventEntityDeleted(msg.id);
     } catch (e: any) {
         alert(e?.response?.data?.message || e?.message || `Could not delete the ${entityKindLabel(msg.event)}`);
@@ -279,44 +221,6 @@ async function deleteEntity(msg: AssistantMessage) {
         deletingIds.value.delete(msg.id);
     }
 }
-
-async function scrollToBottom() {
-    await nextTick();
-    if (scrollContainer.value) {
-        scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-    }
-}
-
-// Prepend older messages while keeping the viewport anchored on the same
-// message: restore scrollTop by the height delta the new rows added on top.
-async function loadOlder() {
-    const id = store.activeId;
-    if (id == null) return;
-    const el = scrollContainer.value;
-    const prevHeight = el?.scrollHeight ?? 0;
-    const prevTop = el?.scrollTop ?? 0;
-    await store.loadOlder(id);
-    await nextTick();
-    if (el) {
-        el.scrollTop = prevTop + (el.scrollHeight - prevHeight);
-    }
-}
-
-// Auto-scroll to the bottom only on append or conversation switch — keyed on
-// the last message id (not length), so a prepend from loadOlder never yanks
-// the view down.
-watch(
-    () => [
-        store.activeMessages[store.activeMessages.length - 1]?.id,
-        store.isActivePending,
-        store.activeId,
-        visibleStream.value.length,
-    ],
-    () => {
-        scrollToBottom();
-    },
-    { immediate: true },
-);
 </script>
 
 <style scoped>

@@ -203,8 +203,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import apiClient from '../../services/api';
+import { useCanvas } from '../../services/canvas/useCanvas';
 import type { CanvasData, CanvasNode, CanvasEdge } from '../../types/canvas';
+
+const { loadCanvas: fetchCanvas } = useCanvas();
 
 const props = defineProps<{
     canvasId: number;
@@ -397,8 +399,8 @@ const loadCanvas = async () => {
     loading.value = true;
     error.value = null;
     try {
-        const response = await apiClient.get(`/canvases/${props.canvasId}`);
-        canvasData.value = response.data.canvasData || null;
+        const canvas: any = await fetchCanvas(String(props.canvasId));
+        canvasData.value = canvas.canvasData || null;
     } catch (err: any) {
         error.value = err.response?.data?.message || 'Failed to load canvas';
     } finally {

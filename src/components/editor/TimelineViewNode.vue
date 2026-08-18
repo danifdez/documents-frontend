@@ -102,7 +102,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import apiClient from '../../services/api';
+import { useTimelines } from '../../services/timelines/useTimelines';
+
+const { loadTimeline: fetchTimeline } = useTimelines();
 
 const props = defineProps<{
     timelineId: number;
@@ -252,9 +254,9 @@ const loadTimeline = async () => {
     error.value = null;
 
     try {
-        const res = await apiClient.get(`/timelines/${props.timelineId}`);
-        events.value = res.data.timelineData || [];
-        epochs.value = res.data.epochs || [];
+        const timeline = await fetchTimeline(props.timelineId);
+        events.value = timeline.timelineData || [];
+        epochs.value = timeline.epochs || [];
         renderImage();
     } catch (err: any) {
         error.value = err.response?.data?.message || 'Failed to load timeline';

@@ -108,6 +108,7 @@ import EntityGraphNode from './nodes/EntityGraphNode.vue';
 
 import type { CanvasData } from '../../types/canvas';
 import apiClient from '../../services/api';
+import { useResourceDirectory } from '../../services/resources/useResourceDirectory';
 import { type RelationshipData } from '../../services/relationships/useRelationships';
 import { getSocket } from '../../services/notifications/notification';
 
@@ -143,6 +144,7 @@ let skipDataWatch = false;
 let internalChange = false;
 
 const { getSelectedNodes, getSelectedEdges, removeNodes, removeEdges, findNode } = useVueFlow();
+const { removeResource } = useResourceDirectory();
 
 const cleanupImageResource = (node: Node) => {
   if (node.type !== 'image') return;
@@ -150,7 +152,7 @@ const cleanupImageResource = (node: Node) => {
   if (!src) return;
   const match = src.match(/\/resources\/(\d+)\/view/);
   if (match) {
-    apiClient.delete(`/resources/${match[1]}`).catch(() => {});
+    removeResource(match[1]).catch(() => {});
   }
 };
 

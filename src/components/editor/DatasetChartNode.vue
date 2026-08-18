@@ -48,7 +48,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
 import { Chart, registerables } from 'chart.js';
-import apiClient from '../../services/api';
+import { useDatasets } from '../../services/datasets/useDatasets';
 
 Chart.register(...registerables);
 
@@ -65,14 +65,15 @@ const error = ref<string | null>(null);
 const chartCanvas = ref<HTMLCanvasElement | null>(null);
 let chartInstance: Chart | null = null;
 
+const { getSavedCharts, requestStats, getStatsResult } = useDatasets();
+
 const loadChart = async () => {
     loading.value = true;
     error.value = null;
 
     try {
         // Fetch the saved chart config
-        const chartRes = await apiClient.get(`/datasets/${props.datasetId}/charts`);
-        const charts = chartRes.data;
+        const charts = await getSavedCharts(props.datasetId);
         const savedChart = charts.find((c: any) => c.id === props.chartId);
 
         if (!savedChart) {
@@ -81,22 +82,17 @@ const loadChart = async () => {
         }
 
         // Request chart data using the saved config
-        const statsRes = await apiClient.post(`/datasets/${props.datasetId}/stats`, {
-            operation: 'chart',
-            params: savedChart.config,
-        });
-
-        const jobId = statsRes.data.jobId;
+        const { jobId } = await requestStats(props.datasetId, 'chart', savedChart.config);
 
         // Poll for result
         const poll = () => new Promise<any>((resolve, reject) => {
             const timer = setInterval(async () => {
                 try {
-                    const result = await apiClient.get(`/datasets/${props.datasetId}/stats/${jobId}`);
-                    if (result.data.status === 'completed' || result.data.status === 'processed') {
+                    const result = await getStatsResult(props.datasetId, jobId);
+                    if (result.status === 'completed' || result.status === 'processed') {
                         clearInterval(timer);
-                        resolve(result.data.result);
-                    } else if (result.data.status === 'failed') {
+                        resolve(result.result);
+                    } else if (result.status === 'failed') {
                         clearInterval(timer);
                         reject(new Error('Chart generation failed'));
                     }
