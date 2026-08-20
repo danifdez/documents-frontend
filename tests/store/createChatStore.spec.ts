@@ -104,4 +104,44 @@ describe('createChatStore final response without streaming', () => {
     ]);
     expect(store.activeMessages.value[1].event.tool.status).toBe('done');
   });
+
+  it('completes the pending turn when the persisted response contains an error', async () => {
+    const userMessage = message(1, 'user', 'Question');
+    const failedMessage = {
+      ...message(2, 'assistant', ''),
+      error: 'Model returned an empty response',
+    };
+    const api = {
+      list: vi
+        .fn()
+        .mockResolvedValue([{ id: 7, pinned: false, lastSeenAt: null }]),
+      update: vi.fn(),
+      remove: vi.fn(),
+      getMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendMessage: vi
+        .fn()
+        .mockResolvedValue({ userMessage, executionId: 'execution-1' }),
+    };
+    const store = createChatStore<Owner, Message, Partial<Owner>>({
+      api,
+      events: {
+        toolEvent: 'tool-event',
+        streamChunk: 'stream-chunk',
+        response: 'response',
+      },
+      socketIdKey: 'ownerId',
+      loadErrorMessage: 'Failed to load chat',
+    });
+
+    await store.load();
+    await store.selectOwner(7);
+    await store.sendMessage('Question');
+    socketState.handlers.get('response')?.({
+      ownerId: 7,
+      message: failedMessage,
+    });
+
+    expect(store.isActivePending.value).toBe(false);
+    expect(store.activeMessages.value).toEqual([userMessage, failedMessage]);
+  });
 });
