@@ -32,7 +32,7 @@ message while it progresses.
 
 | Service | Role |
 |---------|------|
-| Backend API | REST API and job orchestration |
+| Backend API | REST API and durable execution orchestration |
 | PostgreSQL | Stores documents, projects, application state, embeddings (pgvector) for semantic search, and the entity graph (Apache AGE) for relationships / GraphRAG |
 
 The PostgreSQL asset ships with both the `vector` (pgvector) and `age` (Apache AGE)

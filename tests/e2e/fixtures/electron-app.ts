@@ -1,6 +1,6 @@
 import { test as base, _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
 import * as path from 'path';
-import { mockModelJobs } from './api-mocks';
+import { mockModelExecutions } from './api-mocks';
 import { waitForOnline } from './helpers';
 
 const MAIN_ENTRY = path.join(__dirname, '..', '..', '..', '.vite', 'build', 'main.js');
@@ -49,7 +49,7 @@ export const test = base.extend<ElectronFixtures>({
     await setupWorkspaceIfNeeded(window);
 
     // Mock model execution APIs to avoid waiting for ML processing
-    await mockModelJobs(window).catch(() => {});
+    await mockModelExecutions(window).catch(() => {});
 
     // Confirm backend is reachable before running tests.
     // No reload needed — serverReachable defaults to true on app init.

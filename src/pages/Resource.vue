@@ -149,10 +149,10 @@
                         :hide-original="isAudioFile"
                         :is-edit-mode="isEditMode" @ask="showChat = true" :extractedContent="resource.content"
                         :translatedContent="resource.translatedContent" :sourceLanguage="resource.language || ''"
-                        :defaultLanguage="defaultLanguage" @summarize="handleSummarizeJob" @translate="handleTranslate"
+                        :defaultLanguage="defaultLanguage" @summarize="handleSummarizeExecution" @translate="handleTranslate"
                         @extractEntities="handleExtractEntities" @createWorkspace="handleCreateWorkspace"
-                        @keyPoints="handleKeyPointsJob" @send-selection-to-workspace="handleToolbarSendSelection"
-                        @keywords="handleKeywordsJob" :hasEntities="resource.entities && resource.entities.length > 0"
+                        @keyPoints="handleKeyPointsExecution" @send-selection-to-workspace="handleToolbarSendSelection"
+                        @keywords="handleKeywordsExecution" :hasEntities="resource.entities && resource.entities.length > 0"
                         :hasRelationships="resource.status === 'ready' || resource.status === 'confirmed'"
                         :isConfirmed="!isPendingConfirmation" />
                     <!-- Show extraction message when extracting -->
@@ -591,7 +591,7 @@ import DatesList from '../components/resources/DatesList.vue';
 import DatesTimeline from '../components/resources/DatesTimeline.vue';
 import PromoteDateToTimelineModal from '../components/resources/PromoteDateToTimelineModal.vue';
 import { useResourceDates } from '../services/resources/useResourceDates';
-import { useModelJobs } from '../services/model/useModelJobs';
+import { useModelExecutions, type ExecutionCreated } from '../services/model/useModelExecutions';
 import { useElectronApi } from '../composables/useElectronApi';
 import type { ResourceDate } from '../types/ResourceDate';
 import Button from '../components/ui/Button.vue';
@@ -1326,15 +1326,15 @@ const {
     extractKeywords,
     extractEntities,
     summarizeSelection,
-} = useModelJobs();
+} = useModelExecutions();
 
-const runModelJob = async (
+const runModelExecution = async (
     label: string,
-    createJob: () => Promise<void>,
+    createExecution: () => Promise<ExecutionCreated>,
     afterSuccess?: () => Promise<void>,
 ) => {
     try {
-        await createJob();
+        await createExecution();
         notification.success(`${label} execution created successfully`);
         await afterSuccess?.();
     } catch (error) {
@@ -1342,21 +1342,21 @@ const runModelJob = async (
     }
 };
 
-const handleSummarizeJob = async () =>
-    runModelJob('Summarization', () => summarizeResource(Number(resourceId.value)));
+const handleSummarizeExecution = async () =>
+    runModelExecution('Summarization', () => summarizeResource(Number(resourceId.value)));
 
 const handleTranslate = async () =>
-    runModelJob('Translation', () => translateResource(Number(resourceId.value)));
+    runModelExecution('Translation', () => translateResource(Number(resourceId.value)));
 
-const handleKeyPointsJob = async () =>
-    runModelJob('Key points', () => extractKeyPoints(Number(resourceId.value)));
+const handleKeyPointsExecution = async () =>
+    runModelExecution('Key points', () => extractKeyPoints(Number(resourceId.value)));
 
-const handleKeywordsJob = async () =>
-    runModelJob('Keywords', () => extractKeywords(Number(resourceId.value)), loadResourceDetails);
+const handleKeywordsExecution = async () =>
+    runModelExecution('Keywords', () => extractKeywords(Number(resourceId.value)), loadResourceDetails);
 
 const handleExtractEntities = async () => {
     if (!resourceId.value) return;
-    await runModelJob('Entity extraction', () => extractEntities(Number(resourceId.value)), loadResourceDetails);
+    await runModelExecution('Entity extraction', () => extractEntities(Number(resourceId.value)), loadResourceDetails);
 };
 
 const handleEntityRemoved = (entityId: number) => {

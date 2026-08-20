@@ -4,9 +4,9 @@
 
 ## What Is This?
 
-**Documents Frontend** is an Electron desktop application for researchers, writers, and knowledge workers who need to collect, process, and connect large amounts of documents and information. It provides a single workspace where you can import documents from disk or the web, run AI-powered processing jobs (extraction, summarization, translation), and organize everything into projects, knowledge entries, threads, timelines, and canvases.
+**Documents Frontend** is an Electron desktop application for researchers, writers, and knowledge workers who need to collect, process, and connect large amounts of documents and information. It provides a single workspace where you can import documents from disk or the web, run durable AI executions (extraction, summarization, translation), and organize everything into projects, knowledge entries, threads, timelines, and canvases.
 
-Under the hood, the app talks to a [NestJS backend](../backend/README.md) (document storage, jobs, users) and a [Python models service](../models/README.md) (NLP, embeddings, AI processing). All three services are run together through Docker Compose.
+Under the hood, the app talks to a [NestJS backend](../backend/README.md) (document storage, executions, users) and a [Python models service](../models/README.md) (NLP, embeddings, AI processing). All three services are run together through Docker Compose.
 
 ## Key Features
 
@@ -17,14 +17,14 @@ Under the hood, the app talks to a [NestJS backend](../backend/README.md) (docum
 - Add comments and marks to specific parts of a document
 - Full-text and semantic search across all your content
 
-### AI Processing Jobs
+### AI Executions
 
 - **Extraction** — extract structured entities, topics, and references from a document
 - **Transcription** — automatically transcribe speech from audio and video files using Whisper AI
 - **Summarization** — generate concise summaries of long documents
 - **Translation** — translate document content to other languages
 - **Image generation** — create and edit images from text prompts using local AI models, directly from the canvas
-- Real-time job status notifications via WebSocket
+- Real-time execution status notifications via WebSocket
 
 ### Knowledge & Research Tools
 

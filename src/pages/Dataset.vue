@@ -968,7 +968,7 @@ const handleImported = () => {
 };
 
 // Generic asynchronous execution runner.
-const createJobRunner = (errorMsg: string) => {
+const createExecutionRunner = (errorMsg: string) => {
     const result = ref<Record<string, any> | null>(null);
     const running = ref(false);
     const lastOperation = ref('');
@@ -986,7 +986,7 @@ const createJobRunner = (errorMsg: string) => {
             timer = setInterval(async () => {
                 try {
                     const { status, result: r } = await getStatsResult(datasetId, executionId);
-                    if (status === 'completed' || status === 'processed') {
+                    if (status === 'completed') {
                         result.value = r;
                         running.value = false;
                         if (timer) clearInterval(timer);
@@ -1007,7 +1007,7 @@ const createJobRunner = (errorMsg: string) => {
 };
 
 // Charts
-const { result: chartResult, running: chartRunning, run: runChart, lastParams: lastChartParams } = createJobRunner('Chart generation failed');
+const { result: chartResult, running: chartRunning, run: runChart, lastParams: lastChartParams } = createExecutionRunner('Chart generation failed');
 
 const activeChartFilters = computed(() => {
     return filters.value
@@ -1160,7 +1160,7 @@ const handleDeleteSavedChart = async (chartId: number) => {
 };
 
 // Analysis (unified runner for all analysis operations)
-const { result: analysisResult, running: analysisRunning, run: runAnalysis, lastParams: lastAnalysisParams, lastOperation: lastAnalysisOp } = createJobRunner('Analysis failed');
+const { result: analysisResult, running: analysisRunning, run: runAnalysis, lastParams: lastAnalysisParams, lastOperation: lastAnalysisOp } = createExecutionRunner('Analysis failed');
 
 onMounted(async () => {
     try {

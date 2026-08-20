@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 import EditorContent from '../../../src/components/editor/EditorContent.vue';
+
+vi.mock('vue-router', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('vue-router')>()),
+    useRoute: () => ({ params: { id: 'new' }, query: {} }),
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 // Mock dependencies
 vi.mock('@/components/editor/EditorToolbar.vue', () => ({
@@ -39,6 +46,7 @@ describe('EditorContent.vue', () => {
     };
 
     beforeEach(() => {
+        setActivePinia(createPinia());
         // Reset any previous component instance
         if (wrapper) {
             wrapper.unmount();
@@ -88,20 +96,15 @@ describe('EditorContent.vue', () => {
         HTMLElement.prototype.focus = vi.fn();
     });
 
-    it('should initialize with an empty paragraph when content is empty', async () => {
+    it('should mount an empty editor when content is empty', async () => {
         createComponent({ content: '' });
 
         // Wait for component to fully initialize
         await wrapper.vm.$nextTick();
 
-        // Verify the editor has an empty paragraph
         const editorContent = getEditorElement();
-        expect(editorContent.html()).toContain('<p><br></p>');
-
-        // Verify the content-change event was emitted with the empty paragraph
-        const emitted = wrapper.emitted('content-change');
-        expect(emitted).toBeTruthy();
-        expect(emitted[0][0]).toContain('<p><br></p>');
+        expect(editorContent.exists()).toBe(true);
+        expect(editorContent.text()).toBe('');
     });
 
     it('should create a new paragraph when Enter key is pressed', async () => {

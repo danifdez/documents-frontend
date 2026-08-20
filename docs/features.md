@@ -21,8 +21,8 @@ The `Doc` page (`/projects/:projectId/docs/:docId`) displays a resource's conten
 | Tab | Description |
 |-----|-------------|
 | Raw | Original extracted text |
-| Translated | Machine-translated version (if translation job has run) |
-| Summary | AI-generated summary (if summarization job has run) |
+| Translated | Machine-translated version (if a translation execution has run) |
+| Summary | AI-generated summary (if a summarization execution has run) |
 
 Document content auto-saves 1 second after the last keystroke. A visual indicator shows `Saving…` / `Saved` states.
 
@@ -30,11 +30,11 @@ Document content auto-saves 1 second after the last keystroke. A visual indicato
 
 The `Resource` page (`/projects/:projectId/resources/:resourceId`) shows the resource metadata (type, URL, language, creation date) alongside its linked documents, marks, comments, and extracted entities.
 
-## AI Processing Jobs
+## AI Executions
 
-Processing is triggered per-resource or per-project from the interface. Jobs run asynchronously in the models service and results appear via real-time WebSocket notifications.
+Processing is triggered per-resource or per-project from the interface. Executions run asynchronously in the models service and results appear via real-time WebSocket notifications.
 
-| Job | What it does |
+| Execution | What it does |
 |-----|-------------|
 | **Extraction** | Identifies entities (people, places, organisations, dates) and structured references |
 | **Summarization** | Produces a concise summary stored in the document's `summary` field |
@@ -43,13 +43,13 @@ Processing is triggered per-resource or per-project from the interface. Jobs run
 
 ### Real-time Notifications
 
-The `useNotification` composable connects to the backend Socket.io server. Incoming events update a notification list that appears in the header, letting users see when a job completes or fails without leaving their current page.
+The `useNotification` composable connects to the backend Socket.io server. Incoming events update a notification list that appears in the header, letting users see when an execution completes or fails without leaving their current page.
 
 ## Entities
 
 The Entities page (`/projects/:projectId/entities`) shows all entities extracted from a project's documents. Entity management follows a two-phase workflow:
 
-1. **Pending phase** — After an extraction job, newly found entities appear in the `PendingEntitiesValidator` panel. Each entity shows its type, value, and source document. You can edit the value, change the type, or discard it.
+1. **Pending phase** — After an extraction execution, newly found entities appear in the `PendingEntitiesValidator` panel. Each entity shows its type, value, and source document. You can edit the value, change the type, or discard it.
 2. **Confirmation phase** — Accepted entities are promoted to the confirmed list. Duplicates can be merged. Bulk-confirm all pending entities at once with a single action.
 
 Entity types are configurable and backed by the `resource-type.csv` seed data in the backend.
@@ -101,7 +101,7 @@ The Settings page exposes editor preferences that are persisted locally via `ele
 | Font size | Adjustable via slider |
 | Font family | `sans-serif`, `serif`, `monospace` |
 | Paragraph spacing | Adjustable via slider |
-| Language | Interface language (affects translation jobs) |
+| Language | Interface language (affects translation executions) |
 
 Settings are read and written through the `settings:get` / `settings:set` IPC channels.
 
@@ -113,7 +113,7 @@ Manage themes from **Settings → General → Theme → Manage themes…**. See 
 
 ## User Management
 
-The User Management page (accessible to administrators) lists all registered users, their roles, and active sessions. Roles control access to sensitive operations such as bulk deletion and job triggering.
+The User Management page (accessible to administrators) lists all registered users, their roles, and active sessions. Roles control access to sensitive operations such as bulk deletion and execution triggering.
 
 ## Offline Mode
 
