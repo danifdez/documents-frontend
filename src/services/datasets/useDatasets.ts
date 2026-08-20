@@ -213,12 +213,12 @@ export const useDatasets = () => {
         await withLoading('Failed to delete dataset', () => apiClient.delete(`/datasets/${id}`));
     };
 
-    const requestStats = (datasetId: number, operation: string = 'summary', params: Record<string, any> = {}): Promise<{ jobId: number; message: string }> =>
+    const requestStats = (datasetId: number, operation: string = 'summary', params: Record<string, any> = {}): Promise<{ executionId: string; message: string }> =>
         withLoading('Failed to request stats', async () => (await apiClient.post(`/datasets/${datasetId}/stats`, { operation, params })).data);
 
-    const getStatsResult = async (datasetId: number, jobId: number): Promise<{ status: string; result: StatsResult | null }> => {
+    const getStatsResult = async (datasetId: number, executionId: string): Promise<{ status: string; result: StatsResult | null }> => {
         error.value = null;
-        return captureError('Failed to get stats result', async () => (await apiClient.get(`/datasets/${datasetId}/stats/${jobId}`)).data);
+        return captureError('Failed to get stats result', async () => (await apiClient.get(`/datasets/${datasetId}/stats/${executionId}`)).data);
     };
 
     const extractAll = (datasetId: number): Promise<{ rowsQueued: number }> =>
@@ -228,7 +228,7 @@ export const useDatasets = () => {
         datasetId: number,
         recordId: number,
         columnsToExtract?: string[],
-    ): Promise<{ jobId: number | null }> =>
+    ): Promise<{ executionId: string | null }> =>
         captureError('Failed to re-extract row', async () => (await apiClient.post(
             `/datasets/${datasetId}/records/${recordId}/re-extract`,
             { columnsToExtract },
@@ -237,15 +237,15 @@ export const useDatasets = () => {
     const proposeColumns = async (
         resourceIds: number[],
         projectId?: number,
-    ): Promise<{ jobId: number | null }> => {
+    ): Promise<{ executionId: string | null }> => {
         const response = await apiClient.post('/datasets/propose-columns', { resourceIds, projectId });
         return response.data;
     };
 
     const getProposeColumnsResult = async (
-        jobId: number,
+        executionId: string,
     ): Promise<{ status: string; result: { columns: DatasetField[] | null; error: string | null } | null }> => {
-        const response = await apiClient.get(`/datasets/propose-columns/${jobId}`);
+        const response = await apiClient.get(`/datasets/propose-columns/${executionId}`);
         return response.data;
     };
 
@@ -254,7 +254,7 @@ export const useDatasets = () => {
         recordId: number,
         fieldKey: string,
         force = false,
-    ): Promise<{ jobId: number | null } | { requiresConfirmation: true; reason: string }> =>
+    ): Promise<{ executionId: string | null } | { requiresConfirmation: true; reason: string }> =>
         captureError('Failed to re-extract cell', async () => (await apiClient.post(
             `/datasets/${datasetId}/records/${recordId}/cells/${encodeURIComponent(fieldKey)}/re-extract`,
             { force },

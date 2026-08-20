@@ -17,7 +17,7 @@ export interface AgentMessage {
     agentId: number;
     role: 'user' | 'assistant' | 'system' | 'event';
     content: string;
-    jobId: number | null;
+    executionId: string | null;
     error: string | null;
     event: import('./Assistant').AssistantMessageEvent | null;
     createdAt: string;
@@ -36,19 +36,19 @@ export type UpdateAgentPayload = Partial<CreateAgentPayload>;
 
 export interface AgentResponseEvent {
     agentId: number;
-    jobId: number;
+    executionId: string;
     message: AgentMessage;
 }
 
 export interface AgentToolEventPayload {
     agentId: number;
-    jobId: number;
+    executionId: string;
     eventMessage: AgentMessage;
 }
 
 export interface AgentStreamChunkEvent {
     agentId: number;
-    jobId: number;
+    executionId: string;
     chunk: string;
     done?: boolean;
 }

@@ -1335,10 +1335,10 @@ const runModelJob = async (
 ) => {
     try {
         await createJob();
-        notification.success(`${label} job created successfully`);
+        notification.success(`${label} execution created successfully`);
         await afterSuccess?.();
     } catch (error) {
-        notification.error(`Failed to create ${label.toLowerCase()} job`);
+        notification.error(`Failed to create ${label.toLowerCase()} execution`);
     }
 };
 
@@ -1439,7 +1439,7 @@ const confirmResourceExtraction = async () => {
 
     try {
         await confirmExtraction(resourceId.value);
-        notification.success('Resource confirmed successfully. Language detection job created.');
+        notification.success('Resource confirmed successfully. Language detection execution created.');
 
         // Update local state
         resource.value.status = 'confirmed_extraction';
@@ -1650,7 +1650,7 @@ const handleToolbarSendSelection = async (text: string) => {
     }
 };
 
-// Handle summarize action from selection: create a summarize job that targets the workspace document
+// Handle summarize action from selection against the workspace document.
 const handleSummarizeSelection = async (text: string) => {
     if (!text || !text.trim()) return;
 
@@ -1666,7 +1666,7 @@ const handleSummarizeSelection = async (text: string) => {
             notification.success('Workspace created to receive summary');
         }
 
-        // Create a summarize job including the selected text and target document id
+        // Include the selected text and target document id in the execution.
         await summarizeSelection({
             text: text.trim(),
             sourceLanguage: resource.value.language || defaultLanguage.value,
@@ -1674,10 +1674,10 @@ const handleSummarizeSelection = async (text: string) => {
             targetDocId: workspaceDocument.value.id,
         });
 
-        notification.success('Summarization job created for selected text');
+        notification.success('Summarization execution created for selected text');
     } catch (error) {
-        console.error('Failed to create summarize job for selection', error);
-        notification.error('Failed to create summarization job');
+        console.error('Failed to create summarize execution for selection', error);
+        notification.error('Failed to create summarization execution');
     }
 };
 

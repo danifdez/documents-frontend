@@ -113,7 +113,7 @@ class StandaloneManager {
       }
     }
 
-    // 3. Start the ML worker (if installed). It polls the same jobs table; the
+    // 3. Start the ML worker (if installed). It polls the same executions table; the
     // AI assistant/agents don't work without it, so the wizard installs it in
     // every profile. Non-fatal: the rest of the app still runs if it fails.
     if (EmbeddedModelsService.isInstalled()) {

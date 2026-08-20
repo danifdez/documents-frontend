@@ -105,7 +105,7 @@ const TOOL_NAME_LABEL: Record<string, string> = {
 // need the agent path) — we work around it by patching the URL in the
 // request layer via apiClient defaults isn't reasonable. Instead the
 // simplest fix: handlers in this project use POST/DELETE on
-// `/assistants/:id/indexed-files/...`; for agents we shadow by passing
+// `/assistants/:id/indexed-files/...`; for agents we select the owner by passing
 // the agent id under the same key — but the URL is built explicitly
 // by the handler. We special-case here by hitting the agent endpoint
 // directly for folder_delete and folder_overwrite — the two pending

@@ -5,7 +5,7 @@ import { ChildProcess, spawn } from 'child_process';
 
 /**
  * Runs the bundled Python ML worker (PyInstaller `documents-models`) as a child
- * process in standalone mode. It polls the same Postgres `jobs` table the backend
+ * process in standalone mode. It polls the same Postgres `executions` table the backend
  * uses, so it just needs to point at the embedded services and know which feature
  * flags are on for the chosen profile.
  *
@@ -34,7 +34,7 @@ export class EmbeddedModelsService {
 
   private getBinaryPath(): string {
     const ext = process.platform === 'win32' ? '.exe' : '';
-    for (const name of ['documents-models', 'jobs']) {
+    for (const name of ['documents-models', 'executions']) {
       const p = path.join(this.servicesDir(), name + ext);
       if (fs.existsSync(p)) return p;
     }
@@ -46,7 +46,7 @@ export class EmbeddedModelsService {
     const dir = path.join(app.getPath('userData'), 'models-service');
     return (
       fs.existsSync(path.join(dir, 'documents-models' + ext)) ||
-      fs.existsSync(path.join(dir, 'jobs' + ext))
+      fs.existsSync(path.join(dir, 'executions' + ext))
     );
   }
 

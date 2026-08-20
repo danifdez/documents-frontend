@@ -967,7 +967,7 @@ const handleImported = () => {
     loadRecords();
 };
 
-// Generic async job runner
+// Generic asynchronous execution runner.
 const createJobRunner = (errorMsg: string) => {
     const result = ref<Record<string, any> | null>(null);
     const running = ref(false);
@@ -982,10 +982,10 @@ const createJobRunner = (errorMsg: string) => {
         lastParams.value = { ...params };
         if (timer) clearInterval(timer);
         try {
-            const { jobId } = await requestStats(datasetId, operation, params);
+            const { executionId } = await requestStats(datasetId, operation, params);
             timer = setInterval(async () => {
                 try {
-                    const { status, result: r } = await getStatsResult(datasetId, jobId);
+                    const { status, result: r } = await getStatsResult(datasetId, executionId);
                     if (status === 'completed' || status === 'processed') {
                         result.value = r;
                         running.value = false;

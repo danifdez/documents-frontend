@@ -82,13 +82,13 @@ const loadChart = async () => {
         }
 
         // Request chart data using the saved config
-        const { jobId } = await requestStats(props.datasetId, 'chart', savedChart.config);
+        const { executionId } = await requestStats(props.datasetId, 'chart', savedChart.config);
 
         // Poll for result
         const poll = () => new Promise<any>((resolve, reject) => {
             const timer = setInterval(async () => {
                 try {
-                    const result = await getStatsResult(props.datasetId, jobId);
+                    const result = await getStatsResult(props.datasetId, executionId);
                     if (result.status === 'completed' || result.status === 'processed') {
                         clearInterval(timer);
                         resolve(result.result);

@@ -31,7 +31,7 @@ export interface ChatStoreApi<TOwner, TMsg, TUpdate> {
         id: number,
         opts?: { limit?: number; before?: number },
     ): Promise<{ messages: TMsg[]; hasMore: boolean }>;
-    sendMessage(id: number, content: string): Promise<{ userMessage: TMsg; jobId: number | null }>;
+    sendMessage(id: number, content: string): Promise<{ userMessage: TMsg; executionId: string }>;
 }
 
 export interface ChatStoreContext<TOwner> {

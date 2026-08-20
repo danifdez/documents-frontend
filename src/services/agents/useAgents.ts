@@ -48,7 +48,7 @@ export function useAgents() {
     const sendMessage = async (
         id: number,
         content: string,
-    ): Promise<{ userMessage: AgentMessage; jobId: number | null }> => {
+    ): Promise<{ userMessage: AgentMessage; executionId: string }> => {
         const { data } = await apiClient.post(`/agents/${id}/messages`, { content });
         return data;
     };

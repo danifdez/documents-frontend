@@ -85,12 +85,12 @@ const loadChart = async () => {
       return;
     }
 
-    const { jobId } = await requestStats(node.data.datasetId, 'chart', savedChart.config);
+    const { executionId } = await requestStats(node.data.datasetId, 'chart', savedChart.config);
 
     const result = await new Promise<any>((resolve, reject) => {
       const timer = setInterval(async () => {
         try {
-          const res = await getStatsResult(node.data.datasetId, jobId);
+          const res = await getStatsResult(node.data.datasetId, executionId);
           if (res.status === 'completed' || res.status === 'processed') {
             clearInterval(timer);
             resolve(res.result);

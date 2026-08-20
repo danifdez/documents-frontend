@@ -48,7 +48,7 @@ export interface AssistantMessage {
     assistantId: number;
     role: 'user' | 'assistant' | 'system' | 'event';
     content: string;
-    jobId: number | null;
+    executionId: string | null;
     error: string | null;
     event: AssistantMessageEvent | null;
     createdAt: string;
@@ -67,7 +67,7 @@ export type UpdateAssistantPayload = Partial<CreateAssistantPayload>;
 
 export interface AssistantResponseEvent {
     assistantId: number;
-    jobId: number;
+    executionId: string;
     eventMessages?: AssistantMessage[];
     message: AssistantMessage;
 }

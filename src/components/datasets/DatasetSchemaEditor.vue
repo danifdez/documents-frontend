@@ -170,8 +170,8 @@ const suggestColumns = async () => {
             suggesting.value = false;
             return;
         }
-        const { jobId } = await proposeColumns(resourceIds, props.projectId ?? undefined);
-        if (!jobId) {
+        const { executionId } = await proposeColumns(resourceIds, props.projectId ?? undefined);
+        if (!executionId) {
             suggesting.value = false;
             return;
         }
@@ -180,7 +180,7 @@ const suggestColumns = async () => {
         // eslint-disable-next-line no-constant-condition
         while (true) {
             await new Promise((r) => setTimeout(r, 2000));
-            const { status, result } = await getProposeColumnsResult(jobId);
+            const { status, result } = await getProposeColumnsResult(executionId);
             if (status === 'completed' || status === 'processed') {
                 const cols = (result?.columns ?? []) as DatasetField[];
                 suggestions.value = cols;

@@ -43,7 +43,7 @@ export function useAssistants() {
     const sendMessage = async (
         id: number,
         content: string,
-    ): Promise<{ userMessage: AssistantMessage; jobId: number | null }> => {
+    ): Promise<{ userMessage: AssistantMessage; executionId: string }> => {
         const { data } = await apiClient.post(`/assistants/${id}/messages`, { content });
         return data;
     };

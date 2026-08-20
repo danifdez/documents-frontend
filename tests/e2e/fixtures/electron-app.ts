@@ -48,7 +48,7 @@ export const test = base.extend<ElectronFixtures>({
 
     await setupWorkspaceIfNeeded(window);
 
-    // Mock model/job APIs to avoid waiting for ML processing
+    // Mock model execution APIs to avoid waiting for ML processing
     await mockModelJobs(window).catch(() => {});
 
     // Confirm backend is reachable before running tests.

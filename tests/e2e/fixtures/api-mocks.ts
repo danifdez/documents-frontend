@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 
 // Mock API responses for endpoints that depend on the models (Python) service.
-// Prevents E2E tests from waiting for ML processing jobs.
+// Prevents E2E tests from waiting for ML executions.
 export async function mockModelJobs(page: Page) {
   const baseUrl = 'http://localhost:3000';
 
@@ -13,7 +13,7 @@ export async function mockModelJobs(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ jobId: 999 }),
+        body: JSON.stringify({ executionId: 999 }),
       });
     } else {
       // summarize, translate, extract-entities, key-points, keywords
@@ -22,7 +22,7 @@ export async function mockModelJobs(page: Page) {
   });
 
   // Job polling - return completed immediately
-  await page.route(`${baseUrl}/jobs/*`, async (route) => {
+  await page.route(`${baseUrl}/executions/*`, async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         status: 200,

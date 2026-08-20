@@ -146,7 +146,7 @@ export function checkInstalled(): ComponentStatus {
     backend: fs.existsSync(path.join(servicesDir, 'backend', 'dist', 'src', 'main.js')),
     postgres: fs.existsSync(path.join(servicesDir, 'postgres', 'bin', 'postgres' + ext)),
     models: fs.existsSync(path.join(getModelsDir(), 'documents-models' + ext))
-      || fs.existsSync(path.join(getModelsDir(), 'jobs' + ext)),
+      || fs.existsSync(path.join(getModelsDir(), 'executions' + ext)),
   };
 }
 
@@ -399,10 +399,10 @@ export async function setupModels(
   const modelsDir = getModelsDir();
   const ext = process.platform === 'win32' ? '.exe' : '';
 
-  // Find the binary — PyInstaller may name it documents-models or jobs
+  // Find the binary — PyInstaller may name it documents-models or executions
   let binary = path.join(modelsDir, 'documents-models' + ext);
   if (!fs.existsSync(binary)) {
-    binary = path.join(modelsDir, 'jobs' + ext);
+    binary = path.join(modelsDir, 'executions' + ext);
   }
   if (!fs.existsSync(binary)) {
     throw new Error('Models service not found. Download it first.');

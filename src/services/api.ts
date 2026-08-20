@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { workspaceKey } from './workspaceScope';
+import { getActiveWorkspaceId, workspaceKey } from './workspaceScope';
 
 const apiClient = axios.create({
     headers: {
@@ -17,6 +17,7 @@ export function setApiBaseUrl(url: string) {
 
 // Request interceptor: attach auth token
 apiClient.interceptors.request.use((config) => {
+    config.headers['X-Workspace-Id'] = getActiveWorkspaceId();
     const token = localStorage.getItem(workspaceKey('accessToken'));
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
