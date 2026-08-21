@@ -186,7 +186,7 @@ describe('createChatStore final response without streaming', () => {
     expect(store.activeMessages.value).toEqual([userMessage, partialMessage]);
   });
 
-  it('does not render an internal loop-guard event as a message or tool card', async () => {
+  it('does not render internal loop-guard events as messages or tool cards', async () => {
     const api = {
       list: vi
         .fn()
@@ -217,6 +217,17 @@ describe('createChatStore final response without streaming', () => {
         loopGuardSignal: {
           guardKind: 'immediate_exact_tool_repeat',
           action: 'warn',
+        },
+      },
+    });
+    socketState.handlers.get('tool-event')?.({
+      ownerId: 7,
+      eventType: 'progress.reported',
+      payload: {
+        kind: 'loop_guard_triggered',
+        loopGuardSignal: {
+          guardKind: 'immediate_exact_tool_repeat',
+          action: 'block',
         },
       },
     });
