@@ -144,4 +144,45 @@ describe('createChatStore final response without streaming', () => {
     expect(store.isActivePending.value).toBe(false);
     expect(store.activeMessages.value).toEqual([userMessage, failedMessage]);
   });
+
+  it('shows a deterministic partial once and completes the pending turn', async () => {
+    const userMessage = message(1, 'user', 'Question');
+    const partialMessage = {
+      ...message(2, 'assistant', 'Completed work: 3 matching documents found'),
+      completionKind: 'partial',
+      completionSource: 'runtime_template',
+    } as Message;
+    const api = {
+      list: vi
+        .fn()
+        .mockResolvedValue([{ id: 7, pinned: false, lastSeenAt: null }]),
+      update: vi.fn(),
+      remove: vi.fn(),
+      getMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendMessage: vi
+        .fn()
+        .mockResolvedValue({ userMessage, executionId: 'execution-1' }),
+    };
+    const store = createChatStore<Owner, Message, Partial<Owner>>({
+      api,
+      events: {
+        toolEvent: 'tool-event',
+        streamChunk: 'stream-chunk',
+        response: 'response',
+      },
+      socketIdKey: 'ownerId',
+      loadErrorMessage: 'Failed to load chat',
+    });
+
+    await store.load();
+    await store.selectOwner(7);
+    await store.sendMessage('Question');
+    const response = { ownerId: 7, message: partialMessage };
+    socketState.handlers.get('response')?.(response);
+    socketState.handlers.get('response')?.(response);
+
+    expect(store.isActivePending.value).toBe(false);
+    expect(store.error.value).toBeNull();
+    expect(store.activeMessages.value).toEqual([userMessage, partialMessage]);
+  });
 });
