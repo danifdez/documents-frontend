@@ -185,4 +185,42 @@ describe('createChatStore final response without streaming', () => {
     expect(store.error.value).toBeNull();
     expect(store.activeMessages.value).toEqual([userMessage, partialMessage]);
   });
+
+  it('does not render an internal loop-guard event as a message or tool card', async () => {
+    const api = {
+      list: vi
+        .fn()
+        .mockResolvedValue([{ id: 7, pinned: false, lastSeenAt: null }]),
+      update: vi.fn(),
+      remove: vi.fn(),
+      getMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendMessage: vi.fn(),
+    };
+    const store = createChatStore<Owner, Message, Partial<Owner>>({
+      api,
+      events: {
+        toolEvent: 'tool-event',
+        streamChunk: 'stream-chunk',
+        response: 'response',
+      },
+      socketIdKey: 'ownerId',
+      loadErrorMessage: 'Failed to load chat',
+    });
+
+    await store.load();
+    await store.selectOwner(7);
+    socketState.handlers.get('tool-event')?.({
+      ownerId: 7,
+      eventType: 'progress.reported',
+      payload: {
+        kind: 'loop_guard_triggered',
+        loopGuardSignal: {
+          guardKind: 'immediate_exact_tool_repeat',
+          action: 'warn',
+        },
+      },
+    });
+
+    expect(store.activeMessages.value).toEqual([]);
+  });
 });
