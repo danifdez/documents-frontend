@@ -3,6 +3,14 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import { IpcChannels, IpcEvents } from './ipc/channels';
+import type {
+    CalendarAlarmsBridge,
+    ElectronAPI,
+    FolderScopeBridge,
+    ShellOpsBridge,
+    TaskRemindersBridge,
+    VoiceLocalBridge,
+} from './types/electron';
 
 // ── Bridge for the local voice engine (Task 08) ──────────────────────────
 // `isLocalAvailable` is synchronous because it is read by the component and
@@ -22,7 +30,7 @@ async function refreshLocalAvailable(): Promise<boolean> {
 // from `availability.ts` and from Settings.
 void refreshLocalAvailable();
 
-contextBridge.exposeInMainWorld('voice', {
+const voice: VoiceLocalBridge = {
     isLocalAvailable: (): boolean => localAvailableCache === true,
     refreshAvailability: refreshLocalAvailable,
     hasModel: (): Promise<boolean> => ipcRenderer.invoke(IpcChannels.voice.hasModel),
@@ -51,22 +59,27 @@ contextBridge.exposeInMainWorld('voice', {
         ipcRenderer.on(IpcEvents.voice.loadingProgress, handler);
         return () => ipcRenderer.off(IpcEvents.voice.loadingProgress, handler);
     },
-});
+};
 
+contextBridge.exposeInMainWorld('voice', voice);
 
-contextBridge.exposeInMainWorld('folderScope', {
+const folderScope: FolderScopeBridge = {
     pick: (opts?: { title?: string }): Promise<string | null> =>
         ipcRenderer.invoke(IpcChannels.folderScope.pick, opts),
-});
+};
 
-contextBridge.exposeInMainWorld('shellOps', {
+contextBridge.exposeInMainWorld('folderScope', folderScope);
+
+const shellOps: ShellOpsBridge = {
     openPath: (p: string): Promise<{ ok: boolean; error?: string }> =>
         ipcRenderer.invoke(IpcChannels.shell.openPath, p),
     showItemInFolder: (p: string): Promise<{ ok: boolean }> =>
         ipcRenderer.invoke(IpcChannels.shell.showItemInFolder, p),
-});
+};
 
-contextBridge.exposeInMainWorld('electronAPI', {
+contextBridge.exposeInMainWorld('shellOps', shellOps);
+
+const electronAPI: ElectronAPI = {
     uploadDocument: (idProject: string, filePath: string) => ipcRenderer.invoke(IpcChannels.document.upload, idProject, filePath),
     openMultipleFileDialog: () => ipcRenderer.invoke(IpcChannels.document.openMultipleFileDialog),
     getSettings: () => ipcRenderer.invoke(IpcChannels.settings.get),
@@ -134,9 +147,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke(IpcChannels.offline.updateManifest, wsId, keys, lastSync),
     offlineClearAll: (wsId: string) =>
         ipcRenderer.invoke(IpcChannels.offline.clearAll, wsId),
-});
+};
 
-contextBridge.exposeInMainWorld('calendarAlarms', {
+contextBridge.exposeInMainWorld('electronAPI', electronAPI);
+
+const calendarAlarms: CalendarAlarmsBridge = {
     showAlarmNotification: (payload: {
         eventId: number;
         occurrenceStart: string;
@@ -163,9 +178,11 @@ contextBridge.exposeInMainWorld('calendarAlarms', {
         ipcRenderer.on(IpcEvents.calendar.navigateMissedPanel, handler);
         return () => ipcRenderer.off(IpcEvents.calendar.navigateMissedPanel, handler);
     },
-});
+};
 
-contextBridge.exposeInMainWorld('taskReminders', {
+contextBridge.exposeInMainWorld('calendarAlarms', calendarAlarms);
+
+const taskReminders: TaskRemindersBridge = {
     showReminderNotification: (payload: {
         taskId: number;
         title: string;
@@ -184,4 +201,6 @@ contextBridge.exposeInMainWorld('taskReminders', {
         ipcRenderer.on(IpcEvents.task.navigateMissedPanel, handler);
         return () => ipcRenderer.off(IpcEvents.task.navigateMissedPanel, handler);
     },
-});
+};
+
+contextBridge.exposeInMainWorld('taskReminders', taskReminders);

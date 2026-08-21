@@ -13,17 +13,6 @@ export interface CalendarMissedPayload {
   items: CalendarAlarmPayload[];
 }
 
-declare global {
-  interface Window {
-    calendarAlarms?: {
-      showAlarmNotification: (payload: CalendarAlarmPayload) => Promise<void>;
-      showMissedAggregate: (payload: CalendarMissedPayload) => Promise<void>;
-      onNavigateToEvent: (cb: (eventId: number) => void) => () => void;
-      onNavigateMissedPanel: (cb: () => void) => () => void;
-    };
-  }
-}
-
 let bound = false;
 
 export function bindCalendarAlarms() {

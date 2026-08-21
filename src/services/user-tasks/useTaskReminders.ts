@@ -10,17 +10,6 @@ export interface TaskMissedPayload {
   items: TaskReminderPayload[];
 }
 
-declare global {
-  interface Window {
-    taskReminders?: {
-      showReminderNotification: (payload: TaskReminderPayload) => Promise<void>;
-      showMissedAggregate: (payload: TaskMissedPayload) => Promise<void>;
-      onNavigateToTask: (cb: (taskId: number) => void) => () => void;
-      onNavigateMissedTasksPanel: (cb: () => void) => () => void;
-    };
-  }
-}
-
 let bound = false;
 
 export function bindTaskReminders() {

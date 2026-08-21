@@ -1,3 +1,6 @@
+import type { CalendarAlarmPayload, CalendarMissedPayload } from '../services/calendar/useCalendarAlarms';
+import type { TaskReminderPayload, TaskMissedPayload } from '../services/user-tasks/useTaskReminders';
+
 export interface ElectronAPI {
     getSettings: () => Promise<{
         language?: string;
@@ -21,15 +24,6 @@ export interface ElectronAPI {
     getPlatform?: () => Promise<NodeJS.Platform>;
     uploadDocument: (idProject: string, filePath: string) => Promise<any>;
     openMultipleFileDialog: () => Promise<{ path: string; name: string }[]>;
-    platform: string;
-    versions: {
-        node: string;
-        chrome: string;
-        electron: string;
-    };
-    openExternal: (url: string) => void;
-    showSaveDialog: (options: any) => Promise<{ canceled: boolean; filePath?: string }>;
-    writeFile: (filePath: string, data: string) => Promise<void>;
 
     // Workspace management
     getWorkspaces: () => Promise<{ id: string; name: string; url: string; type?: string }[]>;
@@ -120,12 +114,28 @@ export interface VoiceLocalBridge {
     onLoadingProgress: (cb: (p: { downloaded: number; total: number | null; percent: number }) => void) => () => void;
 }
 
+export interface CalendarAlarmsBridge {
+    showAlarmNotification: (payload: CalendarAlarmPayload) => Promise<void>;
+    showMissedAggregate: (payload: CalendarMissedPayload) => Promise<void>;
+    onNavigateToEvent: (cb: (eventId: number) => void) => () => void;
+    onNavigateMissedPanel: (cb: () => void) => () => void;
+}
+
+export interface TaskRemindersBridge {
+    showReminderNotification: (payload: TaskReminderPayload) => Promise<void>;
+    showMissedAggregate: (payload: TaskMissedPayload) => Promise<void>;
+    onNavigateToTask: (cb: (taskId: number) => void) => () => void;
+    onNavigateMissedTasksPanel: (cb: () => void) => () => void;
+}
+
 declare global {
     interface Window {
         electronAPI: ElectronAPI;
         voice?: VoiceLocalBridge;
         folderScope?: FolderScopeBridge;
         shellOps?: ShellOpsBridge;
+        calendarAlarms?: CalendarAlarmsBridge;
+        taskReminders?: TaskRemindersBridge;
     }
 }
 
