@@ -556,7 +556,8 @@
 import { ref, computed, onMounted, onBeforeUnmount, h } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDatasets, type Dataset, type DatasetRecord, type DatasetField, type DatasetChart, type CsvPreview, type ImportResult, type SchemaAnalysis } from '../services/datasets/useDatasets';
-import { getSocket, connectSocket } from '../services/notifications/notification';
+import { connectSocket } from '../services/notifications/notification';
+import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
 import { useNotification } from '../composables/useNotification';
 import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
@@ -782,18 +783,17 @@ const confirmReExtractCell = async () => {
 };
 
 // Socket listener for live updates
-let socketHandler: ((data: any) => void) | null = null;
+let stopDatasetPublications: (() => void) | null = null;
 
 const installSocketHandler = () => {
-    const socket = getSocket();
     connectSocket();
-    socketHandler = (data: any) => {
+    stopDatasetPublications?.();
+    stopDatasetPublications = subscribeExecutionPublication('notification', (data: any) => {
         if (!data || data.type !== 'dataset.extract-row') return;
         if (data.datasetId !== datasetId) return;
         // Refresh the affected row from server to pick data + cellMetadata.
         loadRecords();
-    };
-    socket.on('notification', socketHandler);
+    });
 };
 
 const reloadDataset = async () => {
@@ -1181,9 +1181,6 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-    if (socketHandler) {
-        try { getSocket().off('notification', socketHandler); } catch { /* ignore */ }
-        socketHandler = null;
-    }
+    stopDatasetPublications?.();
 });
 </script>

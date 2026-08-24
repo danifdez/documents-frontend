@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import apiClient from '../api';
-import { getSocket } from '../notifications/notification';
+import { subscribeExecutionPublication } from '../notifications/executionPublication';
 
 export interface LookupResult {
     id: number | string;
@@ -45,15 +45,14 @@ export function useLookup() {
         }))).catch(() => []);
 
         const ragSearch = new Promise<LookupResult[]>((resolve) => {
-            const socket = getSocket();
             const timeout = setTimeout(() => {
-                socket.off('searchResponse', onResponse);
+                unsubscribe();
                 resolve([]);
             }, 15000);
 
             const onResponse = (data: any) => {
                 if (data.requestId !== requestId) return;
-                socket.off('searchResponse', onResponse);
+                unsubscribe();
                 clearTimeout(timeout);
                 const ragResults = (data.results || []).map((r: any, i: number) => {
                     const rawType = r.metadata?.source_type || 'unknown';
@@ -74,7 +73,8 @@ export function useLookup() {
                 });
                 resolve(ragResults);
             };
-            socket.on('searchResponse', onResponse);
+            let unsubscribe: () => void = () => undefined;
+            unsubscribe = subscribeExecutionPublication('searchResponse', onResponse);
 
             apiClient.post('/model/semantic-search', {
                 query: term,
@@ -82,7 +82,7 @@ export function useLookup() {
                 requestId,
                 limit: 10,
             }).catch(() => {
-                socket.off('searchResponse', onResponse);
+                unsubscribe();
                 clearTimeout(timeout);
                 resolve([]);
             });

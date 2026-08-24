@@ -19,6 +19,16 @@ vi.mock('@/services/notifications/notification', () => ({
   }),
 }));
 
+vi.mock('@/services/notifications/executionPublication', () => ({
+  subscribeExecutionPublication: (
+    event: string,
+    handler: (payload: Record<string, unknown>) => void,
+  ) => {
+    socketState.handlers.set(event, handler);
+    return () => socketState.handlers.delete(event);
+  },
+}));
+
 interface Owner {
   id: number;
   pinned: boolean;

@@ -119,7 +119,7 @@
 
 <script setup lang="ts">
 import { useAsk } from '../../services/ask/useAsk';
-import { getSocket } from '../../services/notifications/notification';
+import { subscribeExecutionPublication } from '../../services/notifications/executionPublication';
 import { ref, defineProps, defineEmits, onMounted, onUnmounted, watch, nextTick } from 'vue';
 
 const { ask, isLoading } = useAsk();
@@ -187,13 +187,14 @@ const onAskResponse = (data: any) => {
     });
     scrollToBottom();
 };
+let stopAskResponses: (() => void) | null = null;
 
 onMounted(() => {
-    getSocket().on('askResponse', onAskResponse);
+    stopAskResponses = subscribeExecutionPublication('askResponse', onAskResponse);
 });
 
 onUnmounted(() => {
-    getSocket().off('askResponse', onAskResponse);
+    stopAskResponses?.();
 });
 </script>
 

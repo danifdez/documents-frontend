@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import apiClient from '../api';
-import { getSocket } from '../notifications/notification';
+import { subscribeExecutionPublication } from '../notifications/executionPublication';
 
 export function useAsk() {
     const isLoading = ref(false);
@@ -13,20 +13,19 @@ export function useAsk() {
         const requestId = uuidv4();
 
         return new Promise<void>((resolve) => {
-            const socket = getSocket();
-
             const onResponse = (data: any) => {
                 if (data.requestId === requestId) {
-                    socket.off('askResponse', onResponse);
+                    unsubscribe();
                     isLoading.value = false;
                     resolve();
                 }
             };
-            socket.on('askResponse', onResponse);
+            let unsubscribe: () => void = () => undefined;
+            unsubscribe = subscribeExecutionPublication('askResponse', onResponse);
 
             apiClient.post('/model/ask', { question, projectId, requestId, context })
                 .catch((err: any) => {
-                    socket.off('askResponse', onResponse);
+                    unsubscribe();
                     error.value = err.message || 'Failed to get response';
                     isLoading.value = false;
                     resolve();

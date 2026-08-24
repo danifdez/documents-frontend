@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import apiClient from '../api';
-import { getSocket } from '../notifications/notification';
+import { subscribeExecutionPublication } from '../notifications/executionPublication';
 
 export interface RelationshipEntity {
     id: number | string;
@@ -82,20 +82,22 @@ export function useRelationships() {
         error.value = null;
 
         return new Promise<void>((resolve) => {
-            const socket = getSocket();
-
             const onComplete = (responseData: any) => {
                 if (responseData.resourceId === resourceId) {
-                    socket.off('relationshipExtractionComplete', onComplete);
+                    unsubscribe();
                     isLoading.value = false;
                     resolve();
                 }
             };
-            socket.on('relationshipExtractionComplete', onComplete);
+            let unsubscribe: () => void = () => undefined;
+            unsubscribe = subscribeExecutionPublication(
+                'relationshipExtractionComplete',
+                onComplete,
+            );
 
             apiClient.post(`/relationships/resource/${resourceId}/extract`)
                 .catch((err: any) => {
-                    socket.off('relationshipExtractionComplete', onComplete);
+                    unsubscribe();
                     error.value = err.message || 'Failed to extract relationships';
                     isLoading.value = false;
                     resolve();
@@ -123,11 +125,9 @@ export function useRelationships() {
         const fullUrl = `${url}${separator}requestId=${requestId}`;
 
         return new Promise<RelationshipData>((resolve) => {
-            const socket = getSocket();
-
             const onResponse = (responseData: any) => {
                 if (responseData.requestId === requestId) {
-                    socket.off('relationshipQueryResponse', onResponse);
+                    unsubscribe();
                     isLoading.value = false;
                     data.value = {
                         entities: responseData.entities || [],
@@ -136,11 +136,15 @@ export function useRelationships() {
                     resolve(data.value);
                 }
             };
-            socket.on('relationshipQueryResponse', onResponse);
+            let unsubscribe: () => void = () => undefined;
+            unsubscribe = subscribeExecutionPublication(
+                'relationshipQueryResponse',
+                onResponse,
+            );
 
             apiClient.get(fullUrl)
                 .catch((err: any) => {
-                    socket.off('relationshipQueryResponse', onResponse);
+                    unsubscribe();
                     error.value = err.message || 'Failed to query relationships';
                     isLoading.value = false;
                     resolve({ entities: [], relationships: [] });
@@ -154,16 +158,15 @@ export function useRelationships() {
         const requestId = uuidv4();
 
         return new Promise<void>((resolve) => {
-            const socket = getSocket();
-
             const onResponse = (responseData: any) => {
                 if (responseData.requestId === requestId) {
-                    socket.off(event, onResponse);
+                    unsubscribe();
                     isLoading.value = false;
                     resolve();
                 }
             };
-            socket.on(event, onResponse);
+            let unsubscribe: () => void = () => undefined;
+            unsubscribe = subscribeExecutionPublication(event, onResponse);
 
             const body = method === 'delete'
                 ? { ...payload.data, requestId }
@@ -174,7 +177,7 @@ export function useRelationships() {
                 : (apiClient as any)[method](url, body);
 
             request.catch((err: any) => {
-                socket.off(event, onResponse);
+                unsubscribe();
                 error.value = err.message || 'Failed to modify relationship';
                 isLoading.value = false;
                 resolve();

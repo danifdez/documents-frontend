@@ -69,7 +69,7 @@ import { useTimelines } from '../services/timelines/useTimelines';
 import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useDragDrop } from '../composables/useDragDrop';
-import { getSocket } from '../services/notifications/notification';
+import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
 
 const props = defineProps({
     collapsed: {
@@ -193,6 +193,7 @@ const onNotification = () => {
         loadAll();
     }
 };
+let stopNotifications = null;
 
 watch(currentProjectId, (newId) => {
     if (newId) {
@@ -208,10 +209,10 @@ onMounted(() => {
     if (currentProjectId.value) {
         loadAll();
     }
-    getSocket().on('notification', onNotification);
+    stopNotifications = subscribeExecutionPublication('notification', onNotification);
 });
 
 onBeforeUnmount(() => {
-    getSocket().off('notification', onNotification);
+    stopNotifications?.();
 });
 </script>

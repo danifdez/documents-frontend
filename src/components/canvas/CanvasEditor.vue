@@ -110,7 +110,7 @@ import type { CanvasData } from '../../types/canvas';
 import apiClient from '../../services/api';
 import { useResourceDirectory } from '../../services/resources/useResourceDirectory';
 import { type RelationshipData } from '../../services/relationships/useRelationships';
-import { getSocket } from '../../services/notifications/notification';
+import { subscribeExecutionPublication } from '../../services/notifications/executionPublication';
 
 const props = defineProps<{
   canvasData: CanvasData | null;
@@ -183,16 +183,14 @@ const fetchNeighborhood = (entityNames: string[]): Promise<RelationshipData> => 
   const namesParam = entityNames.map(n => encodeURIComponent(n)).join(',');
 
   return new Promise<RelationshipData>((resolve) => {
-    const sock = getSocket();
-
     const timeout = setTimeout(() => {
-      sock.off('relationshipQueryResponse', onResponse);
+      unsubscribe();
       resolve({ entities: [], relationships: [] });
     }, 30000);
 
     const onResponse = (responseData: any) => {
       if (responseData.requestId === requestId) {
-        sock.off('relationshipQueryResponse', onResponse);
+        unsubscribe();
         clearTimeout(timeout);
         resolve({
           entities: responseData.entities || [],
@@ -200,11 +198,12 @@ const fetchNeighborhood = (entityNames: string[]): Promise<RelationshipData> => 
         });
       }
     };
-    sock.on('relationshipQueryResponse', onResponse);
+    let unsubscribe: () => void = () => undefined;
+    unsubscribe = subscribeExecutionPublication('relationshipQueryResponse', onResponse);
 
     apiClient.get(`/relationships/neighborhood?names=${namesParam}&requestId=${requestId}`)
       .catch(() => {
-        sock.off('relationshipQueryResponse', onResponse);
+        unsubscribe();
         clearTimeout(timeout);
         resolve({ entities: [], relationships: [] });
       });

@@ -48,7 +48,7 @@ import { useResourceList } from '../services/resources/useResourceList';
 import { useProjectStore } from '../store/projectStore';
 import { useDragDrop } from '../composables/useDragDrop';
 import IconType from '../components/resources/IconType.vue';
-import { getSocket } from '../services/notifications/notification';
+import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
 
 const { handleDragStart: dragStart } = useDragDrop();
 
@@ -125,6 +125,7 @@ const onNotification = () => {
         loadResources();
     }
 };
+let stopNotifications = null;
 
 watch(currentProjectId, (newId) => {
     if (newId) {
@@ -138,10 +139,10 @@ onMounted(() => {
     if (currentProjectId.value) {
         loadResources();
     }
-    getSocket().on('notification', onNotification);
+    stopNotifications = subscribeExecutionPublication('notification', onNotification);
 });
 
 onBeforeUnmount(() => {
-    getSocket().off('notification', onNotification);
+    stopNotifications?.();
 });
 </script>

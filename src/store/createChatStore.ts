@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import type { Ref } from 'vue';
 import { getSocket } from '../services/notifications/notification';
+import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
 import {
     FOLDER_MUTATING_TOOLS,
     coerceRunningToolsToDone,
@@ -229,7 +230,7 @@ export function createChatStore<
             }
         });
 
-        socket.on(events.response, (event: Record<string, any>) => {
+        subscribeExecutionPublication(events.response, (event: Record<string, any>) => {
             const ownerId: number | undefined = event?.[socketIdKey];
             const message = event?.message as TMsg | undefined;
             if (!ownerId || !message) return;

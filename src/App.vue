@@ -63,7 +63,8 @@ import OfflineBanner from './components/OfflineBanner.vue';
 import AssistantModal from './components/assistant/AssistantModal.vue';
 import { useGlobalKeyboard } from './composables/useGlobalKeyboard';
 import { useTaskPanel } from './composables/useTaskPanel';
-import { getSocket, connectSocket } from './services/notifications/notification';
+import { connectSocket } from './services/notifications/notification';
+import { subscribeExecutionPublication } from './services/notifications/executionPublication';
 import { bindCalendarAlarms } from './services/calendar/useCalendarAlarms';
 import { bindTaskReminders } from './services/user-tasks/useTaskReminders';
 import { useRouter, useRoute } from 'vue-router';
@@ -84,6 +85,7 @@ const offlineStore = useOfflineStore();
 const isLoginRoute = computed(() => route.name === 'Login');
 const showRemoteForm = ref(false);
 const showStandaloneSetup = ref(false);
+let stopNotificationPublication: (() => void) | null = null;
 
 function onStandaloneDone() {
   showStandaloneSetup.value = false;
@@ -99,8 +101,8 @@ async function handleFirstRemoteWorkspace(data: { name: string; url: string }) {
 
 function setupSocket() {
   connectSocket();
-  const socket = getSocket();
-  socket.on('notification', (data) => {
+  stopNotificationPublication?.();
+  stopNotificationPublication = subscribeExecutionPublication('notification', (data: any) => {
     if (data.resourceId) {
       notification.info(data.message || 'Resource extracted', {
         link: {

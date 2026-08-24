@@ -2,6 +2,11 @@ import { io, Socket } from 'socket.io-client';
 import { ref, readonly } from 'vue';
 import { setServerReachable } from '../offline/offlineInterceptor';
 import { getAccessToken } from '../workspaceScope';
+import {
+    dispatchExecutionPublication,
+    ExecutionPublicationEnvelope,
+    isExecutionPublicationKnown,
+} from './executionPublication';
 
 const isConnected = ref(false);
 let connectErrorLogged = false;
@@ -29,6 +34,18 @@ function bindConnectionEvents(s: Socket) {
             connectErrorLogged = true;
         }
     });
+    s.on(
+        'execution:publication',
+        (
+            envelope: ExecutionPublicationEnvelope,
+            acknowledge?: (response: { accepted: boolean }) => void,
+        ) => {
+            const accepted =
+                dispatchExecutionPublication(envelope) ||
+                isExecutionPublicationKnown(envelope?.outboxId);
+            acknowledge?.({ accepted });
+        },
+    );
 }
 
 let socket: Socket | null = null;
