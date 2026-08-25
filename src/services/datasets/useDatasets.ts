@@ -244,7 +244,7 @@ export const useDatasets = () => {
 
     const getProposeColumnsResult = async (
         executionId: string,
-    ): Promise<{ status: string; result: { columns: DatasetField[] | null; error: string | null } | null }> => {
+    ): Promise<{ status: string; result: { columns: DatasetField[] } | null }> => {
         const response = await apiClient.get(`/datasets/propose-columns/${executionId}`);
         return response.data;
     };
