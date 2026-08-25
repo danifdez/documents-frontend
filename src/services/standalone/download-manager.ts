@@ -3,10 +3,11 @@ import path from 'path';
 import fs from 'fs';
 import https from 'https';
 import http from 'http';
-import { execFile, spawn as spawnProcess } from 'child_process';
+import { execFile, execFileSync, spawn as spawnProcess } from 'child_process';
 import { createGunzip } from 'zlib';
 import { pipeline } from 'stream/promises';
 import { Unpack as TarUnpack } from 'tar';
+import { getModelsBinaryPath } from './models-binary';
 
 export interface ComponentStatus {
   node: boolean;
@@ -145,8 +146,7 @@ export function checkInstalled(): ComponentStatus {
     node: getBundledNodePath() !== null,
     backend: fs.existsSync(path.join(servicesDir, 'backend', 'dist', 'src', 'main.js')),
     postgres: fs.existsSync(path.join(servicesDir, 'postgres', 'bin', 'postgres' + ext)),
-    models: fs.existsSync(path.join(getModelsDir(), 'documents-models' + ext))
-      || fs.existsSync(path.join(getModelsDir(), 'executions' + ext)),
+    models: fs.existsSync(getModelsBinaryPath(getModelsDir())),
   };
 }
 
@@ -160,7 +160,6 @@ export function detectGpu(): GpuInfo {
 
   try {
     // Try nvidia-smi (Linux/Windows). memory.total comes back in MiB (nounits).
-    const { execFileSync } = require('child_process');
     const output = execFileSync('nvidia-smi', ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'], {
       timeout: 5000,
       encoding: 'utf-8',
@@ -179,7 +178,6 @@ export function detectGpu(): GpuInfo {
   if (!result.available && process.platform === 'darwin') {
     // macOS: check for Apple Silicon GPU (Metal)
     try {
-      const { execFileSync } = require('child_process');
       const output = execFileSync('system_profiler', ['SPDisplaysDataType'], {
         timeout: 5000,
         encoding: 'utf-8',
@@ -239,6 +237,9 @@ export async function downloadComponent(
     // Component-specific normalisation so every service ends up at the path
     // checkInstalled() / the embedded services expect.
     await normalizeExtraction(component, destDir);
+    if (isModels && !fs.existsSync(getModelsBinaryPath(destDir))) {
+      throw new Error('Models bundle does not contain the canonical documents-models binary.');
+    }
 
     if (process.platform !== 'win32') {
       makeBinariesExecutable(destDir);
@@ -263,21 +264,6 @@ async function normalizeExtraction(component: string, destDir: string): Promise<
         fs.renameSync(path.join(innerPath, entry), path.join(destDir, entry));
       }
       fs.rmdirSync(innerPath);
-    }
-  } else if (component === 'models-cpu' || component === 'models-gpu') {
-    // Older bundles nest everything under documents-models/ (doubled prefix), so
-    // destDir/documents-models is a dir and spawn() of it returns EACCES. Lift the
-    // contents up one level. Rename the inner dir to a temp name first to avoid
-    // colliding with the binary that is itself named 'documents-models'.
-    const inner = path.join(destDir, 'documents-models');
-    if (fs.existsSync(inner) && fs.statSync(inner).isDirectory()) {
-      const tmp = path.join(destDir, '.unwrap');
-      fs.rmSync(tmp, { recursive: true, force: true });
-      fs.renameSync(inner, tmp);
-      for (const entry of fs.readdirSync(tmp)) {
-        fs.renameSync(path.join(tmp, entry), path.join(destDir, entry));
-      }
-      fs.rmdirSync(tmp);
     }
   }
 }
@@ -397,13 +383,7 @@ export async function setupModels(
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
   const modelsDir = getModelsDir();
-  const ext = process.platform === 'win32' ? '.exe' : '';
-
-  // Find the binary — PyInstaller may name it documents-models or executions
-  let binary = path.join(modelsDir, 'documents-models' + ext);
-  if (!fs.existsSync(binary)) {
-    binary = path.join(modelsDir, 'executions' + ext);
-  }
+  const binary = getModelsBinaryPath(modelsDir);
   if (!fs.existsSync(binary)) {
     throw new Error('Models service not found. Download it first.');
   }

@@ -13,6 +13,7 @@ export interface BackendConfig {
   postgresPassword: string;
   postgresDatabase: string;
   storagePath: string;
+  modelsEnrollmentToken: string;
   authEnabled?: boolean;
   /** Feature flags to turn OFF (passed as FEATURE_<X>=false). */
   disabledFeatures?: string[];
@@ -22,10 +23,6 @@ export class EmbeddedBackendService {
   private process: ChildProcess | null = null;
   private _port: number = 0;
   private _running = false;
-
-  constructor(_workspaceId?: string) {
-    // workspaceId kept for API compatibility but paths are now global
-  }
 
   // Resolve the Node executable used to spawn the backend. A standalone install
   // ships its own Node (downloaded alongside Postgres/etc.), so it never
@@ -95,6 +92,7 @@ export class EmbeddedBackendService {
       POSTGRES_PASSWORD: config.postgresPassword,
       POSTGRES_DB: config.postgresDatabase,
       STORAGE_PATH: config.storagePath,
+      MODELS_ENROLLMENT_TOKEN: config.modelsEnrollmentToken,
       PORT: String(port),
       AUTH_ENABLED: config.authEnabled ? 'true' : 'false',
       // Apply pending DB migrations on boot — the standalone Postgres is created
@@ -150,13 +148,13 @@ export class EmbeddedBackendService {
       this._running = false;
       this.process = null;
       console.error('EmbeddedBackendService: child process error', err && (err.stack || err));
-      try { logStream.write(`[${new Date().toISOString()}] [ERR] child process error: ${err && (err.stack || err)}\n`); } catch {}
+      try { logStream.write(`[${new Date().toISOString()}] [ERR] child process error: ${err && (err.stack || err)}\n`); } catch { /* log stream may already be closed */ }
     });
 
     this.process.on('exit', (code, signal) => {
       this._running = false;
       this.process = null;
-      try { logStream.write(`[${new Date().toISOString()}] [LOG] child exit code=${code} signal=${signal}\n`); } catch {}
+      try { logStream.write(`[${new Date().toISOString()}] [LOG] child exit code=${code} signal=${signal}\n`); } catch { /* log stream may already be closed */ }
       if (code !== 0 && code !== null) {
         console.error(`Backend exited with code ${code} signal ${signal}`);
       }

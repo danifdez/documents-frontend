@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { randomBytes } from 'crypto';
 import { EmbeddedPostgresService } from './embedded-postgres';
 import { EmbeddedBackendService } from './embedded-backend';
 import { EmbeddedModelsService, embeddedModels } from './embedded-models';
@@ -58,7 +59,7 @@ class StandaloneManager {
     fs.mkdirSync(dataDir, { recursive: true });
 
     this.postgres = new EmbeddedPostgresService(LOCAL_ID);
-    this.backend = new EmbeddedBackendService(LOCAL_ID);
+    this.backend = new EmbeddedBackendService();
 
     // 1. Start PostgreSQL. The entity graph (Apache AGE) and embeddings
     // (pgvector) are extensions inside this same instance — no separate service.
@@ -76,6 +77,7 @@ class StandaloneManager {
     // 2. Start Backend
     const storagePath = path.join(dataDir, 'documents');
     const creds = this.postgres.credentials;
+    const modelsEnrollmentToken = randomBytes(32).toString('base64url');
 
     this._status.backend = 'starting';
     const backendConfig = {
@@ -85,6 +87,7 @@ class StandaloneManager {
       postgresPassword: creds.password,
       postgresDatabase: creds.database,
       storagePath,
+      modelsEnrollmentToken,
       authEnabled: false,
       disabledFeatures,
     };
@@ -94,7 +97,7 @@ class StandaloneManager {
     while (attempt < maxAttempts) {
       attempt += 1;
       try {
-        await this.backend.start(backendConfig as any);
+        await this.backend.start(backendConfig);
         this._status.backend = 'running';
         break;
       } catch (err) {
@@ -113,13 +116,14 @@ class StandaloneManager {
       }
     }
 
-    // 3. Start the ML worker (if installed). It polls the same executions table; the
-    // AI assistant/agents don't work without it, so the wizard installs it in
-    // every profile. Non-fatal: the rest of the app still runs if it fails.
+    // 3. Start the ML worker (if installed). It consumes work exclusively through
+    // the Backend protocol. Non-fatal: the rest of the app still runs if it fails.
     if (EmbeddedModelsService.isInstalled()) {
       this._status.models = 'starting';
       try {
         await embeddedModels.start({
+          backendUrl: this.backend.url,
+          enrollmentToken: modelsEnrollmentToken,
           postgres: {
             host: '127.0.0.1',
             port: this.postgres.port,

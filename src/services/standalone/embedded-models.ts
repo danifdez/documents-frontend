@@ -2,17 +2,20 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { ChildProcess, spawn } from 'child_process';
+import { getModelsBinaryPath } from './models-binary';
 
 /**
  * Runs the bundled Python ML worker (PyInstaller `documents-models`) as a child
- * process in standalone mode. It polls the same Postgres `executions` table the backend
- * uses, so it just needs to point at the embedded services and know which feature
- * flags are on for the chosen profile.
+ * process in standalone mode. The worker registers, claims fenced steps and submits
+ * results through the embedded Backend's authenticated HTTP protocol. PostgreSQL is
+ * only used directly by task-domain stores such as RAG and the entity graph.
  *
  * The worker reads its config from MODELS_CONFIG_PATH (a writable file we author
  * here with the dynamic ports + features) deep-merged over its bundled defaults.
  */
 export interface ModelsConfig {
+  backendUrl: string;
+  enrollmentToken: string;
   postgres: { host: string; port: number; user: string; password: string; database: string };
   /** Worker feature flags (config.features) — keyed like the profile features. */
   features: Record<string, boolean>;
@@ -33,21 +36,14 @@ export class EmbeddedModelsService {
   }
 
   private getBinaryPath(): string {
-    const ext = process.platform === 'win32' ? '.exe' : '';
-    for (const name of ['documents-models', 'executions']) {
-      const p = path.join(this.servicesDir(), name + ext);
-      if (fs.existsSync(p)) return p;
-    }
+    const binary = getModelsBinaryPath(this.servicesDir());
+    if (fs.existsSync(binary)) return binary;
     throw new Error('Models service not installed.');
   }
 
   static isInstalled(): boolean {
-    const ext = process.platform === 'win32' ? '.exe' : '';
     const dir = path.join(app.getPath('userData'), 'models-service');
-    return (
-      fs.existsSync(path.join(dir, 'documents-models' + ext)) ||
-      fs.existsSync(path.join(dir, 'executions' + ext))
-    );
+    return fs.existsSync(getModelsBinaryPath(dir));
   }
 
   async start(config: ModelsConfig): Promise<void> {
@@ -80,6 +76,8 @@ export class EmbeddedModelsService {
 
     const env: Record<string, string> = {
       ...process.env,
+      BACKEND_URL: config.backendUrl,
+      MODELS_ENROLLMENT_TOKEN: config.enrollmentToken,
       MODELS_CONFIG_PATH: configPath,
       MODELS_DATA_DIR: dataDir,
       MODELS_MODEL_DIR: path.join(this.servicesDir(), 'models'),
