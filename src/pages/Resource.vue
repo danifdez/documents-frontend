@@ -282,48 +282,9 @@
                     <div v-else-if="displayMode === 'relationships'" class="flex-1 min-h-0">
                         <ResourceRelationships :resource-id="resourceId" :project-id="resource.project?.id" />
                     </div>
-                    <div v-else-if="displayMode === 'workspace' && workspaceDocument"
-                        class="flex flex-col h-full w-full min-w-0">
-                        <div class="flex justify-between items-center mb-4">
-                            <div
-                                class="text-xl font-semibold bg-transparent border-none outline-none focus:bg-surface-hover focus:px-2 focus:py-1 rounded w-full text-text-primary">
-                                Workspace</div>
-                            <div class="flex gap-2 ml-2">
-                                <Button @click="activateWorkspaceSplitView" size="small" title="Open in split view">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 7h12M8 12h12m-7 5h7M3 7h.01M3 12h.01M3 17h.01" />
-                                    </svg>
-                                </Button>
-                            </div>
-                        </div>
-                        <div v-if="isDocumentSaving" class="flex items-center text-sm text-text-muted mb-2">
-                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-text-muted"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                </path>
-                            </svg>
-                            Saving...
-                        </div>
-                        <div v-else-if="documentSavedSuccessfully"
-                            class="flex items-center text-sm text-green-600 mb-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            Saved
-                        </div>
-                        <div class="flex-1 overflow-y-auto min-w-0 w-full overflow-x-hidden">
-                            <EditorContent ref="workspaceEditor" :content="workspaceDocument.content || ''"
-                                :is-saving="isDocumentSaving" :saved-successfully="documentSavedSuccessfully"
-                                context="workspace" @content-change="handleWorkspaceContentChange" />
-                        </div>
-                    </div>
+                    <ResourceDocumentEditor v-else-if="displayMode === 'workspace' && workspaceDocument"
+                        ref="workspaceEditor" v-model="workspaceDocument" variant="workspace"
+                        @open-split="activateWorkspaceSplitView" />
                     <div v-else class="flex-1 min-h-0" :class="displayMode === 'raw' && !isAudioFile ? 'h-full' : 'overflow-y-auto'">
                         <!-- Audio: player on top + content below -->
                         <div v-if="isAudioFile" class="flex flex-col h-full">
@@ -373,44 +334,8 @@
                 </div>
             </div>
 
-            <!-- Split View Document Area -->
-            <div v-if="splitViewActive && splitDocument"
-                class="lg:col-span-1 flex flex-col overflow-hidden min-h-0 split-document-panel">
-                <div class="bg-surface-elevated rounded-2xl border border-border p-4 flex-shrink-0">
-                    <div class="flex items-center justify-between mb-3">
-                        <input v-model="splitDocument.name" @input="handleDocumentNameChange" type="text"
-                            class="flex-1 px-3 py-1.5 bg-transparent border-0 border-b border-border text-base font-semibold text-text-primary focus:outline-none focus:border-accent transition-colors tracking-tight"
-                            placeholder="Document name..." />
-                        <button @click="closeSplitView"
-                            class="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer ml-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div class="flex justify-between items-center">
-                        <div v-if="isDocumentSaving" class="flex items-center gap-1.5 text-xs text-text-muted">
-                            <div class="animate-spin rounded-full h-3 w-3 border-2 border-accent border-t-transparent"></div>
-                            Saving...
-                        </div>
-                        <div v-else-if="documentSavedSuccessfully" class="flex items-center gap-1 text-xs text-green-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Saved
-                        </div>
-                    </div>
-                </div>
-
-                <div class="overflow-y-auto flex-1 min-h-0 mt-3 bg-surface-elevated rounded-2xl border border-border p-4">
-                    <EditorContent ref="splitEditor" :content="splitDocument.content || ''"
-                        :is-saving="isDocumentSaving" :saved-successfully="documentSavedSuccessfully"
-                        @content-change="handleDocumentContentChange" />
-                </div>
-            </div>
+            <ResourceDocumentEditor v-if="splitViewActive && splitDocument" ref="splitEditor"
+                v-model="splitDocument" variant="split" class="split-document-panel" @close="closeSplitView" />
 
             <!-- Split View Resource Area -->
             <div v-if="splitViewActive && splitResource"
@@ -583,6 +508,7 @@ import HtmlContent from '../components/contents/HtmlContent.vue';
 import ResourceOverview from '../components/resources/ResourceOverview.vue';
 import ResourceRelationships from '../components/resources/ResourceRelationships.vue';
 import ResourceMediaPreview from '../components/resources/ResourceMediaPreview.vue';
+import ResourceDocumentEditor from '../components/resources/ResourceDocumentEditor.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
 import ChatSidebar from '../components/ui/ChatSidebar.vue';
 import EntitiesList from '../components/entities/EntitiesList.vue';
@@ -623,39 +549,6 @@ const displayMode = ref<'extracted' | 'raw' | 'translated' | 'overview' | 'works
 const splitViewActive = ref(false);
 const splitDocument = ref<Record<string, any> | null>(null);
 const splitResource = ref<Record<string, any> | null>(null);
-const isDocumentSaving = ref(false);
-const documentSavedSuccessfully = ref(false);
-type DocumentSaveTimer = { value: ReturnType<typeof setTimeout> | null };
-const documentSaveTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
-const documentNameSaveTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
-
-const scheduleDocumentSave = (
-    timer: DocumentSaveTimer,
-    operation: () => Promise<void>,
-    failureMessage: string,
-) => {
-    if (timer.value) {
-        clearTimeout(timer.value);
-    }
-
-    isDocumentSaving.value = true;
-    documentSavedSuccessfully.value = false;
-
-    timer.value = setTimeout(async () => {
-        try {
-            await operation();
-            documentSavedSuccessfully.value = true;
-
-            setTimeout(() => {
-                documentSavedSuccessfully.value = false;
-            }, 3000);
-        } catch {
-            notification.error(failureMessage);
-        } finally {
-            isDocumentSaving.value = false;
-        }
-    }, 1000);
-};
 const apiBaseUrl = apiClient.defaults.baseURL;
 const editorContentRef = ref();
 const splitEditor = ref();
@@ -1013,35 +906,6 @@ const closeSplitView = () => {
     splitResource.value = null;
     // If we closed a split that was showing the workspace, clear the flag
     isWorkspaceShownInSplit.value = false;
-};
-
-const handleDocumentContentChange = async (content: string) => {
-    if (!splitDocument.value || !splitDocument.value.id) {
-        return;
-    }
-
-    scheduleDocumentSave(
-        documentSaveTimeout,
-        async () => {
-            await saveDocument(splitDocument.value.id, { content });
-            splitDocument.value.content = content;
-        },
-        'Failed to save document content',
-    );
-};
-
-const handleDocumentNameChange = async () => {
-    if (!splitDocument.value || !splitDocument.value.id || !splitDocument.value.name.trim()) {
-        return;
-    }
-
-    scheduleDocumentSave(
-        documentNameSaveTimeout,
-        async () => {
-            await saveDocument(splitDocument.value.id, { name: splitDocument.value.name.trim() });
-        },
-        'Failed to save document name',
-    );
 };
 
 const removeResource = async () => {
@@ -1525,21 +1389,6 @@ const activateWorkspaceSplitView = () => {
         splitViewActive.value = true;
         isWorkspaceShownInSplit.value = true;
     }
-};
-
-const handleWorkspaceContentChange = async (content: string) => {
-    if (!workspaceDocument.value || !workspaceDocument.value.id) {
-        return;
-    }
-
-    scheduleDocumentSave(
-        documentSaveTimeout,
-        async () => {
-            await saveDocument(workspaceDocument.value.id, { content });
-            workspaceDocument.value.content = content;
-        },
-        'Failed to save workspace content',
-    );
 };
 
 const escapeHtml = (unsafe: string) => {
