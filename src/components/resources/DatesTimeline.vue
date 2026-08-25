@@ -22,8 +22,7 @@
                             :style="{ left: item.leftPct + '%' }"
                             :title="`${item.date} · ${item.rawExpression}`"
                             class="absolute -translate-x-1/2 top-1/2 -translate-y-1/2 group flex flex-col items-center">
-                            <span class="block w-3 h-3 rounded-full border-2 border-white shadow"
-                                :class="dotClass(item.resolver)" />
+                            <span class="block w-3 h-3 rounded-full border-2 border-white shadow bg-emerald-500" />
                             <span class="mt-1 text-[10px] text-text-secondary max-w-[120px] truncate">
                                 {{ labelFor(item) }}
                             </span>
@@ -93,9 +92,4 @@ function labelFor(d: ResourceDate): string {
     return d.date || '';
 }
 
-function dotClass(resolver: string): string {
-    if (resolver === 'dateparser') return 'bg-emerald-500';
-    if (resolver === 'llm') return 'bg-blue-500';
-    return 'bg-gray-400';
-}
 </script>

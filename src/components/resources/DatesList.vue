@@ -35,8 +35,6 @@
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2 min-w-0">
                         <span class="font-mono text-sm text-text-primary whitespace-nowrap">{{ formatDate(d) }}</span>
-                        <span class="text-[10px] uppercase px-1.5 py-0.5 rounded"
-                            :class="resolverClass(d.resolver)">{{ d.resolver }}</span>
                         <span v-if="d.precision"
                             class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-surface border border-border text-text-muted">
                             {{ d.precision }}
@@ -111,12 +109,6 @@ function formatDate(d: ResourceDate): string {
     if (d.precision === 'year') return d.date.slice(0, 4);
     if (d.precision === 'month') return d.date.slice(0, 7);
     return d.date;
-}
-
-function resolverClass(resolver: string): string {
-    if (resolver === 'dateparser') return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300';
-    if (resolver === 'llm') return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
-    return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400';
 }
 
 async function saveAnchor() {
