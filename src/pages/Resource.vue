@@ -625,8 +625,37 @@ const splitDocument = ref<Record<string, any> | null>(null);
 const splitResource = ref<Record<string, any> | null>(null);
 const isDocumentSaving = ref(false);
 const documentSavedSuccessfully = ref(false);
-const documentSaveTimeout = ref<NodeJS.Timeout | null>(null);
-const documentNameSaveTimeout = ref<NodeJS.Timeout | null>(null);
+type DocumentSaveTimer = { value: ReturnType<typeof setTimeout> | null };
+const documentSaveTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+const documentNameSaveTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+
+const scheduleDocumentSave = (
+    timer: DocumentSaveTimer,
+    operation: () => Promise<void>,
+    failureMessage: string,
+) => {
+    if (timer.value) {
+        clearTimeout(timer.value);
+    }
+
+    isDocumentSaving.value = true;
+    documentSavedSuccessfully.value = false;
+
+    timer.value = setTimeout(async () => {
+        try {
+            await operation();
+            documentSavedSuccessfully.value = true;
+
+            setTimeout(() => {
+                documentSavedSuccessfully.value = false;
+            }, 3000);
+        } catch {
+            notification.error(failureMessage);
+        } finally {
+            isDocumentSaving.value = false;
+        }
+    }, 1000);
+};
 const apiBaseUrl = apiClient.defaults.baseURL;
 const editorContentRef = ref();
 const splitEditor = ref();
@@ -991,28 +1020,14 @@ const handleDocumentContentChange = async (content: string) => {
         return;
     }
 
-    if (documentSaveTimeout.value) {
-        clearTimeout(documentSaveTimeout.value);
-    }
-
-    isDocumentSaving.value = true;
-    documentSavedSuccessfully.value = false;
-
-    documentSaveTimeout.value = setTimeout(async () => {
-        try {
+    scheduleDocumentSave(
+        documentSaveTimeout,
+        async () => {
             await saveDocument(splitDocument.value.id, { content });
             splitDocument.value.content = content;
-            documentSavedSuccessfully.value = true;
-
-            setTimeout(() => {
-                documentSavedSuccessfully.value = false;
-            }, 3000);
-        } catch (error) {
-            notification.error('Failed to save document content');
-        } finally {
-            isDocumentSaving.value = false;
-        }
-    }, 1000);
+        },
+        'Failed to save document content',
+    );
 };
 
 const handleDocumentNameChange = async () => {
@@ -1020,27 +1035,13 @@ const handleDocumentNameChange = async () => {
         return;
     }
 
-    if (documentNameSaveTimeout.value) {
-        clearTimeout(documentNameSaveTimeout.value);
-    }
-
-    isDocumentSaving.value = true;
-    documentSavedSuccessfully.value = false;
-
-    documentNameSaveTimeout.value = setTimeout(async () => {
-        try {
+    scheduleDocumentSave(
+        documentNameSaveTimeout,
+        async () => {
             await saveDocument(splitDocument.value.id, { name: splitDocument.value.name.trim() });
-            documentSavedSuccessfully.value = true;
-
-            setTimeout(() => {
-                documentSavedSuccessfully.value = false;
-            }, 3000);
-        } catch (error) {
-            notification.error('Failed to save document name');
-        } finally {
-            isDocumentSaving.value = false;
-        }
-    }, 1000);
+        },
+        'Failed to save document name',
+    );
 };
 
 const removeResource = async () => {
@@ -1531,56 +1532,14 @@ const handleWorkspaceContentChange = async (content: string) => {
         return;
     }
 
-    if (documentSaveTimeout.value) {
-        clearTimeout(documentSaveTimeout.value);
-    }
-
-    isDocumentSaving.value = true;
-    documentSavedSuccessfully.value = false;
-
-    documentSaveTimeout.value = setTimeout(async () => {
-        try {
+    scheduleDocumentSave(
+        documentSaveTimeout,
+        async () => {
             await saveDocument(workspaceDocument.value.id, { content });
             workspaceDocument.value.content = content;
-            documentSavedSuccessfully.value = true;
-
-            setTimeout(() => {
-                documentSavedSuccessfully.value = false;
-            }, 3000);
-        } catch (error) {
-            notification.error('Failed to save workspace content');
-        } finally {
-            isDocumentSaving.value = false;
-        }
-    }, 1000);
-};
-
-const handleWorkspaceNameChange = async () => {
-    if (!workspaceDocument.value || !workspaceDocument.value.id || !workspaceDocument.value.name.trim()) {
-        return;
-    }
-
-    if (documentNameSaveTimeout.value) {
-        clearTimeout(documentNameSaveTimeout.value);
-    }
-
-    isDocumentSaving.value = true;
-    documentSavedSuccessfully.value = false;
-
-    documentNameSaveTimeout.value = setTimeout(async () => {
-        try {
-            await saveDocument(workspaceDocument.value.id, { name: workspaceDocument.value.name.trim() });
-            documentSavedSuccessfully.value = true;
-
-            setTimeout(() => {
-                documentSavedSuccessfully.value = false;
-            }, 3000);
-        } catch (error) {
-            notification.error('Failed to save workspace name');
-        } finally {
-            isDocumentSaving.value = false;
-        }
-    }, 1000);
+        },
+        'Failed to save workspace content',
+    );
 };
 
 const escapeHtml = (unsafe: string) => {
