@@ -124,7 +124,7 @@ const extract = async () => { extracting.value = true; await extractRelationship
 
 const handleCreate = async () => {
     if (!newRel.value.subjectId || !newRel.value.predicate || !newRel.value.objectId) return;
-    await createRelationship({ subjectId: newRel.value.subjectId, predicate: newRel.value.predicate, objectId: newRel.value.objectId, resourceId: props.resourceId, projectId: props.projectId });
+    await createRelationship({ subjectId: newRel.value.subjectId, predicate: newRel.value.predicate, objectId: newRel.value.objectId, resourceId: props.resourceId });
     showAddModal.value = false; newRel.value = { subjectId: 0, predicate: '', objectId: 0 }; await refresh();
 };
 

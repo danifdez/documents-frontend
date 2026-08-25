@@ -110,7 +110,6 @@ import type { CanvasData } from '../../types/canvas';
 import apiClient from '../../services/api';
 import { useResourceDirectory } from '../../services/resources/useResourceDirectory';
 import { type RelationshipData } from '../../services/relationships/useRelationships';
-import { subscribeExecutionPublication } from '../../services/notifications/executionPublication';
 
 const props = defineProps<{
   canvasData: CanvasData | null;
@@ -179,35 +178,13 @@ const duplicateNode = (nodeId: string) => {
 };
 
 const fetchNeighborhood = (entityNames: string[]): Promise<RelationshipData> => {
-  const requestId = `nb-${Date.now()}`;
   const namesParam = entityNames.map(n => encodeURIComponent(n)).join(',');
-
-  return new Promise<RelationshipData>((resolve) => {
-    const timeout = setTimeout(() => {
-      unsubscribe();
-      resolve({ entities: [], relationships: [] });
-    }, 30000);
-
-    const onResponse = (responseData: any) => {
-      if (responseData.requestId === requestId) {
-        unsubscribe();
-        clearTimeout(timeout);
-        resolve({
-          entities: responseData.entities || [],
-          relationships: responseData.relationships || [],
-        });
-      }
-    };
-    let unsubscribe: () => void = () => undefined;
-    unsubscribe = subscribeExecutionPublication('relationshipQueryResponse', onResponse);
-
-    apiClient.get(`/relationships/neighborhood?names=${namesParam}&requestId=${requestId}`)
-      .catch(() => {
-        unsubscribe();
-        clearTimeout(timeout);
-        resolve({ entities: [], relationships: [] });
-      });
-  });
+  return apiClient.get(`/relationships/neighborhood?names=${namesParam}`)
+    .then((response: { data: Partial<RelationshipData> }) => ({
+      entities: response.data?.entities || [],
+      relationships: response.data?.relationships || [],
+    }))
+    .catch(() => ({ entities: [], relationships: [] }));
 };
 
 const drawRelationships = async (nodeId: string) => {
