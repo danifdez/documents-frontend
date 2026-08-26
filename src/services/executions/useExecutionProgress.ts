@@ -43,21 +43,25 @@ export function executionProgressLabel(
         "browser.read_current_page",
         "browser.navigate",
         "browser.go_back",
-      ].includes(
-        step.taskType ?? "",
-      ),
+        "browser.click",
+      ].includes(step.taskType ?? ""),
   );
   if (!browserStep) return "Thinking…";
   if (!browserStep.worker) return "Waiting for IA Browser…";
   if (browserStep.stepStatus === "result_received") {
-    return ["browser.navigate", "browser.go_back"].includes(
+    return ["browser.navigate", "browser.go_back", "browser.click"].includes(
       browserStep.taskType ?? "",
     )
-      ? "Verifying IA Browser navigation…"
+      ? browserStep.taskType === "browser.click"
+        ? "Verifying IA Browser interaction…"
+        : "Verifying IA Browser navigation…"
       : "Receiving the page from IA Browser…";
   }
   if (browserStep.taskType === "browser.go_back") {
     return "IA Browser is going back…";
+  }
+  if (browserStep.taskType === "browser.click") {
+    return "IA Browser is clicking…";
   }
   return browserStep.taskType === "browser.navigate"
     ? "IA Browser is navigating…"

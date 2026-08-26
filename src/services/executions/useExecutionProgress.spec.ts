@@ -64,6 +64,14 @@ describe("executionProgressLabel", () => {
     expect(executionProgressLabel(progress(worker, "browser.go_back"))).toBe(
       "IA Browser is going back…",
     );
+    expect(executionProgressLabel(progress(worker, "browser.click"))).toBe(
+      "IA Browser is clicking…",
+    );
+    expect(
+      executionProgressLabel(
+        progress(worker, "browser.click", "result_received"),
+      ),
+    ).toBe("Verifying IA Browser interaction…");
   });
 
   it("keeps the generic label for non-browser work", () => {
