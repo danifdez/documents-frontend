@@ -18,6 +18,7 @@ export const useAssistantStore = defineStore('assistant', () => {
     const chat = createChatStore<Assistant, AssistantMessage, UpdateAssistantPayload>({
         api,
         responseEvent: 'assistantResponse',
+        taskType: 'assistant-chat',
         socketIdKey: 'assistantId',
         loadErrorMessage: 'Failed to load assistants',
         sortOwners: (list) => list.sort((a, b) => {
@@ -78,10 +79,12 @@ export const useAssistantStore = defineStore('assistant', () => {
         activeHasMore: chat.activeHasMore,
         activeLoadingOlder: chat.activeLoadingOlder,
         isActivePending: chat.isActivePending,
+        activeConfirmations: chat.activeConfirmations,
         load: chat.load,
         selectAssistant: chat.selectOwner,
         loadOlder: chat.loadOlder,
         sendMessage: chat.sendMessage,
+        decideConfirmation: chat.decideConfirmation,
         updateAssistant: chat.updateOwner,
         deleteAssistant: chat.deleteOwner,
         togglePin: chat.togglePin,

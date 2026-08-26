@@ -17,6 +17,7 @@ export const useAgentStore = defineStore('agent', () => {
     const chat = createChatStore<Agent, AgentMessage, UpdateAgentPayload>({
         api,
         responseEvent: 'agentResponse',
+        taskType: 'agent-chat',
         socketIdKey: 'agentId',
         loadErrorMessage: 'Failed to load agents',
     });
@@ -44,10 +45,12 @@ export const useAgentStore = defineStore('agent', () => {
         activeHasMore: chat.activeHasMore,
         activeLoadingOlder: chat.activeLoadingOlder,
         isActivePending: chat.isActivePending,
+        activeConfirmations: chat.activeConfirmations,
         load: chat.load,
         selectAgent: chat.selectOwner,
         loadOlder: chat.loadOlder,
         sendMessage: chat.sendMessage,
+        decideConfirmation: chat.decideConfirmation,
         createAgent,
         updateAgent: chat.updateOwner,
         deleteAgent: chat.deleteOwner,

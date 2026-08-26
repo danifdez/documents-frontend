@@ -46,6 +46,13 @@
                 </div>
             </template>
 
+            <ExecutionConfirmationCard
+                v-for="confirmation in store.activeConfirmations"
+                :key="confirmation.confirmationId"
+                :confirmation="confirmation"
+                :resolving="resolvingConfirmations.has(confirmation.confirmationId)"
+                @decide="(decision) => decideConfirmation(confirmation.confirmationId, decision)" />
+
             <div v-if="store.isActivePending" class="flex justify-start">
                 <div :class="bubbleClass('assistant')">
                     <div class="flex items-center gap-1.5 text-text-muted text-sm">
@@ -61,12 +68,29 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useAgentStore } from '../../store/agentStore';
 import type { AgentMessage } from '../../types/Agent';
 import MarkdownContent from '../assistant/MarkdownContent.vue';
+import ExecutionConfirmationCard from '../assistant/ExecutionConfirmationCard.vue';
 import { useChatView } from '../../composables/useChatView';
 
 const store = useAgentStore();
+const resolvingConfirmations = ref(new Set<string>());
+
+async function decideConfirmation(
+    confirmationId: string,
+    decision: 'approved' | 'denied',
+): Promise<void> {
+    resolvingConfirmations.value.add(confirmationId);
+    try {
+        await store.decideConfirmation(confirmationId, decision);
+    } catch (error: any) {
+        alert(error?.response?.data?.message || error?.message || 'Could not save the decision');
+    } finally {
+        resolvingConfirmations.value.delete(confirmationId);
+    }
+}
 const {
     scrollContainer,
     bubbleClass,

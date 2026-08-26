@@ -7,6 +7,11 @@ const socketState = vi.hoisted(() => ({
   on: vi.fn(),
 }));
 
+const confirmationState = vi.hoisted(() => ({
+  listPending: vi.fn().mockResolvedValue([]),
+  decide: vi.fn(),
+}));
+
 vi.mock('@/services/notifications/notification', () => ({
   getSocket: () => ({
     on: (
@@ -27,6 +32,10 @@ vi.mock('@/services/notifications/executionPublication', () => ({
     socketState.handlers.set(event, handler);
     return () => socketState.handlers.delete(event);
   },
+}));
+
+vi.mock('@/services/executions/useExecutionConfirmations', () => ({
+  useExecutionConfirmations: () => confirmationState,
 }));
 
 interface Owner {
@@ -62,6 +71,8 @@ describe('createChatStore durable final response', () => {
   beforeEach(() => {
     socketState.handlers.clear();
     socketState.on.mockClear();
+    confirmationState.listPending.mockReset().mockResolvedValue([]);
+    confirmationState.decide.mockReset().mockResolvedValue({});
   });
 
   it('shows the persisted reply and completes the pending turn', async () => {
@@ -81,6 +92,7 @@ describe('createChatStore durable final response', () => {
     const store = createChatStore<Owner, Message, Partial<Owner>>({
       api,
       responseEvent: 'response',
+      taskType: 'assistant-chat',
       socketIdKey: 'ownerId',
       loadErrorMessage: 'Failed to load chat',
     });
@@ -120,6 +132,7 @@ describe('createChatStore durable final response', () => {
     const store = createChatStore<Owner, Message, Partial<Owner>>({
       api,
       responseEvent: 'response',
+      taskType: 'assistant-chat',
       socketIdKey: 'ownerId',
       loadErrorMessage: 'Failed to load chat',
     });
@@ -157,6 +170,7 @@ describe('createChatStore durable final response', () => {
     const store = createChatStore<Owner, Message, Partial<Owner>>({
       api,
       responseEvent: 'response',
+      taskType: 'assistant-chat',
       socketIdKey: 'ownerId',
       loadErrorMessage: 'Failed to load chat',
     });
@@ -171,6 +185,70 @@ describe('createChatStore durable final response', () => {
     expect(store.isActivePending.value).toBe(false);
     expect(store.error.value).toBeNull();
     expect(store.activeMessages.value).toEqual([userMessage, partialMessage]);
+  });
+
+  it('projects and decides durable confirmations for the active chat family', async () => {
+    const api = {
+      list: vi
+        .fn()
+        .mockResolvedValue([{ id: 7, pinned: false, lastSeenAt: null }]),
+      update: vi.fn(),
+      remove: vi.fn(),
+      getMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendMessage: vi.fn(),
+    };
+    const confirmation = {
+      schemaVersion: 'confirmation/1' as const,
+      confirmationId: 'confirmation-1',
+      executionId: 'execution-1',
+      operationId: 'operation-1',
+      toolCallId: 'tool-call-1',
+      planHash: `sha256:${'a'.repeat(64)}`,
+      toolName: 'user_tasks.create',
+      reason: 'Local mutation',
+      prompt: 'Create the task?',
+      scope: 'once' as const,
+      resources: [],
+      effects: [],
+      status: 'pending' as const,
+      expiresAt: null,
+      decidedAt: null,
+    };
+    confirmationState.listPending.mockResolvedValue([
+      { confirmation, ownerId: 7, taskType: 'assistant-chat' },
+      { confirmation, ownerId: 7, taskType: 'agent-chat' },
+    ]);
+    const store = createChatStore<Owner, Message, Partial<Owner>>({
+      api,
+      responseEvent: 'response',
+      taskType: 'assistant-chat',
+      socketIdKey: 'ownerId',
+      loadErrorMessage: 'Failed to load chat',
+    });
+
+    await store.load();
+    await store.selectOwner(7);
+
+    expect(store.activeConfirmations.value).toEqual([confirmation]);
+    socketState.handlers.get('executionConfirmationDecided')?.({
+      confirmation: { ...confirmation, status: 'denied' },
+      ownerId: 7,
+      taskType: 'assistant-chat',
+    });
+    expect(store.activeConfirmations.value).toEqual([]);
+
+    socketState.handlers.get('executionConfirmationRequested')?.({
+      confirmation,
+      ownerId: 7,
+      taskType: 'assistant-chat',
+    });
+    await store.decideConfirmation('confirmation-1', 'approved');
+
+    expect(confirmationState.decide).toHaveBeenCalledWith(
+      'confirmation-1',
+      'approved',
+    );
+    expect(store.activeConfirmations.value).toEqual([]);
   });
 
 });

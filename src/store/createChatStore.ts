@@ -1,7 +1,12 @@
 import { ref, computed } from 'vue';
 import type { Ref } from 'vue';
 import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
+import { useExecutionConfirmations } from '../services/executions/useExecutionConfirmations';
 import type { AssistantMessageEvent } from '../types/Assistant';
+import type {
+    ExecutionConfirmation,
+    ExecutionConfirmationEnvelope,
+} from '../types/ExecutionConfirmation';
 
 const MESSAGE_PAGE_SIZE = 50;
 
@@ -60,6 +65,7 @@ export interface ChatStoreOptions<
     api: ChatStoreApi<TOwner, TMsg, TUpdate>;
     /** Socket event names pushed by the backend for this chat family. */
     responseEvent: string;
+    taskType: 'assistant-chat' | 'agent-chat';
     /** Payload property carrying the owner id (`agentId` / `assistantId`). */
     socketIdKey: string;
     /** Error message shown when the initial list() fails. */
@@ -84,8 +90,9 @@ export function createChatStore<
     TMsg extends ChatStoreMessage,
     TUpdate,
 >(options: ChatStoreOptions<TOwner, TMsg, TUpdate>) {
-    const { api, responseEvent, socketIdKey, loadErrorMessage } = options;
+    const { api, responseEvent, socketIdKey, loadErrorMessage, taskType } = options;
     const hooks = options.hooks ?? {};
+    const confirmationsApi = useExecutionConfirmations();
 
     const owners = ref([]) as Ref<TOwner[]>;
     const activeId = ref<number | null>(null);
@@ -94,6 +101,7 @@ export function createChatStore<
     const hasMoreByOwner = ref<Record<number, boolean>>({});
     const loadingOlderByOwner = ref<Record<number, boolean>>({});
     const pendingByOwner = ref<Record<number, boolean>>({});
+    const confirmationsByOwner = ref<Record<number, ExecutionConfirmation[]>>({});
     const loading = ref(false);
     const loaded = ref(false);
     const error = ref<string | null>(null);
@@ -131,6 +139,25 @@ export function createChatStore<
         return !!pendingByOwner.value[activeId.value];
     });
 
+    const activeConfirmations = computed<ExecutionConfirmation[]>(() => {
+        if (activeId.value == null) return [];
+        return confirmationsByOwner.value[activeId.value] ?? [];
+    });
+
+    function upsertConfirmation(envelope: ExecutionConfirmationEnvelope): void {
+        if (envelope.taskType !== taskType || envelope.ownerId == null) return;
+        const current = confirmationsByOwner.value[envelope.ownerId] ?? [];
+        const confirmation = envelope.confirmation;
+        const next = current.filter(
+            (item) => item.confirmationId !== confirmation.confirmationId,
+        );
+        if (confirmation.status === 'pending') next.push(confirmation);
+        confirmationsByOwner.value = {
+            ...confirmationsByOwner.value,
+            [envelope.ownerId]: next,
+        };
+    }
+
     function _attachSocket() {
         if (socketAttached) return;
         hooks.onSocketAttached?.();
@@ -164,6 +191,18 @@ export function createChatStore<
                 } as TOwner;
             }
         });
+        subscribeExecutionPublication(
+            'executionConfirmationRequested',
+            (event: Record<string, any>) => {
+                upsertConfirmation(event as ExecutionConfirmationEnvelope);
+            },
+        );
+        subscribeExecutionPublication(
+            'executionConfirmationDecided',
+            (event: Record<string, any>) => {
+                upsertConfirmation(event as ExecutionConfirmationEnvelope);
+            },
+        );
         socketAttached = true;
     }
 
@@ -173,6 +212,10 @@ export function createChatStore<
         error.value = null;
         try {
             owners.value = await api.list();
+            const confirmations = await confirmationsApi.listPending();
+            confirmations
+                .filter((item) => item.taskType === taskType)
+                .forEach(upsertConfirmation);
             loaded.value = true;
             _attachSocket();
             hooks.afterLoad?.(ctx);
@@ -238,6 +281,20 @@ export function createChatStore<
         }
     }
 
+    async function decideConfirmation(
+        confirmationId: string,
+        decision: 'approved' | 'denied',
+    ): Promise<void> {
+        await confirmationsApi.decide(confirmationId, decision);
+        const next: Record<number, ExecutionConfirmation[]> = {};
+        for (const [ownerId, confirmations] of Object.entries(confirmationsByOwner.value)) {
+            next[Number(ownerId)] = confirmations.filter(
+                (item) => item.confirmationId !== confirmationId,
+            );
+        }
+        confirmationsByOwner.value = next;
+    }
+
     async function updateOwner(id: number, payload: TUpdate) {
         const updated = await api.update(id, payload);
         const idx = owners.value.findIndex((a) => a.id === id);
@@ -267,6 +324,7 @@ export function createChatStore<
         activeId,
         messagesByOwner,
         pendingByOwner,
+        confirmationsByOwner,
         loading,
         loaded,
         error,
@@ -276,10 +334,12 @@ export function createChatStore<
         activeHasMore,
         activeLoadingOlder,
         isActivePending,
+        activeConfirmations,
         load,
         selectOwner,
         loadOlder,
         sendMessage,
+        decideConfirmation,
         updateOwner,
         deleteOwner,
         togglePin,
