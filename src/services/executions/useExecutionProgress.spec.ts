@@ -6,6 +6,8 @@ import {
 
 function progress(
   worker: ExecutionProgress["runtime"]["activeSteps"][number]["worker"],
+  taskType = "browser.read_current_page",
+  stepStatus = "running",
 ): ExecutionProgress {
   return {
     runtime: {
@@ -14,9 +16,9 @@ function progress(
         {
           executionId: "execution-1",
           stepId: "step-1",
-          taskType: "browser.read_current_page",
+          taskType,
           stepKind: "tool",
-          stepStatus: "running",
+          stepStatus,
           attemptId: worker ? "attempt-1" : null,
           attemptStatus: worker ? "running" : null,
           worker,
@@ -43,6 +45,22 @@ describe("executionProgressLabel", () => {
     expect(executionProgressLabel(progress(null))).toBe(
       "Waiting for IA Browser…",
     );
+  });
+
+  it("distinguishes navigation and its verification phase", () => {
+    const worker = {
+      workerId: "browser-1",
+      name: "IA Browser",
+      kind: "browser" as const,
+    };
+    expect(executionProgressLabel(progress(worker, "browser.navigate"))).toBe(
+      "IA Browser is navigating…",
+    );
+    expect(
+      executionProgressLabel(
+        progress(worker, "browser.navigate", "result_received"),
+      ),
+    ).toBe("Verifying IA Browser navigation…");
   });
 
   it("keeps the generic label for non-browser work", () => {

@@ -39,12 +39,18 @@ export function executionProgressLabel(
   const browserStep = progress?.runtime.activeSteps.find(
     (step) =>
       step.worker?.kind === "browser" ||
-      step.taskType === "browser.read_current_page",
+      ["browser.read_current_page", "browser.navigate"].includes(
+        step.taskType ?? "",
+      ),
   );
   if (!browserStep) return "Thinking…";
   if (!browserStep.worker) return "Waiting for IA Browser…";
   if (browserStep.stepStatus === "result_received") {
-    return "Receiving the page from IA Browser…";
+    return browserStep.taskType === "browser.navigate"
+      ? "Verifying IA Browser navigation…"
+      : "Receiving the page from IA Browser…";
   }
-  return "IA Browser is reading the current page…";
+  return browserStep.taskType === "browser.navigate"
+    ? "IA Browser is navigating…"
+    : "IA Browser is reading the current page…";
 }
