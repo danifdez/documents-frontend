@@ -22,6 +22,10 @@ export interface DataSourceSyncLog {
     errorMessage: string | null;
 }
 
+export interface DataSourceSyncExecution {
+    executionId: string;
+}
+
 export interface DataSource {
     id: number;
     name: string;
@@ -121,7 +125,7 @@ export function useDataSources() {
         return response.data;
     };
 
-    const triggerSync = async (id: number): Promise<DataSourceSyncLog> => {
+    const triggerSync = async (id: number): Promise<DataSourceSyncExecution> => {
         const response = await apiClient.post(`/data-sources/${id}/sync`);
         return response.data;
     };
