@@ -32,5 +32,16 @@ export function useAssistants() {
         return data;
     };
 
-    return { list, getMessages, sendMessage };
+    const updateWorkingFolder = async (
+        id: number,
+        folderScope: string | null,
+    ): Promise<Assistant> => {
+        const { data } = await apiClient.patch<Assistant>(
+            `/assistants/${id}/working-folder`,
+            { folderScope },
+        );
+        return data;
+    };
+
+    return { list, getMessages, sendMessage, updateWorkingFolder };
 }

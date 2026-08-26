@@ -1,6 +1,7 @@
 export interface Assistant {
     id: number;
     name: string;
+    folderScope: string | null;
     icon: string | null;
     sub: string | null;
     lastSeenAt: string | null;

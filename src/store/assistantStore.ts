@@ -49,6 +49,15 @@ export const useAssistantStore = defineStore('assistant', () => {
         },
     });
 
+    async function updateWorkingFolder(folderScope: string | null) {
+        const assistant = chat.activeOwner.value;
+        if (!assistant) return null;
+        const updated = await api.updateWorkingFolder(assistant.id, folderScope);
+        const index = chat.owners.value.findIndex((item) => item.id === updated.id);
+        if (index >= 0) chat.owners.value[index] = updated;
+        return updated;
+    }
+
     return {
         assistants: chat.owners,
         activeId: chat.activeId,
@@ -71,5 +80,6 @@ export const useAssistantStore = defineStore('assistant', () => {
         sendMessage: chat.sendMessage,
         cancelActiveExecution: chat.cancelActiveExecution,
         decideConfirmation: chat.decideConfirmation,
+        updateWorkingFolder,
     };
 });

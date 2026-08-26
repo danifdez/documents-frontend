@@ -61,6 +61,27 @@
                                 <span>Memory</span>
                             </button>
 
+                            <button v-if="workingFolderOwnerId !== null" @click="toggleWorkingFolder"
+                                title="Working folder files"
+                                class="flex items-center gap-1.5 px-2.5 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer text-sm"
+                                :class="{ '!bg-accent-subtle !text-accent-dark': workingFolderOpen }">
+                                <span>Files</span>
+                            </button>
+
+                            <button v-if="selection === 'assistant' && assistantStore.activeAssistant"
+                                @click="chooseAssistantFolder"
+                                class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
+                                title="Choose assistant working folder">
+                                ⚙
+                            </button>
+
+                            <button v-if="selection === 'assistant' && assistantStore.activeAssistant?.folderScope"
+                                @click="clearAssistantFolder"
+                                class="p-1.5 rounded text-text-muted hover:text-red-600 hover:bg-surface-hover transition-colors cursor-pointer"
+                                title="Remove assistant working folder">
+                                ⊘
+                            </button>
+
                             <button v-if="selection === 'agent' && activeAgent" @click="openAgentEditor(activeAgent)"
                                 class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
                                 title="Edit agent">
@@ -100,6 +121,13 @@
                         :assistant-id="assistantStore.activeAssistant?.id ?? null"
                         @update:show="memoryOpen = $event" />
 
+                    <WorkingFolderPanel
+                        :show="workingFolderOpen"
+                        :owner-type="workingFolderOwnerType"
+                        :owner-id="workingFolderOwnerId"
+                        :folder-scope="headerFolderScope"
+                        @update:show="workingFolderOpen = $event" />
+
                 </div>
 
                 <AgentEditModal v-model="agentEditorOpen" :agent="agentEditing" />
@@ -117,6 +145,7 @@ import AssistantSidebar from './AssistantSidebar.vue';
 import AssistantChat from './AssistantChat.vue';
 import AssistantComposer from './AssistantComposer.vue';
 import MemoryPanel from './MemoryPanel.vue';
+import WorkingFolderPanel from './WorkingFolderPanel.vue';
 import AgentChat from '../agent/AgentChat.vue';
 import AgentEditModal from '../agent/AgentEditModal.vue';
 import UnfavoriteWarning from '../agent/UnfavoriteWarning.vue';
@@ -124,6 +153,7 @@ import { expirationLabel } from '../agent/expirationLabel';
 import { useAssistantStore } from '../../store/assistantStore';
 import { useAgentStore } from '../../store/agentStore';
 import type { Agent } from '../../types/Agent';
+import { useFolderPicker } from '../../composables/useFolderPicker';
 
 const props = defineProps<{
     modelValue: boolean;
@@ -135,11 +165,13 @@ const emit = defineEmits<{
 
 const assistantStore = useAssistantStore();
 const agentStore = useAgentStore();
+const folderPicker = useFolderPicker();
 
 const composerRef = ref<InstanceType<typeof AssistantComposer> | null>(null);
 const agentEditorOpen = ref(false);
 const agentEditing = ref<Agent | null>(null);
 const memoryOpen = ref(false);
+const workingFolderOpen = ref(false);
 const headerUnpinWarning = ref(false);
 
 // Active selection: 'assistant' | 'agent' | null.
@@ -174,7 +206,15 @@ const headerSub = computed(() => {
 });
 
 const headerFolderScope = computed(() => {
+    if (selection.value === 'assistant') return assistantStore.activeAssistant?.folderScope || null;
     if (selection.value === 'agent') return activeAgent.value?.folderScope || null;
+    return null;
+});
+
+const workingFolderOwnerType = computed(() => selection.value);
+const workingFolderOwnerId = computed(() => {
+    if (selection.value === 'assistant') return assistantStore.activeAssistant?.id ?? null;
+    if (selection.value === 'agent') return activeAgent.value?.id ?? null;
     return null;
 });
 
@@ -213,6 +253,30 @@ const composerPlaceholder = computed(() => {
 
 function toggleMemory() {
     memoryOpen.value = !memoryOpen.value;
+    if (memoryOpen.value) workingFolderOpen.value = false;
+}
+
+function toggleWorkingFolder() {
+    workingFolderOpen.value = !workingFolderOpen.value;
+    if (workingFolderOpen.value) memoryOpen.value = false;
+}
+
+async function chooseAssistantFolder() {
+    const selected = await folderPicker.pick({ title: 'Pick the assistant working folder' });
+    if (!selected) return;
+    try {
+        await assistantStore.updateWorkingFolder(selected);
+        workingFolderOpen.value = true;
+        memoryOpen.value = false;
+    } catch (error: any) {
+        alert(error?.response?.data?.message || error?.message || 'Could not set the working folder');
+    }
+}
+
+async function clearAssistantFolder() {
+    if (!confirm('Remove the assistant working folder? Files on disk will not be deleted.')) return;
+    await assistantStore.updateWorkingFolder(null);
+    workingFolderOpen.value = false;
 }
 
 function close() {
@@ -270,6 +334,11 @@ function onKeydown(e: KeyboardEvent) {
             memoryOpen.value = false;
             return;
         }
+        if (workingFolderOpen.value) {
+            e.preventDefault();
+            workingFolderOpen.value = false;
+            return;
+        }
         e.preventDefault();
         close();
     }
@@ -292,6 +361,7 @@ watch(
     () => selection.value,
     () => {
         if (!canShowMemory.value) memoryOpen.value = false;
+        workingFolderOpen.value = false;
     },
 );
 
