@@ -21,7 +21,7 @@
                 </button>
             </div>
             <template v-for="msg in store.activeMessages" :key="msg.id">
-                <!-- Inline event card (memory saved, tool executed, …) -->
+                <!-- Inline event card -->
                 <div v-if="msg.role === 'event'" class="flex justify-center">
                     <div class="event-card">
                         <span class="event-icon">
@@ -77,8 +77,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useAssistantStore } from '../../store/assistantStore';
-import type { AssistantMessage, AssistantMessageEvent } from '../../types/Assistant';
-import { MEMORY_TYPE_LABEL } from '../../types/AssistantMemory';
+import type { AssistantMessage } from '../../types/Assistant';
 import MarkdownContent from './MarkdownContent.vue';
 import ExecutionConfirmationCard from './ExecutionConfirmationCard.vue';
 import { useChatView } from '../../composables/useChatView';
@@ -113,51 +112,6 @@ async function decideConfirmation(
         resolvingConfirmations.value.delete(confirmationId);
     }
 }
-// Memory cards are assistant-only event kinds; they short-circuit the shared
-// tool-card rendering in useChatView via the special* hooks below.
-function memoryEventIcon(event: AssistantMessageEvent): string | null {
-    switch (event.kind) {
-        case 'memory_saved':
-            return '🧠';
-        case 'memory_forgotten':
-            return '🗑️';
-        case 'memory_replaced':
-            return '✏️';
-        default:
-            return null;
-    }
-}
-
-function memoryEventTitle(msg: AssistantMessage): string | null {
-    const event = msg.event;
-    if (
-        (event?.kind === 'memory_saved'
-            || event?.kind === 'memory_forgotten'
-            || event?.kind === 'memory_replaced')
-        && event.entry
-    ) {
-        return event.entry.name;
-    }
-    return null;
-}
-
-function memoryEventMeta(event: AssistantMessageEvent): string | null {
-    if (event.kind === 'memory_saved' && event.entry) {
-        const type = MEMORY_TYPE_LABEL[event.entry.type as keyof typeof MEMORY_TYPE_LABEL] || event.entry.type;
-        return `Memory saved · ${type}`;
-    }
-    if (event.kind === 'memory_forgotten' && event.entry) {
-        const type = MEMORY_TYPE_LABEL[event.entry.type as keyof typeof MEMORY_TYPE_LABEL] || event.entry.type;
-        return `Memory forgotten · ${type}`;
-    }
-    if (event.kind === 'memory_replaced' && event.entry) {
-        const type = MEMORY_TYPE_LABEL[event.entry.type as keyof typeof MEMORY_TYPE_LABEL] || event.entry.type;
-        const suffix = event.via === 'auto_dedup' ? ' · auto-detected' : '';
-        return `Memory updated · ${type}${suffix}`;
-    }
-    return null;
-}
-
 const {
     scrollContainer,
     bubbleClass,
@@ -167,9 +121,6 @@ const {
     loadOlder,
 } = useChatView<AssistantMessage>({
     store,
-    specialEventIcon: memoryEventIcon,
-    specialEventTitle: memoryEventTitle,
-    specialEventMeta: memoryEventMeta,
 });
 </script>
 

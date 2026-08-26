@@ -8,6 +8,7 @@ interface FolderScenario {
   agentFolder: string | null;
   assistantFiles?: ReturnType<typeof indexedFile>[];
   agentFiles?: ReturnType<typeof indexedFile>[];
+  assistantMemory?: unknown[];
 }
 
 function indexedFile(id: number, filename: string, folder: string) {
@@ -71,6 +72,9 @@ async function installFolderApi(page: Page, scenario: FolderScenario) {
     }
     if (request.method() === 'GET' && pathname === '/assistants/1/messages') {
       return fulfillJson(route, { messages: [], hasMore: false });
+    }
+    if (request.method() === 'GET' && pathname === '/assistants/1/memory') {
+      return fulfillJson(route, scenario.assistantMemory ?? []);
     }
     if (request.method() === 'GET' && pathname === '/agents/2/messages') {
       return fulfillJson(route, { messages: [], hasMore: false });
@@ -155,4 +159,34 @@ test('allows the assistant and an agent to share the same physical folder', asyn
 
   expect(requests.assistantFiles).toBeGreaterThan(0);
   expect(requests.agentFiles).toBeGreaterThan(0);
+});
+
+test('shows only governed memory and its consent provenance', async ({ electronApp }) => {
+  const page = await electronApp.firstWindow();
+  await installFolderApi(page, {
+    assistantFolder: null,
+    agentFolder: null,
+    assistantMemory: [{
+      id: '00000000-0000-4000-8000-000000000001',
+      assistantId: 1,
+      agentId: null,
+      name: 'Response style',
+      type: 'preference',
+      body: 'Prefer concise answers',
+      contentHash: `sha256:${'a'.repeat(64)}`,
+      sourceKind: 'manual',
+      consentStatus: 'granted',
+      consentBasis: 'explicit_user_action',
+      consentedAt: NOW,
+      createdAt: NOW,
+      updatedAt: NOW,
+    }],
+  });
+  await prepareWindow(page);
+  await openAssistant(page);
+
+  await page.getByTitle('Assistant memory').click();
+  await expect(page.getByText('1 memory · selected when relevant')).toBeVisible();
+  await expect(page.getByText('Prefer concise answers', { exact: true })).toBeVisible();
+  await expect(page.getByText('Added by you · consent granted', { exact: true })).toBeVisible();
 });

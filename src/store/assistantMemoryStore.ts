@@ -46,7 +46,7 @@ export const useAssistantMemoryStore = defineStore('assistantMemory', () => {
 
     async function update(
         assistantId: number,
-        id: number,
+        id: string,
         payload: UpdateMemoryEntryPayload,
     ): Promise<MemoryEntry> {
         const updated = await api.update(assistantId, id, payload);
@@ -58,7 +58,7 @@ export const useAssistantMemoryStore = defineStore('assistantMemory', () => {
         return updated;
     }
 
-    async function remove(assistantId: number, id: number): Promise<void> {
+    async function remove(assistantId: number, id: string): Promise<void> {
         await api.remove(assistantId, id);
         const current = entriesByAssistant.value[assistantId] ?? [];
         entriesByAssistant.value = {
@@ -72,61 +72,6 @@ export const useAssistantMemoryStore = defineStore('assistantMemory', () => {
         entriesByAssistant.value = { ...entriesByAssistant.value, [assistantId]: [] };
     }
 
-    /**
-     * Insert a memory entry that arrived via socket (the worker extracted it
-     * after a chat message). De-duplicates by id. No HTTP call.
-     */
-    function ingestSocketEntry(entry: MemoryEntry): void {
-        if (!entry || typeof entry.id !== 'number') return;
-        const current = entriesByAssistant.value[entry.assistantId] ?? [];
-        if (current.some((e) => e.id === entry.id)) return;
-        entriesByAssistant.value = {
-            ...entriesByAssistant.value,
-            [entry.assistantId]: [entry, ...current],
-        };
-    }
-
-    /**
-     * Drop a memory entry locally — the backend has already deleted it.
-     * Called when a `memory_forgotten` event arrives over the socket so the
-     * panel updates without a refetch.
-     */
-    function dropSocketEntry(assistantId: number, entryId: number): void {
-        const current = entriesByAssistant.value[assistantId];
-        if (!current) return;
-        const next = current.filter((e) => e.id !== entryId);
-        if (next.length === current.length) return;
-        entriesByAssistant.value = {
-            ...entriesByAssistant.value,
-            [assistantId]: next,
-        };
-    }
-
-    /**
-     * Replace a memory entry in place. Used when a `memory_replaced` event
-     * arrives over the socket — either because the worker detected a
-     * correction (via: 'llm') or because the backend auto-dedup converted a
-     * save into a replace (via: 'auto_dedup').
-     */
-    function replaceSocketEntry(entry: MemoryEntry): void {
-        if (!entry || typeof entry.id !== 'number') return;
-        const current = entriesByAssistant.value[entry.assistantId] ?? [];
-        const idx = current.findIndex((e) => e.id === entry.id);
-        if (idx === -1) {
-            entriesByAssistant.value = {
-                ...entriesByAssistant.value,
-                [entry.assistantId]: [entry, ...current],
-            };
-            return;
-        }
-        const next = current.slice();
-        next[idx] = entry;
-        entriesByAssistant.value = {
-            ...entriesByAssistant.value,
-            [entry.assistantId]: next,
-        };
-    }
-
     return {
         entriesByAssistant,
         loading,
@@ -138,8 +83,5 @@ export const useAssistantMemoryStore = defineStore('assistantMemory', () => {
         update,
         remove,
         clear,
-        ingestSocketEntry,
-        dropSocketEntry,
-        replaceSocketEntry,
     };
 });

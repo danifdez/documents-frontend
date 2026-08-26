@@ -43,15 +43,7 @@ export interface ChatStoreContext<TOwner> {
     activeId: Ref<number | null>;
 }
 
-export interface ChatStoreHooks<TOwner extends ChatOwner, TMsg extends ChatStoreMessage> {
-    /** Runs once, right before the socket listeners are registered. */
-    onSocketAttached?: () => void;
-    /**
-     * Collect extra messages carried by the final response event (e.g. memory
-     * cards) that are not already in `existing`. They are appended before the
-     * reply itself.
-     */
-    collectResponseEventMessages?: (event: Record<string, any>, existing: TMsg[]) => TMsg[];
+export interface ChatStoreHooks<TOwner extends ChatOwner> {
     /** Runs after a successful list() load, with the socket already attached. */
     afterLoad?: (ctx: ChatStoreContext<TOwner>) => void;
     /** Owners for which the pin toggle is a no-op (e.g. system assistants). */
@@ -79,7 +71,7 @@ export interface ChatStoreOptions<
      * order the backend returned.
      */
     sortOwners?: (owners: TOwner[]) => TOwner[];
-    hooks?: ChatStoreHooks<TOwner, TMsg>;
+    hooks?: ChatStoreHooks<TOwner>;
 }
 
 /**
@@ -218,22 +210,16 @@ export function createChatStore<
 
     function _attachSocket() {
         if (socketAttached) return;
-        hooks.onSocketAttached?.();
         subscribeExecutionPublication(responseEvent, (event: Record<string, any>) => {
             const ownerId: number | undefined = event?.[socketIdKey];
             const message = event?.message as TMsg | undefined;
             if (!ownerId || !message) return;
             const arr = messagesByOwner.value[ownerId] ?? [];
 
-            // Append extra event messages (cards) first, then the reply.
-            const toAppend: TMsg[] = hooks.collectResponseEventMessages?.(event, arr) ?? [];
             if (!arr.some((m) => m.id === message.id)) {
-                toAppend.push(message);
-            }
-            if (toAppend.length > 0) {
                 messagesByOwner.value = {
                     ...messagesByOwner.value,
-                    [ownerId]: [...arr, ...toAppend],
+                    [ownerId]: [...arr, message],
                 };
             }
             clearPending(ownerId);

@@ -6,7 +6,7 @@
                     <h3 class="text-sm font-semibold text-text-primary">Assistant memory</h3>
                     <p class="text-[11px] text-text-muted truncate">
                         {{ entries.length }} {{ entries.length === 1 ? 'memory' : 'memories' }} ·
-                        injected into every message
+                        selected when relevant
                     </p>
                 </div>
                 <button @click="$emit('update:show', false)"
@@ -21,7 +21,7 @@
 
             <div class="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-3">
                 <p class="text-[11px] text-text-muted italic">
-                    The assistant adds memories as you talk. You can only forget them.
+                    Only consented, relevant entries are selected for each turn.
                 </p>
 
                 <div v-if="memoryStore.loading && entries.length === 0" class="flex justify-center py-6">
@@ -30,7 +30,7 @@
 
                 <div v-else-if="entries.length === 0"
                     class="text-xs text-text-muted italic text-center py-6 px-4">
-                    No memories yet. As you chat, the assistant will note down what matters.
+                    No consented memories yet.
                 </div>
 
                 <div v-for="entry in entries" :key="entry.id"
@@ -49,6 +49,9 @@
                         </button>
                     </div>
                     <div class="mt-1.5 text-xs text-text-secondary whitespace-pre-wrap break-words">{{ entry.body }}</div>
+                    <div class="mt-2 text-[10px] text-text-muted">
+                        {{ entry.sourceKind === 'manual' ? 'Added by you' : 'Confirmed by you' }} · consent granted
+                    </div>
                 </div>
             </div>
 
@@ -93,7 +96,7 @@ watch(
     { immediate: true },
 );
 
-async function handleRemove(id: number, name: string) {
+async function handleRemove(id: string, name: string) {
     if (!props.assistantId) return;
     if (!confirm(`Forget "${name}"?\nThe assistant will lose this information.`)) return;
     try {
@@ -119,7 +122,7 @@ function badgeClass(type: MemoryEntryType): string {
             return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300';
         case 'episode':
             return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
-        case 'instruction':
+        case 'preference':
             return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
         default:
             return 'bg-surface text-text-muted border border-border';

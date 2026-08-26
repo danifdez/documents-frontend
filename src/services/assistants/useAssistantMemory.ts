@@ -24,7 +24,7 @@ export function useAssistantMemory() {
 
     const update = async (
         assistantId: number,
-        id: number,
+        id: string,
         payload: UpdateMemoryEntryPayload,
     ): Promise<MemoryEntry> => {
         const { data } = await apiClient.patch<MemoryEntry>(
@@ -34,7 +34,7 @@ export function useAssistantMemory() {
         return data;
     };
 
-    const remove = async (assistantId: number, id: number): Promise<void> => {
+    const remove = async (assistantId: number, id: string): Promise<void> => {
         await apiClient.delete(`/assistants/${assistantId}/memory/${id}`);
     };
 
