@@ -14,8 +14,8 @@ function progress(
         {
           executionId: "execution-1",
           stepId: "step-1",
-          taskType: "browser-read-current-page",
-          stepKind: "verification",
+          taskType: "browser.read_current_page",
+          stepKind: "tool",
           stepStatus: "running",
           attemptId: worker ? "attempt-1" : null,
           attemptStatus: worker ? "running" : null,

@@ -39,7 +39,7 @@ export function executionProgressLabel(
   const browserStep = progress?.runtime.activeSteps.find(
     (step) =>
       step.worker?.kind === "browser" ||
-      step.taskType === "browser-read-current-page",
+      step.taskType === "browser.read_current_page",
   );
   if (!browserStep) return "Thinking…";
   if (!browserStep.worker) return "Waiting for IA Browser…";
