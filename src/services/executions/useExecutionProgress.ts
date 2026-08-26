@@ -45,6 +45,7 @@ export function executionProgressLabel(
         "browser.go_back",
         "browser.click",
         "browser.type_text",
+        "browser.select_option",
       ].includes(step.taskType ?? ""),
   );
   if (!browserStep) return "Thinking…";
@@ -55,10 +56,13 @@ export function executionProgressLabel(
       "browser.go_back",
       "browser.click",
       "browser.type_text",
+      "browser.select_option",
     ].includes(browserStep.taskType ?? "")
-      ? ["browser.click", "browser.type_text"].includes(
-          browserStep.taskType ?? "",
-        )
+      ? [
+          "browser.click",
+          "browser.type_text",
+          "browser.select_option",
+        ].includes(browserStep.taskType ?? "")
         ? "Verifying IA Browser interaction…"
         : "Verifying IA Browser navigation…"
       : "Receiving the page from IA Browser…";
@@ -71,6 +75,9 @@ export function executionProgressLabel(
   }
   if (browserStep.taskType === "browser.type_text") {
     return "IA Browser is typing…";
+  }
+  if (browserStep.taskType === "browser.select_option") {
+    return "IA Browser is selecting…";
   }
   return browserStep.taskType === "browser.navigate"
     ? "IA Browser is navigating…"

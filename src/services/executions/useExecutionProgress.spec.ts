@@ -80,6 +80,14 @@ describe("executionProgressLabel", () => {
         progress(worker, "browser.type_text", "result_received"),
       ),
     ).toBe("Verifying IA Browser interaction…");
+    expect(
+      executionProgressLabel(progress(worker, "browser.select_option")),
+    ).toBe("IA Browser is selecting…");
+    expect(
+      executionProgressLabel(
+        progress(worker, "browser.select_option", "result_received"),
+      ),
+    ).toBe("Verifying IA Browser interaction…");
   });
 
   it("keeps the generic label for non-browser work", () => {
