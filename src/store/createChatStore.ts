@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import type { Ref } from 'vue';
 import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
 import { useExecutionConfirmations } from '../services/executions/useExecutionConfirmations';
+import { useExecutionCancellation } from '../services/executions/useExecutionCancellation';
 import type { AssistantMessageEvent } from '../types/Assistant';
 import type {
     ExecutionConfirmation,
@@ -93,6 +94,7 @@ export function createChatStore<
     const { api, responseEvent, socketIdKey, loadErrorMessage, taskType } = options;
     const hooks = options.hooks ?? {};
     const confirmationsApi = useExecutionConfirmations();
+    const cancellationApi = useExecutionCancellation();
 
     const owners = ref([]) as Ref<TOwner[]>;
     const activeId = ref<number | null>(null);
@@ -101,6 +103,7 @@ export function createChatStore<
     const hasMoreByOwner = ref<Record<number, boolean>>({});
     const loadingOlderByOwner = ref<Record<number, boolean>>({});
     const pendingByOwner = ref<Record<number, boolean>>({});
+    const pendingExecutionByOwner = ref<Record<number, string>>({});
     const confirmationsByOwner = ref<Record<number, ExecutionConfirmation[]>>({});
     const loading = ref(false);
     const loaded = ref(false);
@@ -158,6 +161,16 @@ export function createChatStore<
         };
     }
 
+    function clearPending(ownerId: number): void {
+        pendingByOwner.value = {
+            ...pendingByOwner.value,
+            [ownerId]: false,
+        };
+        const executions = { ...pendingExecutionByOwner.value };
+        delete executions[ownerId];
+        pendingExecutionByOwner.value = executions;
+    }
+
     function _attachSocket() {
         if (socketAttached) return;
         hooks.onSocketAttached?.();
@@ -178,10 +191,7 @@ export function createChatStore<
                     [ownerId]: [...arr, ...toAppend],
                 };
             }
-            pendingByOwner.value = {
-                ...pendingByOwner.value,
-                [ownerId]: false,
-            };
+            clearPending(ownerId);
             // Bump lastSeenAt locally so the sidebar reorders without a refresh.
             const idx = owners.value.findIndex((a) => a.id === ownerId);
             if (idx >= 0) {
@@ -201,6 +211,18 @@ export function createChatStore<
             'executionConfirmationDecided',
             (event: Record<string, any>) => {
                 upsertConfirmation(event as ExecutionConfirmationEnvelope);
+            },
+        );
+        subscribeExecutionPublication(
+            'executionCancellationRequested',
+            (event: Record<string, unknown>) => {
+                const ownerId = event.ownerId;
+                if (event.taskType !== taskType || typeof ownerId !== 'number') return;
+                clearPending(ownerId);
+                confirmationsByOwner.value = {
+                    ...confirmationsByOwner.value,
+                    [ownerId]: [],
+                };
             },
         );
         socketAttached = true;
@@ -269,16 +291,33 @@ export function createChatStore<
         if (activeId.value == null) return;
         const id = activeId.value;
         try {
-            const { userMessage } = await api.sendMessage(id, content);
+            const { userMessage, executionId } = await api.sendMessage(id, content);
             const arr = messagesByOwner.value[id] ?? [];
             messagesByOwner.value = {
                 ...messagesByOwner.value,
                 [id]: [...arr, userMessage],
             };
             pendingByOwner.value = { ...pendingByOwner.value, [id]: true };
+            pendingExecutionByOwner.value = {
+                ...pendingExecutionByOwner.value,
+                [id]: executionId,
+            };
         } catch (e: any) {
             error.value = e?.message || 'Failed to send message';
         }
+    }
+
+    async function cancelActiveExecution(): Promise<void> {
+        if (activeId.value == null) return;
+        const ownerId = activeId.value;
+        const executionId = pendingExecutionByOwner.value[ownerId];
+        if (!executionId) return;
+        await cancellationApi.cancel(executionId);
+        clearPending(ownerId);
+        confirmationsByOwner.value = {
+            ...confirmationsByOwner.value,
+            [ownerId]: [],
+        };
     }
 
     async function decideConfirmation(
@@ -324,6 +363,7 @@ export function createChatStore<
         activeId,
         messagesByOwner,
         pendingByOwner,
+        pendingExecutionByOwner,
         confirmationsByOwner,
         loading,
         loaded,
@@ -339,6 +379,7 @@ export function createChatStore<
         selectOwner,
         loadOlder,
         sendMessage,
+        cancelActiveExecution,
         decideConfirmation,
         updateOwner,
         deleteOwner,

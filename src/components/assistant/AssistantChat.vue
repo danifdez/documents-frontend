@@ -61,6 +61,12 @@
                         <span class="typing-dot" style="animation-delay: 0.15s"></span>
                         <span class="typing-dot" style="animation-delay: 0.3s"></span>
                         <span class="ml-1 text-xs">Thinking…</span>
+                        <button
+                            class="ml-2 text-xs text-red-600 dark:text-red-400 hover:underline disabled:opacity-50"
+                            :disabled="cancelling"
+                            @click="cancelExecution">
+                            {{ cancelling ? 'Stopping…' : 'Stop' }}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -79,6 +85,18 @@ import { useChatView } from '../../composables/useChatView';
 
 const store = useAssistantStore();
 const resolvingConfirmations = ref(new Set<string>());
+const cancelling = ref(false);
+
+async function cancelExecution(): Promise<void> {
+    cancelling.value = true;
+    try {
+        await store.cancelActiveExecution();
+    } catch (error: any) {
+        alert(error?.response?.data?.message || error?.message || 'Could not stop the execution');
+    } finally {
+        cancelling.value = false;
+    }
+}
 
 async function decideConfirmation(
     confirmationId: string,

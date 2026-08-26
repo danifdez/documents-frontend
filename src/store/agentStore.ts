@@ -50,6 +50,7 @@ export const useAgentStore = defineStore('agent', () => {
         selectAgent: chat.selectOwner,
         loadOlder: chat.loadOlder,
         sendMessage: chat.sendMessage,
+        cancelActiveExecution: chat.cancelActiveExecution,
         decideConfirmation: chat.decideConfirmation,
         createAgent,
         updateAgent: chat.updateOwner,

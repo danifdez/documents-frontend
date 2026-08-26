@@ -12,6 +12,10 @@ const confirmationState = vi.hoisted(() => ({
   decide: vi.fn(),
 }));
 
+const cancellationState = vi.hoisted(() => ({
+  cancel: vi.fn(),
+}));
+
 vi.mock('@/services/notifications/notification', () => ({
   getSocket: () => ({
     on: (
@@ -36,6 +40,10 @@ vi.mock('@/services/notifications/executionPublication', () => ({
 
 vi.mock('@/services/executions/useExecutionConfirmations', () => ({
   useExecutionConfirmations: () => confirmationState,
+}));
+
+vi.mock('@/services/executions/useExecutionCancellation', () => ({
+  useExecutionCancellation: () => cancellationState,
 }));
 
 interface Owner {
@@ -73,6 +81,7 @@ describe('createChatStore durable final response', () => {
     socketState.on.mockClear();
     confirmationState.listPending.mockReset().mockResolvedValue([]);
     confirmationState.decide.mockReset().mockResolvedValue({});
+    cancellationState.cancel.mockReset().mockResolvedValue({ status: 'queued' });
   });
 
   it('shows the persisted reply and completes the pending turn', async () => {
@@ -249,6 +258,41 @@ describe('createChatStore durable final response', () => {
       'approved',
     );
     expect(store.activeConfirmations.value).toEqual([]);
+  });
+
+  it('cancels the exact pending execution and clears its local state', async () => {
+    const api = {
+      list: vi
+        .fn()
+        .mockResolvedValue([{ id: 7, pinned: false, lastSeenAt: null }]),
+      update: vi.fn(),
+      remove: vi.fn(),
+      getMessages: vi.fn().mockResolvedValue({ messages: [], hasMore: false }),
+      sendMessage: vi.fn().mockResolvedValue({
+        userMessage: message(1, 'user', 'Long task'),
+        executionId: 'execution-tree-1',
+      }),
+    };
+    const store = createChatStore<Owner, Message, Partial<Owner>>({
+      api,
+      responseEvent: 'response',
+      taskType: 'assistant-chat',
+      socketIdKey: 'ownerId',
+      loadErrorMessage: 'Failed to load chat',
+    });
+
+    await store.load();
+    await store.selectOwner(7);
+    await store.sendMessage('Long task');
+
+    expect(store.isActivePending.value).toBe(true);
+    expect(store.pendingExecutionByOwner.value[7]).toBe('execution-tree-1');
+
+    await store.cancelActiveExecution();
+
+    expect(cancellationState.cancel).toHaveBeenCalledWith('execution-tree-1');
+    expect(store.isActivePending.value).toBe(false);
+    expect(store.pendingExecutionByOwner.value[7]).toBeUndefined();
   });
 
 });
