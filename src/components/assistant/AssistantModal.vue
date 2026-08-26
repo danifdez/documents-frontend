@@ -61,18 +61,6 @@
                                 <span>Memory</span>
                             </button>
 
-                            <button v-if="canShowFiles" @click="toggleFiles"
-                                title="Working folder files"
-                                class="flex items-center gap-1.5 px-2.5 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer text-sm"
-                                :class="{ '!bg-accent-subtle !text-accent-dark': filesOpen }">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="1.75">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                </svg>
-                                <span>Files</span>
-                            </button>
-
                             <button v-if="selection === 'agent' && activeAgent" @click="openAgentEditor(activeAgent)"
                                 class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
                                 title="Edit agent">
@@ -112,10 +100,6 @@
                         :assistant-id="assistantStore.activeAssistant?.id ?? null"
                         @update:show="memoryOpen = $event" />
 
-                    <AssistantFilesPanel
-                        :show="filesOpen && canShowFiles"
-                        :assistant-id="filesPanelAssistantId"
-                        @update:show="filesOpen = $event" />
                 </div>
 
                 <AgentEditModal v-model="agentEditorOpen" :agent="agentEditing" />
@@ -133,7 +117,6 @@ import AssistantSidebar from './AssistantSidebar.vue';
 import AssistantChat from './AssistantChat.vue';
 import AssistantComposer from './AssistantComposer.vue';
 import MemoryPanel from './MemoryPanel.vue';
-import AssistantFilesPanel from './AssistantFilesPanel.vue';
 import AgentChat from '../agent/AgentChat.vue';
 import AgentEditModal from '../agent/AgentEditModal.vue';
 import UnfavoriteWarning from '../agent/UnfavoriteWarning.vue';
@@ -157,7 +140,6 @@ const composerRef = ref<InstanceType<typeof AssistantComposer> | null>(null);
 const agentEditorOpen = ref(false);
 const agentEditing = ref<Agent | null>(null);
 const memoryOpen = ref(false);
-const filesOpen = ref(false);
 const headerUnpinWarning = ref(false);
 
 // Active selection: 'assistant' | 'agent' | null.
@@ -192,7 +174,6 @@ const headerSub = computed(() => {
 });
 
 const headerFolderScope = computed(() => {
-    if (selection.value === 'assistant') return assistantStore.activeAssistant?.folderScope || null;
     if (selection.value === 'agent') return activeAgent.value?.folderScope || null;
     return null;
 });
@@ -203,20 +184,8 @@ const agentExpirationText = computed(() => {
 });
 
 const canShowMemory = computed(
-    () => selection.value === 'assistant' && assistantStore.activeAssistant?.isSystem === true,
+    () => selection.value === 'assistant' && assistantStore.activeAssistant != null,
 );
-const canShowFiles = computed(() => {
-    if (selection.value === 'assistant') return !!assistantStore.activeAssistant?.folderScope;
-    if (selection.value === 'agent') return !!activeAgent.value?.folderScope;
-    return false;
-});
-const filesPanelAssistantId = computed(() => {
-    if (selection.value === 'assistant') return assistantStore.activeAssistant?.id ?? null;
-    // The AssistantFilesPanel still expects an assistant id; for agents we
-    // bypass file panel for now to keep the change focused — see T07-T10
-    // notes. Returning null hides it.
-    return null;
-});
 
 const composerDisabled = computed(() => {
     if (selection.value === 'assistant') {
@@ -244,12 +213,6 @@ const composerPlaceholder = computed(() => {
 
 function toggleMemory() {
     memoryOpen.value = !memoryOpen.value;
-    if (memoryOpen.value) filesOpen.value = false;
-}
-
-function toggleFiles() {
-    filesOpen.value = !filesOpen.value;
-    if (filesOpen.value) memoryOpen.value = false;
 }
 
 function close() {
@@ -307,11 +270,6 @@ function onKeydown(e: KeyboardEvent) {
             memoryOpen.value = false;
             return;
         }
-        if (filesOpen.value) {
-            e.preventDefault();
-            filesOpen.value = false;
-            return;
-        }
         e.preventDefault();
         close();
     }
@@ -322,8 +280,7 @@ watch(
     async (v) => {
         if (v) {
             await Promise.all([assistantStore.load(), agentStore.load()]);
-            // Default to the personal assistant.
-            const personal = assistantStore.assistants.find((a) => a.isSystem);
+            const personal = assistantStore.assistants[0];
             if (personal) {
                 await selectAssistant(personal.id);
             }
@@ -335,7 +292,6 @@ watch(
     () => selection.value,
     () => {
         if (!canShowMemory.value) memoryOpen.value = false;
-        if (!canShowFiles.value) filesOpen.value = false;
     },
 );
 

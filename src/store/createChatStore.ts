@@ -16,7 +16,7 @@ const MESSAGE_PAGE_SIZE = 50;
 /** Conversation owner (an agent or an assistant). */
 export interface ChatOwner {
     id: number;
-    pinned: boolean;
+    pinned?: boolean;
     lastSeenAt: string | null;
 }
 
@@ -29,8 +29,8 @@ export interface ChatStoreMessage {
 
 export interface ChatStoreApi<TOwner, TMsg, TUpdate> {
     list(): Promise<TOwner[]>;
-    update(id: number, payload: TUpdate): Promise<TOwner>;
-    remove(id: number): Promise<void>;
+    update?(id: number, payload: TUpdate): Promise<TOwner>;
+    remove?(id: number): Promise<void>;
     getMessages(
         id: number,
         opts?: { limit?: number; before?: number },
@@ -381,6 +381,7 @@ export function createChatStore<
     }
 
     async function updateOwner(id: number, payload: TUpdate) {
+        if (!api.update) return null;
         const updated = await api.update(id, payload);
         const idx = owners.value.findIndex((a) => a.id === id);
         if (idx >= 0) owners.value[idx] = updated;
@@ -388,6 +389,7 @@ export function createChatStore<
     }
 
     async function deleteOwner(id: number) {
+        if (!api.remove) return;
         await api.remove(id);
         owners.value = owners.value.filter((a) => a.id !== id);
         delete messagesByOwner.value[id];
@@ -403,8 +405,9 @@ export function createChatStore<
 
     async function togglePin(id: number) {
         const owner = owners.value.find((x) => x.id === id);
-        if (!owner) return;
+        if (!owner || typeof owner.pinned !== 'boolean') return;
         if (hooks.canTogglePin && !hooks.canTogglePin(owner)) return;
+        if (!api.update) return;
         await updateOwner(id, { pinned: !owner.pinned } as TUpdate);
     }
 

@@ -5,8 +5,7 @@
         </div>
 
         <div v-else class="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
-            <!-- Personal assistant: still owned by AssistantStore. -->
-            <div v-for="a in personalAssistants" :key="a.id"
+            <div v-for="a in store.assistants" :key="a.id"
                 class="px-3 py-2.5 rounded-lg cursor-pointer transition-colors" :class="selection === 'assistant-' + a.id
                     ? 'bg-accent-subtle text-accent-dark'
                     : 'hover:bg-surface-hover text-text-secondary'" @click="onSelectAssistant(a.id)">
@@ -25,7 +24,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import LoadingSpinner from '../ui/LoadingSpinner.vue';
 import { useAssistantStore } from '../../store/assistantStore';
 import { useAgentStore } from '../../store/agentStore';
@@ -45,11 +43,6 @@ const emit = defineEmits<{
 
 const store = useAssistantStore();
 const agentStore = useAgentStore();
-
-// Use the assistant store's existing sortedAssistants but keep only the
-// personal one — non-personal assistants are deprecated as "helpers" and
-// live in `agents`.
-const personalAssistants = computed(() => store.sortedAssistants.filter((a) => a.isSystem));
 
 function onSelectAssistant(id: number) {
     emit('select-assistant', id);

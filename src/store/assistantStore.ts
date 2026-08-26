@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import type {
     Assistant,
     AssistantMessage,
-    UpdateAssistantPayload,
 } from '../types/Assistant';
 import { useAssistants } from '../services/assistants/useAssistants';
 import { useAssistantMemoryStore } from './assistantMemoryStore';
@@ -11,24 +10,15 @@ import { createChatStore } from './createChatStore';
 export const useAssistantStore = defineStore('assistant', () => {
     const api = useAssistants();
 
-    // Captured when the socket attaches (same moment the old monolithic store
-    // instantiated it) so the response handler can sync memory cards.
+    // Captured when the socket attaches so the response handler can sync memory cards.
     let memoryStore: ReturnType<typeof useAssistantMemoryStore> | null = null;
 
-    const chat = createChatStore<Assistant, AssistantMessage, UpdateAssistantPayload>({
+    const chat = createChatStore<Assistant, AssistantMessage, never>({
         api,
         responseEvent: 'assistantResponse',
         taskType: 'assistant-chat',
         socketIdKey: 'assistantId',
         loadErrorMessage: 'Failed to load assistants',
-        sortOwners: (list) => list.sort((a, b) => {
-            if (a.isSystem !== b.isSystem) return a.isSystem ? -1 : 1;
-            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-            const lsA = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
-            const lsB = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
-            if (lsA !== lsB) return lsB - lsA;
-            return a.id - b.id;
-        }),
         hooks: {
             onSocketAttached() {
                 memoryStore = useAssistantMemoryStore();
@@ -53,14 +43,8 @@ export const useAssistantStore = defineStore('assistant', () => {
             },
             afterLoad({ owners, activeId }) {
                 if (activeId.value == null) {
-                    const personal = owners.value.find((a) => a.isSystem);
-                    if (personal) activeId.value = personal.id;
+                    activeId.value = owners.value[0]?.id ?? null;
                 }
-            },
-            canTogglePin: (a) => !a.isSystem,
-            nextActiveIdAfterDelete: ({ owners }) => {
-                const personal = owners.value.find((a) => a.isSystem);
-                return personal?.id ?? null;
             },
         },
     });
@@ -87,8 +71,5 @@ export const useAssistantStore = defineStore('assistant', () => {
         sendMessage: chat.sendMessage,
         cancelActiveExecution: chat.cancelActiveExecution,
         decideConfirmation: chat.decideConfirmation,
-        updateAssistant: chat.updateOwner,
-        deleteAssistant: chat.deleteOwner,
-        togglePin: chat.togglePin,
     };
 });

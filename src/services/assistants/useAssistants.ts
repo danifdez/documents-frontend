@@ -2,28 +2,12 @@ import apiClient from '../api';
 import type {
     Assistant,
     AssistantMessage,
-    CreateAssistantPayload,
-    UpdateAssistantPayload,
 } from '../../types/Assistant';
 
 export function useAssistants() {
     const list = async (): Promise<Assistant[]> => {
         const { data } = await apiClient.get<Assistant[]>('/assistants');
         return data;
-    };
-
-    const create = async (payload: CreateAssistantPayload): Promise<Assistant> => {
-        const { data } = await apiClient.post<Assistant>('/assistants', payload);
-        return data;
-    };
-
-    const update = async (id: number, payload: UpdateAssistantPayload): Promise<Assistant> => {
-        const { data } = await apiClient.patch<Assistant>(`/assistants/${id}`, payload);
-        return data;
-    };
-
-    const remove = async (id: number): Promise<void> => {
-        await apiClient.delete(`/assistants/${id}`);
     };
 
     const getMessages = async (
@@ -48,5 +32,5 @@ export function useAssistants() {
         return data;
     };
 
-    return { list, create, update, remove, getMessages, sendMessage };
+    return { list, getMessages, sendMessage };
 }
