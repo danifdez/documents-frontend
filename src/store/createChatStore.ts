@@ -3,6 +3,8 @@ import type { Ref } from 'vue';
 import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
 import { useExecutionConfirmations } from '../services/executions/useExecutionConfirmations';
 import { useExecutionCancellation } from '../services/executions/useExecutionCancellation';
+import type { ExecutionProgress } from '../services/executions/useExecutionProgress';
+import { useExecutionProgress } from '../services/executions/useExecutionProgress';
 import type { AssistantMessageEvent } from '../types/Assistant';
 import type {
     ExecutionConfirmation,
@@ -95,6 +97,7 @@ export function createChatStore<
     const hooks = options.hooks ?? {};
     const confirmationsApi = useExecutionConfirmations();
     const cancellationApi = useExecutionCancellation();
+    const progressApi = useExecutionProgress();
 
     const owners = ref([]) as Ref<TOwner[]>;
     const activeId = ref<number | null>(null);
@@ -104,11 +107,13 @@ export function createChatStore<
     const loadingOlderByOwner = ref<Record<number, boolean>>({});
     const pendingByOwner = ref<Record<number, boolean>>({});
     const pendingExecutionByOwner = ref<Record<number, string>>({});
+    const executionProgressByOwner = ref<Record<number, ExecutionProgress>>({});
     const confirmationsByOwner = ref<Record<number, ExecutionConfirmation[]>>({});
     const loading = ref(false);
     const loaded = ref(false);
     const error = ref<string | null>(null);
     let socketAttached = false;
+    const progressTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
     const ctx: ChatStoreContext<TOwner> = { owners, activeId };
 
@@ -147,6 +152,42 @@ export function createChatStore<
         return confirmationsByOwner.value[activeId.value] ?? [];
     });
 
+    const activeExecutionProgress = computed<ExecutionProgress | null>(() => {
+        if (activeId.value == null) return null;
+        return executionProgressByOwner.value[activeId.value] ?? null;
+    });
+
+    function stopProgressPolling(ownerId: number): void {
+        const timer = progressTimers.get(ownerId);
+        if (timer) clearTimeout(timer);
+        progressTimers.delete(ownerId);
+    }
+
+    async function pollExecutionProgress(
+        ownerId: number,
+        executionId: string,
+    ): Promise<void> {
+        if (pendingExecutionByOwner.value[ownerId] !== executionId) return;
+        try {
+            const progress = await progressApi.get(executionId);
+            if (pendingExecutionByOwner.value[ownerId] === executionId) {
+                executionProgressByOwner.value = {
+                    ...executionProgressByOwner.value,
+                    [ownerId]: progress,
+                };
+            }
+        } catch {
+            // The final socket publication remains authoritative if polling is unavailable.
+        }
+        if (pendingExecutionByOwner.value[ownerId] === executionId) {
+            stopProgressPolling(ownerId);
+            progressTimers.set(
+                ownerId,
+                setTimeout(() => void pollExecutionProgress(ownerId, executionId), 1_000),
+            );
+        }
+    }
+
     function upsertConfirmation(envelope: ExecutionConfirmationEnvelope): void {
         if (envelope.taskType !== taskType || envelope.ownerId == null) return;
         const current = confirmationsByOwner.value[envelope.ownerId] ?? [];
@@ -162,6 +203,7 @@ export function createChatStore<
     }
 
     function clearPending(ownerId: number): void {
+        stopProgressPolling(ownerId);
         pendingByOwner.value = {
             ...pendingByOwner.value,
             [ownerId]: false,
@@ -169,6 +211,9 @@ export function createChatStore<
         const executions = { ...pendingExecutionByOwner.value };
         delete executions[ownerId];
         pendingExecutionByOwner.value = executions;
+        const progress = { ...executionProgressByOwner.value };
+        delete progress[ownerId];
+        executionProgressByOwner.value = progress;
     }
 
     function _attachSocket() {
@@ -302,6 +347,7 @@ export function createChatStore<
                 ...pendingExecutionByOwner.value,
                 [id]: executionId,
             };
+            void pollExecutionProgress(id, executionId);
         } catch (e: any) {
             error.value = e?.message || 'Failed to send message';
         }
@@ -346,6 +392,10 @@ export function createChatStore<
         owners.value = owners.value.filter((a) => a.id !== id);
         delete messagesByOwner.value[id];
         delete pendingByOwner.value[id];
+        stopProgressPolling(id);
+        const progress = { ...executionProgressByOwner.value };
+        delete progress[id];
+        executionProgressByOwner.value = progress;
         if (activeId.value === id) {
             activeId.value = hooks.nextActiveIdAfterDelete?.(ctx) ?? null;
         }
@@ -364,6 +414,7 @@ export function createChatStore<
         messagesByOwner,
         pendingByOwner,
         pendingExecutionByOwner,
+        executionProgressByOwner,
         confirmationsByOwner,
         loading,
         loaded,
@@ -375,6 +426,7 @@ export function createChatStore<
         activeLoadingOlder,
         isActivePending,
         activeConfirmations,
+        activeExecutionProgress,
         load,
         selectOwner,
         loadOlder,

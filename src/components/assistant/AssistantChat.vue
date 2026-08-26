@@ -60,7 +60,7 @@
                         <span class="typing-dot"></span>
                         <span class="typing-dot" style="animation-delay: 0.15s"></span>
                         <span class="typing-dot" style="animation-delay: 0.3s"></span>
-                        <span class="ml-1 text-xs">Thinking…</span>
+                        <span class="ml-1 text-xs">{{ progressLabel }}</span>
                         <button
                             class="ml-2 text-xs text-red-600 dark:text-red-400 hover:underline disabled:opacity-50"
                             :disabled="cancelling"
@@ -75,17 +75,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useAssistantStore } from '../../store/assistantStore';
 import type { AssistantMessage, AssistantMessageEvent } from '../../types/Assistant';
 import { MEMORY_TYPE_LABEL } from '../../types/AssistantMemory';
 import MarkdownContent from './MarkdownContent.vue';
 import ExecutionConfirmationCard from './ExecutionConfirmationCard.vue';
 import { useChatView } from '../../composables/useChatView';
+import { executionProgressLabel } from '../../services/executions/useExecutionProgress';
 
 const store = useAssistantStore();
 const resolvingConfirmations = ref(new Set<string>());
 const cancelling = ref(false);
+const progressLabel = computed(() => executionProgressLabel(store.activeExecutionProgress));
 
 async function cancelExecution(): Promise<void> {
     cancelling.value = true;

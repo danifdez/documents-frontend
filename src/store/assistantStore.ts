@@ -79,6 +79,7 @@ export const useAssistantStore = defineStore('assistant', () => {
         activeHasMore: chat.activeHasMore,
         activeLoadingOlder: chat.activeLoadingOlder,
         isActivePending: chat.isActivePending,
+        activeExecutionProgress: chat.activeExecutionProgress,
         activeConfirmations: chat.activeConfirmations,
         load: chat.load,
         selectAssistant: chat.selectOwner,
