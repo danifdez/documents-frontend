@@ -16,11 +16,7 @@ export const useAgentStore = defineStore('agent', () => {
     // default arrival order and the store and the UI agree on the order.
     const chat = createChatStore<Agent, AgentMessage, UpdateAgentPayload>({
         api,
-        events: {
-            toolEvent: 'agentToolEvent',
-            streamChunk: 'agentStreamChunk',
-            response: 'agentResponse',
-        },
+        responseEvent: 'agentResponse',
         socketIdKey: 'agentId',
         loadErrorMessage: 'Failed to load agents',
     });
@@ -48,8 +44,6 @@ export const useAgentStore = defineStore('agent', () => {
         activeHasMore: chat.activeHasMore,
         activeLoadingOlder: chat.activeLoadingOlder,
         isActivePending: chat.isActivePending,
-        activeStreaming: chat.activeStreaming,
-        activeStreamDone: chat.activeStreamDone,
         load: chat.load,
         selectAgent: chat.selectOwner,
         loadOlder: chat.loadOlder,
@@ -58,9 +52,5 @@ export const useAgentStore = defineStore('agent', () => {
         updateAgent: chat.updateOwner,
         deleteAgent: chat.deleteOwner,
         togglePin: chat.togglePin,
-        markEventEntityDeleted: chat.markEventEntityDeleted,
-        updateEventToolStatus: chat.updateEventToolStatus,
-        folderFilesVersionFor: chat.folderFilesVersionFor,
-        bumpFolderFilesVersion: chat.bumpFolderFilesVersion,
     };
 });

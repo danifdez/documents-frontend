@@ -23,31 +23,14 @@
             <template v-for="msg in store.activeMessages" :key="msg.id">
                 <!-- Inline event card (tool executed, …) -->
                 <div v-if="msg.role === 'event'" class="flex justify-center">
-                    <div class="event-card"
-                        :class="{
-                            'event-card-running': isRunningTool(msg.event),
-                            'event-card-pending': isPendingConfirmation(msg.event),
-                        }">
+                    <div class="event-card">
                         <span class="event-icon">
-                            <span v-if="isRunningTool(msg.event)" class="event-spinner"></span>
-                            <template v-else>{{ eventIcon(msg.event) }}</template>
+                            {{ eventIcon(msg.event) }}
                         </span>
                         <div class="flex-1 min-w-0">
                             <div class="event-title">{{ eventTitle(msg) }}</div>
                             <div class="event-meta">{{ eventMeta(msg.event) }}</div>
                         </div>
-                        <template v-if="isPendingConfirmation(msg.event)">
-                            <button @click="confirmEvent(msg)"
-                                class="event-action event-action-confirm"
-                                :disabled="resolvingIds.has(msg.id)">
-                                {{ resolvingIds.has(msg.id) ? '…' : (msg.event && (msg.event as any).tool?.confirmLabel || 'Confirm') }}
-                            </button>
-                            <button @click="cancelEvent(msg)"
-                                class="event-action"
-                                :disabled="resolvingIds.has(msg.id)">
-                                {{ (msg.event && (msg.event as any).tool?.cancelLabel) || 'Cancel' }}
-                            </button>
-                        </template>
                     </div>
                 </div>
 
@@ -65,11 +48,7 @@
 
             <div v-if="store.isActivePending" class="flex justify-start">
                 <div :class="bubbleClass('assistant')">
-                    <div v-if="visibleStream" class="streaming-bubble">
-                        <MarkdownContent :text="visibleStream" />
-                        <span v-if="!store.activeStreamDone" class="stream-caret">▋</span>
-                    </div>
-                    <div v-else class="flex items-center gap-1.5 text-text-muted text-sm">
+                    <div class="flex items-center gap-1.5 text-text-muted text-sm">
                         <span class="typing-dot"></span>
                         <span class="typing-dot" style="animation-delay: 0.15s"></span>
                         <span class="typing-dot" style="animation-delay: 0.3s"></span>
@@ -85,83 +64,18 @@
 import { useAgentStore } from '../../store/agentStore';
 import type { AgentMessage } from '../../types/Agent';
 import MarkdownContent from '../assistant/MarkdownContent.vue';
-import { getConfirmHandler } from '../../services/assistantConfirmHandlers';
-import { useChatEventApi } from '../../services/chat/useChatEventApi';
 import { useChatView } from '../../composables/useChatView';
 
 const store = useAgentStore();
-const chatEventApi = useChatEventApi();
-
-const TOOL_NAME_LABEL: Record<string, string> = {
-    folder_search: 'Folder search',
-    folder_read: 'Folder read',
-    folder_write: 'Folder write',
-    folder_delete: 'Folder delete',
-};
-
-// The folder_* confirm handlers operate via owner-scoped URLs derived
-// from `assistantId` historically. For agents we override the segment
-// through a separate keyword (the handler reads `assistantId` but we
-// need the agent path) — we work around it by patching the URL in the
-// request layer via apiClient defaults isn't reasonable. Instead the
-// simplest fix: handlers in this project use POST/DELETE on
-// `/assistants/:id/indexed-files/...`; for agents we select the owner by passing
-// the agent id under the same key — but the URL is built explicitly
-// by the handler. We special-case here by hitting the agent endpoint
-// directly for folder_delete and folder_overwrite — the two pending
-// confirmation kinds we currently emit.
-async function runConfirmFor(
-    kind: string,
-    agentId: number,
-    payload: Record<string, any>,
-): Promise<string> {
-    if (kind === 'folder_delete') {
-        const filename = payload.filename || '';
-        const indexedFileId = payload.indexedFileId;
-        if (indexedFileId) {
-            await chatEventApi.deleteAgentIndexedFile(agentId, indexedFileId);
-            return `Deleted ${filename}`;
-        }
-        return 'Deleted';
-    }
-    if (kind === 'folder_overwrite') {
-        const filename = payload.filename || '';
-        const body: Record<string, any> = {
-            filename,
-            overwrite: true,
-        };
-        if (typeof payload.content === 'string') body.content = payload.content;
-        if (typeof payload.contentBase64 === 'string') body.contentBase64 = payload.contentBase64;
-        await chatEventApi.overwriteAgentIndexedFile(agentId, body);
-        return `Overwrote ${filename}`;
-    }
-    // Fall back to the assistant-pathway handler if present (idempotent).
-    const handler = getConfirmHandler(kind);
-    if (handler) {
-        return handler.execute({ assistantId: agentId, payload });
-    }
-    return 'Done';
-}
-
 const {
     scrollContainer,
-    visibleStream,
     bubbleClass,
     eventIcon,
     eventTitle,
     eventMeta,
-    isRunningTool,
-    isPendingConfirmation,
-    resolvingIds,
-    confirmEvent,
-    cancelEvent,
     loadOlder,
 } = useChatView<AgentMessage>({
     store,
-    ownerSegment: 'agents',
-    toolNameLabel: TOOL_NAME_LABEL,
-    activeOwner: () => store.activeAgent,
-    executeConfirm: (kind, agentId, tool) => runConfirmFor(kind, agentId, tool.payload || {}),
 });
 </script>
 

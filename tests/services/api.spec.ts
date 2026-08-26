@@ -25,7 +25,7 @@ vi.mock('@/services/offline/offlineInterceptor', () => ({
   registerOfflineInterceptors: mocks.registerOfflineInterceptors,
 }));
 
-describe('API workspace scope', () => {
+describe('API connection scope', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.resetModules();
@@ -33,7 +33,7 @@ describe('API workspace scope', () => {
     mocks.responseUse.mockClear();
   });
 
-  it('attaches the active workspace and its scoped token to every request', async () => {
+  it('attaches the connection-scoped token without sending workspace identity', async () => {
     localStorage.setItem('activeWorkspaceId', 'workspace-a');
     localStorage.setItem('accessToken_workspace-a', 'workspace-token');
     await import('@/services/api');
@@ -41,9 +41,6 @@ describe('API workspace scope', () => {
 
     const config = interceptor({ headers: {} });
 
-    expect(config.headers).toMatchObject({
-      'X-Workspace-Id': 'workspace-a',
-      Authorization: 'Bearer workspace-token',
-    });
+    expect(config.headers).toEqual({ Authorization: 'Bearer workspace-token' });
   });
 });

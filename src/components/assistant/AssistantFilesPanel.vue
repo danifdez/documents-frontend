@@ -346,15 +346,6 @@ watch(
     { immediate: true },
 );
 
-// React to chat-driven mutations (folder_write / folder_delete / overwrite) without polling.
-watch(
-    () => (props.assistantId != null ? store.folderFilesVersionFor(props.assistantId) : 0),
-    () => {
-        if (props.show && props.assistantId != null) {
-            void refresh();
-        }
-    },
-);
 </script>
 
 <style scoped>

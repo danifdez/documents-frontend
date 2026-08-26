@@ -23,41 +23,14 @@
             <template v-for="msg in store.activeMessages" :key="msg.id">
                 <!-- Inline event card (memory saved, tool executed, …) -->
                 <div v-if="msg.role === 'event'" class="flex justify-center">
-                    <div class="event-card"
-                        :class="{
-                            'event-card-running': isRunningTool(msg.event),
-                            'event-card-pending': isPendingConfirmation(msg.event),
-                        }">
+                    <div class="event-card">
                         <span class="event-icon">
-                            <span v-if="isRunningTool(msg.event)" class="event-spinner"></span>
-                            <template v-else>{{ eventIcon(msg.event) }}</template>
+                            {{ eventIcon(msg.event) }}
                         </span>
                         <div class="flex-1 min-w-0">
                             <div class="event-title">{{ eventTitle(msg) }}</div>
                             <div class="event-meta">{{ eventMeta(msg.event) }}</div>
                         </div>
-                        <template v-if="isPendingConfirmation(msg.event)">
-                            <button @click="confirmEvent(msg)"
-                                class="event-action event-action-confirm"
-                                :disabled="resolvingIds.has(msg.id)">
-                                {{ resolvingIds.has(msg.id) ? '…' : (msg.event && (msg.event as any).tool?.confirmLabel || 'Confirm') }}
-                            </button>
-                            <button @click="cancelEvent(msg)"
-                                class="event-action"
-                                :disabled="resolvingIds.has(msg.id)">
-                                {{ (msg.event && (msg.event as any).tool?.cancelLabel) || 'Cancel' }}
-                            </button>
-                        </template>
-                        <button v-else-if="canDelete(msg.event) && !isEntityDeleted(msg.event)"
-                            @click="deleteEntity(msg)"
-                            class="event-action"
-                            :disabled="deletingIds.has(msg.id)"
-                            :title="`Delete ${entityKindLabel(msg.event)}`">
-                            {{ deletingIds.has(msg.id) ? '…' : 'Delete' }}
-                        </button>
-                        <span v-else-if="isEntityDeleted(msg.event)" class="event-deleted">
-                            Deleted
-                        </span>
                     </div>
                 </div>
 
@@ -76,11 +49,7 @@
 
             <div v-if="store.isActivePending" class="flex justify-start">
                 <div :class="bubbleClass('assistant')">
-                    <div v-if="visibleStream" class="streaming-bubble">
-                        <MarkdownContent :text="visibleStream" />
-                        <span v-if="!store.activeStreamDone" class="stream-caret">▋</span>
-                    </div>
-                    <div v-else class="flex items-center gap-1.5 text-text-muted text-sm">
+                    <div class="flex items-center gap-1.5 text-text-muted text-sm">
                         <span class="typing-dot"></span>
                         <span class="typing-dot" style="animation-delay: 0.15s"></span>
                         <span class="typing-dot" style="animation-delay: 0.3s"></span>
@@ -93,27 +62,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useAssistantStore } from '../../store/assistantStore';
 import type { AssistantMessage, AssistantMessageEvent } from '../../types/Assistant';
 import { MEMORY_TYPE_LABEL } from '../../types/AssistantMemory';
 import MarkdownContent from './MarkdownContent.vue';
-import { getConfirmHandler } from '../../services/assistantConfirmHandlers';
-import { useChatEventApi } from '../../services/chat/useChatEventApi';
 import { useChatView } from '../../composables/useChatView';
 
 const store = useAssistantStore();
-const chatEventApi = useChatEventApi();
-
-const TOOL_NAME_LABEL: Record<string, string> = {
-    search_workspace: 'Workspace search',
-    update_task: 'Update task',
-    delete_task: 'Delete task',
-    mark_event_occurrence_done: 'Mark event done',
-    set_task_reminder: 'Set task reminder',
-    clear_task_reminder: 'Clear task reminder',
-};
-
 // Memory cards are assistant-only event kinds; they short-circuit the shared
 // tool-card rendering in useChatView via the special* hooks below.
 function memoryEventIcon(event: AssistantMessageEvent): string | null {
@@ -161,66 +116,17 @@ function memoryEventMeta(event: AssistantMessageEvent): string | null {
 
 const {
     scrollContainer,
-    visibleStream,
     bubbleClass,
     eventIcon,
     eventTitle,
     eventMeta,
-    isRunningTool,
-    isPendingConfirmation,
-    resolvingIds,
-    confirmEvent,
-    cancelEvent,
     loadOlder,
 } = useChatView<AssistantMessage>({
     store,
-    ownerSegment: 'assistants',
-    toolNameLabel: TOOL_NAME_LABEL,
-    activeOwner: () => store.activeAssistant,
     specialEventIcon: memoryEventIcon,
     specialEventTitle: memoryEventTitle,
     specialEventMeta: memoryEventMeta,
-    executeConfirm: (kind, assistantId, tool) => getConfirmHandler(kind)!.execute({
-        assistantId,
-        payload: tool.payload || {},
-    }),
-    cancelSummary: (tool, assistantId) => {
-        const handler = getConfirmHandler(tool.kind);
-        return handler?.cancelSummary
-            ? handler.cancelSummary({ assistantId, payload: tool.payload || {} })
-            : 'Cancelled';
-    },
 });
-
-function canDelete(event: AssistantMessageEvent | null): boolean {
-    return !!(event && event.kind === 'tool_executed' && event.tool?.entity?.kind && event.tool.status !== 'running');
-}
-
-function isEntityDeleted(event: AssistantMessageEvent | null): boolean {
-    return !!(event && event.kind === 'tool_executed' && event.tool?.entity?.deleted);
-}
-
-function entityKindLabel(event: AssistantMessageEvent | null): string {
-    if (event?.kind !== 'tool_executed' || !event.tool?.entity) return '';
-    return event.tool.entity.kind === 'note' ? 'note' : 'task';
-}
-
-const deletingIds = ref<Set<number>>(new Set());
-
-async function deleteEntity(msg: AssistantMessage) {
-    if (msg.event?.kind !== 'tool_executed' || !msg.event.tool?.entity) return;
-    const entity = msg.event.tool.entity;
-    if (entity.deleted) return;
-    deletingIds.value.add(msg.id);
-    try {
-        await chatEventApi.deleteEventEntity(entity);
-        store.markEventEntityDeleted(msg.id);
-    } catch (e: any) {
-        alert(e?.response?.data?.message || e?.message || `Could not delete the ${entityKindLabel(msg.event)}`);
-    } finally {
-        deletingIds.value.delete(msg.id);
-    }
-}
 </script>
 
 <style scoped>

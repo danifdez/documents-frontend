@@ -220,10 +220,10 @@ const filesPanelAssistantId = computed(() => {
 
 const composerDisabled = computed(() => {
     if (selection.value === 'assistant') {
-        return !assistantStore.activeAssistant || (assistantStore.isActivePending && !assistantStore.activeStreamDone);
+        return !assistantStore.activeAssistant || assistantStore.isActivePending;
     }
     if (selection.value === 'agent') {
-        return !agentStore.activeAgent || (agentStore.isActivePending && !agentStore.activeStreamDone);
+        return !agentStore.activeAgent || agentStore.isActivePending;
     }
     return true;
 });
@@ -231,12 +231,12 @@ const composerDisabled = computed(() => {
 const composerPlaceholder = computed(() => {
     if (selection.value === 'assistant') {
         if (!assistantStore.activeAssistant) return 'Select a conversation…';
-        if (assistantStore.isActivePending && !assistantStore.activeStreamDone) return 'Waiting for response…';
+        if (assistantStore.isActivePending) return 'Waiting for response…';
         return `Message ${assistantStore.activeAssistant.name}… (Shift+Enter for a new line)`;
     }
     if (selection.value === 'agent') {
         if (!agentStore.activeAgent) return 'Select a conversation…';
-        if (agentStore.isActivePending && !agentStore.activeStreamDone) return 'Waiting for response…';
+        if (agentStore.isActivePending) return 'Waiting for response…';
         return `Message ${agentStore.activeAgent.name}… (Shift+Enter for a new line)`;
     }
     return 'Select a conversation…';

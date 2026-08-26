@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
 import type {
     Assistant,
     AssistantMessage,
@@ -12,27 +11,13 @@ import { createChatStore } from './createChatStore';
 export const useAssistantStore = defineStore('assistant', () => {
     const api = useAssistants();
 
-    // Bumped whenever a chat tool mutates user tasks. Workspace-wide rather
-    // than per-assistant since tasks are global. TaskPanel watches it.
-    const userTasksVersion = ref(0);
-
-    const TASK_MUTATING_TOOLS = new Set(['create_task', 'update_task']);
-
-    function bumpUserTasksVersion() {
-        userTasksVersion.value += 1;
-    }
-
     // Captured when the socket attaches (same moment the old monolithic store
     // instantiated it) so the response handler can sync memory cards.
     let memoryStore: ReturnType<typeof useAssistantMemoryStore> | null = null;
 
     const chat = createChatStore<Assistant, AssistantMessage, UpdateAssistantPayload>({
         api,
-        events: {
-            toolEvent: 'assistantToolEvent',
-            streamChunk: 'assistantStreamChunk',
-            response: 'assistantResponse',
-        },
+        responseEvent: 'assistantResponse',
         socketIdKey: 'assistantId',
         loadErrorMessage: 'Failed to load assistants',
         sortOwners: (list) => list.sort((a, b) => {
@@ -46,11 +31,6 @@ export const useAssistantStore = defineStore('assistant', () => {
         hooks: {
             onSocketAttached() {
                 memoryStore = useAssistantMemoryStore();
-            },
-            onToolEvent(toolName, toolStatus) {
-                if (toolName && TASK_MUTATING_TOOLS.has(toolName) && toolStatus === 'done') {
-                    bumpUserTasksVersion();
-                }
             },
             collectResponseEventMessages(event, existing) {
                 const toAppend: AssistantMessage[] = [];
@@ -76,11 +56,6 @@ export const useAssistantStore = defineStore('assistant', () => {
                     if (personal) activeId.value = personal.id;
                 }
             },
-            onToolStatusResolved(status, toolKind) {
-                if (status === 'done' && toolKind === 'task_delete') {
-                    bumpUserTasksVersion();
-                }
-            },
             canTogglePin: (a) => !a.isSystem,
             nextActiveIdAfterDelete: ({ owners }) => {
                 const personal = owners.value.find((a) => a.isSystem);
@@ -103,8 +78,6 @@ export const useAssistantStore = defineStore('assistant', () => {
         activeHasMore: chat.activeHasMore,
         activeLoadingOlder: chat.activeLoadingOlder,
         isActivePending: chat.isActivePending,
-        activeStreaming: chat.activeStreaming,
-        activeStreamDone: chat.activeStreamDone,
         load: chat.load,
         selectAssistant: chat.selectOwner,
         loadOlder: chat.loadOlder,
@@ -112,11 +85,5 @@ export const useAssistantStore = defineStore('assistant', () => {
         updateAssistant: chat.updateOwner,
         deleteAssistant: chat.deleteOwner,
         togglePin: chat.togglePin,
-        markEventEntityDeleted: chat.markEventEntityDeleted,
-        updateEventToolStatus: chat.updateEventToolStatus,
-        folderFilesVersionFor: chat.folderFilesVersionFor,
-        bumpFolderFilesVersion: chat.bumpFolderFilesVersion,
-        userTasksVersion,
-        bumpUserTasksVersion,
     };
 });
