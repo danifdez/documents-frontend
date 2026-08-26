@@ -33,6 +33,7 @@ export const test = base.extend<ElectronFixtures>({
       args: [MAIN_ENTRY, '--no-sandbox'],
       env: {
         ...process.env,
+        ELECTRON_RUN_AS_NODE: undefined,
         NODE_ENV: 'test',
       },
     });
