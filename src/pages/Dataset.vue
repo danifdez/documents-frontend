@@ -1091,11 +1091,6 @@ const loadAndNavigate = (sv: DatasetChart) => {
 
 const inferVisualMode = (config: Record<string, any>): string => {
     if (config.visualMode) return config.visualMode;
-    // Legacy: infer from operation or chartType
-    const op = config.operation;
-    if (op && ['summary', 'distribution', 'time-series', 'correlation', 'outliers', 'pivot'].includes(op)) return op;
-    const ct = config.chartType;
-    if (ct && ['bar', 'line', 'pie', 'scatter'].includes(ct)) return `chart-${ct}`;
     return 'chart-bar';
 };
 

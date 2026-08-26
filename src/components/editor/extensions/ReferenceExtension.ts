@@ -61,42 +61,7 @@ export const ReferenceNode = Node.create<ReferenceNodeOptions>({
     },
 
     parseHTML() {
-        return [
-            // New unified format
-            { tag: 'span[data-ref-id]' },
-            // Legacy citationNode
-            {
-                tag: 'span[data-entry-id]',
-                getAttrs: (dom) => {
-                    const el = dom as HTMLElement;
-                    return {
-                        'data-ref-id': el.getAttribute('data-entry-id'),
-                        'data-ref-type': 'bibliography',
-                        'data-label': el.getAttribute('data-label'),
-                        'data-display-mode': el.getAttribute('data-display-mode') === 'text' ? 'full' : 'citation',
-                        'data-cite-style': null,
-                    };
-                },
-            },
-            // Legacy referenceNode
-            {
-                tag: 'span[data-reference-id]',
-                getAttrs: (dom) => {
-                    const el = dom as HTMLElement;
-                    const oldMode = el.getAttribute('data-display-mode');
-                    const refType = el.getAttribute('data-reference-type') || 'resource';
-                    let displayMode = 'citation';
-                    if (oldMode === 'text') displayMode = refType === 'mark' ? 'quote' : 'title';
-                    else if (oldMode === 'text-badge') displayMode = 'quote-citation';
-                    return {
-                        'data-ref-id': el.getAttribute('data-reference-id'),
-                        'data-ref-type': refType,
-                        'data-label': el.getAttribute('data-text'),
-                        'data-display-mode': displayMode,
-                    };
-                },
-            },
-        ];
+        return [{ tag: 'span[data-ref-id]' }];
     },
 
     renderHTML({ HTMLAttributes }) {
