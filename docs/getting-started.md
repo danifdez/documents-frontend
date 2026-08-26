@@ -1,106 +1,45 @@
-# Getting Started
+# Getting started
 
-## Prerequisites
+## First launch
 
-- **Node.js** 22+ and npm
-- **Docker** and Docker Compose (for running the backend)
-- Backend API running on `http://localhost:3000` (see [backend docs](../../backend/docs/getting-started.md))
+When no workspace exists, Documents asks how you want to use the application:
 
-## Setup with Docker (Recommended)
+- **Standalone** runs a private Documents workspace on the current computer.
+- **Connect to server** uses an existing Documents installation on the network.
 
-```bash
-docker compose up frontend
-```
+You can keep local and remote workspaces together and switch between them later.
 
-This builds and runs the Electron application inside a container with all dependencies pre-installed.
+## Use a standalone workspace
 
-## Setup Without Docker
+Choose **Standalone**. Documents checks for the required local services, downloads them if needed, starts them, and creates the workspace automatically. The first setup may take time because the core download is approximately 350 MB.
 
-### 1. Install Dependencies
+AI features are optional and require an additional download of approximately 2–5 GB. See [Standalone mode](./standalone.md) for details.
 
-```bash
-cd frontend
-npm install
-```
+## Connect to a server
 
-### 2. Configure Environment
+Choose **Connect to server** and enter the address supplied by the administrator. If the server requires authentication, sign in with your username and password.
 
-Copy the sample environment file and adjust if needed:
+The workspace remembers its own server address and session. If the connection fails, verify the address and confirm that the server is reachable from the current network.
 
-```bash
-cp .env.sample .env
-```
+## Create your first project
 
-### 3. Start Development
+From the dashboard:
 
-```bash
-npm start
-```
+1. create a project;
+2. open the project;
+3. import one or several supported files;
+4. wait for extraction to complete;
+5. open the resource to read its content and metadata.
 
-This runs `electron-forge start`, which launches Vite dev servers for the main process, preload script, and renderer, then opens the Electron window.
+Depending on the installed capabilities and your permissions, you can then summarize, translate, identify entities, search the content, or ask questions about the project.
 
-## Available Scripts
+## Personalize the application
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| `start` | `electron-forge start` | Start development with hot-reload |
-| `package` | `electron-forge package` | Package the application |
-| `make` | `electron-forge make` | Build distribution packages |
-| `lint` | `eslint --ext .ts,.tsx .` | Run ESLint |
-| `test` | `vitest run` | Run unit tests once |
-| `test:watch` | `vitest` | Run unit tests in watch mode |
-| `test:coverage` | `vitest run --coverage` | Run tests with coverage report |
-| `test:e2e` | `playwright test e2e/` | Run Playwright end-to-end tests |
+Open **Settings** to adjust font size, font family, paragraph spacing, language, light or dark appearance, and the active theme. These personal preferences are saved on the computer.
 
-## Build Configuration
+## If something is unavailable
 
-### Electron Forge
-
-The build is configured in `forge.config.ts` with three Vite build targets:
-
-| Target | Entry | Config File | Description |
-|--------|-------|-------------|-------------|
-| main | `src/main.ts` | `vite.main.config.ts` | Electron main process |
-| preload | `src/preload.ts` | `vite.preload.config.ts` | Preload script (IPC bridge) |
-| renderer | — | `vite.renderer.config.ts` | Vue application (renderer process) |
-
-### Distribution Makers
-
-| Maker | Platform |
-|-------|----------|
-| Squirrel | Windows |
-| ZIP | macOS |
-| RPM | Linux (Red Hat) |
-| DEB | Linux (Debian) |
-
-### Security Fuses
-
-Electron fuses are configured at package time in `forge.config.ts`:
-
-- `RunAsNode` — disabled
-- `EnableCookieEncryption` — enabled
-- `EnableNodeOptionsEnvironmentVariable` — disabled
-- `EnableNodeCliInspectArguments` — disabled
-- `EnableEmbeddedAsarIntegrityValidation` — enabled
-- `OnlyLoadAppFromAsar` — enabled
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VITE_API_URL` | `http://localhost:3000` | Backend API base URL |
-
-Environment variables prefixed with `VITE_` are exposed to the renderer process via `import.meta.env`.
-
-## Debugging
-
-### DevTools
-
-- **Renderer process:** Press `Ctrl+Shift+I` to open Chrome DevTools in the application window.
-- **Main process:** Uncomment `mainWindow.webContents.openDevTools()` in `src/main.ts` (line 42).
-
-### Common Issues
-
-- **Blank screen on start:** Ensure the backend is running on the configured `VITE_API_URL`.
-- **IPC errors:** Check that the preload script is loaded correctly (verify the `preload` path in `createWindow`).
-- **Build failures:** Run `npm install` to ensure all dependencies are up to date.
+- A missing action may not be installed, enabled, or granted to your account.
+- A queued action may be waiting for an available processor.
+- A remote workspace requires a network connection unless you use an available offline copy.
+- A standalone workspace must finish starting its local services before project content becomes available.

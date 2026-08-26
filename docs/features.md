@@ -2,119 +2,87 @@
 
 ## Projects
 
-Everything in the application is organized around **projects**. A project is a self-contained workspace that groups resources, documents, threads, knowledge entries, notes, timelines, canvases, and datasets together.
+Everything in Documents is organized around **projects**. A project groups its resources, editable documents, threads, knowledge entries, notes, timelines, canvases, datasets, bibliography, calendar, and entities. From the dashboard, users can create, open, and delete projects.
 
-From the Dashboard you can create, open, and delete projects. Switching projects reloads the sidebar and all related data. The active project is stored in the Pinia `projectStore` and is accessible throughout the app.
+## Resources and documents
 
-## Document & Resource Management
+### Importing files
 
-### Importing Documents
+Users can import one or several PDF, Word, plain-text, HTML, or image files from the Project page. The files are added to the active project and processed in the background.
 
-Documents are imported into a project from disk: open the `ImportDocumentModal` via the Project page, pick one or more files (PDF, Word, TXT, HTML, images). The Electron main process reads the selected files and uploads them to the backend via `POST /resources/upload`.
+### Reading and editing
 
-Supported file types: `pdf`, `doc`, `docx`, `txt`, `htm`, `html`, `jpg`, `jpeg`, `png`, `gif`, `bmp`, `svg`, `webp`.
+Processed documents can show three views:
 
-### Viewing Documents
+| View | Content |
+|---|---|
+| **Raw** | The original extracted text. |
+| **Translated** | The machine-translated version, after translation has completed. |
+| **Summary** | The AI-generated summary, after summarization has completed. |
 
-The `Doc` page (`/projects/:projectId/docs/:docId`) displays a resource's content using a TipTap-based rich text editor. Three content views are available:
+Editable content saves automatically one second after the last change. A **Saving…** or **Saved** indicator shows its status.
 
-| Tab | Description |
-|-----|-------------|
-| Raw | Original extracted text |
-| Translated | Machine-translated version (if a translation execution has run) |
-| Summary | AI-generated summary (if a summarization execution has run) |
+The resource view brings together metadata such as type, source address, language, and creation date with related documents, highlights, comments, and extracted entities.
 
-Document content auto-saves 1 second after the last keystroke. A visual indicator shows `Saving…` / `Saved` states.
+## AI-assisted actions
 
-### Resource Page
+Available actions depend on the installation and the user's permissions.
 
-The `Resource` page (`/projects/:projectId/resources/:resourceId`) shows the resource metadata (type, URL, language, creation date) alongside its linked documents, marks, comments, and extracted entities.
+| Action | Result |
+|---|---|
+| **Extraction** | Identifies entities such as people, places, organizations, and dates, plus structured references. |
+| **Summarization** | Produces a concise summary of the document. |
+| **Translation** | Translates document text to the language selected in Settings. |
+| **Search** | Finds semantically similar passages across the current project's indexed content. |
 
-## AI Executions
-
-Processing is triggered per-resource or per-project from the interface. Executions run asynchronously in the models service and results appear via real-time WebSocket notifications.
-
-| Execution | What it does |
-|-----|-------------|
-| **Extraction** | Identifies entities (people, places, organisations, dates) and structured references |
-| **Summarization** | Produces a concise summary stored in the document's `summary` field |
-| **Translation** | Translates document text to the configured target language |
-| **Search** | Runs semantic similarity search across the project's documents |
-
-### Real-time Notifications
-
-The `useNotification` composable connects to the backend Socket.io server. Incoming events update a notification list that appears in the header, letting users see when an execution completes or fails without leaving their current page.
+These actions run in the background. Notifications in the header report completion or failure without requiring the user to leave the current page.
 
 ## Entities
 
-The Entities page (`/projects/:projectId/entities`) shows all entities extracted from a project's documents. Entity management follows a two-phase workflow:
+Extracted entities first appear as pending candidates. Users can edit a candidate's value or type, discard it, merge duplicates, or confirm several candidates together. Accepted candidates move to the project's confirmed entity list.
 
-1. **Pending phase** — After an extraction execution, newly found entities appear in the `PendingEntitiesValidator` panel. Each entity shows its type, value, and source document. You can edit the value, change the type, or discard it.
-2. **Confirmation phase** — Accepted entities are promoted to the confirmed list. Duplicates can be merged. Bulk-confirm all pending entities at once with a single action.
+## Knowledge base
 
-Entity types are configurable and backed by the `resource-type.csv` seed data in the backend.
-
-## Knowledge Base
-
-The Knowledge Base (`/projects/:projectId/knowledge`) is a structured collection of curated entries, each backed by source documents or external references. Entries can be created manually or generated from extracted content.
-
-The `KnowledgeEntryEdit` page provides a rich-text editor for the entry body, a references panel for linking source documents, and a tags field for categorisation.
+The Knowledge Base is a curated collection of entries backed by project resources or external references. Users can create entries manually or from extracted content, edit their body with rich text, add tags, and link supporting sources.
 
 ## Threads
 
-Threads (`/projects/:projectId/threads/:threadId`) are discussion spaces linked to a project. Each thread contains an ordered list of messages. Threads are useful for capturing the reasoning and decisions made during research.
+Threads are project discussion spaces with ordered messages. They are useful for preserving research questions, reasoning, and decisions alongside the supporting material.
 
 ## Bibliography
 
-The Bibliography page (`/projects/:projectId/bibliography`) lists bibliographic references associated with the project. Entries follow standard citation fields (title, author, year, publisher, DOI, URL). References can be added manually or linked automatically when a resource is imported from a URL.
+Bibliography entries use familiar citation information such as title, author, year, publisher, DOI, and URL. Users can add entries manually, and references can also be linked when a resource is imported from a URL.
 
 ## Notes
 
-Notes (`/projects/:projectId/notes`) are free-form Markdown documents scoped to a project. The `NoteEdit` page provides a TipTap editor. Notes are independent of resources — they are intended for personal annotations, summaries, and research notes.
+Notes are free-form project documents for annotations, summaries, and research notes. They remain independent from imported resources.
 
-## Timeline
+## Timeline and calendar
 
-The Timeline page (`/projects/:projectId/timeline`) plots dated events extracted from documents or added manually onto a chronological axis. This is useful for projects that deal with historical material or event sequences.
+The Timeline places dated events on a chronological axis. The Calendar shows project events in a monthly view. Events can be entered manually or extracted from document content.
 
 ## Canvas
 
-The Canvas (`/projects/:projectId/canvas`) is a free-form visual workspace. You can place documents, notes, entities, and free-text boxes as cards and draw connections between them. It is intended for visual thinking and mapping relationships between pieces of information. Images can be added from a URL, a local file, or the project's resources.
+The Canvas is a free-form visual workspace. Users can place documents, notes, entities, text boxes, and images as cards, then draw connections between them. Images can come from a URL, a local file, or the project's resources.
 
 ## Datasets
 
-The Datasets pages (`/projects/:projectId/datasets`) allow you to define and populate structured datasets derived from your documents. Each dataset has named columns and rows that can be populated manually or from extracted entities. Datasets can be exported for use in downstream analysis.
-
-## Calendar
-
-The Calendar (`/projects/:projectId/calendar`) displays events associated with the project in a monthly view. Events can be created manually or extracted from document content.
+Datasets hold structured information in named columns and rows. They can be populated manually or from extracted entities, analyzed with statistical and visualization tools, and exported for other uses.
 
 ## Search
 
-The `GlobalSearchModal` (opened with `Ctrl+K` or the search icon) queries the backend full-text search endpoint across all resources, documents, knowledge entries, and entities in the current project. Results are grouped by type and link directly to the relevant page.
+Global search opens with **Ctrl+K** or the search icon. It searches resources, editable documents, knowledge entries, and entities in the current project. Results are grouped by type and open the relevant item directly.
 
-## Settings
+## Settings and themes
 
-The Settings page exposes editor preferences that are persisted locally via `electron-store`:
+Settings include font size, font family, paragraph spacing, interface language, appearance, and the active theme. The selected language is also used as the target for translation actions.
 
-| Setting | Options |
-|---------|---------|
-| Font size | Adjustable via slider |
-| Font family | `sans-serif`, `serif`, `monospace` |
-| Paragraph spacing | Adjustable via slider |
-| Language | Interface language (affects translation executions) |
+Documents includes a Default theme and supports additional themes installed from local `.json` or `.zip` files. See [Themes](./themes.md).
 
-Settings are read and written through the `settings:get` / `settings:set` IPC channels.
+## User management
 
-## Themes
+Administrators can view registered users, roles, and active sessions. Roles and permissions control sensitive actions such as deletion, upload, export, and AI processing.
 
-The app ships with a built-in **Default** theme and lets users install additional themes from a local `.json` or `.zip` file (colors, typography, and optional custom CSS). Each theme defines both a light and dark variant; the existing *Light / Dark / System* toggle decides which one is applied.
+## Offline mode
 
-Manage themes from **Settings → General → Theme → Manage themes…**. See [themes.md](themes.md) for the manifest format, supported CSS variables, packaging rules, and a full worked example.
-
-## User Management
-
-The User Management page (accessible to administrators) lists all registered users, their roles, and active sessions. Roles control access to sensitive operations such as bulk deletion and execution triggering.
-
-## Offline Mode
-
-The `OfflineToggle` component and `offlineStore` allow the app to be placed in offline mode, disabling all API calls. The `SyncIndicator` in the header shows whether the app is connected to the backend, providing feedback when the backend is temporarily unavailable.
+Offline mode disables requests to the connected server. The header shows whether the application is connected, providing clear feedback when the workspace is unavailable.

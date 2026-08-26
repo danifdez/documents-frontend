@@ -1,77 +1,33 @@
-# Architecture
+# How the desktop application works
 
-## System Overview
+The Documents desktop application is the place where users open workspaces, organize projects, read and edit material, and start searches or background processing.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Electron Application                     │
-│                                                                 │
-│  ┌──────────────────┐    IPC     ┌────────────────────────────┐ │
-│  │   Main Process   │◄─────────►│     Renderer Process       │ │
-│  │   (src/main.ts)  │  Preload   │     (Vue 3 Application)    │ │
-│  │                  │  Bridge    │                            │ │
-│  │  - Window mgmt   │           │  - Pages & Components      │ │
-│  │  - File dialogs  │           │  - TipTap Editor           │ │
-│  │  - Settings store│           │  - State Management        │ │
-│  │                  │           │  - Service Composables     │ │
-│  └──────────────────┘           └─────────┬──────────────────┘ │
-│                                           │                     │
-└───────────────────────────────────────────┼─────────────────────┘
-                                            │
-                              HTTP (Axios)   │  WebSocket (Socket.io)
-                                            │
-                                 ┌──────────▼──────────┐
-                                 │    Backend API       │
-                                 │  (NestJS on :3000)   │
-                                 └─────────────────────┘
-```
+## Workspaces and projects
 
-## Electron Process Model
+A **workspace** is a connection to one Documents installation. It can be local to the computer or hosted on another server. Workspaces keep their own server address, sign-in session, and locally saved state. Switching workspaces also switches the projects and information available in the application.
 
-### Main Process (`src/main.ts`)
+A **project** is the main container inside a workspace. Resources, documents, notes, threads, entities, calendars, timelines, canvases, datasets, bibliography, and knowledge entries all remain associated with their project.
 
-The main process handles system-level operations:
+## Working with files
 
-- **Window creation** — Full-screen `BrowserWindow` using primary display dimensions
-- **IPC handlers** — Registers handlers for file dialogs, settings, and file uploads
-- **Settings persistence** — Uses `electron-store` for user preferences (font, spacing, language)
+The desktop application uses the operating system's file picker to import one or several files. It sends the selected files to the current workspace, where they are stored and processed. The application never needs unrestricted access to the user's file system.
 
-### Preload Script (`src/preload.ts`)
+After import, the original resource and its processed content can be opened from the project. Depending on the format and available capabilities, Documents can also extract metadata, create a transcript, or prepare the content for AI-assisted actions.
 
-The preload script bridges main and renderer processes via `contextBridge.exposeInMainWorld`:
+## Editing and saving
 
-```typescript
-contextBridge.exposeInMainWorld('electronAPI', {
-    uploadDocument: (idProject, filePath) => ipcRenderer.invoke('upload-document', idProject, filePath),
-    openMultipleFileDialog: () => ipcRenderer.invoke('open-multiple-file-dialog'),
-    getSettings: () => ipcRenderer.invoke('settings:get'),
-    setSettings: (settings) => ipcRenderer.invoke('settings:set', settings),
-    // Event listeners
-    onUrlChange: (callback) => ipcRenderer.on('url-changed', (_event, url) => callback(url)),
-    onProjectIdChange: (callback) => ipcRenderer.on('project-id', (_event, projectId) => callback(projectId)),
-});
-```
+Editable content saves automatically one second after the last change. A visible status indicates when saving is in progress and when it has completed.
 
-## Key Design Patterns
+Most create and edit actions open focused dialogs, while project navigation remains available from the collapsible sidebar.
 
-### Composable-Based Services
+## Review before confirmation
 
-Each backend domain has a dedicated composable (e.g., `useProject`, `useDocument`) that encapsulates API calls and returns reactive `isLoading`, `error`, and data refs. This isolates HTTP logic from components.
+Extracted entities are not added directly to the confirmed project knowledge. They first appear as candidates, where users can correct the value or type, discard an item, merge duplicates, or accept several candidates together.
 
-### Auto-Save with Debounce
+## Background actions
 
-The document editor uses a 1-second debounce for auto-saving. Visual indicators (`isSaving`, `savedSuccessfully`) provide feedback without interrupting the editing flow.
+Longer actions run outside the current screen. Real-time notifications report when they complete or fail, allowing the user to continue reading, editing, or navigating in the meantime.
 
-### Two-Phase Entity Workflow
+## Local preferences
 
-Entity extraction follows a two-phase pattern:
-1. **Pending phase** — Backend extracts entities; `PendingEntitiesValidator` displays them for human review
-2. **Confirmation phase** — User reviews, edits, merges duplicates, then bulk-confirms entities
-
-### Collapsible Sidebar
-
-The sidebar collapses to icon-only mode. `ResourceSidebar` and `DocumentSidebar` update reactively based on the `currentProject` in the Pinia store.
-
-### Modal-Driven Interactions
-
-Most create/edit operations use modal dialogs (e.g., `ProjectAddModal`, `CommentModal`, `ImportDocumentModal`) that emit events on completion, keeping page components focused on display logic.
+Editor appearance, language, and other personal preferences are saved on the current computer. Workspace content remains on the local or remote Documents installation to which the application is connected.

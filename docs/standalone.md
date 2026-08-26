@@ -1,90 +1,59 @@
-# Standalone Mode
+# Standalone mode
 
 ## Overview
 
-Standalone mode lets the application run a complete local server directly on the
-user's machine — no Docker, no external server, and no cloud account required.
-On first launch the app downloads the necessary services automatically (~350 MB),
-stores them in the user-data directory, and starts them transparently in the
-background.
+Standalone mode runs a complete private Documents workspace on the user's computer. It does not require a separately managed server or a cloud account.
 
-## First-Launch Setup
+On first launch, Documents downloads the required components, stores them in the application's data area, and starts them in the background. First-time setup downloads approximately 350 MB; the required core components account for about 250 MB.
 
-When the application starts with no workspace configured, a screen asks how the
-user wants to run the app:
+## First-time setup
 
-- **Standalone** — all services run locally on the machine.
-- **Connect to server** — the app connects to an existing Documents server on
-  the network.
+When no workspace is configured, choose **Standalone**. Documents then:
 
-Selecting **Standalone** immediately:
+1. checks whether the local components are already installed;
+2. downloads any missing required components;
+3. starts the local workspace;
+4. registers it in the workspace switcher.
 
-1. Checks whether the required services are already installed.
-2. Downloads them if not (PostgreSQL and the backend).
-3. Starts all services and registers the local workspace automatically.
+The application displays **Starting local server…** while this happens.
 
-The setup runs in the background; the app shows a *Starting local server…*
-message while it progresses.
+## Local data
 
-## Services and Storage
+Projects, application state, relationships, search information, and uploaded files are stored on the current machine. The components that run the local workspace are kept separately from the user's project data.
 
-### Core services (~250 MB, required)
+Because this data is local, the user is responsible for the computer's backups, available disk space, and access security.
 
-| Service | Role |
-|---------|------|
-| Backend API | REST API and durable execution orchestration |
-| PostgreSQL | Stores documents, projects, application state, embeddings (pgvector) for semantic search, and the entity graph (Apache AGE) for relationships / GraphRAG |
+## Optional AI features
 
-The PostgreSQL asset ships with both the `vector` (pgvector) and `age` (Apache AGE)
-extensions baked in — it is the zonky binaries repackaged at build time — so
-semantic search and the entity graph work out of the box, with no separate graph
-service to download or run.
+AI processing is not installed by default because it requires a larger download. It adds transcription, summarization, translation, and semantic search.
 
-All binaries are saved under the `standalone-services/` folder inside the
-Electron user-data directory. Application data (documents, uploads) is stored in
-a separate `local-server/` folder.
+Two variants are available:
 
-### AI features (optional, ~2–5 GB)
+| Variant | Approximate size | Suitability |
+|---|---:|---|
+| **CPU** | 2 GB | Works on any supported computer. |
+| **GPU** | 5 GB | Requires a compatible NVIDIA graphics card and is faster for heavier work. |
 
-The models service provides transcription, summarisation, translation, and
-semantic search. It is not installed by default because of its size. Two variants
-are available:
+Documents checks the computer and suggests the appropriate variant.
 
-- **CPU** (~2 GB) — works on any machine.
-- **GPU** (~5 GB) — requires an NVIDIA card; much faster for heavy workloads.
+## Starting and stopping
 
-The application checks for a compatible GPU and suggests the right variant
-automatically.
+The local workspace starts automatically when it is opened. Required data services start before Documents makes the workspace available.
 
-## Start-up and Shutdown
+All local services stop automatically when the application closes. They can also be started or stopped from **Settings → Local Server**.
 
-Services start in sequence when a local workspace is opened:
+## Local Server settings
 
-1. PostgreSQL starts first (required; the app will not proceed without it). It
-   carries the entity graph (Apache AGE) and embeddings (pgvector) as extensions.
-2. The backend starts last, once the database is ready.
+The settings panel provides:
 
-All services stop automatically when the application is closed. They can also be
-started and stopped manually from **Settings → Local Server**.
+| Control | Meaning |
+|---|---|
+| Component status | Green means installed; grey means not installed. |
+| Download progress | Shows installation progress. |
+| Install Local Server | Downloads the required core components. |
+| Install AI Features | Downloads the selected CPU or GPU AI package. |
+| Uninstall | Removes installed components to recover disk space. |
 
-## Settings Panel
+## Using other workspaces
 
-The **Local Server** section in Settings provides:
-
-| Action | Description |
-|--------|-------------|
-| Component status | Green dot = installed, grey dot = not installed |
-| Download progress | Real-time progress bar during installation |
-| Install Local Server | Downloads core services if not yet installed |
-| Install AI Features | Downloads the models service (CPU or GPU variant) |
-| Uninstall | Removes the services to recover disk space |
-
-## Relationship to the Workspace System
-
-A local workspace created in standalone mode behaves the same as a remote
-workspace in every other respect. It appears in the workspace switcher, supports
-all features (projects, resources, documents, entities, knowledge base, etc.),
-and can be used alongside remote workspaces at the same time.
-
-The local server URL is managed internally by the application and does not need
-to be configured manually.
+A standalone workspace behaves like a remote workspace in the rest of the application. It supports the same project features and can coexist with several remote workspaces. Its internal address is managed automatically and does not need to be entered by the user.

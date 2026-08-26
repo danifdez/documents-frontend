@@ -67,17 +67,16 @@ npm install
 npm start
 ```
 
-See [Getting Started](docs/getting-started.md) for full setup, environment variables, and debugging tips.
+See [Getting Started](docs/getting-started.md) for first launch, workspace connection, and initial use.
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [Getting Started](docs/getting-started.md) | Installation, setup, available scripts, build configuration, and debugging |
-| [Features](docs/features.md) | Detailed walkthrough of all application features and pages |
-| [Architecture](docs/architecture.md) | Electron process model, Vue app structure, and key design patterns |
-| [Electron Integration](docs/electron-integration.md) | IPC channels, preload bridge, file upload flow, and security configuration |
-| [Standalone Mode](docs/standalone.md) | Running the app as a self-contained local server |
+| [Getting Started](docs/getting-started.md) | First launch, workspaces, first project, and personal settings |
+| [Features](docs/features.md) | Functional overview of the application |
+| [How the Application Works](docs/architecture.md) | Workspaces, projects, files, saving, review, and background actions |
+| [Standalone Mode](docs/standalone.md) | Running a private workspace on the current computer |
 
 ## Building Distributables
 
