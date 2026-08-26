@@ -9,14 +9,20 @@ interface FolderScenario {
   assistantFiles?: ReturnType<typeof indexedFile>[];
   agentFiles?: ReturnType<typeof indexedFile>[];
   assistantMemory?: unknown[];
+  fileContents?: Record<number, string>;
 }
 
-function indexedFile(id: number, filename: string, folder: string) {
+function indexedFile(
+  id: number,
+  filename: string,
+  folder: string,
+  mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+) {
   return {
     id,
     filename,
     filePath: `${folder}/${filename}`,
-    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    mimeType,
     size: 12_288,
     mtime: NOW,
     createdAt: NOW,
@@ -34,7 +40,11 @@ async function fulfillJson(route: Route, body: unknown) {
 }
 
 async function installFolderApi(page: Page, scenario: FolderScenario) {
-  const requests = { assistantFiles: 0, agentFiles: 0 };
+  const requests = {
+    assistantFiles: 0,
+    agentFiles: 0,
+    writes: [] as Array<{ pathname: string; body: Record<string, unknown> }>,
+  };
 
   await page.route('**/*', async (route) => {
     const request = route.request();
@@ -86,6 +96,37 @@ async function installFolderApi(page: Page, scenario: FolderScenario) {
     if (request.method() === 'GET' && pathname === '/agents/2/indexed-files') {
       requests.agentFiles += 1;
       return fulfillJson(route, scenario.agentFiles ?? []);
+    }
+
+    const contentMatch = pathname.match(
+      /^\/(?:assistants\/1|agents\/2)\/indexed-files\/(\d+)\/content$/,
+    );
+    if (request.method() === 'GET' && contentMatch) {
+      const id = Number(contentMatch[1]);
+      const file = [...(scenario.assistantFiles ?? []), ...(scenario.agentFiles ?? [])]
+        .find((candidate) => candidate.id === id);
+      return fulfillJson(route, {
+        ok: true,
+        indexedFileId: id,
+        filename: file?.filename ?? 'unknown.txt',
+        content: scenario.fileContents?.[id] ?? '',
+        mimeType: file?.mimeType ?? 'text/plain',
+        size: scenario.fileContents?.[id]?.length ?? 0,
+        mtime: NOW,
+      });
+    }
+    if (
+      request.method() === 'POST'
+      && (pathname === '/assistants/1/indexed-files' || pathname === '/agents/2/indexed-files')
+    ) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      requests.writes.push({ pathname, body });
+      return fulfillJson(route, indexedFile(
+        100 + requests.writes.length,
+        String(body.filename),
+        scenario.assistantFolder ?? scenario.agentFolder ?? '/tmp/workspace',
+        'text/plain',
+      ));
     }
 
     await route.continue();
@@ -159,6 +200,48 @@ test('allows the assistant and an agent to share the same physical folder', asyn
 
   expect(requests.assistantFiles).toBeGreaterThan(0);
   expect(requests.agentFiles).toBeGreaterThan(0);
+});
+
+test('creates and edits UTF-8 files in the assistant working folder', async ({ electronApp }) => {
+  const page = await electronApp.firstWindow();
+  const folder = '/tmp/assistant-workspace';
+  const requests = await installFolderApi(page, {
+    assistantFolder: folder,
+    agentFolder: null,
+    assistantFiles: [indexedFile(41, 'settings.json', folder, 'application/json')],
+    fileContents: { 41: '{\n  "theme": "light"\n}' },
+  });
+  await prepareWindow(page);
+  await openAssistant(page);
+  await page.getByTitle('Working folder files').click();
+
+  await page.getByTitle('Create text file').click();
+  await page.getByLabel('Filename').fill('data/config.yaml');
+  await page.getByLabel('Content').fill('enabled: true\n');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect.poll(() => requests.writes.length).toBe(1);
+  expect(requests.writes[0]).toEqual({
+    pathname: '/assistants/1/indexed-files',
+    body: {
+      filename: 'data/config.yaml',
+      content: 'enabled: true\n',
+      overwrite: false,
+    },
+  });
+
+  await page.getByTitle('Edit settings.json').click();
+  await expect(page.getByLabel('Content')).toHaveValue('{\n  "theme": "light"\n}');
+  await page.getByLabel('Content').fill('{\n  "theme": "dark"\n}');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect.poll(() => requests.writes.length).toBe(2);
+  expect(requests.writes[1]).toEqual({
+    pathname: '/assistants/1/indexed-files',
+    body: {
+      filename: 'settings.json',
+      content: '{\n  "theme": "dark"\n}',
+      overwrite: true,
+    },
+  });
 });
 
 test('shows only governed memory and its consent provenance', async ({ electronApp }) => {

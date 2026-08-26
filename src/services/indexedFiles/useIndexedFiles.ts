@@ -22,6 +22,17 @@ export interface ReconcileResult {
     folderScope?: string;
 }
 
+export interface IndexedFileContent {
+    ok: true;
+    indexedFileId: number;
+    filename: string;
+    content: string;
+    mimeType: string;
+    size: number;
+    mtime: string;
+    derivedFromExtraction?: boolean;
+}
+
 function ownerBase(ownerType: WorkingFolderOwnerType, ownerId: number): string {
     const collection = ownerType === 'assistant' ? 'assistants' : 'agents';
     return `/${collection}/${ownerId}/indexed-files`;
@@ -51,6 +62,31 @@ export function useIndexedFiles() {
         return data;
     };
 
+    const read = async (
+        ownerType: WorkingFolderOwnerType,
+        ownerId: number,
+        id: number,
+    ): Promise<IndexedFileContent> => {
+        const { data } = await apiClient.get<IndexedFileContent>(
+            `${ownerBase(ownerType, ownerId)}/${id}/content`,
+        );
+        return data;
+    };
+
+    const write = async (
+        ownerType: WorkingFolderOwnerType,
+        ownerId: number,
+        filename: string,
+        content: string,
+        overwrite = false,
+    ): Promise<IndexedFile> => {
+        const { data } = await apiClient.post<IndexedFile>(
+            ownerBase(ownerType, ownerId),
+            { filename, content, overwrite },
+        );
+        return data;
+    };
+
     const remove = async (
         ownerType: WorkingFolderOwnerType,
         ownerId: number,
@@ -69,5 +105,5 @@ export function useIndexedFiles() {
         return data;
     };
 
-    return { list, upload, remove, reconcile };
+    return { list, upload, read, write, remove, reconcile };
 }

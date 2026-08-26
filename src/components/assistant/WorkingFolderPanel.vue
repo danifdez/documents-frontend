@@ -10,11 +10,12 @@
                     <h3 class="text-sm font-semibold text-text-primary">Working folder</h3>
                     <p class="truncate text-[11px] text-text-muted">
                         <template v-if="hasFolder">
-                            {{ files.length }} {{ files.length === 1 ? 'file' : 'files' }} · drop files to add
+                            {{ files.length }} {{ files.length === 1 ? 'file' : 'files' }} · create or drop files
                         </template>
                         <template v-else>No folder configured</template>
                     </p>
                 </div>
+                <button v-if="hasFolder" class="row-action" title="Create text file" @click="openCreate">＋</button>
                 <button v-if="hasFolder" class="row-action" :disabled="reconciling" title="Rescan folder"
                     @click="reconcile">
                     <span :class="{ 'inline-block animate-spin': reconciling }">↻</span>
@@ -31,7 +32,7 @@
                 </div>
                 <div v-else-if="files.length === 0 && uploads.length === 0"
                     class="px-4 py-8 text-center text-xs italic text-text-muted">
-                    No files yet. Drag and drop here to add one.
+                    No files yet. Create a text file or drag and drop one here.
                 </div>
 
                 <div v-for="upload in uploads" :key="upload.name"
@@ -60,6 +61,8 @@
                         </div>
                     </div>
                     <div class="flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button v-if="isEditable(file)" class="row-action" :title="`Edit ${file.filename}`"
+                            @click="openEdit(file)">✎</button>
                         <button v-if="shellAvailable" class="row-action" title="Open file" @click="openFile(file)">↗</button>
                         <button v-if="shellAvailable" class="row-action" title="Show in folder"
                             @click="showInFolder(file)">⌕</button>
@@ -72,6 +75,45 @@
             <div v-if="dragging && hasFolder"
                 class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-accent-subtle/90 text-sm font-medium text-accent-dark">
                 Drop to add to the working folder
+            </div>
+
+            <div v-if="editorMode" class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 p-3"
+                @click.self="closeEditor">
+                <form class="flex max-h-full w-full flex-col rounded-lg border border-border bg-surface-elevated p-4 shadow-xl"
+                    @submit.prevent="saveEditor">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                        <h4 class="text-sm font-semibold text-text-primary">
+                            {{ editorMode === 'create' ? 'Create text file' : 'Edit text file' }}
+                        </h4>
+                        <button type="button" class="row-action" title="Close editor" @click="closeEditor">✕</button>
+                    </div>
+                    <label class="mb-3 text-xs text-text-secondary">
+                        Filename
+                        <input v-model="editorFilename" class="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary"
+                            :readonly="editorMode === 'edit'" placeholder="notes.json" autocomplete="off" />
+                    </label>
+                    <div v-if="editorLoading" class="flex flex-1 justify-center py-16">
+                        <LoadingSpinner size="sm" />
+                    </div>
+                    <label v-else class="flex min-h-0 flex-1 flex-col text-xs text-text-secondary">
+                        Content
+                        <textarea v-model="editorContent"
+                            class="mt-1 h-56 min-h-32 resize-y rounded border border-border bg-surface p-2 font-mono text-xs text-text-primary"
+                            spellcheck="false" />
+                    </label>
+                    <p class="mt-2 text-[11px] text-text-muted">
+                        UTF-8 text formats such as Markdown, JSON, CSV, HTML, YAML and source code are supported.
+                    </p>
+                    <p v-if="editorError" class="mt-2 text-xs text-red-600">{{ editorError }}</p>
+                    <div class="mt-4 flex justify-end gap-2">
+                        <button type="button" class="rounded border border-border px-3 py-1.5 text-xs"
+                            @click="closeEditor">Cancel</button>
+                        <button type="submit" class="rounded bg-accent px-3 py-1.5 text-xs text-white"
+                            :disabled="editorLoading || editorSaving">
+                            {{ editorSaving ? 'Saving…' : editorMode === 'create' ? 'Create' : 'Save' }}
+                        </button>
+                    </div>
+                </form>
             </div>
 
             <div v-if="pendingDelete" class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 p-4"
@@ -122,6 +164,18 @@ const dragging = ref(false);
 const deleting = ref(false);
 const pendingDelete = ref<IndexedFile | null>(null);
 const uploads = ref<Array<{ name: string; error?: string }>>([]);
+const editorMode = ref<'create' | 'edit' | null>(null);
+const editorFilename = ref('');
+const editorContent = ref('');
+const editorLoading = ref(false);
+const editorSaving = ref(false);
+const editorError = ref('');
+
+const editableExtensions = new Set([
+    'md', 'txt', 'html', 'htm', 'csv', 'tsv', 'log', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini',
+    'py', 'js', 'ts', 'tsx', 'jsx', 'sh', 'bash', 'sql', 'css', 'scss', 'less', 'go', 'rs', 'rb',
+    'java', 'c', 'cpp', 'h', 'hpp', 'cs', 'php', 'r', 'kt', 'swift', 'svg',
+]);
 
 const hasFolder = computed(() => Boolean(props.folderScope));
 const shellAvailable = computed(() => Boolean(window.shellOps));
@@ -147,6 +201,76 @@ async function reconcile() {
         await refresh();
     } finally {
         reconciling.value = false;
+    }
+}
+
+function openCreate() {
+    pendingDelete.value = null;
+    editorMode.value = 'create';
+    editorFilename.value = '';
+    editorContent.value = '';
+    editorError.value = '';
+    editorLoading.value = false;
+}
+
+async function openEdit(file: IndexedFile) {
+    if (!props.ownerType || props.ownerId === null) return;
+    pendingDelete.value = null;
+    editorMode.value = 'edit';
+    editorFilename.value = file.filename;
+    editorContent.value = '';
+    editorError.value = '';
+    editorLoading.value = true;
+    try {
+        const result = await api.read(props.ownerType, props.ownerId, file.id);
+        if (result.derivedFromExtraction) {
+            editorError.value = 'This file can only be edited in its native application.';
+            return;
+        }
+        editorContent.value = result.content;
+    } catch (error: any) {
+        editorError.value = apiError(error, 'Could not read the file');
+    } finally {
+        editorLoading.value = false;
+    }
+}
+
+function closeEditor() {
+    if (editorSaving.value) return;
+    editorMode.value = null;
+    editorError.value = '';
+}
+
+async function saveEditor() {
+    if (!props.ownerType || props.ownerId === null || !editorMode.value) return;
+    const filename = editorFilename.value.trim();
+    if (!filename) {
+        editorError.value = 'Enter a filename.';
+        return;
+    }
+    if (!isEditableFilename(filename)) {
+        editorError.value = 'Use a supported UTF-8 text file extension.';
+        return;
+    }
+    editorSaving.value = true;
+    editorError.value = '';
+    try {
+        await api.write(
+            props.ownerType,
+            props.ownerId,
+            filename,
+            editorContent.value,
+            editorMode.value === 'edit',
+        );
+        await refresh();
+        editorMode.value = null;
+    } catch (error: any) {
+        editorError.value = apiError(
+            error,
+            editorMode.value === 'create' ? 'Could not create the file' : 'Could not save the file',
+        );
+    } finally {
+        editorSaving.value = false;
     }
 }
 
@@ -192,6 +316,19 @@ async function removePending() {
     }
 }
 
+function isEditable(file: IndexedFile): boolean {
+    return isEditableFilename(file.filename);
+}
+
+function isEditableFilename(filename: string): boolean {
+    const extension = filename.split('.').pop()?.toLowerCase() ?? '';
+    return editableExtensions.has(extension);
+}
+
+function apiError(error: any, fallback: string): string {
+    return error?.response?.data?.error || error?.message || fallback;
+}
+
 function formatSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -220,7 +357,10 @@ watch(
     () => [props.show, props.ownerType, props.ownerId, props.folderScope] as const,
     ([show]) => {
         if (show) void refresh();
-        else uploads.value = [];
+        else {
+            uploads.value = [];
+            editorMode.value = null;
+        }
     },
     { immediate: true },
 );
