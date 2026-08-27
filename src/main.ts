@@ -25,7 +25,13 @@ if (squirrelStartup) {
   app.quit();
 }
 
-if (!app.isPackaged) {
+const testUserDataDir = process.env.NODE_ENV === 'test'
+  ? process.env.DOCUMENTS_TEST_USER_DATA_DIR
+  : undefined;
+
+if (testUserDataDir) {
+  app.setPath('userData', testUserDataDir);
+} else if (!app.isPackaged) {
   app.setName('documents-frontend-dev');
   app.setPath('userData', path.join(app.getPath('appData'), 'documents-frontend-dev'));
 }

@@ -129,6 +129,10 @@ async function installFolderApi(page: Page, scenario: FolderScenario) {
       ));
     }
 
+    if (/^https?:/.test(request.url())) {
+      return fulfillJson(route, request.method() === 'GET' ? [] : {});
+    }
+
     await route.continue();
   });
 
@@ -137,6 +141,11 @@ async function installFolderApi(page: Page, scenario: FolderScenario) {
 
 async function prepareWindow(page: Page) {
   await page.waitForLoadState('domcontentloaded');
+
+  const connectToServer = page.getByRole('button', { name: /^Connect to server/ });
+  if (await connectToServer.isVisible().catch(() => false)) {
+    await connectToServer.click();
+  }
 
   const workspaceModal = page.locator('h2:has-text("Add Workspace")');
   if (await workspaceModal.isVisible().catch(() => false)) {
