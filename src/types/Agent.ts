@@ -33,22 +33,3 @@ export interface CreateAgentPayload {
 }
 
 export type UpdateAgentPayload = Partial<CreateAgentPayload>;
-
-export interface AgentResponseEvent {
-    agentId: number;
-    executionId: string;
-    message: AgentMessage;
-}
-
-export interface AgentToolEventPayload {
-    agentId: number;
-    executionId: string;
-    eventMessage: AgentMessage;
-}
-
-export interface AgentStreamChunkEvent {
-    agentId: number;
-    executionId: string;
-    chunk: string;
-    done?: boolean;
-}

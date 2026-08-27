@@ -120,7 +120,7 @@
 <script setup lang="ts">
 import { useAsk } from '../../services/ask/useAsk';
 import { subscribeExecutionPublication } from '../../services/notifications/executionPublication';
-import { ref, defineProps, defineEmits, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 
 const { ask, isLoading } = useAsk();
 const props = defineProps({

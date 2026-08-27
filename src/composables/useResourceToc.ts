@@ -17,7 +17,7 @@ export function useResourceToc(contentRef: Ref<any>) {
             } else {
                 tocItems.value = [];
             }
-        } catch (e) {
+        } catch {
             tocItems.value = [];
         }
     };

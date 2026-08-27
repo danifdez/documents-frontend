@@ -96,8 +96,6 @@ export const MathExtension = Node.create<MathOptions>({
     },
 
     addProseMirrorPlugins() {
-        const editor = this.editor;
-
         return [
             new Plugin({
                 key: new PluginKey('math-edit'),

@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, defineEmits } from 'vue';
+import { ref } from 'vue';
 import Modal from '../ui/Modal/Modal.vue';
 import Button from '../ui/Button.vue';
 import { useNotification } from '../../composables/useNotification';

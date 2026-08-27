@@ -25,8 +25,6 @@ export interface CreateMemoryEntryPayload {
 
 export type UpdateMemoryEntryPayload = Partial<CreateMemoryEntryPayload>;
 
-export const MEMORY_TYPES: MemoryEntryType[] = ['fact', 'preference', 'episode'];
-
 export const MEMORY_TYPE_LABEL: Record<MemoryEntryType, string> = {
     fact: 'fact',
     episode: 'episode',

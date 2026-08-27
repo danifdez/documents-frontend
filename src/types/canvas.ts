@@ -25,14 +25,3 @@ export interface CanvasEdge {
   label?: string;
   data?: Record<string, any>;
 }
-
-export interface CanvasRecord {
-  id: number;
-  name: string;
-  canvasData: CanvasData | null;
-  content: string | null;
-  thread: number | null;
-  project: number | null;
-  createdAt: string;
-  updatedAt: string;
-}

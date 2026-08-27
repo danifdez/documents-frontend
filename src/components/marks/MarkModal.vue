@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, computed } from 'vue';
+import { computed } from 'vue';
 import Modal from '../ui/Modal/Modal.vue';
 import Button from '../ui/Button.vue';
 

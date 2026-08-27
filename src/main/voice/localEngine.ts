@@ -113,7 +113,6 @@ class LocalEngine extends EventEmitter {
   private activeSessionId: string | null = null;
   private buffer: Buffer[] = [];
   private whisper: WhisperLike | null = null;
-  private modelLoaded = false;
   private renderer: WebContents | null = null;
   // Pseudo-streaming state. `generation` is bumped when the session stops
   // so any in-flight transcription's result is discarded; `partialBusy`
@@ -150,7 +149,6 @@ class LocalEngine extends EventEmitter {
       }
       if (!this.whisper) {
         this.whisper = new WhisperClass!(modelPath(), { gpu: false });
-        this.modelLoaded = true;
       }
     })().catch((err) => {
       // Reset so the next call can retry.
@@ -271,7 +269,6 @@ class LocalEngine extends EventEmitter {
     if (this.whisper) {
       try { await this.whisper.free(); } catch { /* ignore */ }
       this.whisper = null;
-      this.modelLoaded = false;
     }
   }
 

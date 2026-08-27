@@ -9,10 +9,6 @@ export interface LocalVoicePartial {
   isFinal: boolean;
 }
 
-export interface LocalVoiceError {
-  message: string;
-}
-
 export interface LocalModelProgress {
   /** Bytes downloaded so far. */
   downloaded: number;
@@ -31,9 +27,3 @@ export interface LocalModelProgress {
 export interface StartLocalResult {
   sessionId: string;
 }
-
-/** Reasons why the local engine may not be available. */
-export type LocalUnavailableReason =
-  | 'no-bindings'    // whisper.cpp native bindings fail to load
-  | 'no-model'       // the binding exists but the model hasn't been downloaded yet
-  | 'init-failed';   // bindings loaded but initialization failed

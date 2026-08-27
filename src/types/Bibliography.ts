@@ -75,17 +75,3 @@ export function creatorDisplayName(c: ZoteroCreator): string {
   if (c.lastName && c.firstName) return `${c.lastName}, ${c.firstName}`;
   return c.lastName ?? c.firstName ?? '';
 }
-
-// Helper: build APA-style author label from creators
-export function buildApaLabel(entry: BibliographyEntry): string {
-  const authors = (entry.creators ?? []).filter((c) => c.creatorType === 'author');
-  if (authors.length === 0) return entry.title ?? '';
-
-  const surnames = authors.map((c) => c.lastName ?? c.name ?? '');
-  let authorPart: string;
-  if (surnames.length === 1) authorPart = surnames[0];
-  else if (surnames.length === 2) authorPart = `${surnames[0]} & ${surnames[1]}`;
-  else authorPart = `${surnames[0]} et al.`;
-
-  return entry.year ? `${authorPart}, ${entry.year}` : authorPart;
-}

@@ -43,7 +43,7 @@ export function useResourceSplitDrop({
                     splitDocument.value = fullDocument;
                     splitViewActive.value = true;
                 }
-            } catch (error) {
+            } catch {
                 notification.error('Failed to load document');
             }
         } else if (droppedData && droppedData.type === 'resource') {
@@ -57,7 +57,7 @@ export function useResourceSplitDrop({
                     splitResource.value = fullResource;
                     splitViewActive.value = true;
                 }
-            } catch (error) {
+            } catch {
                 notification.error('Failed to load resource');
             }
         } else {

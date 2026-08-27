@@ -21,10 +21,3 @@ export interface AssistantMessage {
     event: AssistantMessageEvent | null;
     createdAt: string;
 }
-
-export interface AssistantResponseEvent {
-    assistantId: number;
-    executionId: string;
-    eventMessages?: AssistantMessage[];
-    message: AssistantMessage;
-}

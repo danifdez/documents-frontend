@@ -1,5 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import { createApp, h } from 'vue';
+import { createApp } from 'vue';
 import DatasetViewNode from '../DatasetViewNode.vue';
 
 export interface DatasetViewOptions {

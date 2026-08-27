@@ -17,13 +17,6 @@ vi.mock('@/components/editor/EditorToolbar.vue', () => ({
     }
 }));
 
-vi.mock('@/components/editor/TableContextMenu.vue', () => ({
-    default: {
-        template: '<div data-test="table-context-menu"></div>',
-        props: ['show', 'position', 'currentTableCell']
-    }
-}));
-
 describe('EditorContent.vue', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let wrapper: any;

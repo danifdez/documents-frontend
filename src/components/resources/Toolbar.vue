@@ -116,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, computed, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Button from '../ui/Button.vue';
 import ButtonGroup from '../ui/ButtonGroup.vue';
 import { useFeatureStore } from '../../store/featureStore';

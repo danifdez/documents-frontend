@@ -87,7 +87,7 @@ export function registerOfflineHandlers(): void {
 
   // ── Files ──
 
-  ipcMain.handle('offline:put-file', async (_, wsId: string, resourceId: number, base64Data: string, mimeType: string, ext: string) => {
+  ipcMain.handle('offline:put-file', async (_, wsId: string, resourceId: number, base64Data: string, _mimeType: string, ext: string) => {
     const p = filePath(wsId, resourceId, ext);
     await ensureDir(path.dirname(p));
     await fs.writeFile(p, Buffer.from(base64Data, 'base64'));

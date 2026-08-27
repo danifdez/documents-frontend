@@ -110,4 +110,3 @@ export const IpcEvents = {
 type ChannelValues<T> = T extends string ? T : { [K in keyof T]: ChannelValues<T[K]> }[keyof T];
 
 export type IpcChannel = ChannelValues<typeof IpcChannels>;
-export type IpcEventChannel = ChannelValues<typeof IpcEvents>;

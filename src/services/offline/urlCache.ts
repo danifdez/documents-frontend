@@ -84,22 +84,3 @@ export function getUrlCache(wsId: string, method: string, url: string): any | un
         return undefined;
     }
 }
-
-export function clearUrlCache(wsId?: string): void {
-    try {
-        const meta = loadMeta();
-        const prefix = wsId ? `${KEY_PREFIX}${wsId}:` : KEY_PREFIX;
-        for (const key of Object.keys(meta.entries)) {
-            if (key.startsWith(prefix)) {
-                try { localStorage.removeItem(key); } catch { /* ignore */ }
-                meta.totalSize -= meta.entries[key].size;
-                delete meta.entries[key];
-            }
-        }
-        if (!wsId) {
-            localStorage.removeItem(META_KEY);
-        } else {
-            saveMeta(meta);
-        }
-    } catch { /* ignore */ }
-}

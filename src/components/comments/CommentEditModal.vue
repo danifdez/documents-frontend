@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, defineEmits, nextTick, watch } from 'vue';
+import { ref, nextTick, watch } from 'vue';
 import Button from '../ui/Button.vue';
 
 const props = defineProps({

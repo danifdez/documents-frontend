@@ -48,15 +48,6 @@ export interface EntityDetail extends Entity {
     knowledgeEntries?: EntityKnowledgeEntry[];
 }
 
-export interface EntityMergeTarget {
-    id: number;
-    name: string;
-    entityType: {
-        id: number;
-        name: string;
-    };
-}
-
 export const useEntities = () => {
     const isLoading = ref(false);
     const error = ref<string | null>(null);
