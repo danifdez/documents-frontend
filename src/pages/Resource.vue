@@ -496,6 +496,7 @@ import apiClient from '../services/api';
 import { useListEditor } from '../composables/useListEditor';
 import { useResourceSplitDrop } from '../composables/useResourceSplitDrop';
 import { useResourceToc } from '../composables/useResourceToc';
+import { useResourceWorkspace } from '../composables/useResourceWorkspace';
 import { useResourceDocs } from '../services/documents/useResourceDocs';
 import { useResourcePendingEntities } from '../services/entities/useResourcePendingEntities';
 import { useResourceDetails } from '../services/resources/useResourceDetails';
@@ -535,9 +536,9 @@ const router = useRouter();
 const route = useRoute();
 const resourceId = computed(() => route.params.id as string);
 const { loadResource, updateResource, error, isLoading } = useResource();
-const { saveDocument, loadDocument } = useDocument();
+const { loadDocument } = useDocument();
 const { fetchTranslatedContent, fetchEntities, fetchRawFileText, confirmExtraction, deleteResource } = useResourceDetails();
-const { fetchWorkspaceDocument, createDocument, appendToDocument } = useResourceDocs();
+const { createDocument, appendToDocument } = useResourceDocs();
 const { fetchPendingEntities } = useResourcePendingEntities();
 const resource = ref<Record<string, any>>({});
 const projectStore = useProjectStore();
@@ -634,9 +635,13 @@ const summaryContent = ref<string | null>(null);
 const defaultLanguage = ref<string>('en');
 const isConfirming = ref(false);
 const hasPendingEntities = ref(false);
-const workspaceDocument = ref<Record<string, any> | null>(null);
-const isLoadingWorkspace = ref(false);
 const isWorkspaceShownInSplit = ref(false);
+const {
+    workspaceDocument,
+    loadWorkspaceDocument,
+    ensureWorkspace,
+    appendHtmlFragment: appendWorkspaceHtmlFragment,
+} = useResourceWorkspace(resourceId, resource);
 
 // Computed properties for resource status
 const isPendingConfirmation = computed(() => resource.value.status === 'extracted');
@@ -1340,39 +1345,13 @@ const handleEntitiesConfirmed = async () => {
     notification.success('Entities confirmed successfully');
 };
 
-const loadWorkspaceDocument = async () => {
-    if (!resourceId.value) return;
-
-    isLoadingWorkspace.value = true;
-    try {
-        workspaceDocument.value = await fetchWorkspaceDocument(resourceId.value);
-    } catch (error: unknown) {
-        if ((error as any)?.response?.status !== 404) {
-            console.error('Error loading workspace document:', error);
-        }
-        workspaceDocument.value = null;
-    } finally {
-        isLoadingWorkspace.value = false;
-    }
-};
-
 const handleCreateWorkspace = async () => {
-    if (workspaceDocument.value) {
-        // If workspace already exists, switch to it
-        displayMode.value = 'workspace';
-        return;
-    }
-
     try {
-        workspaceDocument.value = await createDocument({
-            name: `${resource.value.name} - Workspace`,
-            content: '',
-            resource: { id: Number(resourceId.value) },
-            project: resource.value.project ? { id: resource.value.project.id } : null,
-        });
-        notification.success('Workspace created successfully');
+        const { created } = await ensureWorkspace();
+        if (created) {
+            notification.success('Workspace created successfully');
+        }
 
-        // Switch to workspace view
         displayMode.value = 'workspace';
     } catch (error) {
         console.error('Error creating workspace:', error);
@@ -1444,12 +1423,9 @@ const handleToolbarSendSelection = async (text: string) => {
     if (!workspaceDocument.value || !workspaceDocument.value.id || !text || !text.trim()) return;
 
     try {
-        const existing = workspaceDocument.value.content || '';
         const paragraph = `<p>${escapeHtml(text.trim())}</p>`;
-        const newContent = existing + paragraph;
-
-        await saveDocument(workspaceDocument.value.id, { content: newContent });
-        workspaceDocument.value.content = newContent;
+        const appended = await appendWorkspaceHtmlFragment(paragraph);
+        if (!appended) return;
 
         notification.success('Selection added to workspace document');
     } catch (error) {
@@ -1463,23 +1439,16 @@ const handleSummarizeSelection = async (text: string) => {
     if (!text || !text.trim()) return;
 
     try {
-        // Ensure workspace exists
-        if (!workspaceDocument.value) {
-            workspaceDocument.value = await createDocument({
-                name: `${resource.value.name} - Workspace`,
-                content: '',
-                resource: { id: Number(resourceId.value) },
-                project: resource.value.project ? { id: resource.value.project.id } : null,
-            });
+        const { document, created } = await ensureWorkspace();
+        if (created) {
             notification.success('Workspace created to receive summary');
         }
 
-        // Include the selected text and target document id in the execution.
         await summarizeSelection({
             text: text.trim(),
             sourceLanguage: resource.value.language || defaultLanguage.value,
             targetLanguage: await getLanguage(),
-            targetDocId: workspaceDocument.value.id,
+            targetDocId: document.id,
         });
 
         notification.success('Summarization execution created for selected text');
