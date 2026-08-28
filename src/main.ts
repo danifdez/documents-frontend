@@ -4,7 +4,6 @@ import path from 'path';
 import axios from 'axios';
 import Store from 'electron-store';
 import squirrelStartup from 'electron-squirrel-startup';
-import { registerOfflineHandlers } from './main-offline';
 import { standaloneManager } from './services/standalone/standalone-manager';
 import { checkInstalled } from './services/standalone/download-manager';
 import { registerStandaloneHandlers, resolveStandaloneFeatures } from './main/standalone-handlers';
@@ -15,6 +14,7 @@ import { createNotificationHandlers } from './main/ipc/notification-handlers';
 import { createFileHandlers } from './main/ipc/file-handlers';
 import { createSettingsHandlers } from './main/ipc/settings-handlers';
 import { createWorkspaceHandlers } from './main/ipc/workspace-handlers';
+import { createOfflineHandlers } from './main/ipc/offline-handlers';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -550,8 +550,7 @@ app.whenReady().then(() => {
   // ── Local server (standalone) IPC handlers ──
   registerStandaloneHandlers({ store, getMainWindow: () => mainWindow });
 
-  // Register offline filesystem handlers
-  registerOfflineHandlers();
+  registerIpcHandlers(createOfflineHandlers());
 
   // Remove default application menu
   Menu.setApplicationMenu(null);
