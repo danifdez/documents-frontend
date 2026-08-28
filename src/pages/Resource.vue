@@ -525,6 +525,10 @@ import Button from '../components/ui/Button.vue';
 import ButtonGroup from '../components/ui/ButtonGroup.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import SendToDocModal from '../components/contents/SendToDocModal.vue';
+import {
+    toResourceContentMode,
+    type ResourceDisplayMode,
+} from '../types/ResourceDisplayMode';
 
 defineOptions({
     inheritAttrs: false
@@ -546,7 +550,7 @@ const featureStore = useFeatureStore();
 const notification = useNotification();
 const { getLanguage } = useElectronApi();
 const rawHtmlContent = ref<string>('');
-const displayMode = ref<'extracted' | 'raw' | 'translated' | 'overview' | 'workspace' | 'relationships'>('extracted');
+const displayMode = ref<ResourceDisplayMode>('extracted');
 const splitViewActive = ref(false);
 const splitDocument = ref<Record<string, any> | null>(null);
 const splitResource = ref<Record<string, any> | null>(null);
@@ -659,23 +663,7 @@ const shouldShowEntitiesTab = computed(() =>
 );
 const isWorkspaceSplitView = computed(() => splitViewActive.value && splitDocument.value?.id === workspaceDocument.value?.id);
 const showSidebar = computed(() => !isWorkspaceSplitView.value);
-const displayModeForEntities = computed<'extracted' | 'raw' | 'translated' | 'summary'>(() => {
-    // Child components expect 'summary' instead of 'overview'.
-    if (displayMode.value === 'workspace') {
-        return 'extracted'; // Default mode for entities when in workspace
-    }
-
-    if (displayMode.value === 'overview') {
-        return 'summary';
-    }
-
-    // Ensure value is one of the allowed ones
-    if (displayMode.value === 'extracted' || displayMode.value === 'raw' || displayMode.value === 'translated') {
-        return displayMode.value;
-    }
-
-    return 'extracted';
-});
+const displayModeForEntities = computed(() => toResourceContentMode(displayMode.value));
 
 const {
     tocItems,
@@ -763,7 +751,7 @@ const activeContents = computed(() => {
     return contents;
 });
 
-const handleDisplayMode = (mode: 'extracted' | 'raw' | 'translated' | 'overview' | 'workspace') => {
+const handleDisplayMode = (mode: ResourceDisplayMode) => {
     displayMode.value = mode;
 };
 
@@ -792,7 +780,7 @@ const loadRawHtmlContent = async () => {
     }
 };
 
-watch(displayMode, (newMode: 'extracted' | 'raw') => {
+watch(displayMode, (newMode: ResourceDisplayMode) => {
     if (newMode === 'raw' && !rawHtmlContent.value && isHtmlFile.value) {
         loadRawHtmlContent();
     }

@@ -59,7 +59,7 @@
                 </svg>
             </Button>
             <Button
-                v-if="!isEditMode && (actualDisplayMode === 'translated' || actualDisplayMode === 'summary' || actualDisplayMode === 'overview')"
+                v-if="!isEditMode && (actualDisplayMode === 'translated' || actualDisplayMode === 'overview')"
                 size="small" @click="emit('startEdit')">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -116,15 +116,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, type PropType } from 'vue';
 import Button from '../ui/Button.vue';
 import ButtonGroup from '../ui/ButtonGroup.vue';
 import { useFeatureStore } from '../../store/featureStore';
+import type { ResourceDisplayMode } from '../../types/ResourceDisplayMode';
 const featureStore = useFeatureStore();
 const props = defineProps({
     isEditMode: { type: Boolean },
     isSaving: { type: Boolean },
-    displayMode: { type: String, values: ['extracted', 'translated', 'raw', 'workspace'] },
+    displayMode: { type: String as PropType<ResourceDisplayMode> },
     hasExtractedContent: { type: Boolean },
     hasTranslatedContent: { type: Boolean },
     hasSummary: { type: Boolean, default: false },
@@ -140,7 +141,7 @@ const props = defineProps({
     isConfirmed: { type: Boolean, default: true },
 });
 
-const actualDisplayMode = ref(props.displayMode || 'extracted');
+const actualDisplayMode = ref<ResourceDisplayMode>(props.displayMode || 'extracted');
 
 // Keep internal actualDisplayMode in sync with parent prop changes
 watch(() => props.displayMode, (val) => {
@@ -174,7 +175,7 @@ const shouldShowTranslateButton = computed(() => {
     return props.sourceLanguage.toLowerCase() !== props.defaultLanguage.toLowerCase();
 });
 
-const changeDisplayMode = (mode: string) => {
+const changeDisplayMode = (mode: ResourceDisplayMode) => {
     emit('changeDisplayMode', mode);
     actualDisplayMode.value = mode;
 };

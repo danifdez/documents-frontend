@@ -252,6 +252,7 @@ import { usePendingEntities, type PendingEntity, type EntityAlias, type EntitySc
 import { useEntities } from '../../services/entities/useEntities';
 import { usePendingEntityValidation } from '../../services/entities/usePendingEntityValidation';
 import { useEntityTypes } from '../../services/entity-types/useEntityTypes';
+import type { ResourceContentMode } from '../../types/ResourceDisplayMode';
 
 export interface EntityType {
     id: number;
@@ -262,7 +263,7 @@ type PendingEntityWithEdit = PendingEntity & { _editedTranslation?: string };
 
 interface Props {
     resourceId: string;
-    displayMode?: 'extracted' | 'translated' | 'summary' | 'raw';
+    displayMode?: ResourceContentMode;
     resourceLanguage?: string;
     targetLanguage?: string;
 }

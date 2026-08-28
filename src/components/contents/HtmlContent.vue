@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, type PropType } from 'vue';
 import { onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import Toolbar from './Toolbar.vue';
@@ -38,6 +38,7 @@ import { useCommentCreate } from '../../services/comments/useCommentCreate';
 import { useProjectStore } from '../../store/projectStore';
 import CommentModal from '../comments/CommentModal.vue';
 import apiClient from '../../services/api';
+import type { ResourceContentMode } from '../../types/ResourceDisplayMode';
 
 const extractedContent = ref<HTMLDivElement | null>(null);
 const matches = ref([]);
@@ -70,7 +71,7 @@ const props = defineProps({
         default: false,
     },
     displayMode: {
-        type: String as () => 'extracted' | 'translated' | 'summary' | 'raw',
+        type: String as PropType<ResourceContentMode>,
         default: 'extracted',
     },
 });

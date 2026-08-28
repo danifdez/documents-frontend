@@ -177,11 +177,12 @@ import { useEntities, type Entity, type EntityAlias, type EntityTranslation } fr
 import { useNotification } from '../../composables/useNotification';
 import Button from '../ui/Button.vue';
 import ConfirmModal from '../ui/ConfirmModal.vue';
+import type { ResourceContentMode } from '../../types/ResourceDisplayMode';
 
 interface Props {
     resourceId: string;
     entities: Entity[];
-    displayMode?: 'extracted' | 'translated' | 'summary' | 'raw';
+    displayMode?: ResourceContentMode;
     resourceLanguage?: string;
     targetLanguage?: string;
 }
