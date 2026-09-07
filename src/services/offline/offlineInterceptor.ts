@@ -132,6 +132,18 @@ function offlineResponse(data: any, config: any, statusText: string) {
   return { data, status: 200, statusText, headers: {}, config };
 }
 
+async function queueOfflineMutation(
+  config: InternalAxiosRequestConfig,
+  matched: { type: string; id: number },
+) {
+  const { useOfflineStore } = await import('../../store/offlineStore');
+  const offlineStore = useOfflineStore();
+  const method = config.method!.toUpperCase() as 'PATCH' | 'POST' | 'DELETE';
+  const payload = config.data ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data) : {};
+  await offlineStore.addPendingChange(matched.type, matched.id, method, payload);
+  return offlineResponse({ ...payload, id: matched.id }, config, 'OK (queued offline)');
+}
+
 // ── Interceptors ──
 
 const OFFLINE_ABORT = '__offline_abort__';
@@ -211,12 +223,7 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
         const url = config.url || '';
         const matched = matchUrl(url);
         if (matched) {
-          const { useOfflineStore } = await import('../../store/offlineStore');
-          const offlineStore = useOfflineStore();
-          const method = config.method!.toUpperCase() as 'PATCH' | 'POST' | 'DELETE';
-          const payload = config.data ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data) : {};
-          await offlineStore.addPendingChange(matched.type, matched.id, method, payload);
-          return offlineResponse({ ...payload, id: matched.id }, config, 'OK (queued offline)');
+          return queueOfflineMutation(config, matched);
         }
 
         return Promise.reject(error);
@@ -240,12 +247,7 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
           const url = config.url || '';
           const matched = matchUrl(url);
           if (matched) {
-            const { useOfflineStore } = await import('../../store/offlineStore');
-            const offlineStore = useOfflineStore();
-            const method = config.method.toUpperCase() as 'PATCH' | 'POST' | 'DELETE';
-            const payload = config.data ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data) : {};
-            await offlineStore.addPendingChange(matched.type, matched.id, method, payload);
-            return offlineResponse({ ...payload, id: matched.id }, config, 'OK (queued offline)');
+            return queueOfflineMutation(config, matched);
           }
           // Unknown mutation URL: don't reject (would surface as unhandled rejection
           // and can blank the UI). Return a 503-like synthetic response; callers
