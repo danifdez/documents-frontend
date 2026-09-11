@@ -641,6 +641,7 @@ import { useTimelines } from '../services/timelines/useTimelines';
 import { useDocumentProjectList } from '../services/documents/useDocumentProjectList';
 import { useResourceList } from '../services/resources/useResourceList';
 import { useDatasets, type DatasetField, type Dataset } from '../services/datasets/useDatasets';
+import { analyzeDatasetRecords, buildTimelineEvents } from '../services/timelines/datasetTimelineMapper';
 import { useProjectStore } from '../store/projectStore';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import Button from '../components/ui/Button.vue';
@@ -648,7 +649,7 @@ import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import Modal from '../components/ui/Modal/Modal.vue';
 import TimelineHorizontal from '../components/timeline/TimelineHorizontal.vue';
 import TimelineVertical from '../components/timeline/TimelineVertical.vue';
-import type { TimelineEvent, TimelineEpoch, TimelineLayoutType } from '../types/timeline';
+import type { TimelineDatasetMapping, TimelineEvent, TimelineEpoch, TimelineLayoutType } from '../types/timeline';
 
 const route = useRoute();
 const router = useRouter();
@@ -1011,7 +1012,7 @@ const importTotalRecords = ref(0);
 const importError = ref('');
 const isImporting = ref(false);
 
-const importMapping = ref({ titleField: '', dateField: '', endDateField: '', descriptionField: '', color: '#3b82f6' });
+const importMapping = ref<TimelineDatasetMapping>({ titleField: '', dateField: '', endDateField: '', descriptionField: '', color: '#3b82f6' });
 const importSync = ref(false);
 
 const isSynced = computed(() => !!timelineData.value.syncDatasetId);
@@ -1019,29 +1020,16 @@ const isSynced = computed(() => !!timelineData.value.syncDatasetId);
 const importDateFields = computed(() => importSchema.value.filter(f => f.type === 'date' || f.type === 'datetime'));
 const importTextFields = computed(() => importSchema.value.filter(f => f.type === 'text'));
 
-const normalizeDate = (val: any): string => {
-  if (!val) return '';
-  const str = String(val);
-  const match = str.match(/^(\d{4}-\d{2}-\d{2})/);
-  return match ? match[1] : '';
-};
+const analyzedImportRecords = computed(() =>
+  analyzeDatasetRecords(importAllRecords.value, importMapping.value)
+);
 
 const importPreviewRecords = computed(() => {
-  if (!importMapping.value.titleField || !importMapping.value.dateField) return [];
-  return importAllRecords.value.slice(0, 10).map(r => ({
-    title: r.data?.[importMapping.value.titleField] || '',
-    date: normalizeDate(r.data?.[importMapping.value.dateField]),
-    endDate: importMapping.value.endDateField ? normalizeDate(r.data?.[importMapping.value.endDateField]) : '',
-  }));
+  return analyzedImportRecords.value.slice(0, 10).map(({ event }) => event);
 });
 
 const importValidRecords = computed(() => {
-  if (!importMapping.value.titleField || !importMapping.value.dateField) return [];
-  return importAllRecords.value.filter(r => {
-    const title = r.data?.[importMapping.value.titleField];
-    const date = normalizeDate(r.data?.[importMapping.value.dateField]);
-    return title && date;
-  });
+  return analyzedImportRecords.value.filter(({ valid }) => valid);
 });
 
 const importSkippedCount = computed(() => importAllRecords.value.length - importValidRecords.value.length);
@@ -1087,22 +1075,9 @@ const onDatasetSelected = async () => {
   }
 };
 
-const buildEventsFromRecords = (records: Record<string, any>[], mapping: typeof importMapping.value): TimelineEvent[] => {
-  return records
-    .filter(r => r.data?.[mapping.titleField] && normalizeDate(r.data?.[mapping.dateField]))
-    .map(r => ({
-      id: uuidv4(),
-      title: String(r.data[mapping.titleField]),
-      description: mapping.descriptionField ? (r.data[mapping.descriptionField] || undefined) : undefined,
-      date: normalizeDate(r.data[mapping.dateField]),
-      endDate: mapping.endDateField ? (normalizeDate(r.data[mapping.endDateField]) || undefined) : undefined,
-      color: mapping.color,
-    }));
-};
-
 const executeImport = async () => {
   if (!canImport.value) return;
-  const newEvents = buildEventsFromRecords(importAllRecords.value, importMapping.value);
+  const newEvents = buildTimelineEvents(importAllRecords.value, importMapping.value);
 
   if (importSync.value) {
     // Sync mode: replace all events, save dataset reference + mapping
@@ -1127,7 +1102,7 @@ const syncFromDataset = async () => {
   if (!dsId || !mapping) return;
   try {
     const { records } = await getRecords(dsId, { limit: 5000 });
-    const events = buildEventsFromRecords(records, mapping);
+    const events = buildTimelineEvents(records, mapping);
     timelineData.value.timelineData = events;
     await saveEvents();
   } catch (err) {

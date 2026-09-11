@@ -19,6 +19,14 @@ export interface TimelineEvent {
   resourceId?: number;
 }
 
+export interface TimelineDatasetMapping {
+  titleField: string;
+  dateField: string;
+  endDateField: string;
+  descriptionField: string;
+  color: string;
+}
+
 export interface TimelineRecord {
   id: number;
   name: string;
@@ -26,7 +34,7 @@ export interface TimelineRecord {
   epochs: TimelineEpoch[] | null;
   notes: string | null;
   syncDatasetId: number | null;
-  syncMapping: Record<string, string> | null;
+  syncMapping: TimelineDatasetMapping | null;
   layoutType: TimelineLayoutType;
   axisBreaks: boolean;
   project: { id: number; name: string } | null;
