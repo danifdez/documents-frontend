@@ -493,7 +493,7 @@ import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useNotification } from '../composables/useNotification';
 import apiClient from '../services/api';
-import { useListEditor } from '../composables/useListEditor';
+import { useResourceEditor } from '../composables/useResourceEditor';
 import { useResourceSplitDrop } from '../composables/useResourceSplitDrop';
 import { useResourceToc } from '../composables/useResourceToc';
 import { useResourceWorkspace } from '../composables/useResourceWorkspace';
@@ -612,18 +612,33 @@ watch(viewSideBar, (val) => {
     if (val === 'dates') refreshDates();
 });
 
-const isEditMode = ref(false);
-const editContent = ref('');
-const editType = ref<'content' | 'translatedContent' | 'summary' | 'overview'>('content');
-const isSaving = ref(false);
-const savedSuccessfully = ref(false);
-
-// Overview edit state
-const editSummary = ref('');
-const keyPointsEditor = useListEditor();
-const editKeyPoints = keyPointsEditor.items;
-const keywordsEditor = useListEditor();
-const editKeywords = keywordsEditor.items;
+const isPendingConfirmation = computed(() => resource.value.status === 'extracted');
+const {
+    isEditMode,
+    editContent,
+    editType,
+    isSaving,
+    savedSuccessfully,
+    editSummary,
+    editKeyPoints,
+    editKeywords,
+    startEdit: startResourceEdit,
+    handleEditContentChange,
+    saveEdit,
+    cancelEdit,
+    addKeyPoint: addKeyPointItem,
+    removeKeyPoint,
+    moveKeyPointUp,
+    moveKeyPointDown,
+    addKeyword: addKeywordItem,
+    removeKeyword,
+} = useResourceEditor({
+    resourceId,
+    resource,
+    isPendingConfirmation,
+    updateResource,
+    notification,
+});
 
 const isEditingName = ref(false);
 const editResourceName = ref('');
@@ -647,8 +662,6 @@ const {
     appendHtmlFragment: appendWorkspaceHtmlFragment,
 } = useResourceWorkspace(resourceId, resource);
 
-// Computed properties for resource status
-const isPendingConfirmation = computed(() => resource.value.status === 'extracted');
 const isExtracting = computed(() => {
     if (isVideoFile.value || isAudioFile.value) return false;
     return !resource.value.content || resource.value.content.trim().length === 0;
@@ -931,123 +944,11 @@ const handleRemoveResourceCancel = () => {
     showRemoveResourceModal.value = false;
 };
 
-const startEdit = () => {
-    if (displayMode.value === 'extracted' && resource.value.content) {
-        editType.value = 'content';
-        editContent.value = resource.value.content;
-    } else if (displayMode.value === 'translated' && resource.value.translatedContent) {
-        editType.value = 'translatedContent';
-        editContent.value = resource.value.translatedContent;
-    } else if (displayMode.value === 'overview') {
-        editType.value = 'overview';
-        editSummary.value = resource.value.summary || '';
-        editKeyPoints.value = [...(resource.value.keyPoints || [])];
-        editKeywords.value = [...(resource.value.keywords || [])];
-    }
-    isEditMode.value = true;
-    savedSuccessfully.value = false;
-};
-
-const handleEditContentChange = (content: string) => {
-    if (isPendingConfirmation.value) {
-        // When in pending confirmation mode, update resource content directly
-        resource.value.content = content;
-    } else {
-        // Normal edit mode
-        editContent.value = content;
-    }
-};
-
-const saveEdit = async () => {
-    isSaving.value = true;
-    savedSuccessfully.value = false;
-
-    try {
-        const updateData: Record<string, any> = {};
-
-        // Handle overview mode separately
-        if (editType.value === 'overview') {
-            // Filter out empty values
-            const filteredKeyPoints = editKeyPoints.value.filter(kp => kp.trim().length > 0);
-            const filteredKeywords = editKeywords.value.filter(kw => kw.trim().length > 0);
-
-            updateData.summary = editSummary.value;
-            updateData.keyPoints = filteredKeyPoints;
-            updateData.keywords = filteredKeywords;
-
-            await updateResource(resourceId.value, updateData);
-
-            // Update the resource object
-            resource.value.summary = editSummary.value;
-            resource.value.keyPoints = filteredKeyPoints;
-            resource.value.keywords = filteredKeywords;
-        } else {
-            // Handle regular content editing
-            const contentToSave = isPendingConfirmation.value ? resource.value.content : editContent.value;
-
-            if (!contentToSave || !contentToSave.trim()) {
-                notification.error('Content cannot be empty');
-                isSaving.value = false;
-                return;
-            }
-
-            // Determine which field to update based on editType
-            if (editType.value === 'content') {
-                updateData.content = contentToSave;
-            } else if (editType.value === 'translatedContent') {
-                updateData.translatedContent = contentToSave;
-            } else if (editType.value === 'summary') {
-                updateData.summary = contentToSave;
-            }
-
-            await updateResource(resourceId.value, updateData);
-
-            // Update the resource object with the new content
-            if (editType.value === 'content') {
-                resource.value.content = contentToSave;
-            } else if (editType.value === 'translatedContent') {
-                resource.value.translatedContent = contentToSave;
-            } else if (editType.value === 'summary') {
-                resource.value.summary = contentToSave;
-            }
-        }
-
-        savedSuccessfully.value = true;
-
-        if (!isPendingConfirmation.value) {
-            isEditMode.value = false;
-        }
-
-        notification.success('Content updated successfully');
-
-        setTimeout(() => {
-            savedSuccessfully.value = false;
-        }, 3000);
-    } catch (error) {
-        notification.error('Failed to save content');
-    } finally {
-        isSaving.value = false;
-    }
-};
-
-const cancelEdit = () => {
-    isEditMode.value = false;
-    editContent.value = '';
-    editSummary.value = '';
-    editKeyPoints.value = [];
-    editKeywords.value = [];
-    savedSuccessfully.value = false;
-};
-
-// Key point list operations delegate to useListEditor. addKeyPoint keeps a
-// wrapper because the template click binding would pass the event as the value.
-const addKeyPoint = () => keyPointsEditor.addItem();
-const removeKeyPoint = keyPointsEditor.removeItem;
-const moveKeyPointUp = keyPointsEditor.moveUp;
-const moveKeyPointDown = keyPointsEditor.moveDown;
+const startEdit = () => startResourceEdit(displayMode.value);
+const addKeyPoint = () => addKeyPointItem();
 
 const addKeyword = () => {
-    keywordsEditor.addItem();
+    addKeywordItem();
     // Focus on the newly added keyword input
     setTimeout(() => {
         const inputs = document.querySelectorAll('.keyword-input');
@@ -1056,8 +957,6 @@ const addKeyword = () => {
         }
     }, 0);
 };
-
-const removeKeyword = keywordsEditor.removeItem;
 
 // Kept inline instead of useListEditor.handleBackspace: the original checks the
 // DOM input value (not the model) and moves focus to the previous chip.
