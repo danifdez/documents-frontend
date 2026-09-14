@@ -11,6 +11,7 @@ TARGET=""
 FORMAT="deb"
 STAGING=""
 OUTPUT=""
+LOCAL_RELEASE_DIR=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -19,6 +20,7 @@ while [ "$#" -gt 0 ]; do
     --format) FORMAT="$2"; shift 2 ;;
     --staging) STAGING="$2"; shift 2 ;;
     --output) OUTPUT="$2"; shift 2 ;;
+    --local-release-dir) LOCAL_RELEASE_DIR="$2"; shift 2 ;;
     *) die "Unknown Frontend packaging argument: $1" 2 ;;
   esac
 done
@@ -32,6 +34,16 @@ assert_inside_workspace "$OUTPUT"
 require_command node
 require_command npm
 require_file "$SERVICE_DIR/package-lock.json"
+if [ -n "$LOCAL_RELEASE_DIR" ]; then
+  require_file "$LOCAL_RELEASE_DIR/release.json"
+  require_file "$LOCAL_RELEASE_DIR/checksums.sha256"
+  [ -d "$LOCAL_RELEASE_DIR/components" ] || die "Local release has no components directory: $LOCAL_RELEASE_DIR" 3
+  node --input-type=module - "$LOCAL_RELEASE_DIR/release.json" "$VERSION" <<'NODE' || die "Local release version does not match Frontend version" 3
+import fs from 'node:fs';
+const [, , manifestPath, version] = process.argv;
+if (JSON.parse(fs.readFileSync(manifestPath, 'utf8')).release !== version) process.exit(1);
+NODE
+fi
 
 case "$FORMAT" in
   deb) MAKER="@electron-forge/maker-deb" ;;
@@ -64,6 +76,15 @@ tar \
   -cf - -C "$SERVICE_DIR" . | tar -xf - -C "$SOURCE_DIR"
 run_logged "$LOG_FILE.version" npm --prefix "$SOURCE_DIR" version "$VERSION" \
   --no-git-tag-version --allow-same-version --ignore-scripts
+
+node --input-type=module - "$SOURCE_DIR/standalone-release-source.json" "$LOCAL_RELEASE_DIR" <<'NODE'
+import fs from 'node:fs';
+const [, , file, directory] = process.argv;
+fs.writeFileSync(file, `${JSON.stringify({ schemaVersion: 1, directory: directory || null }, null, 2)}\n`);
+NODE
+if [ -n "$LOCAL_RELEASE_DIR" ]; then
+  log_info "Configuring Frontend to use local release assets: $LOCAL_RELEASE_DIR"
+fi
 
 log_info "Installing and testing Frontend staging"
 run_logged "$LOG_FILE" npm --prefix "$SOURCE_DIR" ci

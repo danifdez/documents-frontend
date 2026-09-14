@@ -62,7 +62,13 @@ const RELEASE_BASE_URL =
   process.env.DOCUMENTS_RELEASE_BASE_URL?.replace(/\/+$/, '') ||
   `https://github.com/${GITHUB_REPO}/releases/download/v${app.getVersion()}`;
 
-let releaseManifestPromise: Promise<{ manifest: ReleaseManifest; url: string }> | null = null;
+interface LoadedReleaseManifest {
+  manifest: ReleaseManifest;
+  url?: string;
+  localDirectory?: string;
+}
+
+let releaseManifestPromise: Promise<LoadedReleaseManifest> | null = null;
 
 function getServicesDir(): string {
   return path.join(app.getPath('userData'), 'standalone-services');
@@ -80,9 +86,28 @@ function getReleaseManifestUrl(): string {
   return process.env.DOCUMENTS_RELEASE_MANIFEST_URL || `${RELEASE_BASE_URL}/release.json`;
 }
 
-async function loadReleaseManifest(): Promise<{ manifest: ReleaseManifest; url: string }> {
+function getLocalReleaseDirectory(): string | null {
+  if (!app.isPackaged) return null;
+  const configPath = path.join(process.resourcesPath, 'standalone-release-source.json');
+  try {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as { schemaVersion?: unknown; directory?: unknown };
+    if (config.schemaVersion !== 1 || typeof config.directory !== 'string' || !path.isAbsolute(config.directory)) return null;
+    return fs.existsSync(path.join(config.directory, 'release.json')) ? config.directory : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadReleaseManifest(): Promise<LoadedReleaseManifest> {
   if (!releaseManifestPromise) {
     releaseManifestPromise = (async () => {
+      const localDirectory = getLocalReleaseDirectory();
+      if (localDirectory) {
+        return {
+          manifest: validateReleaseManifest(JSON.parse(fs.readFileSync(path.join(localDirectory, 'release.json'), 'utf8'))),
+          localDirectory,
+        };
+      }
       const url = getReleaseManifestUrl();
       const temporary = path.join(app.getPath('temp'), `documents-release-${Date.now()}.partial`);
       try {
@@ -182,10 +207,10 @@ export async function downloadComponent(
   componentName: string,
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
-  const { manifest, url: manifestUrl } = await loadReleaseManifest();
+  const { manifest, url: manifestUrl, localDirectory } = await loadReleaseManifest();
   const target = getPlatformSuffix();
   const { component, variant, artifact } = selectReleaseArtifact(manifest, target, componentName);
-  const url = resolveArtifactUrl(manifestUrl, artifact.file);
+  const url = manifestUrl ? resolveArtifactUrl(manifestUrl, artifact.file) : undefined;
   const userData = app.getPath('userData');
   const baseDir = getComponentBase(userData, component);
   const installName = getInstallDirectoryName(component, artifact, variant);
@@ -199,12 +224,19 @@ export async function downloadComponent(
 
   fs.mkdirSync(baseDir, { recursive: true });
   try {
-    await downloadFile(url, tmpFile, (downloaded, total) => {
-      if (onProgress) {
-        const frac = total > 0 ? downloaded / total : 0;
-        onProgress({ component: componentName, downloaded, total, percent: Math.round(frac * 50) });
-      }
-    }, artifact.size);
+    if (localDirectory) {
+      copyLocalReleaseArtifact(localDirectory, artifact, tmpFile, (downloaded, total) => {
+        if (onProgress) onProgress({ component: componentName, downloaded, total, percent: Math.round((downloaded / total) * 50) });
+      });
+    } else {
+      if (!url) throw new Error('Standalone release URL is unavailable');
+      await downloadFile(url, tmpFile, (downloaded, total) => {
+        if (onProgress) {
+          const frac = total > 0 ? downloaded / total : 0;
+          onProgress({ component: componentName, downloaded, total, percent: Math.round(frac * 50) });
+        }
+      }, artifact.size);
+    }
 
     const checksum = await sha256File(tmpFile);
     if (checksum !== artifact.sha256) throw new Error(`Checksum mismatch for ${componentName}`);
@@ -247,6 +279,23 @@ export async function downloadComponent(
     try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
     try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch { /* ignore */ }
   }
+}
+
+function copyLocalReleaseArtifact(
+  releaseDirectory: string,
+  artifact: ReleaseArtifact,
+  destination: string,
+  onProgress?: (downloaded: number, total: number) => void,
+): void {
+  const source = path.resolve(releaseDirectory, artifact.file);
+  const relative = path.relative(releaseDirectory, source);
+  if (relative.startsWith('..') || path.isAbsolute(relative) || !fs.existsSync(source)) {
+    throw new Error(`Local release artifact is missing: ${artifact.file}`);
+  }
+  const size = fs.statSync(source).size;
+  if (size !== artifact.size) throw new Error(`Local release artifact size mismatch: ${artifact.file}`);
+  fs.copyFileSync(source, destination);
+  onProgress?.(size, size);
 }
 
 function replaceDirectory(stagingDir: string, finalDir: string): void {
