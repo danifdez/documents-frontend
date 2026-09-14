@@ -390,7 +390,7 @@ const handleMoveItem = async (targetThreadId) => {
     showMoveModal.value = false;
     const id = route.params.id;
     await loadDocumentsByProject(id);
-    await loadCanvasesByProject(id);
+    if (featureStore.isEnabled('canvas')) await loadCanvasesByProject(id);
     await loadThreads(id);
   } catch {
     notification.error('Failed to move item');
@@ -426,6 +426,16 @@ const clearFilter = () => {
   filterThreadsAndDocuments('');
 };
 
+const loadProjectCollections = async (id) => {
+  await loadThreads(id);
+  await loadDocumentsByProject(id);
+  if (featureStore.isEnabled('canvas')) await loadCanvasesByProject(id);
+  projectResources.value = await loadResourcesByProject(id);
+  await loadNotesByProject(id);
+  await loadEventsByProject(id);
+  if (featureStore.isEnabled('timelines')) await loadTimelinesByProject(id);
+};
+
 onMounted(async () => {
   const id = route.params.id;
   if (!id) {
@@ -436,13 +446,7 @@ onMounted(async () => {
   await loadResourceTypes();
 
   if (projectStore.currentProject && projectStore.currentProject.id === id) {
-    await loadThreads(id);
-    await loadDocumentsByProject(id);
-    await loadCanvasesByProject(id);
-    projectResources.value = await loadResourcesByProject(id);
-    await loadNotesByProject(id);
-    await loadEventsByProject(id);
-    await loadTimelinesByProject(id);
+    await loadProjectCollections(id);
     return;
   }
 
@@ -453,13 +457,7 @@ onMounted(async () => {
       return;
     }
 
-    await loadThreads(id);
-    await loadDocumentsByProject(id);
-    await loadCanvasesByProject(id);
-    projectResources.value = await loadResourcesByProject(id);
-    await loadNotesByProject(id);
-    await loadEventsByProject(id);
-    await loadTimelinesByProject(id);
+    await loadProjectCollections(id);
 
   } catch (err) {
     console.error('Project.vue: Unexpected error during project loading:', err);
