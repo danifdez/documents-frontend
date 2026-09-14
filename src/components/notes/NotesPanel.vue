@@ -302,7 +302,7 @@ async function selectNote(note: Note) {
 async function createNewNote() {
   const data: any = { title: 'Untitled Note' };
   if (contextProject.value) {
-    data.project = { id: contextProject.value.id };
+    data.projectId = contextProject.value.id;
   }
   try {
     const newNote = await createNote(data);
@@ -347,8 +347,8 @@ async function saveProject() {
   saving.value = true;
   try {
     const data: any = editProjectId.value
-      ? { project: { id: editProjectId.value } }
-      : { project: null };
+      ? { projectId: editProjectId.value }
+      : { projectId: null };
     await updateNote(selectedNote.value.id, data);
     const proj = projectsList.value.find(p => p.id === editProjectId.value);
     selectedNote.value.project = proj ? { id: proj.id, name: proj.name } : null;
