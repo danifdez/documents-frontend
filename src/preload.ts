@@ -113,6 +113,7 @@ const electronAPI: ElectronAPI = {
     standaloneUninstallModels: () => ipcRenderer.invoke(IpcChannels.standalone.uninstallModels),
     standaloneStart: () => ipcRenderer.invoke(IpcChannels.standalone.start),
     standaloneStop: () => ipcRenderer.invoke(IpcChannels.standalone.stop),
+    splashAction: (action: 'retry' | 'reinstall' | 'reset' | 'open') => ipcRenderer.invoke(IpcChannels.app.splashAction, action),
     standaloneStatus: () => ipcRenderer.invoke(IpcChannels.standalone.status),
     standaloneGetUrl: () => ipcRenderer.invoke(IpcChannels.standalone.getUrl),
     onStandaloneDownloadProgress: (callback: (progress: any) => void) =>

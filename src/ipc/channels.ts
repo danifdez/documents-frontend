@@ -42,6 +42,7 @@ export const IpcChannels = {
   app: {
     trayAvailable: 'app:tray-available',
     getPlatform: 'app:get-platform',
+    splashAction: 'app:splash-action',
   },
   workspace: {
     list: 'workspace:list',

@@ -67,6 +67,7 @@ export interface ElectronAPI {
     standaloneUninstallModels: () => Promise<{ success: boolean; error?: string }>;
     standaloneStart: () => Promise<{ success: boolean; url?: string; error?: string }>;
     standaloneStop: () => Promise<{ success: boolean; error?: string }>;
+    splashAction: (action: 'retry' | 'reinstall' | 'reset' | 'open') => Promise<{ success: boolean; error?: string }>;
     standaloneStatus: () => Promise<{
         services: { postgres: string; backend: string; models: string };
         errors: Partial<Record<'postgres' | 'backend' | 'models', string>>;

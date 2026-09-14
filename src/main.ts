@@ -1,13 +1,14 @@
-import { app, BrowserWindow, Notification, screen, Menu, globalShortcut, session, Tray, nativeImage } from 'electron';
+import { app, BrowserWindow, Notification, screen, Menu, globalShortcut, session, Tray, nativeImage, dialog } from 'electron';
 import { localEngine } from './main/voice/localEngine';
 import path from 'path';
+import fs from 'fs';
 import axios from 'axios';
 import Store from 'electron-store';
 import squirrelStartup from 'electron-squirrel-startup';
 import { standaloneManager } from './services/standalone/standalone-manager';
-import { checkInstalled } from './services/standalone/download-manager';
+import { checkInstalled, downloadAll, uninstallServices } from './services/standalone/download-manager';
 import { registerStandaloneHandlers, resolveStandaloneFeatures } from './main/standalone-handlers';
-import { IpcEvents } from './ipc/channels';
+import { IpcChannels, IpcEvents } from './ipc/channels';
 import { registerIpcHandlers } from './main/ipc/registry';
 import { createVoiceHandlers } from './main/ipc/voice-handlers';
 import { createNotificationHandlers } from './main/ipc/notification-handlers';
@@ -50,6 +51,7 @@ if (!gotTheLock) {
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
 let splashPoll: ReturnType<typeof setInterval> | null = null;
+let splashRecoveryInProgress = false;
 
 // Tray state. `trayUnavailable` is consumed by T05
 // (`window-all-closed` / `mainWindow.on('close')`) and by T08 (Settings UI
@@ -445,21 +447,11 @@ function createSplashWindow() {
     alwaysOnTop: true,
     webPreferences: {
       devTools: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
   showSplashLoading();
-
-  splashWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith('documents-splash://')) return;
-    event.preventDefault();
-    const action = new URL(url).hostname;
-    if (action === 'retry') {
-      startStandaloneFromSplash();
-    } else if (action === 'open') {
-      revealMainWindow();
-    }
-  });
 
   splashWindow.on('closed', () => {
     splashWindow = null;
@@ -467,22 +459,22 @@ function createSplashWindow() {
 }
 
 function splashHtml(content: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Documents</title><style>html,body{margin:0;height:100%}body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:#000;color:#fff;display:flex;align-items:center;justify-content:center}.card{width:min(520px,calc(100vw - 48px));text-align:center}.spinner{width:42px;height:42px;margin:0 auto 22px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#2563eb;animation:spin .9s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.label{font-size:15px;color:#cbd5e1;letter-spacing:.2px}.error{color:#fca5a5;font-size:14px;margin:14px 0;white-space:pre-wrap;overflow-wrap:anywhere}.hint{color:#94a3b8;font-size:13px;line-height:1.45}.actions{display:flex;justify-content:center;gap:10px;margin-top:22px}.button{padding:9px 14px;border-radius:7px;text-decoration:none;font-size:14px;font-weight:600;background:#2563eb;color:#fff}.secondary{background:#1e293b;color:#e2e8f0}</style></head><body><div class="card">${content}</div></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Documents</title><style>html,body{margin:0;height:100%}body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:#000;color:#fff;display:flex;align-items:center;justify-content:center}.card{width:min(520px,calc(100vw - 48px));text-align:center}.spinner{width:42px;height:42px;margin:0 auto 22px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#2563eb;animation:spin .9s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.label{font-size:15px;color:#cbd5e1;letter-spacing:.2px}.error{color:#fca5a5;font-size:14px;margin:14px 0;white-space:pre-wrap;overflow-wrap:anywhere}.hint{color:#94a3b8;font-size:13px;line-height:1.45}.actions{display:flex;justify-content:center;gap:10px;margin-top:22px}.button{padding:9px 14px;border:0;border-radius:7px;text-decoration:none;font-size:14px;font-weight:600;background:#2563eb;color:#fff;cursor:pointer}.secondary{background:#1e293b;color:#e2e8f0}</style></head><body><div class="card">${content}</div></body></html>`;
 }
 
 function escapeSplashText(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] ?? character));
 }
 
-function showSplashLoading() {
-  splashWindow?.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml('<div class="spinner"></div><div class="label">Starting Documents…</div>')));
+function showSplashLoading(message = 'Starting Documents…') {
+  splashWindow?.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml(`<div class="spinner"></div><div class="label">${escapeSplashText(message)}</div>`)));
 }
 
 function showSplashError(error: string) {
   if (splashPoll) clearInterval(splashPoll);
   splashPoll = null;
   const detail = escapeSplashText(error.slice(0, 1600));
-  splashWindow?.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml(`<h2>Local server could not start</h2><div class="error">${detail}</div><div class="hint">You can retry after correcting the issue, or open Documents to repair the local server from Settings.</div><div class="actions"><a class="button" href="documents-splash://retry">Retry</a><a class="button secondary" href="documents-splash://open">Open Documents</a></div>`)));
+  splashWindow?.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml(`<h2>Local server could not start</h2><div class="error">${detail}</div><div class="hint">Reinstall services keeps projects. Reset local data and services creates a new local database, deleting local projects, documents and settings, while keeping downloaded AI models.</div><div class="actions"><button class="button" onclick="window.electronAPI.splashAction('reset')">Reset local data and services</button><button class="button secondary" onclick="window.electronAPI.splashAction('reinstall')">Reinstall services</button><button class="button secondary" onclick="window.electronAPI.splashAction('retry')">Retry</button></div>`)));
 }
 
 function revealMainWindow() {
@@ -517,6 +509,53 @@ function startStandaloneFromSplash() {
         }
       }, 1000);
     });
+}
+
+async function reinstallStandaloneFromSplash() {
+  if (splashRecoveryInProgress) return;
+  splashRecoveryInProgress = true;
+  showSplashLoading();
+  try {
+    await standaloneManager.stop();
+    await uninstallServices();
+    showSplashLoading('Reinstalling local services…');
+    await downloadAll();
+    startStandaloneFromSplash();
+  } catch (error) {
+    showSplashError(error instanceof Error ? error.message : String(error));
+  } finally {
+    splashRecoveryInProgress = false;
+  }
+}
+
+async function resetStandaloneFromSplash() {
+  if (splashRecoveryInProgress) return;
+  const confirmation = await dialog.showMessageBox(splashWindow ?? undefined, {
+    type: 'warning',
+    buttons: ['Cancel', 'Reset local installation'],
+    defaultId: 0,
+    cancelId: 0,
+    title: 'Reset local installation',
+    message: 'Delete local projects and documents?',
+    detail: 'This recreates the local PostgreSQL database and reinstalls the local services. Downloaded AI models are kept.',
+  });
+  if (confirmation.response !== 1) return;
+
+  splashRecoveryInProgress = true;
+  showSplashLoading('Resetting local data and services…');
+  try {
+    await standaloneManager.stop();
+    const userData = app.getPath('userData');
+    fs.rmSync(path.join(userData, 'local-server'), { recursive: true, force: true });
+    await uninstallServices();
+    showSplashLoading('Installing local services…');
+    await downloadAll();
+    startStandaloneFromSplash();
+  } catch (error) {
+    showSplashError(error instanceof Error ? error.message : String(error));
+  } finally {
+    splashRecoveryInProgress = false;
+  }
 }
 
 const createWindow = () => {
@@ -608,6 +647,20 @@ app.whenReady().then(() => {
       isTrayAvailable: () => !trayUnavailable,
     }),
     ...createWorkspaceHandlers(store),
+    [IpcChannels.app.splashAction]: async (_event, action: unknown) => {
+      if (action === 'retry') {
+        startStandaloneFromSplash();
+      } else if (action === 'reinstall') {
+        await reinstallStandaloneFromSplash();
+      } else if (action === 'reset') {
+        await resetStandaloneFromSplash();
+      } else if (action === 'open') {
+        revealMainWindow();
+      } else {
+        return { success: false, error: 'Unsupported splash action' };
+      }
+      return { success: true };
+    },
   });
 
   // ── Local server (standalone) IPC handlers ──

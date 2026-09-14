@@ -94,7 +94,9 @@ class StandaloneManager {
     };
 
     let attempt = 0;
-    const maxAttempts = 2;
+    // PostgreSQL readiness is awaited above, so a second full backend boot
+    // only conceals deterministic errors and delays recovery in the splash.
+    const maxAttempts = 1;
     while (attempt < maxAttempts) {
       attempt += 1;
       try {

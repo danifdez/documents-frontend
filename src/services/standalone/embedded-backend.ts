@@ -169,8 +169,10 @@ export class EmbeddedBackendService {
 
     this._port = port;
 
-    // Wait for the backend to be ready (increase timeout for packaged installs)
-    const waitTimeout = 120000; // 120 seconds
+    // PostgreSQL has already reported ready at this point. A normal Nest boot,
+    // including pending migrations, should complete quickly; recovery should
+    // not hold the splash screen for minutes when it does not.
+    const waitTimeout = 30000;
     await this.waitForReady(port, waitTimeout, this.process);
     this._running = true;
   }
