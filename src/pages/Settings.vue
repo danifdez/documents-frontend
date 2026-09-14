@@ -376,6 +376,14 @@
                             </div>
                         </div>
 
+                        <div class="mt-5 pt-4 border-t border-border">
+                            <p class="text-xs text-text-muted mb-3">Downloads and activates newer local service versions without reinstalling Documents.</p>
+                            <button @click="updateStandaloneServices" :disabled="standaloneDownloading"
+                                class="px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                {{ standaloneDownloading ? 'Updating services...' : 'Update local services' }}
+                            </button>
+                        </div>
+
                         <!-- Uninstall local server -->
                         <div class="mt-5 pt-4 border-t border-border">
                             <button @click="uninstallStandalone"
@@ -622,6 +630,7 @@ const {
     loadHardwareReport,
     installStandalone,
     uninstallStandalone,
+    updateStandaloneServices,
     installModels,
     uninstallModels,
     subscribeDownloadProgress,

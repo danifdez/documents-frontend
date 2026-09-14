@@ -240,7 +240,7 @@ const { loadThread } = useThread();
 const { isDragOver, handleDragOver, handleDragEnter, handleDragLeave, handleDrop } = useDragDrop();
 const thread = ref(null);
 const projectStore = useProjectStore();
-const isNewDocument = computed(() => route.params.id === 'new');
+const isNewDocument = computed(() => route.params.id === 'new' && !docData.value.id);
 const viewSideBar = ref<'toc' | 'comments' | 'search' | 'hidden'>(isNewDocument.value ? 'hidden' : 'toc');
 const showToc = computed(() => viewSideBar.value === 'toc');
 const tocRef = ref(null);
@@ -455,7 +455,26 @@ const autoSave = useAutoSave(async () => {
       docData.value.content = htmlContent.value;
 
       if (isNewDocument.value) {
-        await createDocument(docData.value);
+        const relationId = (relation: unknown): number | undefined => {
+          const value = typeof relation === 'object' && relation !== null
+            ? (relation as { id?: unknown }).id
+            : relation;
+          const id = Number(value);
+          return Number.isInteger(id) && id > 0 ? id : undefined;
+        };
+        const created = await createDocument({
+          name: docData.value.name,
+          content: htmlContent.value,
+          citationFormat: docData.value.citationFormat,
+          threadId: relationId(docData.value.thread),
+          projectId: relationId(docData.value.project),
+        });
+        docData.value = created;
+        htmlContent.value = created.content ?? htmlContent.value;
+        await router.replace({
+          path: `/document/${created.id}`,
+          query: route.query,
+        });
       } else {
         await saveDocument(docData.value.id, { content: htmlContent.value });
       }

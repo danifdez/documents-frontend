@@ -105,6 +105,7 @@ const electronAPI: ElectronAPI = {
     standaloneDetectGpu: () => ipcRenderer.invoke(IpcChannels.standalone.detectGpu),
     standaloneHardwareReport: () => ipcRenderer.invoke(IpcChannels.standalone.hardwareReport),
     standaloneDownloadAll: () => ipcRenderer.invoke(IpcChannels.standalone.downloadAll),
+    standaloneUpdateServices: () => ipcRenderer.invoke(IpcChannels.standalone.updateServices),
     standaloneInstallProfile: (profile: { key: string; components: string[]; features: string[] }) =>
         ipcRenderer.invoke(IpcChannels.standalone.installProfile, profile),
     standaloneDownloadComponent: (component: string) => ipcRenderer.invoke(IpcChannels.standalone.downloadComponent, component),
@@ -116,6 +117,7 @@ const electronAPI: ElectronAPI = {
     splashAction: (action: 'retry' | 'reinstall' | 'reset' | 'open') => ipcRenderer.invoke(IpcChannels.app.splashAction, action),
     standaloneStatus: () => ipcRenderer.invoke(IpcChannels.standalone.status),
     standaloneGetUrl: () => ipcRenderer.invoke(IpcChannels.standalone.getUrl),
+    standaloneGetFeatures: () => ipcRenderer.invoke(IpcChannels.standalone.getFeatures),
     onStandaloneDownloadProgress: (callback: (progress: any) => void) =>
         ipcRenderer.on(IpcEvents.standalone.downloadProgress, (_event, progress) => callback(progress)),
 

@@ -60,6 +60,7 @@ export interface ElectronAPI {
         };
     }>;
     standaloneDownloadAll: () => Promise<{ success: boolean; error?: string }>;
+    standaloneUpdateServices: () => Promise<{ success: boolean; updated?: string[]; error?: string }>;
     standaloneInstallProfile: (profile: { key: string; components: string[]; features: string[] }) => Promise<{ success: boolean; error?: string }>;
     standaloneDownloadComponent: (component: string) => Promise<{ success: boolean; error?: string }>;
     standaloneInstallModels: (variant: string) => Promise<{ success: boolean; error?: string }>;
@@ -73,6 +74,7 @@ export interface ElectronAPI {
         errors: Partial<Record<'postgres' | 'backend' | 'models', string>>;
     }>;
     standaloneGetUrl: () => Promise<string | null>;
+    standaloneGetFeatures: () => Promise<Record<string, boolean>>;
     onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number; step?: number; totalSteps?: number; overallPercent?: number }) => void) => void;
 
     // Offline filesystem storage

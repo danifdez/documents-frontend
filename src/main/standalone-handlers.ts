@@ -6,6 +6,7 @@ import {
   isStandaloneReady,
   downloadComponent,
   downloadAll,
+  updateServices,
   installModels,
   uninstallServices,
   uninstallModels,
@@ -59,6 +60,22 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
         await downloadAll(emitProgress);
         return { success: true };
       } catch (err: any) {
+        return { success: false, error: err.message };
+      }
+    },
+
+    [IpcChannels.standalone.updateServices]: async () => {
+      try {
+        await standaloneManager.stop();
+        const updated = await updateServices(emitProgress);
+        await standaloneManager.start({ features: resolveStandaloneFeatures(store) });
+        return { success: true, updated };
+      } catch (err: any) {
+        try {
+          await standaloneManager.start({ features: resolveStandaloneFeatures(store) });
+        } catch {
+          // Keep the original update error; the manager exposes startup details separately.
+        }
         return { success: false, error: err.message };
       }
     },
@@ -136,6 +153,10 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
 
     [IpcChannels.standalone.getUrl]: () => {
       return standaloneManager.getBackendUrl();
+    },
+
+    [IpcChannels.standalone.getFeatures]: () => {
+      return resolveStandaloneFeatures(store);
     },
   });
 }

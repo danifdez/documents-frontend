@@ -97,7 +97,10 @@ export class EmbeddedBackendService {
       POSTGRES_USER: config.postgresUser,
       POSTGRES_PASSWORD: config.postgresPassword,
       POSTGRES_DB: config.postgresDatabase,
-      STORAGE_PATH: config.storagePath,
+      // The backend reads DOCUMENTS_STORAGE_DIR. Keeping this data outside the
+      // downloaded component is essential: component upgrades/reinstalls must
+      // never make user files unavailable or attempt to write into app assets.
+      DOCUMENTS_STORAGE_DIR: config.storagePath,
       MODELS_ENROLLMENT_TOKEN: config.modelsEnrollmentToken,
       PORT: String(port),
       AUTH_ENABLED: config.authEnabled ? 'true' : 'false',

@@ -19,6 +19,9 @@ export const useFeatureStore = defineStore('features', () => {
   }
 
   async function loadLocalPreferences() {
+    if (window.electronAPI?.standaloneGetFeatures) {
+      setBackendFeatures(await window.electronAPI.standaloneGetFeatures());
+    }
     if (window.electronAPI?.getSettings) {
       const settings = await window.electronAPI.getSettings();
       disabledFeatures.value = settings?.disabledFeatures || [];

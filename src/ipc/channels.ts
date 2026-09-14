@@ -60,6 +60,7 @@ export const IpcChannels = {
     detectGpu: 'standalone:detect-gpu',
     hardwareReport: 'standalone:hardware-report',
     downloadAll: 'standalone:download-all',
+    updateServices: 'standalone:update-services',
     installProfile: 'standalone:install-profile',
     downloadComponent: 'standalone:download-component',
     installModels: 'standalone:install-models',
@@ -69,6 +70,7 @@ export const IpcChannels = {
     stop: 'standalone:stop',
     status: 'standalone:status',
     getUrl: 'standalone:get-url',
+    getFeatures: 'standalone:get-features',
   },
   offline: {
     putItem: 'offline:put-item',

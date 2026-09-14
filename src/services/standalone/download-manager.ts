@@ -62,6 +62,9 @@ const GITHUB_REPO = 'danifdez/documents';
 const RELEASE_BASE_URL =
   process.env.DOCUMENTS_RELEASE_BASE_URL?.replace(/\/+$/, '') ||
   `https://github.com/${GITHUB_REPO}/releases/download/v${app.getVersion()}`;
+const LATEST_RELEASE_MANIFEST_URL =
+  process.env.DOCUMENTS_RELEASE_MANIFEST_URL ||
+  `https://github.com/${GITHUB_REPO}/releases/latest/download/release.json`;
 
 interface LoadedReleaseManifest {
   manifest: ReleaseManifest;
@@ -124,6 +127,27 @@ async function loadReleaseManifest(): Promise<LoadedReleaseManifest> {
     });
   }
   return releaseManifestPromise;
+}
+
+async function loadLatestReleaseManifest(): Promise<LoadedReleaseManifest> {
+  const localDirectory = getLocalReleaseDirectory();
+  if (localDirectory) {
+    return {
+      manifest: validateReleaseManifest(JSON.parse(fs.readFileSync(path.join(localDirectory, 'release.json'), 'utf8'))),
+      localDirectory,
+    };
+  }
+
+  const temporary = path.join(app.getPath('temp'), `documents-release-latest-${Date.now()}.partial`);
+  try {
+    await downloadFile(LATEST_RELEASE_MANIFEST_URL, temporary, undefined, 5 * 1024 * 1024, false);
+    return {
+      manifest: validateReleaseManifest(JSON.parse(fs.readFileSync(temporary, 'utf8'))),
+      url: LATEST_RELEASE_MANIFEST_URL,
+    };
+  } finally {
+    try { fs.unlinkSync(temporary); } catch { /* ignore */ }
+  }
 }
 
 
@@ -208,7 +232,15 @@ export async function downloadComponent(
   componentName: string,
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
-  const { manifest, url: manifestUrl, localDirectory } = await loadReleaseManifest();
+  await downloadComponentFromRelease(componentName, await loadReleaseManifest(), onProgress);
+}
+
+async function downloadComponentFromRelease(
+  componentName: string,
+  release: LoadedReleaseManifest,
+  onProgress?: (progress: DownloadProgress) => void,
+): Promise<void> {
+  const { manifest, url: manifestUrl, localDirectory } = release;
   const target = getPlatformSuffix();
   const { component, variant, artifact } = selectReleaseArtifact(manifest, target, componentName);
   const url = manifestUrl ? resolveArtifactUrl(manifestUrl, artifact.file) : undefined;
@@ -280,6 +312,27 @@ export async function downloadComponent(
     try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
     try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch { /* ignore */ }
   }
+}
+
+export async function updateServices(
+  onProgress?: (progress: DownloadProgress) => void,
+): Promise<string[]> {
+  const release = await loadLatestReleaseManifest();
+  const userData = app.getPath('userData');
+  const target = getPlatformSuffix();
+  const components = ['node', 'backend', 'postgres'];
+  const installedModels = readInstalledComponent(userData, 'models', target);
+  if (installedModels) components.push(`models-${installedModels.state.variant ?? 'cpu'}`);
+
+  const updated: string[] = [];
+  for (const componentName of components) {
+    const { component, variant, artifact } = selectReleaseArtifact(release.manifest, target, componentName);
+    const installed = readInstalledComponent(userData, component, target);
+    if (installed?.state.sha256 === artifact.sha256 && installed.state.variant === variant) continue;
+    await downloadComponentFromRelease(componentName, release, onProgress);
+    updated.push(componentName);
+  }
+  return updated;
 }
 
 function copyLocalReleaseArtifact(

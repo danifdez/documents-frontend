@@ -108,6 +108,18 @@ export function useStandaloneManager() {
         await loadStandaloneStatus();
     }
 
+    async function updateStandaloneServices() {
+        standaloneDownloading.value = true;
+        standaloneDownloadError.value = '';
+        const result = await window.electronAPI.standaloneUpdateServices();
+        standaloneDownloading.value = false;
+        if (!result.success) {
+            standaloneDownloadError.value = result.error || 'Update failed';
+        }
+        await loadStandaloneStatus();
+        return result.updated ?? [];
+    }
+
     const forceCpu = ref(false);
     const modelsSize = computed(() => {
         if (gpuInfo.value?.cuda && !forceCpu.value) return '~3-5 GB (GPU)';
@@ -160,6 +172,7 @@ export function useStandaloneManager() {
         loadHardwareReport,
         installStandalone,
         uninstallStandalone,
+        updateStandaloneServices,
         installModels,
         uninstallModels,
         subscribeDownloadProgress,
