@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { ChildProcess, spawn } from 'child_process';
 import { getModelsBinaryPath } from './models-binary';
+import { getActiveComponentRoot, legacyComponentRoot } from './installed-components';
 
 /**
  * Runs the bundled Python ML worker (PyInstaller `documents-models`) as a child
@@ -28,7 +29,12 @@ export class EmbeddedModelsService {
   private _running = false;
 
   private servicesDir(): string {
-    return path.join(app.getPath('userData'), 'models-service');
+    const userData = app.getPath('userData');
+    return getActiveComponentRoot(userData, 'models') ?? legacyComponentRoot(userData, 'models');
+  }
+
+  private modelsDataDir(): string {
+    return path.join(app.getPath('userData'), 'models-service', 'data');
   }
 
   private dataDir(): string {
@@ -42,7 +48,8 @@ export class EmbeddedModelsService {
   }
 
   static isInstalled(): boolean {
-    const dir = path.join(app.getPath('userData'), 'models-service');
+    const userData = app.getPath('userData');
+    const dir = getActiveComponentRoot(userData, 'models') ?? legacyComponentRoot(userData, 'models');
     return fs.existsSync(getModelsBinaryPath(dir));
   }
 
@@ -67,7 +74,7 @@ export class EmbeddedModelsService {
       features: config.features,
       // GGUF models live in a writable dir (the bundle is read-only); the worker
       // reads them from here, matching MODELS_MODEL_DIR used at download time.
-      llm_defaults: { model_dir: path.join(this.servicesDir(), 'models') },
+      llm_defaults: { model_dir: path.join(this.modelsDataDir(), 'models') },
     };
     const configPath = path.join(dataDir, 'config.json');
     fs.writeFileSync(configPath, JSON.stringify(overrides, null, 2));
@@ -80,8 +87,8 @@ export class EmbeddedModelsService {
       MODELS_ENROLLMENT_TOKEN: config.enrollmentToken,
       MODELS_CONFIG_PATH: configPath,
       MODELS_DATA_DIR: dataDir,
-      MODELS_MODEL_DIR: path.join(this.servicesDir(), 'models'),
-      HF_HOME: path.join(this.servicesDir(), 'hf-cache'),
+      MODELS_MODEL_DIR: path.join(this.modelsDataDir(), 'models'),
+      HF_HOME: path.join(this.modelsDataDir(), 'hf-cache'),
       LLM_N_GPU_LAYERS: config.gpu ? '-1' : '0',
     };
 

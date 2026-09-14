@@ -7,7 +7,26 @@ import { execFile, execFileSync, spawn as spawnProcess } from 'child_process';
 import { createGunzip } from 'zlib';
 import { pipeline } from 'stream/promises';
 import { Unpack as TarUnpack } from 'tar';
+import { createHash } from 'crypto';
 import { getModelsBinaryPath } from './models-binary';
+import { assertSafeArchiveEntry } from './archive-safety';
+import {
+  resolveArtifactUrl,
+  selectReleaseArtifact,
+  validateReleaseManifest,
+  type ReleaseArtifact,
+  type ReleaseComponent,
+  type ReleaseManifest,
+} from './release-manifest';
+import {
+  activateInstalledComponent,
+  getActiveComponentRoot,
+  getComponentBase,
+  getCurrentTarget,
+  legacyComponentRoot,
+  readInstalledComponent,
+  removeModelsRuntime,
+} from './installed-components';
 
 export interface ComponentStatus {
   node: boolean;
@@ -39,25 +58,11 @@ export interface GpuInfo {
 // GitHub repository for release assets
 const GITHUB_REPO = 'danifdez/documents';
 
-// Base URL for our own release assets (backend, models). Defaults to GitHub
-// Releases, but can be pointed at a local "release" server via
-// DOCUMENTS_RELEASE_BASE_URL so a self-hosted build can stand in for GitHub
-// without changing the download/extract code path. The DB binaries always come
-// from their official sources.
 const RELEASE_BASE_URL =
   process.env.DOCUMENTS_RELEASE_BASE_URL?.replace(/\/+$/, '') ||
-  `https://github.com/${GITHUB_REPO}/releases/download`;
+  `https://github.com/${GITHUB_REPO}/releases/download/v${app.getVersion()}`;
 
-// Component versions
-const VERSIONS = {
-  // Node runtime the backend is spawned with — bundled so a standalone install
-  // never depends on a system Node being present (or matching). Pinned to the
-  // version the backend is built/tested against.
-  node: '20.19.5',
-  backend: '1.0.0',
-  postgres: '17.6.0',
-  models: '1.0.0',
-};
+let releaseManifestPromise: Promise<{ manifest: ReleaseManifest; url: string }> | null = null;
 
 function getServicesDir(): string {
   return path.join(app.getPath('userData'), 'standalone-services');
@@ -67,60 +72,32 @@ function getModelsDir(): string {
   return path.join(app.getPath('userData'), 'models-service');
 }
 
-function getPlatformSuffix(): string {
-  const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
-  switch (process.platform) {
-    case 'linux': return `linux-${arch}`;
-    case 'darwin': return `darwin-${arch}`;
-    case 'win32': return `win32-${arch}`;
-    default: throw new Error(`Unsupported platform: ${process.platform}`);
-  }
+export function getPlatformSuffix(): string {
+  return getCurrentTarget();
 }
 
-function getArchiveExt(): string {
-  return process.platform === 'win32' ? 'zip' : 'tar.gz';
+function getReleaseManifestUrl(): string {
+  return process.env.DOCUMENTS_RELEASE_MANIFEST_URL || `${RELEASE_BASE_URL}/release.json`;
 }
 
-function getAssetUrl(component: string): string {
-  const platform = getPlatformSuffix();
-  const ext = getArchiveExt();
-  const tag = `v${VERSIONS.backend}`;
-
-  switch (component) {
-    // Our code — from the release server (GitHub by default)
-    case 'backend':
-      return `${RELEASE_BASE_URL}/${tag}/documents-backend-v${VERSIONS.backend}-${platform}.${ext}`;
-    case 'models-cpu':
-      return `${RELEASE_BASE_URL}/${tag}/documents-models-v${VERSIONS.models}-${platform}-cpu.${ext}`;
-    case 'models-gpu':
-      return `${RELEASE_BASE_URL}/${tag}/documents-models-v${VERSIONS.models}-${platform}-gpu.${ext}`;
-
-    // Node runtime — directly from nodejs.org
-    case 'node':
-      return getNodeUrl(platform);
-
-    // PostgreSQL — our own build, repackaged from the zonky binaries with the
-    // pgvector AND Apache AGE extensions baked in (see build-release). Hosted
-    // alongside our other assets so the embedded server has both vector search
-    // and the entity graph (GraphRAG) out of the box — no separate graph service.
-    case 'postgres':
-      return `${RELEASE_BASE_URL}/${tag}/documents-postgres-v${VERSIONS.backend}-${platform}.${ext}`;
-
-    default:
-      throw new Error(`Unknown component: ${component}`);
+async function loadReleaseManifest(): Promise<{ manifest: ReleaseManifest; url: string }> {
+  if (!releaseManifestPromise) {
+    releaseManifestPromise = (async () => {
+      const url = getReleaseManifestUrl();
+      const temporary = path.join(app.getPath('temp'), `documents-release-${Date.now()}.partial`);
+      try {
+        await downloadFile(url, temporary, undefined, 5 * 1024 * 1024, false);
+        const manifest = validateReleaseManifest(JSON.parse(fs.readFileSync(temporary, 'utf8')));
+        return { manifest, url };
+      } finally {
+        try { fs.unlinkSync(temporary); } catch { /* ignore */ }
+      }
+    })().catch((error) => {
+      releaseManifestPromise = null;
+      throw error;
+    });
   }
-}
-
-function getNodeUrl(platform: string): string {
-  const base = `https://nodejs.org/dist/v${VERSIONS.node}`;
-  switch (platform) {
-    case 'linux-x64':    return `${base}/node-v${VERSIONS.node}-linux-x64.tar.gz`;
-    case 'linux-arm64':  return `${base}/node-v${VERSIONS.node}-linux-arm64.tar.gz`;
-    case 'darwin-x64':   return `${base}/node-v${VERSIONS.node}-darwin-x64.tar.gz`;
-    case 'darwin-arm64': return `${base}/node-v${VERSIONS.node}-darwin-arm64.tar.gz`;
-    case 'win32-x64':    return `${base}/node-v${VERSIONS.node}-win-x64.zip`;
-    default: throw new Error(`No Node.js binary for: ${platform}`);
-  }
+  return releaseManifestPromise;
 }
 
 
@@ -130,7 +107,8 @@ function getNodeUrl(platform: string): string {
  * at the package root.
  */
 export function getBundledNodePath(): string | null {
-  const nodeDir = path.join(getServicesDir(), 'node');
+  const userData = app.getPath('userData');
+  const nodeDir = getActiveComponentRoot(userData, 'node') ?? legacyComponentRoot(userData, 'node');
   const unix = path.join(nodeDir, 'bin', 'node');
   if (fs.existsSync(unix)) return unix;
   const win = path.join(nodeDir, 'node.exe');
@@ -139,20 +117,24 @@ export function getBundledNodePath(): string | null {
 }
 
 export function checkInstalled(): ComponentStatus {
-  const servicesDir = getServicesDir();
+  const userData = app.getPath('userData');
   const ext = process.platform === 'win32' ? '.exe' : '';
+  const target = getPlatformSuffix();
+  const backend = readInstalledComponent(userData, 'backend', target);
+  const postgres = readInstalledComponent(userData, 'postgres', target);
+  const models = readInstalledComponent(userData, 'models', target);
 
   return {
     node: getBundledNodePath() !== null,
-    backend: fs.existsSync(path.join(servicesDir, 'backend', 'dist', 'src', 'main.js')),
-    postgres: fs.existsSync(path.join(servicesDir, 'postgres', 'bin', 'postgres' + ext)),
-    models: fs.existsSync(getModelsBinaryPath(getModelsDir())),
+    backend: backend !== null || fs.existsSync(path.join(legacyComponentRoot(userData, 'backend'), 'dist', 'src', 'main.js')),
+    postgres: postgres !== null || fs.existsSync(path.join(legacyComponentRoot(userData, 'postgres'), 'bin', 'postgres' + ext)),
+    models: models !== null || fs.existsSync(getModelsBinaryPath(legacyComponentRoot(userData, 'models'))),
   };
 }
 
 export function isStandaloneReady(): boolean {
   const status = checkInstalled();
-  return status.backend && status.postgres;
+  return status.node && status.backend && status.postgres;
 }
 
 export function detectGpu(): GpuInfo {
@@ -197,56 +179,156 @@ export function detectGpu(): GpuInfo {
 }
 
 export async function downloadComponent(
-  component: string,
+  componentName: string,
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
-  const isModels = component === 'models-cpu' || component === 'models-gpu';
-  const destDir = isModels ? getModelsDir() : path.join(getServicesDir(), component);
+  const { manifest, url: manifestUrl } = await loadReleaseManifest();
+  const target = getPlatformSuffix();
+  const { component, variant, artifact } = selectReleaseArtifact(manifest, target, componentName);
+  const url = resolveArtifactUrl(manifestUrl, artifact.file);
+  const userData = app.getPath('userData');
+  const baseDir = getComponentBase(userData, component);
+  const installName = getInstallDirectoryName(component, artifact, variant);
+  const finalDir = path.join(baseDir, installName);
+  const stagingDir = path.join(baseDir, `.${installName}.${Date.now()}.staging`);
+  const tmpFile = path.join(app.getPath('temp'), `documents-download-${componentName}-${Date.now()}.partial`);
 
-  fs.mkdirSync(destDir, { recursive: true });
-
-  const url = getAssetUrl(component);
-  const tmpFile = path.join(app.getPath('temp'), `documents-download-${component}-${Date.now()}`);
-
-  // Emit an initial event so the UI shows what's starting before the first byte
-  // arrives (otherwise the wizard sits on a blank "Preparing…").
   if (onProgress) {
-    onProgress({ component, downloaded: 0, total: 0, percent: 0 });
+    onProgress({ component: componentName, downloaded: 0, total: artifact.size, percent: 0 });
   }
 
+  fs.mkdirSync(baseDir, { recursive: true });
   try {
-    // Download is the first half of the component's progress (0-50%).
     await downloadFile(url, tmpFile, (downloaded, total) => {
       if (onProgress) {
         const frac = total > 0 ? downloaded / total : 0;
-        onProgress({ component, downloaded, total, percent: Math.round(frac * 50) });
+        onProgress({ component: componentName, downloaded, total, percent: Math.round(frac * 50) });
       }
-    });
+    }, artifact.size);
 
-    // Extraction is the second half (50-100%). Decompressing the multi-GB models
-    // bundle takes a while, so report byte-level progress to keep the bar moving
-    // instead of freezing on a single fixed value.
-    // PostgreSQL jar is a zip; everything else is tar.gz.
-    const isZip = url.endsWith('.zip') || url.endsWith('.jar');
-    await extractArchive(tmpFile, destDir, isZip, (extractPercent) => {
+    const checksum = await sha256File(tmpFile);
+    if (checksum !== artifact.sha256) throw new Error(`Checksum mismatch for ${componentName}`);
+
+    fs.mkdirSync(stagingDir, { recursive: true });
+    const isZip = artifact.file.endsWith('.zip');
+    await extractArchive(tmpFile, stagingDir, isZip, (extractPercent) => {
       if (onProgress) {
-        onProgress({ component, downloaded: 0, total: 0, percent: 50 + Math.round(extractPercent / 2) });
+        onProgress({ component: componentName, downloaded: artifact.size, total: artifact.size, percent: 50 + Math.round(extractPercent / 2) });
       }
     });
 
-    // Component-specific normalisation so every service ends up at the path
-    // checkInstalled() / the embedded services expect.
-    await normalizeExtraction(component, destDir);
-    if (isModels && !fs.existsSync(getModelsBinaryPath(destDir))) {
-      throw new Error('Models bundle does not contain the canonical documents-models binary.');
+    await normalizeExtraction(componentName, stagingDir);
+    if (process.platform !== 'win32') {
+      makeBinariesExecutable(stagingDir);
     }
 
-    if (process.platform !== 'win32') {
-      makeBinariesExecutable(destDir);
+    validateExtractedComponent(stagingDir, component, artifact, target, variant);
+    await runInstalledSelfCheck(stagingDir, component, artifact);
+
+    if (fs.existsSync(finalDir)) {
+      const existingManifest = readComponentManifest(finalDir);
+      if (existingManifest?.version !== artifact.version || existingManifest?.target !== target) {
+        throw new Error(`Installation path collision for ${componentName}`);
+      }
+      replaceDirectory(stagingDir, finalDir);
+    } else {
+      fs.renameSync(stagingDir, finalDir);
     }
+
+    activateInstalledComponent(userData, {
+      component,
+      version: artifact.version,
+      target,
+      sha256: artifact.sha256,
+      path: installName,
+      ...(variant ? { variant } : {}),
+    });
   } finally {
     try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+    try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch { /* ignore */ }
   }
+}
+
+function replaceDirectory(stagingDir: string, finalDir: string): void {
+  const backupDir = `${finalDir}.${Date.now()}.replaced`;
+  fs.renameSync(finalDir, backupDir);
+  try {
+    fs.renameSync(stagingDir, finalDir);
+    fs.rmSync(backupDir, { recursive: true, force: true });
+  } catch (error) {
+    if (!fs.existsSync(finalDir) && fs.existsSync(backupDir)) fs.renameSync(backupDir, finalDir);
+    throw error;
+  }
+}
+
+function getInstallDirectoryName(component: ReleaseComponent, artifact: ReleaseArtifact, variant?: string): string {
+  const version = artifact.version.replace(/[^a-zA-Z0-9._+-]/g, '_');
+  const suffix = variant ? `-${variant}` : '';
+  return `${component}-${version}${suffix}-${artifact.sha256.slice(0, 12)}`;
+}
+
+function readComponentManifest(root: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(root, 'component-manifest.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function validateExtractedComponent(
+  root: string,
+  component: ReleaseComponent,
+  artifact: ReleaseArtifact,
+  target: string,
+  variant?: string,
+): void {
+  const componentManifest = readComponentManifest(root);
+  if (!componentManifest || componentManifest.schemaVersion !== 1 || componentManifest.component !== component) {
+    throw new Error(`Invalid ${component} component manifest`);
+  }
+  if (componentManifest.version !== artifact.version || componentManifest.target !== target) {
+    throw new Error(`${component} package does not match the selected release`);
+  }
+  if (variant && componentManifest.variant !== variant) throw new Error(`Models variant mismatch: expected ${variant}`);
+  if (typeof componentManifest.entrypoint !== 'string' || !isSafeArchivePath(componentManifest.entrypoint)) {
+    throw new Error(`Invalid ${component} entrypoint`);
+  }
+  if (!fs.existsSync(path.join(root, componentManifest.entrypoint))) throw new Error(`${component} entrypoint is missing`);
+}
+
+async function runInstalledSelfCheck(root: string, component: ReleaseComponent, artifact: ReleaseArtifact): Promise<void> {
+  const componentManifest = readComponentManifest(root)!;
+  const entrypoint = path.join(root, componentManifest.entrypoint as string);
+  if (component === 'backend') return;
+  if (component === 'models') {
+    const dataDir = fs.mkdtempSync(path.join(app.getPath('temp'), 'documents-models-check-'));
+    try {
+      await execFilePromise(entrypoint, ['--self-check'], {
+        cwd: root,
+        env: { ...process.env, MODELS_DATA_DIR: dataDir },
+        timeout: 120000,
+      });
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+    return;
+  }
+  const expectedVersion = component === 'node' ? artifact.version : String(artifact.runtime?.postgres ?? '').split('+')[0];
+  const output = await execFilePromise(entrypoint, ['--version'], { cwd: root, timeout: 30000 });
+  if (expectedVersion && !output.includes(expectedVersion)) throw new Error(`${component} self-check reported an unexpected version`);
+}
+
+function execFilePromise(
+  executable: string,
+  args: string[],
+  options: { cwd: string; timeout: number; env?: NodeJS.ProcessEnv },
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(executable, args, options, (error, stdout, stderr) => {
+      if (error) reject(new Error(`Component self-check failed: ${(stderr || error.message).trim()}`));
+      else resolve(stdout.toString());
+    });
+  });
 }
 
 // Flattens/unpacks freshly extracted archives whose internal layout does not
@@ -351,10 +433,7 @@ export async function uninstallServices(): Promise<void> {
 }
 
 export async function uninstallModels(): Promise<void> {
-  const modelsDir = getModelsDir();
-  if (fs.existsSync(modelsDir)) {
-    fs.rmSync(modelsDir, { recursive: true, force: true });
-  }
+  removeModelsRuntime(app.getPath('userData'));
 }
 
 /**
@@ -382,7 +461,8 @@ export async function installModels(
 export async function setupModels(
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
-  const modelsDir = getModelsDir();
+  const modelsDir = getActiveComponentRoot(app.getPath('userData'), 'models') ?? getModelsDir();
+  const modelsDataDir = path.join(getModelsDir(), 'data');
   const binary = getModelsBinaryPath(modelsDir);
   if (!fs.existsSync(binary)) {
     throw new Error('Models service not found. Download it first.');
@@ -396,12 +476,12 @@ export async function setupModels(
     const proc = spawnProcess(binary, ['--setup'], {
       env: {
         ...process.env,
-        HF_HOME: path.join(modelsDir, 'hf-cache'),
-        MODELS_MODEL_DIR: path.join(modelsDir, 'models'),
+        HF_HOME: path.join(modelsDataDir, 'hf-cache'),
+        MODELS_MODEL_DIR: path.join(modelsDataDir, 'models'),
         // Importing the worker writes a .worker_id at module load; without a
         // writable MODELS_DATA_DIR it falls back to a path inside the read-only
         // bundle (…/worker/..) that can't be resolved in a frozen build.
-        MODELS_DATA_DIR: modelsDir,
+        MODELS_DATA_DIR: modelsDataDir,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       cwd: modelsDir,
@@ -451,6 +531,8 @@ function downloadFile(
   url: string,
   destPath: string,
   onProgress?: (downloaded: number, total: number) => void,
+  sizeLimit?: number,
+  requireExactSize = true,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const doRequest = (requestUrl: string, redirectCount: number) => {
@@ -462,28 +544,45 @@ function downloadFile(
       const client = requestUrl.startsWith('https') ? https : http;
       const req = client.get(requestUrl, (res) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          doRequest(res.headers.location, redirectCount + 1);
+          const redirectUrl = new URL(res.headers.location, requestUrl).toString();
+          res.resume();
+          doRequest(redirectUrl, redirectCount + 1);
           return;
         }
 
         if (res.statusCode !== 200) {
+          res.resume();
           reject(new Error(`Download failed: HTTP ${res.statusCode} for ${url}`));
           return;
         }
 
-        const total = parseInt(res.headers['content-length'] || '0', 10);
+        const declaredSize = parseInt(res.headers['content-length'] || '0', 10);
+        if (sizeLimit && declaredSize > sizeLimit) {
+          res.destroy();
+          reject(new Error(`Download exceeds expected size for ${url}`));
+          return;
+        }
+        const total = sizeLimit && requireExactSize ? sizeLimit : declaredSize;
         let downloaded = 0;
 
         const fileStream = fs.createWriteStream(destPath);
         res.on('data', (chunk: Buffer) => {
           downloaded += chunk.length;
+          if (sizeLimit && downloaded > sizeLimit) {
+            req.destroy(new Error(`Download exceeds expected size for ${url}`));
+            return;
+          }
           if (onProgress) onProgress(downloaded, total);
         });
 
         res.pipe(fileStream);
         fileStream.on('finish', () => {
           fileStream.close();
-          resolve();
+          if (sizeLimit && requireExactSize && downloaded !== sizeLimit) {
+            reject(new Error(`Downloaded size mismatch for ${url}`));
+          } else {
+            resolve();
+          }
         });
         fileStream.on('error', reject);
       });
@@ -531,27 +630,50 @@ async function extractTarGz(
     });
   }
   const gunzip = createGunzip();
-  const extract = new TarUnpack({ cwd: destDir, strip: 0 });
+  const extract = new TarUnpack({
+    cwd: destDir,
+    strip: 0,
+    preservePaths: false,
+    filter: (entryPath, entry) => {
+      assertSafeArchiveEntry(entryPath, entry.type, entry.linkpath);
+      return true;
+    },
+  });
   await pipeline(source, gunzip, extract);
+}
+
+function isSafeArchivePath(entryPath: string): boolean {
+  if (!entryPath || path.isAbsolute(entryPath) || /^[a-zA-Z]:/.test(entryPath)) return false;
+  return entryPath.split(/[\\/]/).every((segment) => segment !== '..');
 }
 
 async function extractZip(archivePath: string, destDir: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (process.platform === 'win32') {
-      execFile('powershell', [
-        '-NoProfile', '-Command',
-        `Expand-Archive -Path '${archivePath}' -DestinationPath '${destDir}' -Force`,
-      ], (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
+      reject(new Error('Secure ZIP extraction is not enabled for standalone releases yet.'));
     } else {
-      execFile('unzip', ['-qo', archivePath, '-d', destDir], (err) => {
-        if (err) reject(err);
-        else resolve();
+      execFile('unzip', ['-Z1', archivePath], (listError, stdout) => {
+        if (listError) {
+          reject(listError);
+          return;
+        }
+        if (stdout.split(/\r?\n/).filter(Boolean).some((entry) => !isSafeArchivePath(entry))) {
+          reject(new Error('ZIP archive contains an unsafe path'));
+          return;
+        }
+        execFile('unzip', ['-qo', archivePath, '-d', destDir], (extractError) => {
+          if (extractError) reject(extractError);
+          else resolve();
+        });
       });
     }
   });
+}
+
+async function sha256File(file: string): Promise<string> {
+  const hash = createHash('sha256');
+  for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
+  return hash.digest('hex');
 }
 
 function makeBinariesExecutable(dir: string): void {

@@ -5,6 +5,7 @@ import net from 'net';
 import crypto from 'crypto';
 import { ChildProcess, spawn, execFile } from 'child_process';
 import Store from 'electron-store';
+import { getActiveComponentRoot, legacyComponentRoot } from './installed-components';
 
 const store = new Store();
 
@@ -23,7 +24,12 @@ export class EmbeddedPostgresService {
   }
 
   private getBinDir(): string {
-    return path.join(app.getPath('userData'), 'standalone-services', 'postgres', 'bin');
+    return path.join(this.getRuntimeRoot(), 'bin');
+  }
+
+  private getRuntimeRoot(): string {
+    const userData = app.getPath('userData');
+    return getActiveComponentRoot(userData, 'postgres') ?? legacyComponentRoot(userData, 'postgres');
   }
 
   private getDataDir(): string {
@@ -63,8 +69,8 @@ export class EmbeddedPostgresService {
     try {
       process.kill(pid, 0);
       return true;
-    } catch (err: any) {
-      return err?.code === 'EPERM';
+    } catch (error: unknown) {
+      return typeof error === 'object' && error !== null && 'code' in error && error.code === 'EPERM';
     }
   }
 
@@ -97,7 +103,7 @@ export class EmbeddedPostgresService {
   }
 
   private pgEnv(): Record<string, string> {
-    const libDir = path.join(app.getPath('userData'), 'standalone-services', 'postgres', 'lib');
+    const libDir = path.join(this.getRuntimeRoot(), 'lib');
     return {
       ...process.env as Record<string, string>,
       LD_LIBRARY_PATH: libDir,
@@ -268,7 +274,9 @@ export class EmbeddedPostgresService {
   }
 
   static isInstalled(): boolean {
-    const binDir = path.join(app.getPath('userData'), 'standalone-services', 'postgres', 'bin');
+    const userData = app.getPath('userData');
+    const root = getActiveComponentRoot(userData, 'postgres') ?? legacyComponentRoot(userData, 'postgres');
+    const binDir = path.join(root, 'bin');
     const ext = process.platform === 'win32' ? '.exe' : '';
     return fs.existsSync(path.join(binDir, 'initdb' + ext))
       && fs.existsSync(path.join(binDir, 'postgres' + ext));

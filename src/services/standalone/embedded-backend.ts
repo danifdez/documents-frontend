@@ -5,6 +5,7 @@ import { ChildProcess, fork, spawn, spawnSync } from 'child_process';
 import http from 'http';
 import { findFreePort } from './embedded-postgres';
 import { getBundledNodePath } from './download-manager';
+import { getActiveComponentRoot, legacyComponentRoot } from './installed-components';
 
 export interface BackendConfig {
   postgresHost: string;
@@ -51,8 +52,9 @@ export class EmbeddedBackendService {
   }
 
   private getBackendPath(): string {
-    // Downloaded standalone services (primary location)
-    const downloadedPath = path.join(app.getPath('userData'), 'standalone-services', 'backend', 'dist', 'src', 'main.js');
+    const userData = app.getPath('userData');
+    const root = getActiveComponentRoot(userData, 'backend') ?? legacyComponentRoot(userData, 'backend');
+    const downloadedPath = path.join(root, 'dist', 'src', 'main.js');
     if (fs.existsSync(downloadedPath)) return downloadedPath;
 
     // In development, look for the backend in the parent project directory
@@ -62,10 +64,14 @@ export class EmbeddedBackendService {
     throw new Error('Backend not found. Install standalone services from Settings.');
   }
 
+  private getBackendRoot(): string {
+    return path.resolve(path.dirname(this.getBackendPath()), '..', '..');
+  }
+
   static isInstalled(): boolean {
-    return fs.existsSync(
-      path.join(app.getPath('userData'), 'standalone-services', 'backend', 'dist', 'src', 'main.js')
-    );
+    const userData = app.getPath('userData');
+    const root = getActiveComponentRoot(userData, 'backend') ?? legacyComponentRoot(userData, 'backend');
+    return fs.existsSync(path.join(root, 'dist', 'src', 'main.js'));
   }
 
   private getLogPath(): string {
@@ -98,6 +104,7 @@ export class EmbeddedBackendService {
       // Apply pending DB migrations on boot — the standalone Postgres is created
       // empty, so this is what builds the schema on first launch.
       RUN_MIGRATIONS: 'true',
+      PUPPETEER_CACHE_DIR: path.join(this.getBackendRoot(), 'runtime', 'puppeteer'),
     };
 
     // RAG is always available: embeddings live in Postgres via pgvector, which
