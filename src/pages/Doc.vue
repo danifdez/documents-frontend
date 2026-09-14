@@ -10,7 +10,7 @@
       <div class="flex-shrink-0 pb-3">
         <Breadcrumb :items="breadcrumbItems" />
         <div class="flex items-center gap-3 mt-1">
-          <input id="docName" v-model="docData.name" type="text" required placeholder="Document name..."
+          <input id="docName" v-model="docData.name" @input="handleDocumentNameChange" type="text" required placeholder="Document name..."
             class="flex-1 px-4 py-2 bg-transparent border-0 border-b border-border text-lg font-semibold text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent hover:border-text-muted transition-colors tracking-tight rounded-t-md focus:bg-surface-hover/50" />
           <div class="flex items-center gap-2">
             <Button v-if="!isNewDocument" variant="secondary" size="small" @click="exportDocx"
@@ -492,6 +492,32 @@ const autoSave = useAutoSave(async () => {
     isSaving.value = false;
   }
 }, 1000);
+
+const nameAutoSave = useAutoSave(async () => {
+  const name = docData.value.name?.trim();
+  if (isNewDocument.value || !docData.value.id || !name) return;
+
+  try {
+    await saveDocument(docData.value.id, { name });
+    docData.value.name = name;
+    savedSuccessfully.value = true;
+  } catch (error) {
+    console.error('Error saving document name:', error);
+  } finally {
+    isSaving.value = false;
+    setTimeout(() => {
+      savedSuccessfully.value = false;
+    }, 3000);
+  }
+}, 1000);
+
+const handleDocumentNameChange = () => {
+  if (isNewDocument.value || !docData.value.name.trim()) return;
+
+  isSaving.value = true;
+  savedSuccessfully.value = false;
+  nameAutoSave.trigger();
+};
 
 const handleEditorContentChange = (content: string) => {
   if (!docData.value.name) {
