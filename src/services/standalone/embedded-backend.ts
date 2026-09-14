@@ -171,7 +171,7 @@ export class EmbeddedBackendService {
 
     // Wait for the backend to be ready (increase timeout for packaged installs)
     const waitTimeout = 120000; // 120 seconds
-    await this.waitForReady(port, waitTimeout);
+    await this.waitForReady(port, waitTimeout, this.process);
     this._running = true;
   }
 
@@ -204,12 +204,28 @@ export class EmbeddedBackendService {
     return `http://127.0.0.1:${this._port}`;
   }
 
-  private waitForReady(port: number, timeoutMs: number): Promise<void> {
+  private waitForReady(port: number, timeoutMs: number, child: ChildProcess): Promise<void> {
     return new Promise((resolve, reject) => {
       const start = Date.now();
+      let finished = false;
+      const finish = (error?: Error) => {
+        if (finished) return;
+        finished = true;
+        child.removeListener('exit', onExit);
+        child.removeListener('error', onError);
+        if (error) reject(error);
+        else resolve();
+      };
+      const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+        finish(new Error(`Backend exited before becoming ready (code=${code}, signal=${signal})`));
+      };
+      const onError = (error: Error) => finish(error);
+      child.once('exit', onExit);
+      child.once('error', onError);
       const check = () => {
+        if (finished) return;
         const req = http.get(`http://127.0.0.1:${port}`, () => {
-          resolve();
+          finish();
         });
         req.on('error', retry);
         req.setTimeout(1000, () => {
@@ -219,7 +235,7 @@ export class EmbeddedBackendService {
       };
       const retry = () => {
         if (Date.now() - start > timeoutMs) {
-          reject(new Error('Backend failed to start within timeout'));
+          finish(new Error('Backend failed to start within timeout'));
           return;
         }
         setTimeout(check, 500);

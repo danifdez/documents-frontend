@@ -49,6 +49,7 @@ if (!gotTheLock) {
 
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
+let splashPoll: ReturnType<typeof setInterval> | null = null;
 
 // Tray state. `trayUnavailable` is consumed by T05
 // (`window-all-closed` / `mainWindow.on('close')`) and by T08 (Settings UI
@@ -447,13 +448,75 @@ function createSplashWindow() {
     },
   });
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Documents</title><style>html,body{margin:0;height:100%}body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:22px}.spinner{width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,0.15);border-top-color:#2563eb;animation:spin 0.9s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.label{font-size:15px;color:#cbd5e1;letter-spacing:.2px}</style></head><body><div class="spinner"></div><div class="label">Starting Documents…</div></body></html>`;
+  showSplashLoading();
 
-  splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+  splashWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('documents-splash://')) return;
+    event.preventDefault();
+    const action = new URL(url).hostname;
+    if (action === 'retry') {
+      startStandaloneFromSplash();
+    } else if (action === 'open') {
+      revealMainWindow();
+    }
+  });
 
   splashWindow.on('closed', () => {
     splashWindow = null;
   });
+}
+
+function splashHtml(content: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Documents</title><style>html,body{margin:0;height:100%}body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:#000;color:#fff;display:flex;align-items:center;justify-content:center}.card{width:min(520px,calc(100vw - 48px));text-align:center}.spinner{width:42px;height:42px;margin:0 auto 22px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#2563eb;animation:spin .9s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.label{font-size:15px;color:#cbd5e1;letter-spacing:.2px}.error{color:#fca5a5;font-size:14px;margin:14px 0;white-space:pre-wrap;overflow-wrap:anywhere}.hint{color:#94a3b8;font-size:13px;line-height:1.45}.actions{display:flex;justify-content:center;gap:10px;margin-top:22px}.button{padding:9px 14px;border-radius:7px;text-decoration:none;font-size:14px;font-weight:600;background:#2563eb;color:#fff}.secondary{background:#1e293b;color:#e2e8f0}</style></head><body><div class="card">${content}</div></body></html>`;
+}
+
+function escapeSplashText(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] ?? character));
+}
+
+function showSplashLoading() {
+  splashWindow?.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml('<div class="spinner"></div><div class="label">Starting Documents…</div>')));
+}
+
+function showSplashError(error: string) {
+  if (splashPoll) clearInterval(splashPoll);
+  splashPoll = null;
+  const detail = escapeSplashText(error.slice(0, 1600));
+  splashWindow?.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splashHtml(`<h2>Local server could not start</h2><div class="error">${detail}</div><div class="hint">You can retry after correcting the issue, or open Documents to repair the local server from Settings.</div><div class="actions"><a class="button" href="documents-splash://retry">Retry</a><a class="button secondary" href="documents-splash://open">Open Documents</a></div>`)));
+}
+
+function revealMainWindow() {
+  if (splashPoll) clearInterval(splashPoll);
+  splashPoll = null;
+  if (!mainWindow || mainWindow.isDestroyed()) createWindow();
+  if (mainWindow && !mainWindow.isVisible()) mainWindow.show();
+  if (splashWindow) {
+    try { splashWindow.close(); } catch {}
+    splashWindow = null;
+  }
+}
+
+function startStandaloneFromSplash() {
+  if (splashPoll) clearInterval(splashPoll);
+  splashPoll = null;
+  showSplashLoading();
+  void standaloneManager.stop()
+    .catch((error) => console.error('Could not stop standalone services before retrying:', error))
+    .finally(() => {
+      standaloneManager.start({ features: resolveStandaloneFeatures(store) }).catch((error) => {
+        showSplashError(error instanceof Error ? error.message : String(error));
+      });
+      splashPoll = setInterval(() => {
+        const status = standaloneManager.getStatus();
+        if (status.services.backend === 'running') {
+          revealMainWindow();
+          return;
+        }
+        if (status.services.backend === 'error' || status.services.postgres === 'error') {
+          showSplashError(status.errors.backend || status.errors.postgres || 'Local server failed to start');
+        }
+      }, 1000);
+    });
 }
 
 const createWindow = () => {
@@ -564,32 +627,7 @@ app.whenReady().then(() => {
     createSplashWindow();
     createTray();
 
-    // The splash is just a loading screen, so kick off the local services here
-    // instead of waiting for a user action. Features come from the profile the
-    // wizard saved (omitted features are off; the rest stay default-on).
-    standaloneManager.start({ features: resolveStandaloneFeatures(store) }).catch((err) => {
-      console.error('Standalone services failed to start:', err);
-    });
-
-    // Poll until the backend is up, then swap the splash for the main window.
-    const splashPoll = setInterval(() => {
-      try {
-        const status = standaloneManager.getStatus();
-        if (status.services.backend === 'running') {
-          if (!mainWindow || mainWindow.isDestroyed()) {
-            createWindow();
-          }
-          if (mainWindow && !mainWindow.isVisible()) mainWindow.show();
-          if (splashWindow) {
-            try { splashWindow.close(); } catch {}
-            splashWindow = null;
-          }
-          clearInterval(splashPoll);
-        }
-      } catch (e) {
-        console.error('Error polling standalone status:', e);
-      }
-    }, 1000);
+    startStandaloneFromSplash();
   } else {
     createWindow();
     createTray();
