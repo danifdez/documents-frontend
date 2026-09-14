@@ -87,7 +87,7 @@ if [ -n "$LOCAL_RELEASE_DIR" ]; then
 fi
 
 log_info "Installing and testing Frontend staging"
-run_logged "$LOG_FILE" npm --prefix "$SOURCE_DIR" ci
+run_logged "$LOG_FILE" npm --prefix "$SOURCE_DIR" ci --ignore-scripts
 run_logged "$LOG_FILE.test" npm --prefix "$SOURCE_DIR" run test
 
 log_info "Packaging Frontend with $MAKER"

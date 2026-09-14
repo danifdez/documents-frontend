@@ -17,6 +17,7 @@ import {
   type ReleaseArtifact,
   type ReleaseComponent,
   type ReleaseManifest,
+  type ModelsVariant,
 } from './release-manifest';
 import {
   activateInstalledComponent,
@@ -255,7 +256,7 @@ export async function downloadComponent(
     }
 
     validateExtractedComponent(stagingDir, component, artifact, target, variant);
-    await runInstalledSelfCheck(stagingDir, component, artifact);
+    await runInstalledSelfCheck(stagingDir, component, artifact, variant);
 
     if (fs.existsSync(finalDir)) {
       const existingManifest = readComponentManifest(finalDir);
@@ -345,7 +346,12 @@ function validateExtractedComponent(
   if (!fs.existsSync(path.join(root, componentManifest.entrypoint))) throw new Error(`${component} entrypoint is missing`);
 }
 
-async function runInstalledSelfCheck(root: string, component: ReleaseComponent, artifact: ReleaseArtifact): Promise<void> {
+async function runInstalledSelfCheck(
+  root: string,
+  component: ReleaseComponent,
+  artifact: ReleaseArtifact,
+  variant?: ModelsVariant,
+): Promise<void> {
   const componentManifest = readComponentManifest(root)!;
   const entrypoint = path.join(root, componentManifest.entrypoint as string);
   if (component === 'backend') return;
@@ -354,7 +360,7 @@ async function runInstalledSelfCheck(root: string, component: ReleaseComponent, 
     try {
       await execFilePromise(entrypoint, ['--self-check'], {
         cwd: root,
-        env: { ...process.env, MODELS_DATA_DIR: dataDir },
+        env: { ...process.env, MODELS_DATA_DIR: dataDir, DOCUMENTS_MODELS_VARIANT: variant ?? '' },
         timeout: 120000,
       });
     } finally {
@@ -362,7 +368,9 @@ async function runInstalledSelfCheck(root: string, component: ReleaseComponent, 
     }
     return;
   }
-  const expectedVersion = component === 'node' ? artifact.version : String(artifact.runtime?.postgres ?? '').split('+')[0];
+  const expectedVersion = component === 'node'
+    ? artifact.version
+    : String(artifact.runtime?.postgres ?? '').split('+')[0].replace(/\.0$/, '');
   const output = await execFilePromise(entrypoint, ['--version'], { cwd: root, timeout: 30000 });
   if (expectedVersion && !output.includes(expectedVersion)) throw new Error(`${component} self-check reported an unexpected version`);
 }

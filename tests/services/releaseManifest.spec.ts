@@ -68,9 +68,11 @@ describe('Standalone release manifest', () => {
     )).toBe('http://127.0.0.1:8000/components/backend.tar.gz');
   });
 
-  it('reports a missing target or variant as unsupported', () => {
+  it('reports a missing target as unsupported and falls back to CPU when a GPU variant is absent', () => {
     const manifest = validateReleaseManifest(manifestValue());
     expect(() => selectReleaseArtifact(manifest, 'darwin-arm64', 'backend')).toThrow('does not support');
-    expect(() => selectReleaseArtifact(manifest, 'linux-x64', 'models-gpu')).toThrow('no Models cuda artifact');
+    expect(selectReleaseArtifact(manifest, 'linux-x64', 'models-gpu')).toMatchObject({
+      component: 'models', variant: 'cpu', artifact: { file: 'components/models-cpu.tar.gz' },
+    });
   });
 });

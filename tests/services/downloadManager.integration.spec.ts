@@ -129,4 +129,69 @@ describe.skipIf(process.platform !== 'linux')('Standalone downloader integration
       component: 'backend', version: '1.0.0', target: 'linux-x64', sha256,
     });
   });
+
+  it('accepts PostgreSQL major-minor output for a patch release runtime', async () => {
+    const bundle = path.join(root, 'postgres-bundle');
+    fs.mkdirSync(path.join(bundle, 'bin'), { recursive: true });
+    const postgres = path.join(bundle, 'bin', 'postgres');
+    fs.writeFileSync(postgres, '#!/bin/sh\necho "postgres (PostgreSQL) 17.6"\n');
+    fs.chmodSync(postgres, 0o755);
+    fs.writeFileSync(path.join(bundle, 'component-manifest.json'), JSON.stringify({
+      schemaVersion: 1, component: 'postgres', version: '17.6.0+documents.1.0.0', target: 'linux-x64', entrypoint: 'bin/postgres',
+    }));
+    const releaseDir = path.join(root, 'postgres-release');
+    const componentsDir = path.join(releaseDir, 'components');
+    fs.mkdirSync(componentsDir, { recursive: true });
+    const archive = path.join(componentsDir, 'postgres.tar.gz');
+    await createTar({ gzip: true, cwd: bundle, file: archive }, ['.']);
+    const content = fs.readFileSync(archive);
+    const sha256 = createHash('sha256').update(content).digest('hex');
+    fs.writeFileSync(path.join(releaseDir, 'release.json'), JSON.stringify({
+      schemaVersion: 1,
+      release: '1.0.0',
+      targets: { 'linux-x64': { postgres: {
+        version: '17.6.0+documents.1.0.0', file: 'components/postgres.tar.gz', size: content.length, sha256,
+        runtime: { postgres: '17.6.0' },
+      } } },
+    }));
+    const resourcesDir = path.join(root, 'postgres-resources');
+    fs.mkdirSync(resourcesDir, { recursive: true });
+    fs.writeFileSync(path.join(resourcesDir, 'standalone-release-source.json'), JSON.stringify({ schemaVersion: 1, directory: releaseDir }));
+    Object.defineProperty(process, 'resourcesPath', { configurable: true, value: resourcesDir });
+    electronPaths.packaged = true;
+
+    const downloader = await import('../../src/services/standalone/download-manager');
+    await expect(downloader.downloadComponent('postgres')).resolves.toBeUndefined();
+  });
+
+  it('passes the selected Models variant to its self-check', async () => {
+    const bundle = path.join(root, 'models-bundle');
+    fs.mkdirSync(bundle, { recursive: true });
+    const models = path.join(bundle, 'documents-models');
+    fs.writeFileSync(models, '#!/bin/sh\n[ "$DOCUMENTS_MODELS_VARIANT" = "cpu" ]\n');
+    fs.chmodSync(models, 0o755);
+    fs.writeFileSync(path.join(bundle, 'component-manifest.json'), JSON.stringify({
+      schemaVersion: 1, component: 'models', version: '1.0.0', target: 'linux-x64', variant: 'cpu', entrypoint: 'documents-models',
+    }));
+    const releaseDir = path.join(root, 'models-release');
+    const componentsDir = path.join(releaseDir, 'components');
+    fs.mkdirSync(componentsDir, { recursive: true });
+    const archive = path.join(componentsDir, 'models.tar.gz');
+    await createTar({ gzip: true, cwd: bundle, file: archive }, ['.']);
+    const content = fs.readFileSync(archive);
+    const sha256 = createHash('sha256').update(content).digest('hex');
+    fs.writeFileSync(path.join(releaseDir, 'release.json'), JSON.stringify({
+      schemaVersion: 1,
+      release: '1.0.0',
+      targets: { 'linux-x64': { models: { cpu: { version: '1.0.0', file: 'components/models.tar.gz', size: content.length, sha256 } } } },
+    }));
+    const resourcesDir = path.join(root, 'models-resources');
+    fs.mkdirSync(resourcesDir, { recursive: true });
+    fs.writeFileSync(path.join(resourcesDir, 'standalone-release-source.json'), JSON.stringify({ schemaVersion: 1, directory: releaseDir }));
+    Object.defineProperty(process, 'resourcesPath', { configurable: true, value: resourcesDir });
+    electronPaths.packaged = true;
+
+    const downloader = await import('../../src/services/standalone/download-manager');
+    await expect(downloader.downloadComponent('models-gpu')).resolves.toBeUndefined();
+  });
 });

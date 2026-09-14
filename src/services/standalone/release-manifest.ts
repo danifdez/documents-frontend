@@ -89,9 +89,10 @@ export function selectReleaseArtifact(
   if (!target) throw new Error(`Release ${manifest.release} does not support ${targetName}`);
 
   if (componentName === 'models-cpu' || componentName === 'models-gpu' || componentName === 'models-metal') {
-    const variant: ModelsVariant = componentName === 'models-gpu' ? 'cuda' : componentName.slice(7) as ModelsVariant;
+    const requestedVariant: ModelsVariant = componentName === 'models-gpu' ? 'cuda' : componentName.slice(7) as ModelsVariant;
+    const variant = target.models?.[requestedVariant] ? requestedVariant : 'cpu';
     const artifact = target.models?.[variant];
-    if (!artifact) throw new Error(`Release ${manifest.release} has no Models ${variant} artifact for ${targetName}`);
+    if (!artifact) throw new Error(`Release ${manifest.release} has no Models ${requestedVariant} or CPU artifact for ${targetName}`);
     return { component: 'models', variant, artifact };
   }
 

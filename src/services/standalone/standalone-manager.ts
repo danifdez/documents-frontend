@@ -6,6 +6,7 @@ import { EmbeddedPostgresService } from './embedded-postgres';
 import { EmbeddedBackendService } from './embedded-backend';
 import { EmbeddedModelsService, embeddedModels } from './embedded-models';
 import { detectGpu } from './download-manager';
+import { readInstalledComponent } from './installed-components';
 
 export interface LocalServiceStatus {
   postgres: 'stopped' | 'starting' | 'running' | 'error';
@@ -132,7 +133,7 @@ class StandaloneManager {
             database: creds.database,
           },
           features,
-          gpu: detectGpu().cuda,
+          gpu: readInstalledComponent(app.getPath('userData'), 'models')?.state.variant === 'cuda' && detectGpu().cuda,
         });
         this._status.models = 'running';
       } catch (err) {
