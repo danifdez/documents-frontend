@@ -1103,11 +1103,35 @@ const runModelExecution = async (
     afterSuccess?: () => Promise<void>,
 ) => {
     try {
-        await createExecution();
+        const execution = await createExecution();
         notification.success(`${label} execution created successfully`);
+        void refreshResourceAfterExecution(execution.executionId, resourceId.value);
         await afterSuccess?.();
     } catch (error) {
         notification.error(`Failed to create ${label.toLowerCase()} execution`);
+    }
+};
+
+const refreshResourceAfterExecution = async (
+    executionId: string,
+    expectedResourceId: string,
+) => {
+    for (let attempt = 0; attempt < 300; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+
+        try {
+            const { data } = await apiClient.get(`/executions/${executionId}/progress`);
+            const status = data?.runtime?.status;
+            if (status === 'completed') {
+                if (resourceId.value === expectedResourceId) {
+                    await loadResourceDetails();
+                }
+                return;
+            }
+            if (status === 'failed' || status === 'cancelled') return;
+        } catch {
+            // A transient progress request failure must not prevent the next refresh attempt.
+        }
     }
 };
 
