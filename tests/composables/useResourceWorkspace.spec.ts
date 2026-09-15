@@ -55,7 +55,7 @@ describe('useResourceWorkspace', () => {
         consoleError.mockRestore();
     });
 
-    it('creates the resource workspace once with the existing payload', async () => {
+    it('creates the resource workspace once with the API relation identifiers', async () => {
         const document = { id: 11, content: '' };
         mocks.createDocument.mockResolvedValue(document);
         const workspace = createWorkspace();
@@ -67,8 +67,8 @@ describe('useResourceWorkspace', () => {
         expect(mocks.createDocument).toHaveBeenCalledWith({
             name: 'Source - Workspace',
             content: '',
-            resource: { id: 42 },
-            project: { id: 7 },
+            resourceId: 42,
+            projectId: 7,
         });
         expect(first).toEqual({ document, created: true });
         expect(second).toEqual({ document, created: false });

@@ -53,8 +53,8 @@ export function useResourceWorkspace(
         const document = await createDocument({
             name: `${resource.value.name} - Workspace`,
             content: '',
-            resource: { id: Number(resourceId.value) },
-            project: resource.value.project ? { id: resource.value.project.id } : null,
+            resourceId: Number(resourceId.value),
+            projectId: resource.value.project?.id,
         });
 
         workspaceDocument.value = document;

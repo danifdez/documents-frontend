@@ -390,10 +390,10 @@ const handleSubmit = () => {
     const creators = (form.value.creators ?? []).filter(
         (c) => (c.lastName && c.lastName.trim()) || (c.firstName && c.firstName.trim()) || (c.name && c.name.trim())
     );
-    const data: Partial<BibliographyEntry> = {
+    const data = {
         ...form.value,
         creators: creators.length > 0 ? creators : null,
-        project: props.projectId ? ({ id: props.projectId } as any) : null,
+        projectId: props.projectId ?? null,
     };
     emit('save', data);
 };

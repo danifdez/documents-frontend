@@ -466,9 +466,9 @@ function handleSubmit() {
     };
 
     if (form.projectId) {
-        data.project = { id: form.projectId };
+        data.projectId = form.projectId;
     } else {
-        data.project = null;
+        data.projectId = null;
     }
 
     if (isEditing.value && props.event) {

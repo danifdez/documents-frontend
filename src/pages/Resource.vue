@@ -812,6 +812,10 @@ const loadResourceDetails = async () => {
         const data = await loadResource(resourceId.value);
         resource.value = data;
 
+        if (data.summary?.trim().length) {
+            displayMode.value = 'overview';
+        }
+
         // If pending confirmation (status = 'extracted'), always load raw HTML content for comparison
         if (data.status === 'extracted') {
             await loadRawHtmlContent();
@@ -1304,7 +1308,7 @@ const handleCreateNewDocFromSelection = async () => {
         const newDoc = await createDocument({
             name: `Selection from ${resource.value.name || 'Resource'}`,
             content: paragraph,
-            project: projectId ? { id: projectId } : null,
+            projectId: projectId || undefined,
         });
         router.push(`/document/${newDoc.id}`);
     } catch (error) {

@@ -499,11 +499,10 @@ const handleMoveItem = async (targetThreadId) => {
         await assignResourceToThread(item.id, targetThreadId);
       }
     } else {
-      const payload = { thread: targetThreadId ? { id: targetThreadId } : null };
       if (item.type === 'canvas') {
-        await saveCanvas(item.id, payload);
+        await saveCanvas(item.id, { threadId: targetThreadId || null });
       } else {
-        await saveDocument(item.id, payload);
+        await saveDocument(item.id, { threadId: targetThreadId || null });
       }
     }
     notification.success(`Moved "${item.name}" successfully`);
