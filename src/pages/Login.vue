@@ -2,9 +2,7 @@
   <div class="min-h-screen flex items-center justify-center bg-surface">
     <div class="w-full max-w-sm p-8 rounded-2xl border border-border bg-surface shadow-lg">
       <div class="flex items-center justify-center mb-8">
-        <div class="w-10 h-10 rounded-lg bg-accent flex items-center justify-center text-white font-semibold text-lg">
-          D
-        </div>
+        <img src="../assets/app-icon.svg" alt="" class="w-10 h-10" />
         <span class="ml-3 text-xl font-semibold text-text-primary tracking-tight">Documents</span>
       </div>
 
