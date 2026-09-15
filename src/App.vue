@@ -136,9 +136,6 @@ onMounted(async () => {
     showTaskPanel.value = true;
   });
 
-  // Initialize workspace before anything else
-  await workspaceStore.loadWorkspaces();
-
   if (workspaceStore.hasWorkspaces) {
     // Probe the backend so the first paint already reflects reachability
     await offlineStore.probeBackend();
