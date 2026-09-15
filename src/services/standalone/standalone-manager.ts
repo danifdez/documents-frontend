@@ -45,7 +45,7 @@ class StandaloneManager {
     return getPersistentLocalDataDir();
   }
 
-  async start(opts?: { features?: Record<string, boolean> }): Promise<string> {
+  async start(opts?: { features?: Record<string, boolean>; backendPort?: number }): Promise<string> {
     if (this._running && this.backend?.running) {
       return this.backend.url;
     }
@@ -93,6 +93,7 @@ class StandaloneManager {
       modelsEnrollmentToken,
       authEnabled: false,
       disabledFeatures,
+      port: opts?.backendPort,
     };
 
     let attempt = 0;

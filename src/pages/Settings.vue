@@ -308,6 +308,21 @@
                             </div>
                         </div>
 
+                        <div class="mt-5 pt-4 border-t border-border">
+                            <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-2">Local API address</h3>
+                            <p class="text-xs text-text-muted mb-3">Use this stable loopback address when connecting a local browser or agent. Changing the port restarts the local server.</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-text-secondary shrink-0">127.0.0.1:</span>
+                                <input v-model.number="standalonePort" type="number" min="1024" max="65535"
+                                    class="w-28 px-2 py-1.5 rounded-lg border border-border bg-surface text-sm text-text-primary" />
+                                <button @click="saveStandalonePort" :disabled="savingStandalonePort"
+                                    class="px-3 py-1.5 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-50">
+                                    {{ savingStandalonePort ? 'Saving…' : 'Save' }}
+                                </button>
+                            </div>
+                            <p v-if="standalonePortError" class="text-xs text-red-500 mt-2">{{ standalonePortError }}</p>
+                        </div>
+
                         <!-- AI / Inference Models (optional — manage here) -->
                         <div class="mt-5 pt-4 border-t border-border">
                             <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">AI /
@@ -648,6 +663,27 @@ const serviceStatusList: { key: ServiceKey; label: string }[] = [
     { key: 'models', label: 'Models Service' },
 ];
 
+const standalonePort = ref(32100);
+const savingStandalonePort = ref(false);
+const standalonePortError = ref('');
+
+async function loadStandalonePort() {
+    if (!isElectron || !window.electronAPI?.standaloneGetPort) return;
+    standalonePort.value = await window.electronAPI.standaloneGetPort();
+}
+
+async function saveStandalonePort() {
+    if (!isElectron || !window.electronAPI?.standaloneSetPort) return;
+    savingStandalonePort.value = true;
+    standalonePortError.value = '';
+    try {
+        const result = await window.electronAPI.standaloneSetPort(standalonePort.value);
+        if (!result.success) standalonePortError.value = result.error || 'Could not update the local API port.';
+    } finally {
+        savingStandalonePort.value = false;
+    }
+}
+
 function statusDotClass(state: string): string {
     if (state === 'running') return 'bg-green-500';
     if (state === 'starting') return 'bg-amber-500 animate-pulse';
@@ -838,6 +874,7 @@ onMounted(() => {
     loadProjects();
     loadStandaloneStatus();
     loadHardwareReport();
+    loadStandalonePort();
     subscribeDownloadProgress();
 });
 </script>

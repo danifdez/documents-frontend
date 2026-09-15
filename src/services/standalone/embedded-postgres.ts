@@ -333,3 +333,12 @@ export function findFreePort(): Promise<number> {
     server.on('error', reject);
   });
 }
+
+export function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => server.close(() => resolve(true)));
+    server.listen({ host: '127.0.0.1', port });
+  });
+}

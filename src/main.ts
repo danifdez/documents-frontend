@@ -8,7 +8,7 @@ import squirrelStartup from 'electron-squirrel-startup';
 import { standaloneManager } from './services/standalone/standalone-manager';
 import { getPersistentLocalDataDir } from './services/standalone/local-data';
 import { checkInstalled, downloadAll, uninstallServices } from './services/standalone/download-manager';
-import { registerStandaloneHandlers, resolveStandaloneFeatures } from './main/standalone-handlers';
+import { registerStandaloneHandlers, resolveStandaloneBackendPort, resolveStandaloneFeatures } from './main/standalone-handlers';
 import { IpcChannels, IpcEvents } from './ipc/channels';
 import { registerIpcHandlers } from './main/ipc/registry';
 import { createVoiceHandlers } from './main/ipc/voice-handlers';
@@ -496,7 +496,7 @@ function startStandaloneFromSplash() {
   void standaloneManager.stop()
     .catch((error) => console.error('Could not stop standalone services before retrying:', error))
     .finally(() => {
-      standaloneManager.start({ features: resolveStandaloneFeatures(store) }).catch((error) => {
+      standaloneManager.start({ features: resolveStandaloneFeatures(store), backendPort: resolveStandaloneBackendPort(store) }).catch((error) => {
         showSplashError(error instanceof Error ? error.message : String(error));
       });
       splashPoll = setInterval(() => {

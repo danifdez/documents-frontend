@@ -117,6 +117,8 @@ const electronAPI: ElectronAPI = {
     splashAction: (action: 'retry' | 'reinstall' | 'reset' | 'open') => ipcRenderer.invoke(IpcChannels.app.splashAction, action),
     standaloneStatus: () => ipcRenderer.invoke(IpcChannels.standalone.status),
     standaloneGetUrl: () => ipcRenderer.invoke(IpcChannels.standalone.getUrl),
+    standaloneGetPort: () => ipcRenderer.invoke(IpcChannels.standalone.getPort),
+    standaloneSetPort: (port: number) => ipcRenderer.invoke(IpcChannels.standalone.setPort, port),
     standaloneGetFeatures: () => ipcRenderer.invoke(IpcChannels.standalone.getFeatures),
     onStandaloneDownloadProgress: (callback: (progress: any) => void) =>
         ipcRenderer.on(IpcEvents.standalone.downloadProgress, (_event, progress) => callback(progress)),

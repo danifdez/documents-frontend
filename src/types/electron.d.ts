@@ -74,6 +74,8 @@ export interface ElectronAPI {
         errors: Partial<Record<'postgres' | 'backend' | 'models', string>>;
     }>;
     standaloneGetUrl: () => Promise<string | null>;
+    standaloneGetPort: () => Promise<number>;
+    standaloneSetPort: (port: number) => Promise<{ success: boolean; url?: string; error?: string }>;
     standaloneGetFeatures: () => Promise<Record<string, boolean>>;
     onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number; step?: number; totalSteps?: number; overallPercent?: number }) => void) => void;
 

@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { ChildProcess, fork, spawn, spawnSync } from 'child_process';
 import http from 'http';
-import { findFreePort } from './embedded-postgres';
+import { findFreePort, isPortAvailable } from './embedded-postgres';
 import { getBundledNodePath } from './download-manager';
 import { getActiveComponentRoot, legacyComponentRoot } from './installed-components';
 
@@ -18,6 +18,8 @@ export interface BackendConfig {
   authEnabled?: boolean;
   /** Feature flags to turn OFF (passed as FEATURE_<X>=false). */
   disabledFeatures?: string[];
+  /** Stable loopback port used by browser and local-agent integrations. */
+  port?: number;
 }
 
 export class EmbeddedBackendService {
@@ -148,7 +150,10 @@ export class EmbeddedBackendService {
 
     const backendPath = this.getBackendPath();
     await this.stopVerifiedOrphan(backendPath);
-    const port = await findFreePort();
+    const port = config.port ?? await findFreePort();
+    if (config.port !== undefined && !await isPortAvailable(port)) {
+      throw new Error(`Local API port ${port} is already in use. Choose a different port in Settings → Server.`);
+    }
 
     fs.mkdirSync(config.storagePath, { recursive: true });
     const logDir = path.dirname(this.getLogPath());
@@ -169,6 +174,7 @@ export class EmbeddedBackendService {
       DOCUMENTS_STORAGE_DIR: config.storagePath,
       MODELS_ENROLLMENT_TOKEN: config.modelsEnrollmentToken,
       PORT: String(port),
+      HOST: '127.0.0.1',
       AUTH_ENABLED: config.authEnabled ? 'true' : 'false',
       // Apply pending DB migrations on boot — the standalone Postgres is created
       // empty, so this is what builds the schema on first launch.

@@ -70,6 +70,8 @@ export const IpcChannels = {
     stop: 'standalone:stop',
     status: 'standalone:status',
     getUrl: 'standalone:get-url',
+    getPort: 'standalone:get-port',
+    setPort: 'standalone:set-port',
     getFeatures: 'standalone:get-features',
   },
   offline: {

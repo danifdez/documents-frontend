@@ -33,6 +33,23 @@ export function resolveStandaloneFeatures(store: Store): Record<string, boolean>
   return Object.fromEntries(ALL_FEATURES.map((f) => [f, enabled.includes(f)]));
 }
 
+export const DEFAULT_STANDALONE_BACKEND_PORT = 32100;
+
+export function resolveStandaloneBackendPort(store: Store): number {
+  const configured = store.get('standaloneBackendPort');
+  return typeof configured === 'number' && Number.isInteger(configured)
+    && configured >= 1024 && configured <= 65535
+    ? configured
+    : DEFAULT_STANDALONE_BACKEND_PORT;
+}
+
+function startStandalone(store: Store): Promise<string> {
+  return standaloneManager.start({
+    features: resolveStandaloneFeatures(store),
+    backendPort: resolveStandaloneBackendPort(store),
+  });
+}
+
 export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneHandlerDeps): void {
   const emitProgress = (progress: DownloadProgress) => {
     getMainWindow()?.webContents.send(IpcEvents.standalone.downloadProgress, progress);
@@ -68,11 +85,11 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       try {
         await standaloneManager.stop();
         const updated = await updateServices(emitProgress);
-        await standaloneManager.start({ features: resolveStandaloneFeatures(store) });
+        await startStandalone(store);
         return { success: true, updated };
       } catch (err: any) {
         try {
-          await standaloneManager.start({ features: resolveStandaloneFeatures(store) });
+          await startStandalone(store);
         } catch {
           // Keep the original update error; the manager exposes startup details separately.
         }
@@ -131,7 +148,7 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
 
     [IpcChannels.standalone.start]: async () => {
       try {
-        const url = await standaloneManager.start({ features: resolveStandaloneFeatures(store) });
+        const url = await startStandalone(store);
         return { success: true, url };
       } catch (err: any) {
         return { success: false, error: err.message };
@@ -153,6 +170,27 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
 
     [IpcChannels.standalone.getUrl]: () => {
       return standaloneManager.getBackendUrl();
+    },
+
+    [IpcChannels.standalone.getPort]: () => resolveStandaloneBackendPort(store),
+
+    [IpcChannels.standalone.setPort]: async (_, port: unknown) => {
+      if (typeof port !== 'number' || !Number.isInteger(port) || port < 1024 || port > 65535) {
+        return { success: false, error: 'Port must be an integer between 1024 and 65535.' };
+      }
+
+      const previousPort = resolveStandaloneBackendPort(store);
+      store.set('standaloneBackendPort', port);
+      if (!standaloneManager.isRunning()) return { success: true };
+
+      await standaloneManager.stop();
+      try {
+        return { success: true, url: await startStandalone(store) };
+      } catch (err: any) {
+        store.set('standaloneBackendPort', previousPort);
+        try { await startStandalone(store); } catch { /* preserve the original error */ }
+        return { success: false, error: err.message };
+      }
     },
 
     [IpcChannels.standalone.getFeatures]: () => {
