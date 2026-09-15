@@ -12,13 +12,13 @@ export function useThreadCreate() {
         error.value = null;
 
         try {
-            const data: any = { name, project: projectId, description };
+            const data: any = { name, projectId: Number(projectId), description };
             if (parentId) {
-                data.parent = { id: Number(parentId) };
+                data.parentId = Number(parentId);
             }
             const response = await apiClient.post('/threads', data);
 
-            newThreadId.value = response.data._id;
+            newThreadId.value = response.data.id;
             status.value = true;
             return response.data;
         } catch (err) {
