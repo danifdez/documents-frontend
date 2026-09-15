@@ -78,10 +78,76 @@ export class EmbeddedBackendService {
     return path.join(app.getPath('userData'), 'local-server', 'logs', 'backend.log');
   }
 
+  private getProcessStatePath(): string {
+    return path.join(app.getPath('userData'), 'local-server', 'backend-process.json');
+  }
+
+  private isProcessAlive(pid: number): boolean {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (error: unknown) {
+      return typeof error === 'object' && error !== null && 'code' in error && error.code === 'EPERM';
+    }
+  }
+
+  private clearProcessState(pid?: number): void {
+    try {
+      const statePath = this.getProcessStatePath();
+      if (pid !== undefined && fs.existsSync(statePath)) {
+        const state = JSON.parse(fs.readFileSync(statePath, 'utf8')) as { pid?: number };
+        if (state.pid !== pid) return;
+      }
+      fs.rmSync(statePath, { force: true });
+    } catch {
+      // State is advisory. A malformed file must not block normal startup.
+    }
+  }
+
+  private async stopVerifiedOrphan(backendPath: string): Promise<void> {
+    const statePath = this.getProcessStatePath();
+    let pid: number | undefined;
+    try {
+      pid = JSON.parse(fs.readFileSync(statePath, 'utf8')).pid;
+    } catch {
+      return;
+    }
+    if (!Number.isInteger(pid) || pid! <= 0 || !this.isProcessAlive(pid!)) {
+      this.clearProcessState();
+      return;
+    }
+
+    // On Linux we can prove that the PID is our backend before signalling it.
+    // Do not make a best-effort guess on other platforms: a reused PID is never
+    // an acceptable target for an automatic kill.
+    if (process.platform !== 'linux') return;
+    try {
+      const commandLine = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8');
+      if (!commandLine.includes(backendPath)) return;
+    } catch {
+      return;
+    }
+
+    try { process.kill(pid!, 'SIGTERM'); } catch { return; }
+    const deadline = Date.now() + 5000;
+    while (this.isProcessAlive(pid!) && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    if (this.isProcessAlive(pid!)) {
+      try { process.kill(pid!, 'SIGKILL'); } catch { /* already gone */ }
+    }
+    this.clearProcessState(pid);
+  }
+
+  private saveProcessState(pid: number, backendPath: string): void {
+    fs.writeFileSync(this.getProcessStatePath(), JSON.stringify({ pid, backendPath }));
+  }
+
   async start(config: BackendConfig): Promise<void> {
     if (this._running) return;
 
     const backendPath = this.getBackendPath();
+    await this.stopVerifiedOrphan(backendPath);
     const port = await findFreePort();
 
     fs.mkdirSync(config.storagePath, { recursive: true });
@@ -149,6 +215,7 @@ export class EmbeddedBackendService {
     }
 
     this.process = child;
+    if (this.process.pid) this.saveProcessState(this.process.pid, backendPath);
 
     // Pipe logs to the persistent log stream when available
     if (this.process.stdout) this.process.stdout.pipe(logStream);
@@ -156,6 +223,7 @@ export class EmbeddedBackendService {
 
     this.process.on('error', (err) => {
       this._running = false;
+      this.clearProcessState(this.process?.pid);
       this.process = null;
       console.error('EmbeddedBackendService: child process error', err && (err.stack || err));
       try { logStream.write(`[${new Date().toISOString()}] [ERR] child process error: ${err && (err.stack || err)}\n`); } catch { /* log stream may already be closed */ }
@@ -163,6 +231,7 @@ export class EmbeddedBackendService {
 
     this.process.on('exit', (code, signal) => {
       this._running = false;
+      this.clearProcessState(this.process?.pid);
       this.process = null;
       try { logStream.write(`[${new Date().toISOString()}] [LOG] child exit code=${code} signal=${signal}\n`); } catch { /* log stream may already be closed */ }
       if (code !== 0 && code !== null) {

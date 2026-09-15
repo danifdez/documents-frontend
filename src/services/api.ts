@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { workspaceKey } from './workspaceScope';
+import { setServerReachable } from './offline/offlineInterceptor';
 
 const apiClient = axios.create({
     headers: {
@@ -13,6 +14,7 @@ apiClient.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3
 // Dynamic base URL for workspace switching
 export function setApiBaseUrl(url: string) {
     apiClient.defaults.baseURL = url;
+    setServerReachable(true);
 }
 
 // Request interceptor: attach auth token

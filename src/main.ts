@@ -6,6 +6,7 @@ import axios from 'axios';
 import Store from 'electron-store';
 import squirrelStartup from 'electron-squirrel-startup';
 import { standaloneManager } from './services/standalone/standalone-manager';
+import { getPersistentLocalDataDir } from './services/standalone/local-data';
 import { checkInstalled, downloadAll, uninstallServices } from './services/standalone/download-manager';
 import { registerStandaloneHandlers, resolveStandaloneFeatures } from './main/standalone-handlers';
 import { IpcChannels, IpcEvents } from './ipc/channels';
@@ -545,8 +546,7 @@ async function resetStandaloneFromSplash() {
   showSplashLoading('Resetting local data and services…');
   try {
     await standaloneManager.stop();
-    const userData = app.getPath('userData');
-    fs.rmSync(path.join(userData, 'local-server'), { recursive: true, force: true });
+    fs.rmSync(getPersistentLocalDataDir(), { recursive: true, force: true });
     await uninstallServices();
     showSplashLoading('Installing local services…');
     await downloadAll();

@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { ChildProcess, spawn, execFile } from 'child_process';
 import Store from 'electron-store';
 import { getActiveComponentRoot, legacyComponentRoot } from './installed-components';
+import { getPersistentLocalDataDir } from './local-data';
 
 const store = new Store();
 
@@ -33,7 +34,11 @@ export class EmbeddedPostgresService {
   }
 
   private getDataDir(): string {
-    return path.join(app.getPath('userData'), 'local-server', 'pg-data');
+    return path.join(getPersistentLocalDataDir(), 'pg-data');
+  }
+
+  private getCredentialsPath(): string {
+    return path.join(getPersistentLocalDataDir(), 'pg-credentials.json');
   }
 
   private getLogPath(): string {
@@ -75,6 +80,13 @@ export class EmbeddedPostgresService {
   }
 
   private getCredentials(): { user: string; password: string; database: string } {
+    try {
+      const saved = JSON.parse(fs.readFileSync(this.getCredentialsPath(), 'utf8')) as { user: string; password: string; database: string };
+      if (saved.user && saved.password && saved.database) return saved;
+    } catch {
+      // Fall back to the legacy store below and persist it outside userData.
+    }
+
     const key = `standalone.${this.workspaceId}.pg`;
     let creds = store.get(key) as { user: string; password: string; database: string } | undefined;
     if (!creds) {
@@ -85,6 +97,8 @@ export class EmbeddedPostgresService {
       };
       store.set(key, creds);
     }
+    fs.mkdirSync(getPersistentLocalDataDir(), { recursive: true });
+    fs.writeFileSync(this.getCredentialsPath(), JSON.stringify(creds), { mode: 0o600 });
     return creds;
   }
 
@@ -152,13 +166,17 @@ export class EmbeddedPostgresService {
 
     const port = preferredPort || await findFreePort();
 
-    // Initialize data directory if needed
+    // Initialize data directory if needed. Never "repair" a non-empty directory
+    // by deleting it: a missing PG_VERSION can mean an interrupted write or a
+    // damaged install, and deleting it would turn a recoverable incident into
+    // irreversible data loss.
     if (!this.isInitialized()) {
-      // initdb refuses to run unless the target dir is empty. A previous failed
-      // attempt can leave leftovers (e.g. a stray .pwfile) that would block every
-      // retry forever, so wipe and recreate it for a clean init.
-      fs.rmSync(dataDir, { recursive: true, force: true });
-      fs.mkdirSync(dataDir, { recursive: true });
+      const entries = fs.readdirSync(dataDir);
+      if (entries.length > 0) {
+        throw new Error(
+          'Local database directory is incomplete. Its contents were preserved; restore a backup or reset the local installation explicitly.',
+        );
+      }
 
       // The password file must live OUTSIDE the data dir — anything inside it
       // makes initdb fail with "directory exists but is not empty".

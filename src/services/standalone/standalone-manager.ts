@@ -7,6 +7,7 @@ import { EmbeddedBackendService } from './embedded-backend';
 import { EmbeddedModelsService, embeddedModels } from './embedded-models';
 import { detectGpu } from './download-manager';
 import { readInstalledComponent } from './installed-components';
+import { getPersistentLocalDataDir, migrateLegacyLocalData } from './local-data';
 
 export interface LocalServiceStatus {
   postgres: 'stopped' | 'starting' | 'running' | 'error';
@@ -41,7 +42,7 @@ class StandaloneManager {
   private _running = false;
 
   private getDataDir(): string {
-    return path.join(app.getPath('userData'), 'local-server');
+    return getPersistentLocalDataDir();
   }
 
   async start(opts?: { features?: Record<string, boolean> }): Promise<string> {
@@ -56,6 +57,7 @@ class StandaloneManager {
     // show errors for services that are now starting cleanly.
     this._errors = {};
 
+    migrateLegacyLocalData();
     const dataDir = this.getDataDir();
     fs.mkdirSync(dataDir, { recursive: true });
 

@@ -35,41 +35,33 @@ import router from './router';
 import toastPlugin from './plugins/toast';
 import pinia from './plugins/pinia';
 import { setServerReachable } from './services/offline/offlineInterceptor';
-import { useWorkspaceStore } from './store/workspaceStore';
 
-async function bootstrap() {
-  const app = createApp(App);
-  app.use(pinia);
+const app = createApp(App);
+app.use(router);
+app.use(toastPlugin);
+app.use(pinia);
 
-  await useWorkspaceStore(pinia).loadWorkspaces();
+// Keep the renderer alive when components throw (network failures during render,
+// undefined data after a backend disconnect, etc.). Without this Vue can blank
+// the affected subtree and the user sees the bare surface background.
+app.config.errorHandler = (err, _instance, info) => {
+  console.warn('[vue:error]', info, err);
+};
 
-  app.use(router);
-  app.use(toastPlugin);
+// Treat unhandled axios rejections (typically from offline mutations) as offline
+// rather than letting them bubble into "uncaught" warnings. Also marks the
+// backend as unreachable so the UI swaps to offline mode immediately.
+window.addEventListener('unhandledrejection', (event) => {
+  const reason: any = event.reason;
+  const isAxiosNetworkError =
+    reason && (reason.isAxiosError || reason.config) && !reason.response;
+  if (isAxiosNetworkError) {
+    setServerReachable(false);
+    event.preventDefault();
+  }
+});
 
-  // Keep the renderer alive when components throw (network failures during render,
-  // undefined data after a backend disconnect, etc.). Without this Vue can blank
-  // the affected subtree and the user sees the bare surface background.
-  app.config.errorHandler = (err, _instance, info) => {
-    console.warn('[vue:error]', info, err);
-  };
-
-  // Treat unhandled axios rejections (typically from offline mutations) as offline
-  // rather than letting them bubble into "uncaught" warnings. Also marks the
-  // backend as unreachable so the UI swaps to offline mode immediately.
-  window.addEventListener('unhandledrejection', (event) => {
-    const reason: any = event.reason;
-    const isAxiosNetworkError =
-      reason && (reason.isAxiosError || reason.config) && !reason.response;
-    if (isAxiosNetworkError) {
-      setServerReachable(false);
-      event.preventDefault();
-    }
-  });
-
-  app.mount('#app');
-}
-
-void bootstrap();
+app.mount('#app');
 
 // Kick off voice model preload so the first dictation does not have to wait
 // for the download and the whisper instance to load.
