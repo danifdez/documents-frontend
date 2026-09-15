@@ -95,7 +95,7 @@
                         <div class="flex flex-col h-full border-l border-border pl-4 overflow-hidden">
                             <h3 class="text-lg font-semibold mb-2 text-text-primary">Original Document</h3>
                             <div class="flex-1 overflow-auto">
-                                <iframe v-if="isHtmlFile" class="w-full h-full min-h-[500px]" :srcdoc="rawHtmlContent"
+                                <iframe v-if="isPreviewableHtmlFile" class="w-full h-full min-h-[500px]" :srcdoc="rawHtmlContent"
                                     sandbox="allow-same-origin" title="HTML Preview">
                                 </iframe>
                                 <iframe v-else-if="isPdfFile" class="w-full h-full min-h-[500px]"
@@ -326,7 +326,7 @@
                         <ResourceMediaPreview v-else-if="displayMode === 'raw' || isImageFile"
                             :resourceId="resourceId" :mimeType="resource.mimeType"
                             :originalName="resource.originalName" :content="rawHtmlContent"
-                            :baseUrl="apiBaseUrl" :isHtml="isHtmlFile && displayMode === 'raw'"
+                            :baseUrl="apiBaseUrl" :isHtml="isPreviewableHtmlFile && displayMode === 'raw'"
                             :isPdf="isPdfFile && displayMode === 'raw'" :isImage="isImageFile"
                             :isVideo="isVideoFile && displayMode === 'raw'"
                             :isAudio="false" />
@@ -529,6 +529,7 @@ import {
     toResourceContentMode,
     type ResourceDisplayMode,
 } from '../types/ResourceDisplayMode';
+import { extractMhtmlHtml } from '../utils/mhtml';
 
 defineOptions({
     inheritAttrs: false
@@ -686,6 +687,10 @@ const {
 
 
 const { isPdfFile, isHtmlFile, isImageFile, isVideoFile, isAudioFile } = useResourceIcon(computed(() => resource.value.mimeType));
+const isMhtmlFile = computed(() =>
+    resource.value.mimeType === 'multipart/related' || /\.mht(?:ml)?$/i.test(resource.value.originalName ?? ''),
+);
+const isPreviewableHtmlFile = computed(() => isHtmlFile.value || isMhtmlFile.value);
 
 // Confirm Modal state
 const showRemoveResourceModal = ref(false);
@@ -784,17 +789,20 @@ const hasTranslatedContent = computed(() => {
 });
 
 const loadRawHtmlContent = async () => {
-    if (!isHtmlFile.value) return;
+    if (!isPreviewableHtmlFile.value) return;
 
     try {
-        rawHtmlContent.value = await fetchRawFileText(resourceId.value);
+        const source = await fetchRawFileText(resourceId.value);
+        rawHtmlContent.value = isMhtmlFile.value
+            ? extractMhtmlHtml(source) ?? 'Unable to read the HTML document from this MHTML file.'
+            : source;
     } catch (err) {
         rawHtmlContent.value = 'Error loading raw HTML content';
     }
 };
 
 watch(displayMode, (newMode: ResourceDisplayMode) => {
-    if (newMode === 'raw' && !rawHtmlContent.value && isHtmlFile.value) {
+    if (newMode === 'raw' && !rawHtmlContent.value && isPreviewableHtmlFile.value) {
         loadRawHtmlContent();
     }
 });
@@ -834,7 +842,7 @@ const loadResourceDetails = async () => {
             displayMode.value = 'raw';
         }
 
-        if ('mimeType' in data && data.mimeType === 'text/html' && displayMode.value === 'raw') {
+        if (isPreviewableHtmlFile.value && displayMode.value === 'raw') {
             await loadRawHtmlContent();
         }
     } catch (err) {
