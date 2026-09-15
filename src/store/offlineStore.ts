@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import apiClient from '../services/api';
 import { getActiveWorkspaceId } from '../services/workspaceScope';
+import { setServerReachable } from '../services/offline/offlineInterceptor';
 import {
   putOfflineItem,
   putOfflineFile,
@@ -56,6 +57,7 @@ export const useOfflineStore = defineStore('offline', () => {
   }
 
   function setBackendReachable(value: boolean) {
+    setServerReachable(value);
     const wasReachable = backendReachable.value;
     backendReachable.value = value;
     isOnline.value = value;
