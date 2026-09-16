@@ -97,6 +97,7 @@ import CanvasViewConfigModal from './CanvasViewConfigModal.vue';
 import TimelineViewConfigModal from '../../components/canvas/TimelinePickerModal.vue';
 import TableToDatasetModal from './TableToDatasetModal.vue';
 import { parseTableFromEditor, type ParsedTable } from './utils/parseTableFromEditor';
+import { normalizeTableWidths } from './utils/normalizeTableWidths';
 import { useNotification } from '../../composables/useNotification';
 import { useBibliography } from '../../services/bibliography/useBibliography';
 import type { BibliographyEntry } from '../../types/Bibliography';
@@ -557,6 +558,9 @@ onMounted(async () => {
         content: props.content || '<p></p>',
         autofocus: true,
         editable: true,
+        editorProps: {
+            transformPastedHTML: normalizeTableWidths,
+        },
         onUpdate: ({ editor }) => {
             const html = editor.getHTML();
             checkForMarkChanges(editor);
@@ -951,7 +955,10 @@ const scrollToPosition = (position: number) => {
 
 :deep(.editor-content table) {
     border-collapse: collapse;
-    width: 100%;
+    /* Tables always span the document. `!important` is required because Tiptap
+       pins an inline pixel width on tables that carry column widths (e.g. pasted
+       from the web or a saved resized table), which would otherwise win. */
+    width: 100% !important;
     margin: 1rem 0;
 }
 

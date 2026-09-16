@@ -266,15 +266,41 @@
       </div>
 
       <!-- Table -->
-      <Button @click="insertTable" title="Insert Table" size="small" :active="editor?.isActive('table')" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-          <rect x="3" y="4" width="14" height="12" rx="1" stroke="currentColor" stroke-width="2" />
-          <rect x="3" y="7.5" width="14" height="1.5" fill="currentColor" />
-          <rect x="3" y="11" width="14" height="1.5" fill="currentColor" />
-          <rect x="7.5" y="4" width="1.5" height="12" fill="currentColor" />
-          <rect x="11" y="4" width="1.5" height="12" fill="currentColor" />
-        </svg>
-      </Button>
+      <div class="relative">
+        <Button @click="handleTableButton" title="Table" size="small" :active="editor?.isActive('table')" borderless>
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <rect x="3" y="4" width="14" height="12" rx="1" stroke="currentColor" stroke-width="2" />
+            <rect x="3" y="7.5" width="14" height="1.5" fill="currentColor" />
+            <rect x="3" y="11" width="14" height="1.5" fill="currentColor" />
+            <rect x="7.5" y="4" width="1.5" height="12" fill="currentColor" />
+            <rect x="11" y="4" width="1.5" height="12" fill="currentColor" />
+          </svg>
+        </Button>
+        <div v-if="activeDropdown === 'table'"
+          class="absolute top-9 left-0 z-30 bg-surface-elevated border border-border rounded-lg shadow-lg p-1.5 w-48 text-sm">
+          <div class="px-2 py-1 text-xs text-text-muted font-medium">Rows</div>
+          <button class="table-menu-item" @click="runTableCommand('addRowBefore')">Insert row above</button>
+          <button class="table-menu-item" @click="runTableCommand('addRowAfter')">Insert row below</button>
+          <button class="table-menu-item table-menu-item--danger" @click="runTableCommand('deleteRow')">Delete row</button>
+
+          <div class="my-1 h-px bg-border"></div>
+          <div class="px-2 py-1 text-xs text-text-muted font-medium">Columns</div>
+          <button class="table-menu-item" @click="runTableCommand('addColumnBefore')">Insert column left</button>
+          <button class="table-menu-item" @click="runTableCommand('addColumnAfter')">Insert column right</button>
+          <button class="table-menu-item table-menu-item--danger" @click="runTableCommand('deleteColumn')">Delete column</button>
+
+          <div class="my-1 h-px bg-border"></div>
+          <div class="px-2 py-1 text-xs text-text-muted font-medium">Cells</div>
+          <button class="table-menu-item" :disabled="!editor?.can().mergeCells()"
+            @click="runTableCommand('mergeCells')">Merge cells</button>
+          <button class="table-menu-item" :disabled="!editor?.can().splitCell()"
+            @click="runTableCommand('splitCell')">Split cell</button>
+          <button class="table-menu-item" @click="runTableCommand('toggleHeaderRow')">Toggle header row</button>
+
+          <div class="my-1 h-px bg-border"></div>
+          <button class="table-menu-item table-menu-item--danger" @click="runTableCommand('deleteTable')">Delete table</button>
+        </div>
+      </div>
 
       <!-- Convert Table to Dataset -->
       <Button v-if="featureStore.isEnabled('datasets') && editor?.isActive('table')" @click="emit('convert-table-to-dataset')"
@@ -568,8 +594,39 @@ const removeLink = () => {
 };
 
 // -- Table --
+type TableCommand =
+  | 'addRowBefore' | 'addRowAfter' | 'deleteRow'
+  | 'addColumnBefore' | 'addColumnAfter' | 'deleteColumn'
+  | 'mergeCells' | 'splitCell' | 'toggleHeaderRow' | 'deleteTable';
+
 const insertTable = () => {
   props.editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+};
+
+const handleTableButton = () => {
+  if (props.editor?.isActive('table')) {
+    toggleDropdown('table');
+  } else {
+    insertTable();
+  }
+};
+
+const runTableCommand = (command: TableCommand) => {
+  if (!props.editor) return;
+  const chain = props.editor.chain().focus();
+  switch (command) {
+    case 'addRowBefore': chain.addRowBefore().run(); break;
+    case 'addRowAfter': chain.addRowAfter().run(); break;
+    case 'deleteRow': chain.deleteRow().run(); break;
+    case 'addColumnBefore': chain.addColumnBefore().run(); break;
+    case 'addColumnAfter': chain.addColumnAfter().run(); break;
+    case 'deleteColumn': chain.deleteColumn().run(); break;
+    case 'mergeCells': chain.mergeCells().run(); break;
+    case 'splitCell': chain.splitCell().run(); break;
+    case 'toggleHeaderRow': chain.toggleHeaderRow().run(); break;
+    case 'deleteTable': chain.deleteTable().run(); break;
+  }
+  closeDropdown();
 };
 
 // -- Math --
@@ -758,3 +815,35 @@ const handleAddMark = () => {
 
 defineExpose({ activeDropdown });
 </script>
+
+<style scoped>
+.table-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  border-radius: 0.25rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.table-menu-item:hover:not(:disabled) {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.table-menu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.table-menu-item--danger {
+  color: #ef4444;
+}
+
+.table-menu-item--danger:hover:not(:disabled) {
+  color: #ef4444;
+}
+</style>
+
