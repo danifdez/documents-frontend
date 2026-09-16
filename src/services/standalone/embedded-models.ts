@@ -90,6 +90,7 @@ export class EmbeddedModelsService {
       MODELS_MODEL_DIR: path.join(this.modelsDataDir(), 'models'),
       HF_HOME: path.join(this.modelsDataDir(), 'hf-cache'),
       LLM_N_GPU_LAYERS: config.gpu ? '-1' : '0',
+      LLAMA_SERVER_GPU_LAYERS: config.gpu ? '-1' : '0',
     };
 
     this.process = spawn(binary, [], {
