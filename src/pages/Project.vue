@@ -195,8 +195,11 @@
             </section>
           </div>
 
-          <!-- Right column: Notes + Events -->
+          <!-- Right column: Favorites + Notes + Events -->
           <div class="flex flex-col gap-6">
+            <ProjectFavoritesPanel
+              :favorites="projectFavorites" :isLoading="isFavoritesLoading"
+              @open="openFavorite" @remove="removeProjectFavorite" />
             <RecentNotesPanel
               :notes="projectNotes" :isLoading="isNotesLoading" :showProject="false"
               @create="openNotesPanel" @open="openNoteInPanel" />
@@ -252,6 +255,7 @@ import { useResourceList } from '../services/resources/useResourceList';
 import { useResourceType } from '../services/resources/useResourceType';
 import { useProject } from '../services/projects/useProject';
 import { useNotes } from '../services/notes/useNotes';
+import { useProjectFavorites } from '../services/favorites/useProjectFavorites';
 import { useCalendarEvents } from '../services/calendar/useCalendarEvents';
 import { useTimelines } from '../services/timelines/useTimelines';
 import { ref, onMounted, computed, watch } from 'vue';
@@ -275,6 +279,7 @@ import FilterBadge from '../components/search/FilterBadge.vue';
 import Card from '../components/ui/Card.vue';
 import IconType from '../components/resources/IconType.vue';
 import RecentNotesPanel from '../components/notes/RecentNotesPanel.vue';
+import ProjectFavoritesPanel from '../components/favorites/ProjectFavoritesPanel.vue';
 import UpcomingEventsPanel from '../components/calendar/UpcomingEventsPanel.vue';
 import EventModal from '../components/calendar/EventModal.vue';
 import { useNotification } from '../composables/useNotification';
@@ -319,6 +324,7 @@ const { loadResourceTypes, getResourceTypeAbbreviation, getResourceTypeName } = 
 const { notes: projectNotes, isLoading: isNotesLoading, loadNotesByProject } = useNotes();
 const { events: projectEvents, isLoading: isEventsLoading, loadEventsByProject, createEvent } = useCalendarEvents();
 const { timelines: projectTimelines, isLoading: isTimelinesLoading, loadTimelinesByProject } = useTimelines();
+const { favorites: projectFavorites, isLoading: isFavoritesLoading, loadFavoritesByProject, removeFavorite } = useProjectFavorites();
 const projectResources = ref([]);
 const filteredResources = ref([]);
 const filteredCanvases = ref([]);
@@ -358,6 +364,22 @@ const handleMoveItem = async (targetThreadId) => {
   }
 };
 
+const openFavorite = (favorite) => {
+  if (favorite && favorite.url) {
+    window.open(favorite.url, '_blank', 'noopener,noreferrer');
+  }
+};
+
+const removeProjectFavorite = async (favorite) => {
+  if (!favorite) return;
+  try {
+    await removeFavorite(favorite.id);
+    await loadFavoritesByProject(route.params.id);
+  } catch {
+    notification.error('Failed to remove favorite');
+  }
+};
+
 const handleEventCreated = async (data) => {
   try {
     await createEvent(data);
@@ -392,6 +414,7 @@ const loadProjectCollections = async (id) => {
   await loadDocumentsByProject(id);
   if (featureStore.isEnabled('canvas')) await loadCanvasesByProject(id);
   projectResources.value = await loadResourcesByProject(id);
+  await loadFavoritesByProject(id);
   await loadNotesByProject(id);
   await loadEventsByProject(id);
   if (featureStore.isEnabled('timelines')) await loadTimelinesByProject(id);
