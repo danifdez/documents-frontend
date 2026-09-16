@@ -4,56 +4,46 @@
             <!-- Header -->
             <PageHeader title="Relationships" subtitle="Manage entities and explore their relationships" :breadcrumbs="breadcrumbItems">
                 <template #actions>
-                    <!-- View toggle -->
-                    <div class="flex gap-1">
-                        <button @click="relViewMode = 'graph'" :class="relViewMode === 'graph' ? 'bg-accent text-white' : 'bg-surface-elevated text-text-secondary'" class="px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer">
-                            Graph
-                        </button>
-                        <button @click="relViewMode = 'table'" :class="relViewMode === 'table' ? 'bg-accent text-white' : 'bg-surface-elevated text-text-secondary'" class="px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer">
-                            Table
-                        </button>
-                    </div>
-                    <button @click="refreshRelationships" :disabled="relLoading" class="px-3 py-1.5 rounded text-xs font-medium bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50 cursor-pointer">
-                        Refresh
-                    </button>
+                    <SegmentedControl v-model="relViewMode" :options="relationshipViews" />
+                    <Button variant="secondary" size="small" :disabled="relLoading" @click="refreshRelationships">Refresh</Button>
                 </template>
             </PageHeader>
 
             <!-- Filters -->
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="workspace-toolbar">
                 <!-- Project selector (hidden when navigated from a project) -->
-                <div v-if="!projectFromRoute" class="flex items-center gap-2">
-                    <label class="text-xs text-text-secondary">Project:</label>
-                    <select v-model="relSelectedProjectId" class="px-2 py-1 rounded border border-border bg-surface text-sm min-w-[180px]">
+                <label v-if="!projectFromRoute" class="flex flex-col gap-1 text-[11px] font-medium text-text-muted">
+                    Project
+                    <select v-model="relSelectedProjectId" class="workspace-filter min-w-[180px]">
                         <option :value="0">All projects</option>
                         <option v-for="p in allProjects" :key="p.id" :value="p.id">{{ p.name }}</option>
                     </select>
-                </div>
+                </label>
                 <!-- Resource filter -->
-                <div v-if="relSelectedProjectId" class="flex items-center gap-2">
-                    <label class="text-xs text-text-secondary">Resource:</label>
-                    <select v-model="relSelectedResourceId" class="px-2 py-1 rounded border border-border bg-surface text-sm min-w-[160px]">
+                <label v-if="relSelectedProjectId" class="flex flex-col gap-1 text-[11px] font-medium text-text-muted">
+                    Resource
+                    <select v-model="relSelectedResourceId" class="workspace-filter min-w-[160px]">
                         <option :value="0">All resources</option>
                         <option v-for="r in relResources" :key="r.id" :value="r.id">{{ r.name }}</option>
                     </select>
-                </div>
+                </label>
                 <!-- Entity type filter -->
-                <div class="flex items-center gap-2">
-                    <label class="text-xs text-text-secondary">Entity type:</label>
-                    <select v-model="relSelectedEntityType" class="px-2 py-1 rounded border border-border bg-surface text-sm">
+                <label class="flex flex-col gap-1 text-[11px] font-medium text-text-muted">
+                    Entity type
+                    <select v-model="relSelectedEntityType" class="workspace-filter">
                         <option value="">All types</option>
                         <option v-for="t in relEntityTypes" :key="t" :value="t">{{ t }}</option>
                     </select>
-                </div>
+                </label>
                 <!-- Predicate filter -->
-                <div class="flex items-center gap-2">
-                    <label class="text-xs text-text-secondary">Predicate:</label>
-                    <select v-model="relSelectedPredicate" class="px-2 py-1 rounded border border-border bg-surface text-sm">
+                <label class="flex flex-col gap-1 text-[11px] font-medium text-text-muted">
+                    Predicate
+                    <select v-model="relSelectedPredicate" class="workspace-filter">
                         <option value="">All predicates</option>
                         <option v-for="p in relPredicates" :key="p" :value="p">{{ p }}</option>
                     </select>
-                </div>
-                <div v-if="relData.relationships.length > 0" class="text-xs text-text-muted">
+                </label>
+                <div v-if="relData.relationships.length > 0" class="ml-auto self-center rounded-full bg-accent-subtle px-3 py-1.5 text-xs font-medium text-accent-dark">
                     {{ relFilteredRelationships.length }} relationships, {{ relFilteredEntities.length }} entities
                 </div>
             </div>
@@ -70,12 +60,12 @@
                 </div>
 
                 <!-- Empty -->
-                <div v-else-if="relData.relationships.length === 0" class="flex-1 flex items-center justify-center rounded-lg border border-border">
+                <div v-else-if="relData.relationships.length === 0" class="workspace-panel flex-1 flex items-center justify-center">
                     <div class="text-sm text-text-muted">No relationships found</div>
                 </div>
 
                 <!-- Graph view -->
-                <div v-else-if="relViewMode === 'graph'" class="flex-1 min-h-0 rounded-lg border border-border overflow-hidden relative">
+                <div v-else-if="relViewMode === 'graph'" class="workspace-panel flex-1 min-h-0 overflow-hidden relative">
                     <canvas ref="canvasRef" class="w-full h-full cursor-grab active:cursor-grabbing"
                         @wheel.prevent="onWheel" @mousedown="onMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseLeave" @dblclick="onDblClick" />
                     <div class="absolute bottom-3 right-3 flex flex-col gap-1">
@@ -91,7 +81,7 @@
                 </div>
 
                 <!-- Table view -->
-                <div v-else class="flex-1 min-h-0 overflow-y-auto rounded-lg border border-border">
+                <div v-else class="workspace-panel flex-1 min-h-0 overflow-y-auto">
                     <table class="w-full text-sm">
                         <thead class="sticky top-0 bg-surface">
                             <tr class="border-b border-border">
@@ -132,7 +122,7 @@
             </div>
 
             <!-- RIGHT: Entities panel -->
-            <div class="w-80 shrink-0 flex flex-col border border-border rounded-xl bg-surface-elevated overflow-hidden">
+            <div class="workspace-panel w-80 shrink-0 flex flex-col overflow-hidden">
                 <!-- Panel header -->
                 <div class="px-3 py-2.5 border-b border-border bg-surface flex items-center justify-between shrink-0">
                     <span class="text-xs font-semibold text-text-muted uppercase tracking-wider">Entities <span class="font-normal">({{ filteredEntities.length }})</span></span>
@@ -490,6 +480,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router';
 import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
 import PageHeader from '../components/ui/PageHeader.vue';
+import SegmentedControl from '../components/ui/SegmentedControl.vue';
 import { useEntities, type Entity, type EntityDetail } from '../services/entities/useEntities';
 import { useEntityTypes, type EntityType } from '../services/entity-types/useEntityTypes';
 import { useRelationships } from '../services/relationships/useRelationships';
@@ -879,6 +870,10 @@ const getTypeChipActiveClass = (typeName: string) => {
 
 // ==================== RELATIONSHIPS STATE ====================
 const relViewMode = ref<'graph' | 'table'>('graph');
+const relationshipViews = [
+    { value: 'graph', label: 'Graph' },
+    { value: 'table', label: 'Table' },
+] as const;
 const relSelectedProjectId = ref(0);
 const relSelectedResourceId = ref(0);
 const relSelectedEntityType = ref('');

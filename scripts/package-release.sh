@@ -46,10 +46,10 @@ NODE
 fi
 
 case "$FORMAT" in
-  deb) MAKER="@electron-forge/maker-deb" ;;
-  rpm) MAKER="@electron-forge/maker-rpm" ;;
-  squirrel) MAKER="@electron-forge/maker-squirrel" ;;
-  zip) MAKER="@electron-forge/maker-zip" ;;
+  deb) MAKER="deb" ;;
+  rpm) MAKER="rpm" ;;
+  squirrel) MAKER="squirrel" ;;
+  zip) MAKER="zip" ;;
   *) die "Unsupported Frontend format: $FORMAT" 2 ;;
 esac
 case "$TARGET:$FORMAT" in

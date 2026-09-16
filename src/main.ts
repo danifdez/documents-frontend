@@ -34,8 +34,13 @@ const testUserDataDir = process.env.NODE_ENV === 'test'
 if (testUserDataDir) {
   app.setPath('userData', testUserDataDir);
 } else if (!app.isPackaged) {
-  app.setName('documents-frontend-dev');
   app.setPath('userData', path.join(app.getPath('appData'), 'documents-frontend-dev'));
+}
+
+app.setName('Documents');
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.documents.desktop');
 }
 
 // Single-instance lock. A second invocation of the
@@ -102,12 +107,16 @@ function formatLocalTime(iso: string): string {
 }
 
 // Tray icon resolution. Copied to `<outDir>/assets/tray/`
-// by the `copyTrayAssets` Vite plugin so it works in both dev and packaged
+// by the runtime icon Vite plugin so it works in both dev and packaged
 // builds. macOS expects the `*Template.png` naming so the OS auto-recolors
 // for Light/Dark menu bar themes.
 function getTrayIconPath(): string {
   const filename = process.platform === 'darwin' ? 'tray-iconTemplate.png' : 'tray-icon.png';
   return path.join(__dirname, 'assets', 'tray', filename);
+}
+
+function getAppIconPath(): string {
+  return path.join(__dirname, 'assets', 'app-icon.png');
 }
 
 function focusMainWindow() {
@@ -261,7 +270,7 @@ function applySettingsEffects(
 
 function createTray() {
   try {
-    const iconPath = getTrayIconPath();
+    const iconPath = process.platform === 'darwin' ? getTrayIconPath() : getAppIconPath();
     const image = nativeImage.createFromPath(iconPath);
     if (image.isEmpty()) {
       console.warn('[tray] icon image is empty at', iconPath);
@@ -271,8 +280,15 @@ function createTray() {
     if (process.platform === 'darwin') {
       image.setTemplateImage(true);
     }
-    tray = new Tray(image);
-    tray.setToolTip('documents-frontend');
+    const trayImage = process.platform === 'darwin'
+      ? image
+      : image.resize({
+          width: process.platform === 'win32' ? 16 : 22,
+          height: process.platform === 'win32' ? 16 : 22,
+          quality: 'best',
+        });
+    tray = new Tray(trayImage);
+    tray.setToolTip('Documents');
     tray.setContextMenu(buildTrayMenu());
 
     if (process.platform !== 'darwin') {
@@ -313,9 +329,10 @@ function maybeShowFirstCloseToast() {
     return;
   }
   const n = new Notification({
-    title: 'documents-frontend keeps running',
+    title: 'Documents keeps running',
     body: 'The app stays active in the system tray. Use Exit from the tray menu to quit.',
     silent: false,
+    icon: getAppIconPath(),
   });
   n.on('click', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -346,6 +363,7 @@ function showActionableNotification(opts: {
     title: opts.title,
     body: opts.body,
     silent: false,
+    icon: getAppIconPath(),
     actions: canShowDone ? [{ type: 'button', text: 'Done' }] : undefined,
   });
   n.on('click', opts.onClick);
@@ -446,6 +464,7 @@ function createSplashWindow() {
     frame: false,
     show: true,
     alwaysOnTop: true,
+    icon: getAppIconPath(),
     webPreferences: {
       devTools: false,
       preload: path.join(__dirname, 'preload.js'),
@@ -566,6 +585,7 @@ const createWindow = () => {
     width,
     height,
     backgroundColor: '#000000',
+    icon: getAppIconPath(),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

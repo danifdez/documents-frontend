@@ -1,13 +1,13 @@
 <template>
   <div class="mb-6">
     <Breadcrumb v-if="breadcrumbs && breadcrumbs.length" :items="breadcrumbs" />
-    <div class="flex items-center justify-between" :class="{ 'mt-2': breadcrumbs?.length }">
+    <div class="flex items-start justify-between gap-6" :class="{ 'mt-2': breadcrumbs?.length }">
       <div class="min-w-0 flex-1">
         <h1 v-if="title" class="page-title">{{ title }}</h1>
         <p v-if="subtitle" class="page-subtitle">{{ subtitle }}</p>
         <slot name="title" />
       </div>
-      <div v-if="$slots.actions" class="flex items-center gap-2 ml-4 shrink-0">
+      <div v-if="$slots.actions" class="flex max-w-[55%] shrink-0 flex-wrap items-center justify-end gap-2">
         <slot name="actions" />
       </div>
     </div>

@@ -20,7 +20,7 @@ const packagedMetadata = JSON.parse(extractFile(asarPath, 'package.json').toStri
 if (packagedMetadata.version !== expectedVersion) {
   throw new Error(`Packaged Frontend version is ${packagedMetadata.version}; expected ${expectedVersion}`);
 }
-if (packagedMetadata.productName !== 'documents-frontend') {
+if (packagedMetadata.productName !== 'Documents') {
   throw new Error(`Unexpected packaged product name: ${packagedMetadata.productName}`);
 }
 const executableCandidates = ['documents-frontend', 'documents-frontend.exe'];

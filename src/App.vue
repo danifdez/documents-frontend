@@ -38,17 +38,18 @@
   <div v-else-if="isLoginRoute">
     <router-view />
   </div>
-  <MainLayout v-else>
-    <div class="flex-1 flex flex-col min-h-0 overflow-hidden px-5 pt-4">
-      <router-view class="flex-1 min-h-0 overflow-hidden" />
-    </div>
-    <GlobalSearchModal :show="showGlobalSearch" @close="showGlobalSearch = false" />
-    <SelectionLookup />
-    <TaskPanel v-model="showTaskPanel" />
-    <AssistantModal v-model="showAssistant" />
-  </MainLayout>
-
-  <OfflineBanner v-if="workspaceStore.hasWorkspaces" />
+  <div v-else class="flex h-screen flex-col overflow-hidden bg-surface">
+    <OfflineBanner />
+    <MainLayout class="min-h-0 flex-1">
+      <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <router-view class="flex-1 min-h-0 overflow-hidden" />
+      </div>
+      <GlobalSearchModal :show="showGlobalSearch" @close="showGlobalSearch = false" />
+      <SelectionLookup />
+      <TaskPanel v-model="showTaskPanel" />
+      <AssistantModal v-model="showAssistant" />
+    </MainLayout>
+  </div>
 </template>
 
 <script setup lang="ts">

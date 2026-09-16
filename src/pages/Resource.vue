@@ -1,5 +1,5 @@
 <template>
-    <div v-bind="$attrs" class="h-full flex flex-col overflow-hidden">
+    <div v-bind="$attrs" class="h-full flex flex-col overflow-hidden px-6 py-4">
         <div class="flex-shrink-0">
             <Breadcrumb :items="breadcrumbItems" />
         </div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden px-6 py-4">
     <!-- Loading state -->
     <div v-if="isLoadingDocument" class="flex-1 flex items-center justify-center">
       <LoadingSpinner size="lg" />

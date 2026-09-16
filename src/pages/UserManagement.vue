@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full overflow-y-auto">
+  <div class="h-full overflow-y-auto px-6 py-6">
     <!-- Tabs -->
     <div class="flex items-center gap-6 mb-6 border-b border-border">
       <button @click="activeTab = 'users'"

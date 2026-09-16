@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full overflow-y-auto">
+  <div class="h-full overflow-y-auto px-6 py-6">
     <h1 class="text-xl font-semibold text-text-primary mb-6">Profile</h1>
 
     <div class="flex gap-6">

@@ -11,54 +11,27 @@
 
       <div v-else-if="projectStore.currentProject">
         <!-- Project header -->
-        <PageHeader :breadcrumbs="breadcrumbItems" :subtitle="projectStore.currentProject.description || undefined">
+        <PageHeader :title="projectStore.currentProject.name" :breadcrumbs="breadcrumbItems" :subtitle="projectStore.currentProject.description || undefined">
           <template #title>
             <p v-if="!projectStore.currentProject.description" class="text-sm text-text-muted italic mt-1">No description</p>
           </template>
           <template #actions>
               <OfflineToggle v-if="projectStore.currentProject?.id" type="project" :id="projectStore.currentProject.id" />
-              <button @click="openCreateThreadModal"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
-                title="New thread">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-                <span>Thread</span>
-              </button>
-              <button @click="createDocument"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
-                title="New document">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-                <span>Document</span>
-              </button>
-              <button v-if="featureStore.isEnabled('canvas')" @click="createCanvas"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
-                title="New canvas">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-                <span>Canvas</span>
-              </button>
-              <button v-if="featureStore.isEnabled('timelines')" @click="createTimeline"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
-                title="New timeline">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-                <span>Timeline</span>
-              </button>
-              <button @click="openImportDocumentModal"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer"
-                title="Import documents">
+              <Button variant="secondary" @click="openImportDocumentModal" title="Import documents">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" stroke-width="1.75">
                   <path stroke-linecap="round" stroke-linejoin="round"
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 <span>Import</span>
-              </button>
+              </Button>
+
+              <Dropdown label="New">
+                <DropdownItem @click="openCreateThreadModal">Thread</DropdownItem>
+                <DropdownItem @click="createDocument">Document</DropdownItem>
+                <DropdownItem v-if="featureStore.isEnabled('canvas')" @click="createCanvas">Canvas</DropdownItem>
+                <DropdownItem v-if="featureStore.isEnabled('timelines')" @click="createTimeline">Timeline</DropdownItem>
+              </Dropdown>
 
               <Dropdown :showDots="true">
                 <DropdownItem @click="openEditModal">Edit</DropdownItem>
@@ -70,47 +43,34 @@
         </PageHeader>
 
         <!-- Quick access to project sections -->
-        <div class="mt-4 mb-6 flex flex-wrap gap-4">
-          <router-link v-if="featureStore.isEnabled('relationships')" :to="`/project/${route.params.id}/relationships`"
-            title="Entities and relationships in this project"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+        <div class="mb-6 flex flex-wrap gap-2">
+          <QuickTile v-if="featureStore.isEnabled('relationships')" label="Relationships" :to="`/project/${route.params.id}/relationships`"
+            title="Entities and relationships in this project">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            <span class="text-xs font-medium">Relationships</span>
-          </router-link>
-          <router-link v-if="featureStore.isEnabled('bibliography')" :to="`/project/${route.params.id}/bibliography`"
-            title="Manage citations and references for this project"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+          </QuickTile>
+          <QuickTile v-if="featureStore.isEnabled('bibliography')" label="Bibliography" :to="`/project/${route.params.id}/bibliography`"
+            title="Manage citations and references for this project">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            <span class="text-xs font-medium">Bibliography</span>
-          </router-link>
-          <button @click="openNotesPanel"
-            title="Notes for this project"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md cursor-pointer gap-2">
+          </QuickTile>
+          <QuickTile label="Notes" title="Notes for this project" @click="openNotesPanel">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            <span class="text-xs font-medium">Notes</span>
-          </button>
-          <router-link :to="`/project/${route.params.id}/calendar`"
-            title="View project calendar"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+          </QuickTile>
+          <QuickTile label="Calendar" :to="`/project/${route.params.id}/calendar`" title="View project calendar">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span class="text-xs font-medium">Calendar</span>
-          </router-link>
-          <router-link v-if="featureStore.isEnabled('datasets')" to="/datasets"
-            title="Structured data tables and analysis"
-            class="flex flex-col items-center justify-center w-24 h-24 bg-surface-elevated hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-2xl border border-border transition-all duration-200 hover:shadow-md gap-2">
+          </QuickTile>
+          <QuickTile v-if="featureStore.isEnabled('datasets')" label="Datasets" to="/datasets" title="Structured data tables and analysis">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
             </svg>
-            <span class="text-xs font-medium">Datasets</span>
-          </router-link>
+          </QuickTile>
         </div>
 
         <div class="mb-8">
@@ -304,6 +264,8 @@ import { useDocument } from '../services/documents/useDocument';
 import { useCanvas } from '../services/canvas/useCanvas';
 import Dropdown from '../components/ui/Dropdown.vue';
 import DropdownItem from '../components/ui/DropdownItem.vue';
+import Button from '../components/ui/Button.vue';
+import QuickTile from '../components/ui/QuickTile.vue';
 import ProjectEditModal from '../components/projects/ProjectEditModal.vue';
 import ThreadCreateModal from '../components/threads/ThreadCreateModal.vue';
 import ImportDocumentModal from '../components/documents/ImportDocumentModal.vue';

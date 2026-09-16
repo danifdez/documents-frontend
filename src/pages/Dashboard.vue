@@ -1,76 +1,28 @@
 <template>
   <div class="h-full overflow-y-auto">
     <div class="px-6 py-4">
-      <!-- Header -->
-      <div class="mb-8">
-        <div class="flex items-end justify-between">
-          <div>
-            <h1 class="text-2xl font-semibold text-text-primary tracking-tight">Projects</h1>
-            <p class="mt-1 text-sm text-text-muted">Manage and explore your document projects</p>
-          </div>
-          <div class="flex items-center gap-3">
+      <div>
+        <PageHeader title="Projects" subtitle="Your workspace for documents, sources and research">
+          <template #actions>
             <FilterBadge v-if="filterActive" :term="searchTerm" @clear="clearFilter" />
-            <button @click="showImportModal = true"
-              class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-elevated hover:bg-surface-hover text-text-primary text-sm font-medium rounded-lg border border-border transition-all duration-200 hover:shadow-sm cursor-pointer">
+            <Button variant="secondary" @click="showImportModal = true">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="1.75">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               <span>Import Resource</span>
-            </button>
-            <button @click="openProjectModal"
-              class="inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer">
+            </Button>
+            <Button @click="openProjectModal">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd"
                   d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                   clip-rule="evenodd" />
               </svg>
               <span>New Project</span>
-            </button>
-          </div>
-        </div>
-        <div class="mt-6 h-px bg-border"></div>
-
-        <!-- Quick access to global sections -->
-        <div class="mt-4 flex flex-wrap gap-4">
-          <QuickTile v-if="featureStore.isEnabled('relationships')" label="Relationships" to="/relationships"
-            title="Manage entities and explore their relationships">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-          </QuickTile>
-          <QuickTile v-if="featureStore.isEnabled('datasets')" label="Datasets" to="/datasets"
-            title="Create and analyze structured data tables">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-            </svg>
-          </QuickTile>
-          <QuickTile label="Notes" title="Quick notes and ideas across projects"
-            @click="openNotesPanel">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </QuickTile>
-          <QuickTile label="Calendar" to="/calendar"
-            title="Schedule and track events and deadlines">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </QuickTile>
-          <QuickTile v-if="featureStore.isEnabled('knowledge_base')" label="Knowledge" to="/knowledge-base"
-            title="Curated reference articles and documentation">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-          </QuickTile>
-          <QuickTile v-if="featureStore.isEnabled('bibliography')" label="Bibliography" to="/bibliography"
-            title="Manage citations and references across projects">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          </QuickTile>
-        </div>
+            </Button>
+          </template>
+        </PageHeader>
       </div>
 
       <!-- Pending resources -->
@@ -160,7 +112,8 @@ import SearchInput from '../components/search/SearchInput.vue';
 import FilterBadge from '../components/search/FilterBadge.vue';
 import IconType from '../components/resources/IconType.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
-import QuickTile from '../components/ui/QuickTile.vue';
+import Button from '../components/ui/Button.vue';
+import PageHeader from '../components/ui/PageHeader.vue';
 import { useProjectStore } from '../store/projectStore';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import { useResourceList } from '../services/resources/useResourceList';
@@ -169,10 +122,7 @@ import { useNotification } from '../composables/useNotification';
 import { useNotes } from '../services/notes/useNotes';
 import { useCalendarEvents } from '../services/calendar/useCalendarEvents';
 import { useProjectList } from '../services/projects/useProjectList';
-import { useFeatureStore } from '../store/featureStore';
 import EventModal from '../components/calendar/EventModal.vue';
-
-const featureStore = useFeatureStore();
 
 const projectsComponent = ref(null);
 const showProjectModal = ref(false);

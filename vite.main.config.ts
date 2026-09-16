@@ -9,20 +9,27 @@ import fs from 'node:fs';
  * which means they must live in `<outDir>/assets/tray/` both in dev
  * (`.vite/build/`) and in packaged builds.
  */
-function copyTrayAssets(): Plugin {
-  const srcDir = path.resolve(__dirname, 'src/assets/tray');
+function copyRuntimeIcons(): Plugin {
+  const traySrcDir = path.resolve(__dirname, 'src/assets/tray');
+  const appIconSrc = path.resolve(__dirname, 'src/assets/app-icon.png');
   return {
-    name: 'copy-tray-assets',
+    name: 'copy-runtime-icons',
     apply: () => true,
     closeBundle() {
       // `this.environment` is available in Vite 6+; fall back to default outDir layout.
       // The Forge Vite plugin builds main to `.vite/build/`.
       const outDir = path.resolve(__dirname, '.vite/build/assets/tray');
-      if (!fs.existsSync(srcDir)) return;
-      fs.mkdirSync(outDir, { recursive: true });
-      for (const file of fs.readdirSync(srcDir)) {
-        if (!file.endsWith('.png')) continue;
-        fs.copyFileSync(path.join(srcDir, file), path.join(outDir, file));
+      if (fs.existsSync(traySrcDir)) {
+        fs.mkdirSync(outDir, { recursive: true });
+        for (const file of fs.readdirSync(traySrcDir)) {
+          if (!file.endsWith('.png')) continue;
+          fs.copyFileSync(path.join(traySrcDir, file), path.join(outDir, file));
+        }
+      }
+      if (fs.existsSync(appIconSrc)) {
+        const appIconOutDir = path.resolve(__dirname, '.vite/build/assets');
+        fs.mkdirSync(appIconOutDir, { recursive: true });
+        fs.copyFileSync(appIconSrc, path.join(appIconOutDir, 'app-icon.png'));
       }
     },
   };
@@ -30,5 +37,5 @@ function copyTrayAssets(): Plugin {
 
 // https://vitejs.dev/config
 export default defineConfig({
-  plugins: [copyTrayAssets()],
+  plugins: [copyRuntimeIcons()],
 });

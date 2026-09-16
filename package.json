@@ -1,6 +1,6 @@
 {
   "name": "documents-frontend",
-  "productName": "documents-frontend",
+  "productName": "Documents",
   "version": "1.0.0",
   "description": "Document management system frontend",
   "main": ".vite/build/main.js",

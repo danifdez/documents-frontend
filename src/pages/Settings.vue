@@ -4,16 +4,7 @@
             <PageHeader title="Settings" subtitle="Configure your editor and application preferences"
                 :divider="false" />
 
-            <!-- Tabs -->
-            <div class="flex gap-1 mb-6 border-b border-border">
-                <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
-                    class="px-4 py-2.5 text-sm font-medium transition-all duration-200 cursor-pointer border-b-2 -mb-px"
-                    :class="activeTab === tab.id
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'">
-                    {{ tab.label }}
-                </button>
-            </div>
+            <SegmentedControl v-model="activeTab" :options="tabs" class="mb-6" />
 
             <!-- General Tab -->
             <div v-show="activeTab === 'general'">
@@ -561,6 +552,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue';
 import PageHeader from '../components/ui/PageHeader.vue';
+import SegmentedControl from '../components/ui/SegmentedControl.vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
 import { useElectronApi } from '../composables/useElectronApi';
 import { useStandaloneManager, type ServiceKey } from '../composables/useStandaloneManager';
@@ -587,13 +579,13 @@ const router = useRouter();
 // ── Tabs ──
 type TabId = 'general' | 'application' | 'features' | 'workspaces' | 'server' | 'export';
 const activeTab = ref<TabId>('general');
-const tabs: { id: TabId; label: string }[] = [
-    { id: 'general', label: 'General' },
-    { id: 'application', label: 'Application' },
-    { id: 'features', label: 'Features' },
-    { id: 'workspaces', label: 'Workspaces' },
-    { id: 'server', label: 'Server' },
-    { id: 'export', label: 'Export' },
+const tabs: { value: TabId; label: string }[] = [
+    { value: 'general', label: 'General' },
+    { value: 'application', label: 'Application' },
+    { value: 'features', label: 'Features' },
+    { value: 'workspaces', label: 'Workspaces' },
+    { value: 'server', label: 'Server' },
+    { value: 'export', label: 'Export' },
 ];
 
 const showWorkspaceModal = ref(false);

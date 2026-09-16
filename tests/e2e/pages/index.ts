@@ -1,5 +1,5 @@
 export { BasePage } from './BasePage';
-export { Sidebar } from './Sidebar';
+export { Topbar } from './Topbar';
 export { DashboardPage } from './DashboardPage';
 export { ProjectPage } from './ProjectPage';
 export { ThreadPage } from './ThreadPage';

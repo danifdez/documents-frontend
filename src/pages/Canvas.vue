@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden px-6 py-4">
     <!-- Top bar: breadcrumb + canvas name -->
     <div class="flex-shrink-0 pb-3">
       <Breadcrumb :items="breadcrumbItems" />

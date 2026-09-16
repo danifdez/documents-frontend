@@ -1,10 +1,10 @@
 <template>
   <div v-if="!offlineStore.isOnline"
-    class="fixed top-0 left-0 right-0 z-[100] bg-amber-500/90 text-white text-xs font-medium text-center py-1.5 px-3 shadow-md backdrop-blur">
+    class="relative z-[100] shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-xs font-medium text-amber-800 dark:border-amber-600/20 dark:bg-amber-400/10 dark:text-amber-600">
     <span class="inline-flex items-center gap-2">
       <span class="relative flex h-2 w-2">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-50"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
       </span>
       Offline — backend unreachable. Changes will queue and sync on reconnect.
       <button v-if="!offlineStore.isSyncing" @click="retry"

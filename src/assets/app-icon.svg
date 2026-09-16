@@ -2,11 +2,11 @@
   <title id="title">Documents</title>
   <defs>
     <linearGradient id="surface" x1="40" y1="24" x2="216" y2="232" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#818cf8"/>
-      <stop offset="1" stop-color="#4f46e5"/>
+      <stop stop-color="#8394ff"/>
+      <stop offset="1" stop-color="#4456d9"/>
     </linearGradient>
   </defs>
   <rect x="20" y="20" width="216" height="216" rx="56" fill="url(#surface)"/>
   <path fill="#fff" fill-rule="evenodd" d="M80 55c-8.84 0-16 7.16-16 16v114c0 8.84 7.16 16 16 16h68c24.3 0 44-19.7 44-44V99L148 55H80Zm63 19.3L172.7 104H151c-4.42 0-8-3.58-8-8V74.3ZM99 105h41c23.2 0 42 18.8 42 42s-18.8 42-42 42H99v-84Zm33 22H121v40h11c11.05 0 20-8.95 20-20s-8.95-20-20-20Z"/>
-  <path d="M99 84h22" stroke="#c7d2fe" stroke-width="8" stroke-linecap="round" opacity=".78"/>
+  <path d="M99 84h22" stroke="#e6e9ff" stroke-width="8" stroke-linecap="round" opacity=".88"/>
 </svg>

@@ -1,48 +1,30 @@
 <template>
-    <div class="h-full flex flex-col">
-        <!-- Header bar -->
-        <div
-            class="shrink-0 px-4 py-3 border-b border-border bg-surface-elevated flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3 min-w-0">
-                <h1 class="text-lg font-semibold text-text-primary tracking-tight">Datasets</h1>
-                <span class="text-xs text-text-muted hidden sm:inline">Manage structured data collections</span>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-                <!-- Search -->
-                <div class="relative">
-                    <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted pointer-events-none"
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input v-model="searchTerm" type="text" placeholder="Search..."
-                        class="w-48 pl-8 pr-3 py-1.5 rounded-lg bg-surface border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:w-64 transition-all" />
-                </div>
-                <button @click="showImportModal = true"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
+    <div class="h-full flex flex-col overflow-hidden px-6 py-5">
+        <PageHeader title="Datasets" subtitle="Build, import and maintain structured collections" class="shrink-0">
+            <template #actions>
+                <SearchBar v-model="searchTerm" placeholder="Search datasets..." class="w-56" />
+                <Button variant="secondary" size="small" @click="showImportModal = true">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                     Import File
-                </button>
-                <button @click="openProviderModal"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
+                </Button>
+                <Button variant="secondary" size="small" @click="openProviderModal">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                     </svg>
-                    Sync from Provider
-                </button>
-                <button @click="showCreateModal = true"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white text-xs font-medium rounded-lg transition-colors cursor-pointer">
+                    Sync Provider
+                </Button>
+                <Button size="small" @click="showCreateModal = true">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10 3v14m7-7H3" />
                     </svg>
                     New Dataset
-                </button>
-            </div>
-        </div>
+                </Button>
+            </template>
+        </PageHeader>
 
         <!-- Loading -->
         <LoadingSpinner v-if="loading" size="lg" fullHeight />
@@ -52,10 +34,9 @@
             description="Create a dataset to start managing structured data" />
 
         <!-- Dataset list -->
-        <div v-else class="flex-1 flex flex-col overflow-hidden">
+        <div v-else class="workspace-panel flex-1 flex flex-col overflow-hidden">
             <!-- Table header -->
-            <div
-                class="shrink-0 grid grid-cols-[1fr_6rem_8rem_6.5rem] gap-3 px-4 py-2 border-b border-border bg-surface text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+            <div class="workspace-table-header shrink-0 grid grid-cols-[1fr_6rem_8rem_6.5rem] gap-3">
                 <span>Name</span>
                 <span class="text-center">Fields</span>
                 <span class="text-center">Records</span>
@@ -64,7 +45,7 @@
             <!-- Scrollable rows -->
             <div class="flex-1 overflow-y-auto divide-y divide-border-light">
                 <div v-for="dataset in filteredDatasets" :key="dataset.id"
-                    class="group grid grid-cols-[1fr_6rem_8rem_6.5rem] gap-3 items-center px-4 py-3 hover:bg-surface-hover transition-colors cursor-pointer"
+                    class="group grid grid-cols-[1fr_6rem_8rem_6.5rem] gap-3 items-center px-4 py-3.5 hover:bg-surface-hover transition-colors cursor-pointer"
                     @click="router.push(`/datasets/${dataset.id}`)">
                     <div class="min-w-0">
                         <span class="text-sm font-medium text-text-primary truncate block">{{ dataset.name }}</span>
@@ -170,6 +151,8 @@ import { useDatasets, type Dataset, type DatasetField, type ImportFromFileResult
 import { useDataSources, type DataSourceProvider } from '../services/data-sources/useDataSources';
 import { useNotification } from '../composables/useNotification';
 import Button from '../components/ui/Button.vue';
+import PageHeader from '../components/ui/PageHeader.vue';
+import SearchBar from '../components/ui/SearchBar.vue';
 import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
 import EmptyState from '../components/ui/EmptyState.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';

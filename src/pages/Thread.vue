@@ -1,7 +1,7 @@
 <template>
   <div class="h-full overflow-y-auto">
     <div class="px-6 py-6">
-      <PageHeader :breadcrumbs="breadcrumbItems" :subtitle="thread?.description || undefined">
+        <PageHeader :title="thread?.name" :breadcrumbs="breadcrumbItems" :subtitle="thread?.description || undefined">
         <template #title>
           <p v-if="thread && !thread.description" class="text-sm text-text-muted italic mt-1">No description</p>
           <FilterBadge v-if="filterActive" :term="searchQuery" @clear="clearFilter" />

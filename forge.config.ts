@@ -11,13 +11,24 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    executableName: 'documents-frontend',
     extraResource: ['standalone-release-source.json'],
     // Electron Packager picks this PNG for Linux taskbars. Platform-specific
     // `.ico` and `.icns` variants can be added alongside it when required.
     icon: 'src/assets/app-icon',
   },
   rebuildConfig: {},
-  makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
+  makers: [
+    new MakerSquirrel({}),
+    new MakerZIP({}, ['darwin']),
+    new MakerRpm({}),
+    new MakerDeb({
+      options: {
+        icon: 'src/assets/app-icon.png',
+        categories: ['Office', 'Utility'],
+      },
+    }),
+  ],
   plugins: [
     // Ensures that smart-whisper (and any other native module) lives outside
     // the asar, where Electron can dlopen the .node file.
