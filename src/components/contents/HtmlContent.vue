@@ -22,6 +22,14 @@
                     resource</li>
             </ul>
         </div>
+        <div v-if="annotationMenu.visible"
+            :style="{ position: 'fixed', left: `${annotationMenu.x}px`, top: `${annotationMenu.y}px`, zIndex: 10001 }"
+            class="bg-surface-elevated border-border border rounded shadow-lg">
+            <ul class="py-1">
+                <li class="px-4 py-2 hover:bg-surface-hover cursor-pointer text-sm"
+                    @click="deleteAnnotationFromMenu">Eliminar</li>
+            </ul>
+        </div>
     </div>
 </template>
 
@@ -35,6 +43,7 @@ import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
 import { useResource } from '../../services/resources/useResource';
 import { useCommentCreate } from '../../services/comments/useCommentCreate';
+import { useCommentList } from '../../services/comments/useCommentList';
 import { useProjectStore } from '../../store/projectStore';
 import CommentModal from '../comments/CommentModal.vue';
 import apiClient from '../../services/api';
@@ -49,6 +58,14 @@ const currentSelection = ref(null);
 const showCommentModal = ref(false);
 const showContextMenu = ref(false);
 const contextMenuPosition = ref({ x: 0, y: 0 });
+// Menú de un elemento anotado (resaltado o comentario): solo eliminarlo.
+const annotationMenu = ref<{
+    visible: boolean;
+    x: number;
+    y: number;
+    kind: 'mark' | 'comment' | null;
+    id: string | null;
+}>({ visible: false, x: 0, y: 0, kind: null, id: null });
 const contextMenuImageUrl = ref({ url: '', alt: '', name: '' });
 const route = useRoute();
 const { createMark } = useMarkCreate();
@@ -56,6 +73,7 @@ const { deleteMark } = useMarkDelete();
 const { loadMarks } = useMarks();
 const { updateResource } = useResource();
 const { createComment, isLoading: isCommentLoading } = useCommentCreate();
+const { loadComments } = useCommentList();
 const { currentProject } = useProjectStore();
 
 const props = defineProps({
@@ -139,6 +157,20 @@ const loadAndApplySettings = async () => {
     applySettings();
 };
 
+const anchorFromContainer = (quote: string) => {
+    const text = extractedContent.value?.textContent || '';
+    if (!quote) return {};
+    const at = text.indexOf(quote);
+    if (at < 0) return { quote };
+    const CONTEXT = 120;
+    return {
+        quote,
+        prefix: text.slice(Math.max(0, at - CONTEXT), at),
+        suffix: text.slice(at + quote.length, at + quote.length + CONTEXT),
+        position: at,
+    };
+};
+
 const handleAddComment = () => {
     const windowSelection = window.getSelection();
 
@@ -170,6 +202,7 @@ const saveComment = async (commentText: string) => {
             props.resourceId,
             commentText,
             'resource',
+            anchorFromContainer(selectedCommentText.value),
         );
 
         if (currentSelection.value) {
@@ -302,6 +335,7 @@ const highlightEntity = (entityName: string, aliases: string[] = []) => {
                 if (parent.classList.contains('search-highlight') ||
                     parent.classList.contains('entity-highlight') ||
                     parent.classList.contains('comment-mark') ||
+                    parent.classList.contains('marker-highlight') ||
                     parent.classList.contains('text-mark')) {
                     return NodeFilter.FILTER_REJECT;
                 }
@@ -410,7 +444,7 @@ const saveModifiedContent = async () => {
     }
 };
 
-const handleAddMark = async (data: { text: string; from: number; to: number }) => {
+const handleAddMark = async (data: { text: string; from: number; to: number; type?: string }) => {
     try {
         const resourceId = props.resourceId || route.params.id;
 
@@ -419,10 +453,17 @@ const handleAddMark = async (data: { text: string; from: number; to: number }) =
             return;
         }
 
-        const newMark = await createMark(resourceId as string, data.text, 'resource');
+        const type = data.type || 'highlight';
+        const newMark = await createMark(
+            resourceId as string,
+            data.text,
+            'resource',
+            type,
+            anchorFromContainer(data.text),
+        );
 
         if (newMark && newMark.id) {
-            wrapTextWithMark(data.text, newMark.id);
+            wrapTextWithMark(data.text, newMark.id, type);
             await saveModifiedContent();
         }
     } catch (error) {
@@ -440,7 +481,7 @@ const handleRemoveMark = async (markId: string) => {
     }
 };
 
-const wrapTextWithMark = (text: string, markId: string) => {
+const wrapTextWithMark = (text: string, markId: string, type: string = 'highlight') => {
     if (!extractedContent.value) return;
 
     const walker = document.createTreeWalker(
@@ -464,15 +505,55 @@ const wrapTextWithMark = (text: string, markId: string) => {
                 const afterText = content.substring(index + text.length);
 
                 const span = document.createElement('span');
-                span.className = 'text-mark';
+                span.className = `marker-highlight marker-type-${type}`;
                 span.setAttribute('data-mark-id', markId);
+                span.setAttribute('data-mark-type', type);
                 span.textContent = text;
-                span.style.backgroundColor = '#FFE082';
-                span.style.borderRadius = '0.15rem';
-                span.style.padding = '0.05rem 0.15rem';
                 span.style.cursor = 'pointer';
 
-                span.addEventListener('dblclick', () => handleRemoveMark(markId));
+                const parent = textNode.parentNode;
+                if (beforeText) {
+                    parent.insertBefore(document.createTextNode(beforeText), textNode);
+                }
+                parent.insertBefore(span, textNode);
+                if (afterText) {
+                    parent.insertBefore(document.createTextNode(afterText), textNode);
+                }
+                parent.removeChild(textNode);
+                break;
+            }
+        }
+    }
+};
+
+const wrapTextWithComment = (text: string, commentId: string) => {
+    if (!extractedContent.value) return;
+
+    const walker = document.createTreeWalker(
+        extractedContent.value,
+        NodeFilter.SHOW_TEXT,
+        null
+    );
+
+    const textNodes = [];
+    let node;
+    while (node = walker.nextNode()) {
+        textNodes.push(node);
+    }
+
+    for (const textNode of textNodes) {
+        const content = textNode.textContent;
+        if (content && content.includes(text)) {
+            const index = content.indexOf(text);
+            if (index !== -1) {
+                const beforeText = content.substring(0, index);
+                const afterText = content.substring(index + text.length);
+
+                const span = document.createElement('span');
+                span.className = 'comment-mark';
+                span.setAttribute('data-comment-id', commentId);
+                span.textContent = text;
+                span.style.cursor = 'pointer';
 
                 const parent = textNode.parentNode;
                 if (beforeText) {
@@ -506,13 +587,13 @@ const loadExistingMarks = async () => {
     try {
         const resourceId = props.resourceId || route.params.id;
         if (resourceId && resourceId !== 'new') {
-            const marks = await loadMarks(resourceId as string);
+            const marks = await loadMarks(resourceId as string, 'resource');
 
             marks.forEach(mark => {
                 if (mark.content && mark.id) {
                     const existingMark = extractedContent.value?.querySelector(`[data-mark-id="${mark.id}"]`);
                     if (!existingMark) {
-                        wrapTextWithMark(mark.content, mark.id);
+                        wrapTextWithMark(mark.content, mark.id, mark.type || 'highlight');
                     }
                 }
             });
@@ -522,9 +603,28 @@ const loadExistingMarks = async () => {
     }
 };
 
+const loadExistingComments = async () => {
+    try {
+        const resourceId = props.resourceId || route.params.id;
+        if (!resourceId || resourceId === 'new') return;
+
+        const list: any[] = await loadComments(String(resourceId), 'resource');
+        (list || []).forEach((comment) => {
+            if (!comment.id || !comment.quote) return;
+            const existing = extractedContent.value?.querySelector(`[data-comment-id="${comment.id}"]`);
+            if (!existing) {
+                wrapTextWithComment(comment.quote, comment.id);
+            }
+        });
+    } catch (error) {
+        console.error('Error loading comments:', error);
+    }
+};
+
 onMounted(() => {
     setTimeout(() => {
         loadExistingMarks();
+        loadExistingComments();
         loadAndApplySettings();
     }, 100);
     if (extractedContent.value) {
@@ -594,8 +694,7 @@ const scrollToHeading = (id: string) => {
     }
 };
 
-const storeSelectionPosition = (selection: Selection) => {
-    if (!selection.rangeCount) return null;
+const storeSelectionPosition = (selection: Selection) => {    if (!selection.rangeCount) return null;
 
     const range = selection.getRangeAt(0);
     const container = extractedContent.value;
@@ -678,8 +777,26 @@ const isRemoteImage = (src) => {
 };
 
 const handleImageContextMenu = (event) => {
+    // Un clic derecho sobre un resaltado o un comentario abre su propio menú,
+    // con la única opción de eliminarlo.
+    const target = event.target as HTMLElement | null;
+    const markEl = target?.closest?.('[data-mark-id]') as HTMLElement | null;
+    const commentEl = target?.closest?.('[data-comment-id]') as HTMLElement | null;
+    if (markEl || commentEl) {
+        event.preventDefault();
+        showContextMenu.value = false;
+        annotationMenu.value = {
+            visible: true,
+            x: event.clientX,
+            y: event.clientY,
+            kind: markEl ? 'mark' : 'comment',
+            id: markEl ? markEl.getAttribute('data-mark-id') : commentEl!.getAttribute('data-comment-id'),
+        };
+        return;
+    }
+    annotationMenu.value.visible = false;
+
     if (!extractedContent.value) return;
-    const target = event.target;
     if (target && target.tagName === 'IMG') {
         const src = target.getAttribute('src');
         if (src && isRemoteImage(src)) {
@@ -705,6 +822,20 @@ const handleImageContextMenu = (event) => {
 const handleClickOutside = (event) => {
     if (showContextMenu.value) {
         showContextMenu.value = false;
+    }
+    if (annotationMenu.value.visible) {
+        annotationMenu.value.visible = false;
+    }
+};
+
+const deleteAnnotationFromMenu = async () => {
+    const menu = annotationMenu.value;
+    annotationMenu.value.visible = false;
+    if (!menu.id) return;
+    if (menu.kind === 'mark') {
+        await handleRemoveMark(menu.id);
+    } else {
+        await removeCommentMark(menu.id);
     }
 };
 
@@ -733,6 +864,33 @@ const saveImageAsResource = async () => {
     }
 };
 
+const highlightComment = (commentId: string) => {
+    if (!extractedContent.value) return;
+    const el = extractedContent.value.querySelector(`span[data-comment-id="${commentId}"]`) as HTMLElement | null;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.style.transition = 'background-color 0.5s ease';
+    el.style.backgroundColor = 'var(--color-accent-subtle, rgba(99, 102, 241, 0.2))';
+    setTimeout(() => {
+        el.style.backgroundColor = '';
+    }, 2000);
+};
+
+const removeCommentMark = async (commentId: string) => {
+    if (!extractedContent.value) return;
+    const el = extractedContent.value.querySelector(`span[data-comment-id="${commentId}"]`) as HTMLElement | null;
+    if (!el) return;
+    const parent = el.parentNode;
+    if (parent) {
+        while (el.firstChild) {
+            parent.insertBefore(el.firstChild, el);
+        }
+        parent.removeChild(el);
+        parent.normalize();
+    }
+    await saveModifiedContent();
+};
+
 onBeforeUnmount(() => {
     if (extractedContent.value) {
         extractedContent.value.removeEventListener('contextmenu', handleImageContextMenu);
@@ -748,10 +906,42 @@ defineExpose({
     clearHighlights,
     highlightEntity,
     clearEntityHighlights,
+    highlightComment,
+    removeCommentMark,
 });
 </script>
 
 <style scoped>
+:deep(.marker-type-idea) {
+    background: rgba(59, 130, 246, 0.12);
+    border-bottom: 2px solid #3B82F6;
+}
+
+:deep(.marker-type-important) {
+    background: rgba(239, 68, 68, 0.12);
+    border-bottom: 2px solid #EF4444;
+}
+
+:deep(.marker-type-review) {
+    background: rgba(245, 158, 11, 0.12);
+    border-bottom: 2px solid #F59E0B;
+}
+
+:deep(.marker-type-highlight) {
+    background: #FFE082;
+}
+
+:deep(.marker-highlight) {
+    border-radius: 2px;
+    padding: 1px 2px;
+    cursor: pointer;
+}
+
+:deep(.marker-highlight:hover) {
+    filter: brightness(0.92);
+}
+
+/* Legacy class name kept for content saved before the unified mark model. */
 :deep(.text-mark) {
     background-color: #FFE082;
     border-radius: 0.15rem;

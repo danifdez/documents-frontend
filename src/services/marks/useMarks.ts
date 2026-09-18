@@ -6,14 +6,17 @@ export const useMarks = () => {
     const isLoading = ref(false);
     const error = ref<Error | null>(null);
 
-    const loadMarks = async (resourceId: string): Promise<any[]> => {
-        if (!resourceId) return [];
+    const loadMarks = async (entityId: string, entityType: 'doc' | 'resource' = 'doc'): Promise<any[]> => {
+        if (!entityId) return [];
 
         isLoading.value = true;
         error.value = null;
 
         try {
-            const response = await apiClient.get(`/marks/resource/${resourceId}`);
+            const endpoint = entityType === 'resource'
+                ? `/marks/resource/${entityId}`
+                : `/marks/doc/${entityId}`;
+            const response = await apiClient.get(endpoint);
             marks.value = response.data;
             return response.data;
         } catch (e) {

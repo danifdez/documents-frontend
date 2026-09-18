@@ -411,7 +411,9 @@
 
                 <div class="overflow-y-auto flex-1 min-h-0">
                     <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
-                    <CommentSidebar v-else-if="viewSideBar === 'comments'" :resource-id="String(resource.id)" />
+                    <CommentSidebar v-else-if="viewSideBar === 'comments'" :resource-id="String(resource.id)"
+                        @comment-clicked="findAndHighlightResourceComment"
+                        @comment-deleted="removeResourceCommentMark" />
                     <div v-else-if="viewSideBar === 'index'" class="bg-surface-elevated rounded-2xl border border-border">
                         <div class="px-4 py-3 border-b border-border-light">
                             <span class="text-sm font-semibold text-text-primary">Table of Contents</span>
@@ -678,6 +680,30 @@ const shouldShowEntitiesTab = computed(() =>
 const isWorkspaceSplitView = computed(() => splitViewActive.value && splitDocument.value?.id === workspaceDocument.value?.id);
 const showSidebar = computed(() => !isWorkspaceSplitView.value);
 const displayModeForEntities = computed(() => toResourceContentMode(displayMode.value));
+
+const findAndHighlightResourceComment = (commentId: string) => {
+    const html = (extractedContent.value || translatedContent.value) as any;
+    if (html && typeof html.highlightComment === 'function') {
+        html.highlightComment(commentId);
+        return;
+    }
+    const editorRef = editorContentRef.value as any;
+    if (editorRef && typeof editorRef.findAndHighlightCommentMark === 'function') {
+        editorRef.findAndHighlightCommentMark(commentId);
+    }
+};
+
+const removeResourceCommentMark = async (commentId: string) => {
+    const html = (extractedContent.value || translatedContent.value) as any;
+    if (html && typeof html.removeCommentMark === 'function') {
+        await html.removeCommentMark(commentId);
+        return;
+    }
+    const editorRef = editorContentRef.value as any;
+    if (editorRef && typeof editorRef.removeCommentMark === 'function') {
+        editorRef.removeCommentMark(commentId);
+    }
+};
 
 const {
     tocItems,

@@ -3,15 +3,12 @@
         <!-- Context menu for text selection -->
         <div v-if="showContextMenu" :style="contextMenuStyle"
             class="fixed z-50 bg-surface-elevated shadow-lg rounded-md border border-border py-1 min-w-[160px]" @click.stop>
-            <button @click="handleContextMenuAction('highlight')"
+            <button v-for="type in markTypes" :key="type" @click="handleContextMenuAction(type)"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm"
-                :class="{ 'bg-surface-hover': isMarkActive }">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="2" y="5" width="16" height="10" rx="1" stroke="currentColor" stroke-width="1.5" />
-                    <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFE082" stroke="none" />
-                </svg>
-                <span>{{ isMarkActive ? 'Remove Highlight' : 'Highlight' }}</span>
-                <span class="ml-auto text-xs text-text-muted">Ctrl+H</span>
+                :class="{ 'bg-surface-hover': activeMarkType === type }">
+                <span class="w-4 text-center">{{ markConfig[type].icon }}</span>
+                <span>{{ activeMarkType === type ? `Remove ${markConfig[type].label}` : markConfig[type].label }}</span>
+                <span v-if="type === 'highlight'" class="ml-auto text-xs text-text-muted">Ctrl+H</span>
             </button>
             <button @click="handleContextMenuAction('comment')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
@@ -130,6 +127,7 @@ import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
+import { MARK_CONFIG, MARK_TYPE_LIST, type MarkType } from '../editor/extensions/markTypes';
 import { useFeatureStore } from '../../store/featureStore';
 
 const featureStore = useFeatureStore();
@@ -150,6 +148,9 @@ const props = defineProps({
 const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment', 'send-selection-to-workspace', 'send-selection-to-doc', 'summarize-selection']);
 
 const isMarkActive = ref(false);
+const activeMarkType = ref<MarkType | null>(null);
+const markTypes = MARK_TYPE_LIST;
+const markConfig = MARK_CONFIG;
 const showContextMenu = ref(false);
 const contextMenuPosition = ref({ x: 0, y: 0 });
 const route = useRoute();
@@ -174,23 +175,22 @@ const contextMenuStyle = computed(() => ({
     left: `${contextMenuPosition.value.x}px`,
 }));
 
-const checkIfMarkActive = () => {
-    if (!props.editor || !props.editor.state) return false;
+const activeTypeFromSelection = (): MarkType | null => {
+    if (!props.editor || !props.editor.state) return null;
 
-    const isActive = props.editor.isActive('textMark');
-    if (isActive) {
+    if (props.editor.isActive('textMark')) {
         const attrs = props.editor.getAttributes('textMark');
-        return attrs && attrs.markId ? true : false;
+        return attrs && attrs.markId ? (attrs.markType || 'highlight') : null;
     }
 
-    return false;
+    return null;
 };
 
 const handleAddComment = () => {
     emit('add-comment');
 };
 
-const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send' | 'summarize' | 'send-to-doc' | 'search-kb' | 'search-wiki') => {
+const handleContextMenuAction = (action: MarkType | 'comment' | 'send' | 'summarize' | 'send-to-doc' | 'search-kb' | 'search-wiki') => {
     if (action === 'search-kb') {
         searchInKB();
         return;
@@ -202,8 +202,8 @@ const handleContextMenuAction = (action: 'highlight' | 'comment' | 'send' | 'sum
     showContextMenu.value = false;
     lookupTab.value = null;
 
-    if (action === 'highlight') {
-        handleAddMark();
+    if (markTypes.includes(action as MarkType)) {
+        handleAddMark(action as MarkType);
     } else if (action === 'comment') {
         handleAddComment();
     } else if (action === 'send') {
@@ -333,7 +333,7 @@ const handleKeyboardShortcut = (event: KeyboardEvent) => {
     // Ctrl+H for Highlight
     if (event.ctrlKey && event.key === 'h' && !event.shiftKey) {
         event.preventDefault();
-        handleAddMark();
+        handleAddMark('highlight');
         return;
     }
 
@@ -354,8 +354,10 @@ const handleKeyboardShortcut = (event: KeyboardEvent) => {
 
 const updateMarkActiveStatus = () => {
     try {
-        isMarkActive.value = checkIfMarkActive();
+        activeMarkType.value = activeTypeFromSelection();
+        isMarkActive.value = activeMarkType.value !== null;
     } catch (error) {
+        activeMarkType.value = null;
         isMarkActive.value = false;
     }
 };
@@ -364,7 +366,7 @@ const loadDocumentMarks = async () => {
     try {
         const resourceId = props.resourceId || route.params.id;
         if (resourceId && resourceId !== 'new') {
-            const loadedMarks = await loadMarks(resourceId as string);
+            const loadedMarks = await loadMarks(resourceId as string, 'resource');
 
             if (props.editor && loadedMarks.length > 0) {
                 loadedMarks.forEach(mark => {
@@ -386,7 +388,7 @@ const loadDocumentMarks = async () => {
                                     from: position,
                                     to: position + mark.content.length
                                 });
-                                props.editor.commands.setTextMark(mark.id);
+                                props.editor.commands.setTextMark(mark.id, mark.type || 'highlight');
                             } else {
                                 console.warn(`Mark content not found in document: ${mark.content}`);
                             }
@@ -402,7 +404,21 @@ const loadDocumentMarks = async () => {
     }
 };
 
-const handleAddMark = async () => {
+const anchorFromEditor = (quote: string) => {
+    if (!props.editor || !quote) return { quote };
+    const text: string = props.editor.state.doc.textContent;
+    const at = text.indexOf(quote);
+    if (at < 0) return { quote };
+    const CONTEXT = 120;
+    return {
+        quote,
+        prefix: text.slice(Math.max(0, at - CONTEXT), at),
+        suffix: text.slice(at + quote.length, at + quote.length + CONTEXT),
+        position: at,
+    };
+};
+
+const handleAddMark = async (type: MarkType = 'highlight') => {
     if (!props.editor) {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
@@ -432,7 +448,8 @@ const handleAddMark = async () => {
 
         if (existingMark) {
             const markId = existingMark.getAttribute('data-mark-id');
-            if (markId) {
+            const existingType = existingMark.getAttribute('data-mark-type');
+            if (markId && existingType === type) {
                 emit('remove-mark', markId);
                 return;
             }
@@ -441,14 +458,15 @@ const handleAddMark = async () => {
         emit('add-mark', {
             text: selectedText,
             from: 0,
-            to: selectedText.length
+            to: selectedText.length,
+            type
         });
 
         selection.removeAllRanges();
         return;
     }
 
-    if (isMarkActive.value) {
+    if (isMarkActive.value && activeMarkType.value === type) {
         const attrs = props.editor.getAttributes('textMark');
         if (attrs.markId) {
             try {
@@ -484,17 +502,18 @@ const handleAddMark = async () => {
             return;
         }
 
-        const newMark = await createMark(resourceId as string, text, 'resource');
+        const newMark = await createMark(resourceId as string, text, 'resource', type, anchorFromEditor(text));
 
         if (newMark && newMark.id) {
             props.editor.commands.setTextSelection({ from, to });
-            props.editor.commands.setTextMark(newMark.id);
+            props.editor.commands.setTextMark(newMark.id, type);
 
             emit('add-mark', {
                 markId: newMark.id,
                 text,
                 from,
-                to
+                to,
+                type
             });
         }
     } catch (error) {

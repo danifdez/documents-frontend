@@ -1,17 +1,43 @@
 import { ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCommentCreate } from '../../../services/comments/useCommentCreate';
-import { useMarkCreate } from '../../../services/marks/useMarkCreate';
+import { useMarkCreate, type AnnotationAnchor } from '../../../services/marks/useMarkCreate';
 import { useMarks } from '../../../services/marks/useMarks';
+import type { MarkType } from '../extensions/markTypes';
 
 interface Selection {
   from: number;
   to: number;
 }
 
+interface MarkSelection extends Selection {
+  text: string;
+  type: MarkType;
+}
+
+const ANCHOR_CONTEXT = 120;
+
+/**
+ * Cita y contexto del fragmento en el texto llano del editor. Lo usa el
+ * navegador para volver a localizar la anotación fuera de documents.
+ */
+function anchorFromEditor(editor: { value: any }, quote: string): AnnotationAnchor {
+  const instance = editor.value;
+  if (!instance || !quote) return { quote };
+  const text: string = instance.state.doc.textContent;
+  const at = text.indexOf(quote);
+  if (at < 0) return { quote };
+  return {
+    quote,
+    prefix: text.slice(Math.max(0, at - ANCHOR_CONTEXT), at),
+    suffix: text.slice(at + quote.length, at + quote.length + ANCHOR_CONTEXT),
+    position: at,
+  };
+}
+
 /**
  * Composable for managing editor annotations (comments and marks).
- * Extracts the comment/mark modal logic from EditorContent.vue.
+ * Extracts the comment/mark logic from EditorContent.vue.
  */
 export function useEditorAnnotations(
   editor: { value: any },
@@ -28,11 +54,13 @@ export function useEditorAnnotations(
   const { createComment, isLoading: isCommentLoading } = useCommentCreate();
 
   // Mark state
-  const showMarkModal = ref(false);
-  const selectedMarkText = ref('');
   const markContentMap = ref(new Map<string, string>());
   const { createMark, isLoading: isMarkLoading } = useMarkCreate();
   const { loadMarks } = useMarks();
+
+  function entityType(): 'doc' | 'resource' {
+    return props.context === 'resource' ? 'resource' : 'doc';
+  }
 
   // Comment handlers
   function toggleComments() {
@@ -50,8 +78,12 @@ export function useEditorAnnotations(
     try {
       if (!commentText.trim() || !route.params.id || route.params.id === 'new') return;
 
-      const entityType = props.context === 'resource' ? 'resource' : 'doc';
-      const newComment = await createComment(String(route.params.id), commentText, entityType);
+      const newComment = await createComment(
+        String(route.params.id),
+        commentText,
+        entityType(),
+        anchorFromEditor(editor, selectedCommentText.value),
+      );
 
       if (editor.value && currentSelection.value) {
         const { from, to } = currentSelection.value;
@@ -76,41 +108,37 @@ export function useEditorAnnotations(
   }
 
   // Mark handlers
-  function handleAddMarkRequest(selection: { text: string; from: number; to: number }) {
-    selectedMarkText.value = selection.text;
-    currentSelection.value = { from: selection.from, to: selection.to };
-    showMarkModal.value = true;
-  }
-
-  async function saveMark() {
+  async function applyMark(selection: MarkSelection) {
     try {
       if (!route.params.id || route.params.id === 'new') return;
 
-      const entityType = props.context === 'resource' ? 'resource' : 'doc';
-      const newMark = await createMark(route.params.id as string, selectedMarkText.value, entityType);
+      const type: MarkType = selection.type || 'highlight';
+      const newMark = await createMark(
+        route.params.id as string,
+        selection.text,
+        entityType(),
+        type,
+        anchorFromEditor(editor, selection.text),
+      );
 
-      if (editor.value && currentSelection.value) {
-        const { from, to } = currentSelection.value;
-        editor.value.commands.setTextSelection({ from, to });
-        editor.value.commands.setTextMark(newMark.id);
+      if (newMark && newMark.id) {
+        markContentMap.value.set(newMark.id, selection.text);
       }
 
-      showMarkModal.value = false;
-      currentSelection.value = null;
+      if (editor.value) {
+        const { from, to } = selection;
+        editor.value.commands.setTextSelection({ from, to });
+        editor.value.commands.setTextMark(newMark.id, type);
+      }
     } catch (error) {
       console.error('Error creating mark:', error);
     }
   }
 
-  function cancelMark() {
-    showMarkModal.value = false;
-    currentSelection.value = null;
-  }
-
   async function loadDocumentMarks() {
     try {
       if (route.params.id && route.params.id !== 'new') {
-        const loadedMarks = await loadMarks(route.params.id as string);
+        const loadedMarks = await loadMarks(route.params.id as string, entityType());
 
         if (editor.value && loadedMarks.length > 0) {
           loadedMarks.forEach((mark: Record<string, any>) => {
@@ -130,7 +158,7 @@ export function useEditorAnnotations(
                     from: position,
                     to: position + mark.content.length,
                   });
-                  editor.value.commands.setTextMark(mark.id);
+                  editor.value.commands.setTextMark(mark.id, mark.type || 'highlight');
                 } else {
                   console.warn(`Mark content not found in document: ${mark.content}`);
                 }
@@ -157,13 +185,9 @@ export function useEditorAnnotations(
     saveComment,
     cancelComment,
     // Mark
-    showMarkModal,
-    selectedMarkText,
     isMarkLoading,
     markContentMap,
-    handleAddMarkRequest,
-    saveMark,
-    cancelMark,
+    applyMark,
     loadDocumentMarks,
     // Shared
     currentSelection,

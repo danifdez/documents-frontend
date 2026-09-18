@@ -315,25 +315,17 @@
 
     </template>
 
-    <!-- Markers (not summary, not knowledge) -->
+    <!-- Marks (not summary, not knowledge) -->
     <template v-if="context !== 'summary' && context !== 'knowledge'">
       <div class="h-6 w-px bg-border mx-0.5"></div>
-      <Button @click="applyMarker('idea')" title="Idea Marker (Ctrl+Alt+I)" size="small"
-        :active="activeMarkerType === 'idea'" borderless>
-        <span class="text-sm">💡</span>
-      </Button>
-      <Button @click="applyMarker('important')" title="Important Marker (Ctrl+Alt+W)" size="small"
-        :active="activeMarkerType === 'important'" borderless>
-        <span class="text-sm">⚠️</span>
-      </Button>
-      <Button @click="applyMarker('review')" title="Review Marker (Ctrl+Alt+R)" size="small"
-        :active="activeMarkerType === 'review'" borderless>
-        <span class="text-sm">🔍</span>
+      <Button v-for="type in markTypes" :key="type" @click="applyMark(type)"
+        :title="`${markConfig[type].label} Mark`" size="small" :active="activeMarkType === type" borderless>
+        <span class="text-sm">{{ markConfig[type].icon }}</span>
       </Button>
     </template>
 
-    <!-- Document-only: Comments, Marks, References -->
-    <template v-if="context === 'document'">
+    <!-- Comments (document + resource) -->
+    <template v-if="context === 'document' || context === 'resource'">
       <div class="h-6 w-px bg-border mx-0.5"></div>
       <Button @click="handleAddComment" title="Add Comment (Ctrl+Alt+C)" size="small" borderless>
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -342,12 +334,6 @@
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           <rect x="6" y="8" width="8" height="1.5" rx="0.75" fill="currentColor" />
           <rect x="6" y="11.5" width="5" height="1.5" rx="0.75" fill="currentColor" />
-        </svg>
-      </Button>
-      <Button @click="handleAddMark" title="Add/Remove Highlight Mark" size="small" :active="isMarkActive" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-          <rect x="2" y="5" width="16" height="10" rx="1" stroke="currentColor" stroke-width="2" />
-          <rect x="4" y="7" width="12" height="6" rx="1" fill="#FFC107" />
         </svg>
       </Button>
     </template>
@@ -433,8 +419,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch, onMounted, onBeforeUnmount } from 'vue';
 import Button from '../ui/Button.vue';
-import { generateMarkerId } from './extensions/CalloutExtension';
-import type { MarkerType } from './extensions/CalloutExtension';
+import { MARK_CONFIG, MARK_TYPE_LIST, type MarkType } from './extensions/markTypes';
 import { useFeatureStore } from '../../store/featureStore';
 
 const featureStore = useFeatureStore();
@@ -709,28 +694,30 @@ const insertCodeBlockWithLanguage = (language: string) => {
   closeDropdown();
 };
 
-// -- Markers --
-const activeMarkerType = ref<string | null>(null);
+// -- Marks --
+const markTypes = MARK_TYPE_LIST;
+const markConfig = MARK_CONFIG;
+const activeMarkType = ref<MarkType | null>(null);
 
-const applyMarker = (type: MarkerType) => {
+const applyMark = (type: MarkType) => {
   if (!props.editor) return;
+  const attrs = props.editor.getAttributes('textMark');
+  const hasMark = props.editor.isActive('textMark') && !!attrs.markId;
   const { from, to } = props.editor.state.selection;
 
-  const existingMarker = props.editor.isActive('marker', { markerType: type });
-  if (existingMarker) {
-    props.editor.chain().focus().unsetMarker().run();
-    emit('marker-applied');
+  if (hasMark && attrs.markType === type) {
+    props.editor.chain().focus().extendMarkRange('textMark').unsetMark('textMark').run();
+    emit('remove-mark', attrs.markId);
     return;
   }
 
   if (from === to) {
-    alert('Select text first to apply a marker');
+    alert('Select text first to apply a mark');
     return;
   }
 
-  const id = generateMarkerId();
-  props.editor.chain().focus().setMarker(id, type).run();
-  emit('marker-applied');
+  const text = props.editor.state.doc.textBetween(from, to);
+  emit('add-mark', { text, from, to, type });
 };
 
 // -- Comments --
@@ -742,28 +729,13 @@ const handleAddComment = () => {
   emit('add-comment', { text, from, to });
 };
 
-// -- Marks --
-const isMarkActive = ref(false);
-
-const checkIfMarkActive = () => {
-  if (!props.editor || !props.editor.state) return false;
-  if (props.editor.isActive('textMark')) {
-    const attrs = props.editor.getAttributes('textMark');
-    return !!(attrs && attrs.markId);
-  }
-  return false;
-};
-
 const updateStatus = () => {
   try {
-    isMarkActive.value = checkIfMarkActive();
-
-    if (props.editor?.isActive('marker')) {
-      const attrs = props.editor.getAttributes('marker');
-      activeMarkerType.value = attrs?.markerType || null;
-    } else {
-      activeMarkerType.value = null;
-    }
+    const attrs = props.editor?.getAttributes('textMark');
+    activeMarkType.value =
+      props.editor?.isActive('textMark') && attrs?.markId
+        ? (attrs.markType || 'highlight')
+        : null;
 
     if (props.editor) {
       const colorAttr = props.editor.getAttributes('textStyle')?.color;
@@ -772,8 +744,7 @@ const updateStatus = () => {
       if (highlightAttr) currentBgColor.value = highlightAttr;
     }
   } catch {
-    isMarkActive.value = false;
-    activeMarkerType.value = null;
+    activeMarkType.value = null;
   }
 };
 
@@ -799,18 +770,6 @@ const handleClickOutside = (e: MouseEvent) => {
   if (!target.closest('.relative')) {
     closeDropdown();
   }
-};
-
-const handleAddMark = () => {
-  if (!props.editor) return;
-  if (isMarkActive.value) {
-    const attrs = props.editor.getAttributes('textMark');
-    if (attrs.markId) { emit('remove-mark', attrs.markId); return; }
-  }
-  const { from, to } = props.editor.state.selection;
-  if (from === to) { alert('Please select some text to highlight'); return; }
-  const text = props.editor.state.doc.textBetween(from, to);
-  emit('add-mark', { text, from, to });
 };
 
 defineExpose({ activeDropdown });

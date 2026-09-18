@@ -2,7 +2,7 @@
     <div class="editor-container">
         <EditorToolbar :editor="editor" :is-saving="isSaving" :saved-successfully="savedSuccessfully"
             :show-comments="showComments" :show-toc="showToc" :context="context" @add-comment="handleAddCommentRequest"
-            @add-mark="handleAddMarkRequest" @remove-mark="handleRemoveMark"
+            @add-mark="handleAddMark" @remove-mark="handleRemoveMark"
             @add-reference="showInsertReferenceModal = true" @add-dataset-view="showDatasetViewModal = true"
             @add-dataset-chart="showDatasetChartModal = true" @add-canvas-view="showCanvasViewModal = true"
             @add-timeline-view="showTimelineViewModal = true"
@@ -34,8 +34,6 @@
         </div>
         <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
             @save="saveComment" @cancel="cancelComment" />
-        <MarkModal :is-visible="showMarkModal" :selected-text="selectedMarkText" :is-loading="isMarkLoading"
-            @save="saveMark" @cancel="cancelMark" />
         <InsertReferenceModal
             v-model="showInsertReferenceModal"
             :entries="bibliographyEntries"
@@ -72,14 +70,11 @@ import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
 import CommentExtension from './extensions/CommentExtension';
-import MarkExtension from './extensions/MarkExtension';
-import { MarkerExtension, MARKER_CONFIG } from './extensions/CalloutExtension';
-import type { MarkerType } from './extensions/CalloutExtension';
+import MarkExtension, { MARK_CONFIG, type MarkType } from './extensions/MarkExtension';
 import { MathExtension } from './extensions/MathExtension';
 import { VideoExtension } from './extensions/VideoExtension';
 import EditorToolbar from './EditorToolbar.vue';
 import CommentModal from '../comments/CommentModal.vue';
-import MarkModal from '../marks/MarkModal.vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
@@ -160,13 +155,9 @@ const {
     handleAddCommentRequest,
     saveComment,
     cancelComment,
-    showMarkModal,
-    selectedMarkText,
     isMarkLoading,
     markContentMap,
-    handleAddMarkRequest,
-    saveMark,
-    cancelMark,
+    applyMark,
     loadDocumentMarks,
 } = useEditorAnnotations(editor, emit, props);
 const matches = ref([]);
@@ -195,17 +186,17 @@ const updateMarkerPositions = () => {
     if (!scrollEl) return;
 
     const containerRect = container.getBoundingClientRect();
-    const spans = container.querySelectorAll('[data-marker-id]');
+    const spans = container.querySelectorAll('[data-mark-id], [data-marker-id]');
     const seen = new Set<string>();
     const positions: typeof markerPositions.value = [];
 
     spans.forEach((span) => {
-        const id = span.getAttribute('data-marker-id');
+        const id = span.getAttribute('data-mark-id') || span.getAttribute('data-marker-id');
         if (!id || seen.has(id)) return;
         seen.add(id);
 
-        const type = (span.getAttribute('data-marker-type') || 'idea') as MarkerType;
-        const config = MARKER_CONFIG[type] || MARKER_CONFIG.idea;
+        const type = (span.getAttribute('data-mark-type') || span.getAttribute('data-marker-type') || 'highlight') as MarkType;
+        const config = MARK_CONFIG[type] || MARK_CONFIG.highlight;
         const rect = span.getBoundingClientRect();
         // Position relative to the flex container (which is the gutter's parent)
         const top = rect.top - containerRect.top;
@@ -226,7 +217,7 @@ const updateMarkerPositions = () => {
 const handleMarkerGutterClick = (markerId: string) => {
     if (!editor.value) return;
 
-    const el = editorWithGutterRef.value?.querySelector(`[data-marker-id="${markerId}"]`) as HTMLElement | null;
+    const el = editorWithGutterRef.value?.querySelector(`[data-mark-id="${markerId}"], [data-marker-id="${markerId}"]`) as HTMLElement | null;
     if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -263,8 +254,30 @@ const highlightComment = (commentId: string) => {
     emit('highlight-comment', commentId);
 };
 
-const onMarkClick = (markId: string) => {
-    console.log('Mark clicked:', markId);
+const onMarkClick = (markId: string, markType: MarkType) => {
+    emit('highlight-mark', markId);
+    const el = editorWithGutterRef.value?.querySelector(`[data-mark-id="${markId}"]`) as HTMLElement | null;
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+};
+
+const handleAddMark = (selection: { text: string; from: number; to: number; type?: MarkType }) => {
+    applyMark({
+        text: selection.text,
+        from: selection.from,
+        to: selection.to,
+        type: selection.type || 'highlight',
+    });
+};
+
+const onMarkShortcut = (type: MarkType) => {
+    if (!editor.value) return false;
+    const { from, to } = editor.value.state.selection;
+    if (from === to) return false;
+    const text = editor.value.state.doc.textBetween(from, to);
+    handleAddMark({ text, from, to, type });
+    return true;
 };
 
 const checkForMarkChanges = (editor: Editor) => {
@@ -530,15 +543,8 @@ onMounted(async () => {
                 },
             }),
             MarkExtension.configure({
-                HTMLAttributes: {
-                    class: 'bg-orange-100 rounded px-1',
-                },
                 onMarkClick: onMarkClick,
-            }),
-            MarkerExtension.configure({
-                onMarkerClick: (markerId, markerType) => {
-                    emit('highlight-mark', markerId);
-                },
+                onMarkShortcut: onMarkShortcut,
             }),
             MathExtension,
             VideoExtension,
@@ -649,6 +655,50 @@ const handleRemoveMark = async (markId: string) => {
     } catch (error) {
         console.error('Error removing mark:', error);
     }
+};
+
+const findCommentMarkPosition = (commentId: string): { from: number; to: number } | null => {
+    if (!editor.value) return null;
+    let result: { from: number; to: number } | null = null;
+    editor.value.state.doc.descendants((node: Record<string, any>, pos: number) => {
+        if (result) return false;
+        const marks = (node.marks as Record<string, any>[]).filter(
+            (mark) => mark.type.name === 'comment' && mark.attrs.commentId === commentId,
+        );
+        if (marks.length > 0) {
+            result = { from: pos, to: pos + node.nodeSize };
+            return false;
+        }
+        return true;
+    });
+    return result;
+};
+
+const findAndHighlightCommentMark = (commentId: string) => {
+    if (!editor.value) return;
+    const position = findCommentMarkPosition(commentId);
+    if (!position) return;
+    editor.value.commands.setTextSelection(position);
+    editor.value.chain().focus().run();
+
+    const commentMark = document.querySelector(`span[data-comment-id="${commentId}"]`) as HTMLElement | null;
+    if (commentMark) {
+        commentMark.style.transition = 'background-color 0.5s ease';
+        commentMark.style.backgroundColor = 'var(--color-accent-subtle, rgba(99, 102, 241, 0.2))';
+        commentMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+            commentMark.style.backgroundColor = '';
+        }, 2000);
+    }
+};
+
+const removeCommentMark = (commentId: string) => {
+    if (!editor.value) return;
+    const position = findCommentMarkPosition(commentId);
+    if (!position) return;
+    editor.value.commands.setTextSelection({ from: position.from, to: position.to });
+    editor.value.commands.unsetComment();
+    emit('content-change', editor.value.getHTML());
 };
 
 const search = (text: string) => {
@@ -774,6 +824,8 @@ const scrollToPosition = (position: number) => {
     scrollTo,
     scrollToPosition,
     clearHighlights,
+    findAndHighlightCommentMark,
+    removeCommentMark,
     undo() {
         if (editor.value) {
             editor.value.commands.undo();
@@ -871,6 +923,13 @@ const scrollToPosition = (position: number) => {
 }
 .marker-gutter-icon-review:hover {
     background: rgba(245, 158, 11, 0.2);
+}
+
+.marker-gutter-icon-highlight {
+    background: rgba(255, 224, 130, 0.4);
+}
+.marker-gutter-icon-highlight:hover {
+    background: rgba(255, 224, 130, 0.7);
 }
 
 .editor-content::-webkit-scrollbar {
@@ -1098,6 +1157,26 @@ const scrollToPosition = (position: number) => {
     filter: brightness(0.92);
 }
 
+:deep(.marker-type-idea) {
+    background: rgba(59, 130, 246, 0.12);
+    border-bottom: 2px solid #3B82F6;
+}
+
+:deep(.marker-type-important) {
+    background: rgba(239, 68, 68, 0.12);
+    border-bottom: 2px solid #EF4444;
+}
+
+:deep(.marker-type-review) {
+    background: rgba(245, 158, 11, 0.12);
+    border-bottom: 2px solid #F59E0B;
+}
+
+:deep(.marker-type-highlight) {
+    background: #FFE082;
+}
+
+/* Legacy class names kept for content saved before the unified mark model. */
 :deep(.marker-idea) {
     background: rgba(59, 130, 246, 0.12);
     border-bottom: 2px solid #3B82F6;
