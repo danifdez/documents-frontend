@@ -80,6 +80,16 @@ export function validateReleaseManifest(value: unknown): ReleaseManifest {
   return value as unknown as ReleaseManifest;
 }
 
+// Component names arrive as `models-<variant>` from the installed state and as
+// `models-gpu` from the install UI. Both spellings must resolve to the same
+// artifact; only `cuda` has two names.
+const MODELS_COMPONENT_VARIANTS: Record<string, ModelsVariant> = {
+  'models-cpu': 'cpu',
+  'models-cuda': 'cuda',
+  'models-gpu': 'cuda',
+  'models-metal': 'metal',
+};
+
 export function selectReleaseArtifact(
   manifest: ReleaseManifest,
   targetName: string,
@@ -88,11 +98,11 @@ export function selectReleaseArtifact(
   const target = manifest.targets[targetName];
   if (!target) throw new Error(`Release ${manifest.release} does not support ${targetName}`);
 
-  if (componentName === 'models-cpu' || componentName === 'models-gpu' || componentName === 'models-metal') {
-    const requestedVariant: ModelsVariant = componentName === 'models-gpu' ? 'cuda' : componentName.slice(7) as ModelsVariant;
-    const variant = target.models?.[requestedVariant] ? requestedVariant : 'cpu';
+  const requestedModelsVariant = MODELS_COMPONENT_VARIANTS[componentName];
+  if (requestedModelsVariant) {
+    const variant = target.models?.[requestedModelsVariant] ? requestedModelsVariant : 'cpu';
     const artifact = target.models?.[variant];
-    if (!artifact) throw new Error(`Release ${manifest.release} has no Models ${requestedVariant} or CPU artifact for ${targetName}`);
+    if (!artifact) throw new Error(`Release ${manifest.release} has no Models ${requestedModelsVariant} or CPU artifact for ${targetName}`);
     return { component: 'models', variant, artifact };
   }
 

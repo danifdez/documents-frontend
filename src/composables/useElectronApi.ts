@@ -32,6 +32,20 @@ export function useElectronApi() {
     return window.electronAPI.uploadDocument(projectId, filePath);
   }
 
+  async function showQuickAssistant() {
+    if (!window.quickAssistant) return null;
+    return window.quickAssistant.show();
+  }
+
+  async function hideQuickAssistant() {
+    if (!window.quickAssistant) return null;
+    return window.quickAssistant.hide();
+  }
+
+  function onQuickAssistantShown(callback: () => void): () => void {
+    return window.quickAssistant?.onShown(callback) ?? (() => {});
+  }
+
   return {
     isElectron,
     getSettings,
@@ -39,5 +53,8 @@ export function useElectronApi() {
     setSettings,
     openMultipleFileDialog,
     uploadDocument,
+    showQuickAssistant,
+    hideQuickAssistant,
+    onQuickAssistantShown,
   };
 }

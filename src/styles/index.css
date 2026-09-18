@@ -269,3 +269,9 @@ html.dark {
     color: var(--color-accent-dark);
   }
 }
+
+/* The floating quick assistant is a small window: the app-wide minimum
+   content width must not apply, or its layout gets clipped. */
+body.quick-assistant-window {
+  min-width: 0;
+}

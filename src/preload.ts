@@ -7,6 +7,7 @@ import type {
     CalendarAlarmsBridge,
     ElectronAPI,
     FolderScopeBridge,
+    QuickAssistantBridge,
     ShellOpsBridge,
     TaskRemindersBridge,
     VoiceLocalBridge,
@@ -209,3 +210,16 @@ const taskReminders: TaskRemindersBridge = {
 };
 
 contextBridge.exposeInMainWorld('taskReminders', taskReminders);
+
+const quickAssistant: QuickAssistantBridge = {
+    show: (): Promise<{ ok: boolean }> => ipcRenderer.invoke(IpcChannels.quickAssistant.show),
+    hide: (): Promise<{ ok: boolean }> => ipcRenderer.invoke(IpcChannels.quickAssistant.hide),
+    toggle: (): Promise<{ ok: boolean }> => ipcRenderer.invoke(IpcChannels.quickAssistant.toggle),
+    onShown: (callback: () => void) => {
+        const handler = () => callback();
+        ipcRenderer.on(IpcEvents.quickAssistant.shown, handler);
+        return () => ipcRenderer.off(IpcEvents.quickAssistant.shown, handler);
+    },
+};
+
+contextBridge.exposeInMainWorld('quickAssistant', quickAssistant);

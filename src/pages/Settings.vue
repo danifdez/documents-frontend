@@ -163,6 +163,27 @@
                             taken it — re-set it here.</p>
                     </section>
 
+                    <!-- Quick assistant shortcut -->
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Quick
+                            assistant</h2>
+                        <div class="text-xs text-text-muted mb-2">Open the floating assistant from anywhere.</div>
+                        <div class="flex items-center gap-2">
+                            <button @click="startQuickShortcutCapture" type="button"
+                                class="flex-1 px-3 py-1.5 text-sm bg-surface border border-border rounded-lg text-text-primary hover:bg-surface-hover transition-colors cursor-pointer text-left">
+                                <span v-if="quickShortcutCaptureMode" class="text-text-muted">Press a key combination… (Esc
+                                    to cancel)</span>
+                                <span v-else-if="quickAssistantShortcut">{{ quickAssistantShortcut }}</span>
+                                <span v-else class="text-text-muted">Click to set</span>
+                            </button>
+                            <button v-if="quickAssistantShortcut" @click="clearQuickShortcut" type="button"
+                                class="px-3 py-1.5 text-sm bg-surface border border-border rounded-lg text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
+                                Clear
+                            </button>
+                        </div>
+                        <div v-if="quickShortcutError" class="mt-2 text-xs text-red-500">{{ quickShortcutError }}</div>
+                    </section>
+
                     <!-- macOS dock -->
                     <section v-if="platform === 'darwin'"
                         class="bg-surface-elevated rounded-2xl border border-border p-5">
@@ -736,10 +757,13 @@ const theme = ref<ThemeMode>('system');
 const closeBehavior = ref<'tray' | 'quit'>('tray');
 const launchAtLogin = ref(false);
 const toggleShortcut = ref<string | null>(null);
+const quickAssistantShortcut = ref<string | null>(null);
 const hideDockIcon = ref(false);
 const preloadVoiceModel = ref(false);
 const shortcutCaptureMode = ref(false);
+const quickShortcutCaptureMode = ref(false);
 const shortcutError = ref<string | null>(null);
+const quickShortcutError = ref<string | null>(null);
 const platform = ref<'darwin' | 'win32' | 'linux' | 'other'>('other');
 const trayAvailable = ref(true);
 
@@ -759,6 +783,7 @@ const loadSettings = async () => {
         closeBehavior.value = settings.closeBehavior === 'quit' ? 'quit' : 'tray';
         launchAtLogin.value = !!settings.launchAtLogin;
         toggleShortcut.value = settings.toggleShortcut ?? null;
+        quickAssistantShortcut.value = settings.quickAssistantShortcut ?? null;
         hideDockIcon.value = !!settings.hideDockIcon;
         preloadVoiceModel.value = !!settings.preloadVoiceModel;
     }
@@ -792,6 +817,7 @@ function currentSettingsPayload() {
         closeBehavior: closeBehavior.value,
         launchAtLogin: launchAtLogin.value,
         toggleShortcut: toggleShortcut.value,
+        quickAssistantShortcut: quickAssistantShortcut.value,
         hideDockIcon: hideDockIcon.value,
         preloadVoiceModel: preloadVoiceModel.value,
     };
@@ -812,17 +838,25 @@ async function saveAppSettings() {
     } else {
         shortcutError.value = null;
     }
+    if (result && typeof result === 'object' && result.quickShortcutOk === false) {
+        quickShortcutError.value = 'Shortcut is already in use by another application.';
+    } else {
+        quickShortcutError.value = null;
+    }
 }
 
-function startShortcutCapture() {
-    if (shortcutCaptureMode.value) return;
-    shortcutCaptureMode.value = true;
-    shortcutError.value = null;
+function captureShortcut(target: 'main' | 'quick') {
+    const isMain = target === 'main';
+    const mode = isMain ? shortcutCaptureMode : quickShortcutCaptureMode;
+    if (mode.value) return;
+    mode.value = true;
+    if (isMain) shortcutError.value = null;
+    else quickShortcutError.value = null;
 
     const cleanup = () => {
         window.removeEventListener('keydown', handler, true);
         window.removeEventListener('keydown', escHandler, true);
-        shortcutCaptureMode.value = false;
+        mode.value = false;
     };
 
     const handler = (e: KeyboardEvent) => {
@@ -837,7 +871,9 @@ function startShortcutCapture() {
         const k = e.key;
         if (k && !['Control', 'Shift', 'Alt', 'Meta'].includes(k)) {
             parts.push(k.length === 1 ? k.toUpperCase() : k);
-            toggleShortcut.value = parts.join('+');
+            const value = parts.join('+');
+            if (isMain) toggleShortcut.value = value;
+            else quickAssistantShortcut.value = value;
             cleanup();
             void saveAppSettings();
         }
@@ -852,8 +888,21 @@ function startShortcutCapture() {
     window.addEventListener('keydown', escHandler, true);
 }
 
+function startShortcutCapture() {
+    captureShortcut('main');
+}
+
+function startQuickShortcutCapture() {
+    captureShortcut('quick');
+}
+
 function clearShortcut() {
     toggleShortcut.value = null;
+    void saveAppSettings();
+}
+
+function clearQuickShortcut() {
+    quickAssistantShortcut.value = null;
     void saveAppSettings();
 }
 

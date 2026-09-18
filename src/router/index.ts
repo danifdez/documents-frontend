@@ -18,12 +18,19 @@ import Bibliography from '../pages/Bibliography.vue'
 import Login from '../pages/Login.vue'
 import UserManagement from '../pages/UserManagement.vue'
 import Profile from '../pages/Profile.vue'
+import QuickAssistant from '../pages/QuickAssistant.vue'
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
     component: Login,
     meta: { public: true }
+  },
+  {
+    path: '/quick-assistant',
+    name: 'QuickAssistant',
+    component: QuickAssistant,
+    meta: { public: true },
   },
   {
     path: '/',

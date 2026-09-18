@@ -44,6 +44,11 @@ describe('Standalone release manifest', () => {
     expect(selectReleaseArtifact(manifest, 'linux-x64', 'models-gpu')).toMatchObject({
       component: 'models', variant: 'cuda', artifact: { file: 'components/models-cuda.tar.gz' },
     });
+    // `updateServices` derives the component name from the installed variant,
+    // so it asks for `models-cuda`, not `models-gpu`.
+    expect(selectReleaseArtifact(manifest, 'linux-x64', 'models-cuda')).toMatchObject({
+      component: 'models', variant: 'cuda', artifact: { file: 'components/models-cuda.tar.gz' },
+    });
   });
 
   it('rejects absolute and traversal artifact paths before resolving a URL', () => {

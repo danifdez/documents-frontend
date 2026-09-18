@@ -12,6 +12,9 @@ interface SettingsHandlerDeps {
   isTrayAvailable: () => boolean;
 }
 
+/** Default global shortcut for the floating quick assistant window. */
+export const DEFAULT_QUICK_ASSISTANT_SHORTCUT = 'CommandOrControl+Shift+Space';
+
 export function createSettingsHandlers({
   store,
   applySettingsEffects,
@@ -33,6 +36,7 @@ export function createSettingsHandlers({
         closeBehavior: 'tray',
         launchAtLogin: false,
         toggleShortcut: null,
+        quickAssistantShortcut: DEFAULT_QUICK_ASSISTANT_SHORTCUT,
         hideDockIcon: false,
         // Preload of the local Whisper model on startup.
         preloadVoiceModel: false,
@@ -46,7 +50,10 @@ export function createSettingsHandlers({
       const shortcutOk = settings?.toggleShortcut
         ? globalShortcut.isRegistered(settings.toggleShortcut)
         : true;
-      return { ok: true, shortcutOk };
+      const quickShortcutOk = settings?.quickAssistantShortcut
+        ? globalShortcut.isRegistered(settings.quickAssistantShortcut)
+        : true;
+      return { ok: true, shortcutOk, quickShortcutOk };
     },
 
     // ── Dev-only handler to reset the first-close hint

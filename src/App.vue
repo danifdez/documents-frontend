@@ -1,5 +1,12 @@
 <template>
-  <div v-if="!workspaceStore.initialized" />
+  <!-- Floating quick assistant: a second window loading the same renderer.
+       It renders only the routed page, without the app shell or the main
+       window's notification bindings. -->
+  <div v-if="isQuickAssistantRoute" class="flex h-screen flex-col overflow-hidden bg-surface">
+    <router-view class="flex-1 min-h-0 overflow-hidden" />
+  </div>
+
+  <div v-else-if="!workspaceStore.initialized" />
 
   <!-- First launch: choose local or remote -->
   <div v-else-if="!workspaceStore.hasWorkspaces" class="fixed inset-0 flex items-center justify-center bg-surface">
@@ -88,6 +95,7 @@ const workspaceStore = useWorkspaceStore();
 const offlineStore = useOfflineStore();
 
 const isLoginRoute = computed(() => route.name === 'Login');
+const isQuickAssistantRoute = computed(() => route.name === 'QuickAssistant');
 const showRemoteForm = ref(false);
 const showStandaloneSetup = ref(false);
 let stopNotificationPublication: (() => void) | null = null;
@@ -126,6 +134,15 @@ function setupSocket() {
 
 onMounted(async () => {
   initTheme();
+
+  // The floating quick assistant only needs the workspace and a live socket.
+  // Binding calendar/task notifications or starting background sync here too
+  // would duplicate OS notifications and offline work.
+  if (isQuickAssistantRoute.value) {
+    await workspaceStore.loadWorkspaces();
+    if (workspaceStore.hasWorkspaces) connectSocket();
+    return;
+  }
 
   window.calendarAlarms?.onNavigateToEvent?.((eventId: number) => {
     router.push({ path: '/calendar', query: { eventId: String(eventId) } });

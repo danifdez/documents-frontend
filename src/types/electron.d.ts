@@ -12,13 +12,14 @@ export interface ElectronAPI {
         closeBehavior?: 'tray' | 'quit';
         launchAtLogin?: boolean;
         toggleShortcut?: string | null;
+        quickAssistantShortcut?: string | null;
         hideDockIcon?: boolean;
         preloadVoiceModel?: boolean;
     }>;
-    // Returns `{ ok, shortcutOk }` Older callers that
+    // Returns `{ ok, shortcutOk, quickShortcutOk }`. Older callers that
     // ignore the return value keep working since the IPC channel itself is
     // unchanged.
-    setSettings: (settings: any) => Promise<{ ok: boolean; shortcutOk: boolean } | void>;
+    setSettings: (settings: any) => Promise<{ ok: boolean; shortcutOk: boolean; quickShortcutOk: boolean } | void>;
     // Runtime info about residente/tray support.
     getTrayAvailable?: () => Promise<boolean>;
     getPlatform?: () => Promise<NodeJS.Platform>;
@@ -126,6 +127,13 @@ export interface CalendarAlarmsBridge {
     onNavigateMissedPanel: (cb: () => void) => () => void;
 }
 
+export interface QuickAssistantBridge {
+    show: () => Promise<{ ok: boolean }>;
+    hide: () => Promise<{ ok: boolean }>;
+    toggle: () => Promise<{ ok: boolean }>;
+    onShown: (cb: () => void) => () => void;
+}
+
 export interface TaskRemindersBridge {
     showReminderNotification: (payload: TaskReminderPayload) => Promise<void>;
     showMissedAggregate: (payload: TaskMissedPayload) => Promise<void>;
@@ -141,6 +149,7 @@ declare global {
         shellOps?: ShellOpsBridge;
         calendarAlarms?: CalendarAlarmsBridge;
         taskReminders?: TaskRemindersBridge;
+        quickAssistant?: QuickAssistantBridge;
     }
 }
 

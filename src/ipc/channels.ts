@@ -44,6 +44,11 @@ export const IpcChannels = {
     getPlatform: 'app:get-platform',
     splashAction: 'app:splash-action',
   },
+  quickAssistant: {
+    show: 'quick-assistant:show',
+    hide: 'quick-assistant:hide',
+    toggle: 'quick-assistant:toggle',
+  },
   workspace: {
     list: 'workspace:list',
     add: 'workspace:add',
@@ -109,6 +114,9 @@ export const IpcEvents = {
   },
   standalone: {
     downloadProgress: 'standalone:download-progress',
+  },
+  quickAssistant: {
+    shown: 'quick-assistant:shown',
   },
 } as const;
 

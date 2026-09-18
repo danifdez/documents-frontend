@@ -14,9 +14,10 @@ import { registerIpcHandlers } from './main/ipc/registry';
 import { createVoiceHandlers } from './main/ipc/voice-handlers';
 import { createNotificationHandlers } from './main/ipc/notification-handlers';
 import { createFileHandlers } from './main/ipc/file-handlers';
-import { createSettingsHandlers } from './main/ipc/settings-handlers';
+import { createSettingsHandlers, DEFAULT_QUICK_ASSISTANT_SHORTCUT } from './main/ipc/settings-handlers';
 import { createWorkspaceHandlers } from './main/ipc/workspace-handlers';
 import { createOfflineHandlers } from './main/ipc/offline-handlers';
+import { createQuickAssistantHandlers } from './main/ipc/quick-assistant-handlers';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -56,8 +57,13 @@ if (!gotTheLock) {
 
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
+let quickAssistantWindow: BrowserWindow | null = null;
 let splashPoll: ReturnType<typeof setInterval> | null = null;
 let splashRecoveryInProgress = false;
+
+// Route hash the floating quick assistant window loads from the shared
+// renderer bundle.
+const QUICK_ASSISTANT_ROUTE = '/quick-assistant';
 
 // Tray state. `trayUnavailable` is consumed by T05
 // (`window-all-closed` / `mainWindow.on('close')`) and by T08 (Settings UI
@@ -167,11 +173,116 @@ function toggleMainWindow() {
   }
 }
 
+// Resolve the quick-assistant global shortcut. An explicit `null` means the
+// user cleared it; `undefined` (older settings) falls back to the default.
+function resolveQuickAssistantShortcut(
+  settings: Record<string, any> | null | undefined,
+): string | null {
+  if (!settings || settings.quickAssistantShortcut === undefined) {
+    return DEFAULT_QUICK_ASSISTANT_SHORTCUT;
+  }
+  return settings.quickAssistantShortcut;
+}
+
+// Floating quick assistant. A frameless, always-on-top window that loads the
+// same renderer bundle on the `/quick-assistant` hash route. It is hidden
+// instead of destroyed so reopening is instant and the conversation stays warm.
+function createQuickAssistantWindow(): BrowserWindow {
+  const cursor = screen.getCursorScreenPoint();
+  const display = screen.getDisplayNearestPoint(cursor);
+  const { x, y, width, height } = display.workArea;
+  const margin = 24;
+  const winWidth = Math.min(440, width - margin * 2);
+  const winHeight = Math.min(640, height - margin * 2);
+
+  const win = new BrowserWindow({
+    width: winWidth,
+    height: winHeight,
+    x: Math.round(x + width - winWidth - margin),
+    y: Math.round(y + height - winHeight - margin),
+    minWidth: 360,
+    minHeight: 420,
+    resizable: true,
+    frame: false,
+    show: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    backgroundColor: '#000000',
+    icon: getAppIconPath(),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
+  win.on('close', (event) => {
+    if (isQuitting) return;
+    event.preventDefault();
+    win.hide();
+  });
+
+  win.on('closed', () => {
+    quickAssistantWindow = null;
+  });
+
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${QUICK_ASSISTANT_ROUTE}`);
+  } else {
+    win.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      { hash: QUICK_ASSISTANT_ROUTE },
+    );
+  }
+
+  return win;
+}
+
+function notifyQuickAssistantShown(win: BrowserWindow) {
+  win.webContents.send(IpcEvents.quickAssistant.shown);
+}
+
+function showQuickAssistant() {
+  if (!quickAssistantWindow || quickAssistantWindow.isDestroyed()) {
+    const win = createQuickAssistantWindow();
+    quickAssistantWindow = win;
+    win.once('ready-to-show', () => {
+      win.show();
+      win.focus();
+      notifyQuickAssistantShown(win);
+    });
+    return;
+  }
+  if (!quickAssistantWindow.isVisible()) quickAssistantWindow.show();
+  quickAssistantWindow.focus();
+  notifyQuickAssistantShown(quickAssistantWindow);
+}
+
+function hideQuickAssistant() {
+  if (quickAssistantWindow && !quickAssistantWindow.isDestroyed()) {
+    quickAssistantWindow.hide();
+  }
+}
+
+function toggleQuickAssistant() {
+  if (
+    quickAssistantWindow &&
+    !quickAssistantWindow.isDestroyed() &&
+    quickAssistantWindow.isVisible()
+  ) {
+    quickAssistantWindow.hide();
+    return;
+  }
+  showQuickAssistant();
+}
+
 function buildTrayMenu(): Menu {
   return Menu.buildFromTemplate([
     {
       label: 'Show / Hide window',
       click: () => toggleMainWindow(),
+    },
+    {
+      label: 'Quick assistant',
+      click: () => toggleQuickAssistant(),
     },
     { type: 'separator' },
     {
@@ -251,6 +362,25 @@ function applySettingsEffects(
       const ok = globalShortcut.register(newShortcut, () => toggleMainWindow());
       if (!ok) {
         console.warn('[settings] failed to register global shortcut', newShortcut);
+      }
+    }
+  }
+
+  // quickAssistantShortcut — same treatment for the floating assistant. The
+  // resolver distinguishes "cleared" (null) from "not configured" (undefined).
+  const prevQuickShortcut = previous
+    ? resolveQuickAssistantShortcut(previous)
+    : null;
+  const newQuickShortcut = resolveQuickAssistantShortcut(settings);
+  if (prevQuickShortcut !== newQuickShortcut) {
+    if (prevQuickShortcut) {
+      try { globalShortcut.unregister(prevQuickShortcut); } catch { /* no-op */ }
+    }
+    // Skip when the same combo is already held from the boot-time default.
+    if (newQuickShortcut && !globalShortcut.isRegistered(newQuickShortcut)) {
+      const ok = globalShortcut.register(newQuickShortcut, () => toggleQuickAssistant());
+      if (!ok) {
+        console.warn('[settings] failed to register quick assistant shortcut', newQuickShortcut);
       }
     }
   }
@@ -609,8 +739,15 @@ const createWindow = () => {
   // preferences are cosmetic.
   mainWindow.on('close', (event) => {
     if (isQuitting) return;                       // real exit, let it through
-    if (trayUnavailable) return;                  // no tray to hide into
-    if (getCloseBehavior() !== 'tray') return;    // user opted into 'quit'
+    if (trayUnavailable || getCloseBehavior() !== 'tray') {
+      // Quit path: a hidden quick assistant would keep the app alive after
+      // the main window closes, so tear it down before letting the close pass.
+      if (quickAssistantWindow && !quickAssistantWindow.isDestroyed()) {
+        quickAssistantWindow.destroy();
+        quickAssistantWindow = null;
+      }
+      return;
+    }
     event.preventDefault();
     mainWindow?.hide();
     maybeShowFirstCloseToast();
@@ -667,6 +804,11 @@ app.whenReady().then(() => {
       isTrayAvailable: () => !trayUnavailable,
     }),
     ...createWorkspaceHandlers(store),
+    ...createQuickAssistantHandlers({
+      show: showQuickAssistant,
+      hide: hideQuickAssistant,
+      toggle: toggleQuickAssistant,
+    }),
     [IpcChannels.app.splashAction]: async (_event, action: unknown) => {
       if (action === 'retry') {
         startStandaloneFromSplash();
@@ -711,9 +853,9 @@ app.whenReady().then(() => {
   // the macOS dock visibility. `launchAtLogin` is already honoured by the
   // OS, but reapplying is harmless and keeps the call site uniform.
   const initialSettings = store.get('settings') as Record<string, any> | undefined;
-  if (initialSettings) {
-    applySettingsEffects(initialSettings, null);
-  }
+  // Apply even when no settings were persisted yet so the quick-assistant
+  // default shortcut is registered on a fresh install.
+  applySettingsEffects(initialSettings ?? {}, null);
 
   // Toggle DevTools with F12
   globalShortcut.register('F12', () => {
@@ -741,6 +883,10 @@ app.on('before-quit', async () => {
   if (tray) {
     tray.destroy();
     tray = null;
+  }
+  if (quickAssistantWindow && !quickAssistantWindow.isDestroyed()) {
+    quickAssistantWindow.destroy();
+    quickAssistantWindow = null;
   }
   await standaloneManager.stop();
   await localEngine.shutdown();
