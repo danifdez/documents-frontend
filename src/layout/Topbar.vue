@@ -64,6 +64,14 @@
         <span class="topbar-action-label">Tasks</span>
       </button>
 
+      <button v-if="showFavorites" class="topbar-action" title="Favorites" @click="toggleFavoritesPanel">
+        <svg class="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.176 0l-3.367 2.446c-.783.57-1.838-.196-1.539-1.118l1.286-3.958a1 1 0 00-.363-1.118L2.045 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.304-3.958z" />
+        </svg>
+        <span class="topbar-action-label">Favorites</span>
+      </button>
+
       <button class="topbar-action topbar-action--accent" title="Assistant (Ctrl+J)"
         @click="showAssistant = !showAssistant">
         <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -111,6 +119,7 @@ import SyncIndicator from '../components/SyncIndicator.vue';
 import Avatar from '../components/ui/Avatar.vue';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 import { useTaskPanel } from '../composables/useTaskPanel';
+import { useFavoritesPanel } from '../composables/useFavoritesPanel';
 import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useAuthStore } from '../store/authStore';
@@ -122,6 +131,7 @@ const featureStore = useFeatureStore();
 const authStore = useAuthStore();
 const { showAssistant, showNotesPanel, quickNoteRequested } = useGlobalKeyboard();
 const { toggleTaskPanel } = useTaskPanel();
+const { toggleFavoritesPanel } = useFavoritesPanel();
 
 const knowledgeOpen = ref(false);
 const profileOpen = ref(false);
@@ -139,6 +149,7 @@ const projectsActive = computed(() => route.path === '/' || [
   '/project/', '/thread/', '/document/', '/resource/', '/canvas/', '/timeline/',
 ].some(prefix => route.path.startsWith(prefix)));
 const calendarActive = computed(() => route.path === '/calendar' || route.path.includes('/calendar'));
+const showFavorites = computed(() => !!projectStore.currentProject);
 
 const icon = (path: string) => ({
   render: () => h('svg', {

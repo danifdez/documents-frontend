@@ -1,19 +1,12 @@
 import { ref } from "vue";
 import apiClient from "../api";
+import type { Favorite } from "../../types/Favorite";
 
 // Un favorito de proyecto: un puntero ligero a una página web, sin fichero ni
 // indexado. Es lo que el navegador guarda desde su botón ☆ cuando está
-// conectado a un proyecto.
-export interface ProjectFavorite {
-    id: number;
-    url: string;
-    title: string;
-    createdAt?: string;
-    updatedAt?: string;
-}
-
+// conectado a un proyecto. Puede pertenecer a una categoría (o subcategoría).
 export function useProjectFavorites() {
-    const favorites = ref<ProjectFavorite[]>([]);
+    const favorites = ref<Favorite[]>([]);
     const isLoading = ref(false);
 
     const loadFavoritesByProject = async (projectId: string | number) => {
@@ -27,17 +20,26 @@ export function useProjectFavorites() {
         }
     };
 
-    const addFavorite = async (projectId: string | number, url: string, title?: string) => {
+    const addFavorite = async (
+        projectId: string | number,
+        url: string,
+        title?: string,
+        categoryId?: number | null,
+    ) => {
         const response = await apiClient.post("/favorites", {
             projectId: Number(projectId),
             url,
             title,
+            categoryId: categoryId ?? null,
         });
         return response.data;
     };
 
-    const renameFavorite = async (id: number, title: string) => {
-        const response = await apiClient.patch(`/favorites/${id}`, { title });
+    const updateFavorite = async (
+        id: number,
+        data: { url?: string; title?: string; categoryId?: number | null },
+    ) => {
+        const response = await apiClient.patch(`/favorites/${id}`, data);
         return response.data;
     };
 
@@ -51,7 +53,7 @@ export function useProjectFavorites() {
         isLoading,
         loadFavoritesByProject,
         addFavorite,
-        renameFavorite,
+        updateFavorite,
         removeFavorite,
     };
 }

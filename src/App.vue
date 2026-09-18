@@ -47,6 +47,7 @@
       <GlobalSearchModal :show="showGlobalSearch" @close="showGlobalSearch = false" />
       <SelectionLookup />
       <TaskPanel v-model="showTaskPanel" />
+      <FavoritesPanel v-model="showFavoritesPanel" />
       <AssistantModal v-model="showAssistant" />
     </MainLayout>
   </div>
@@ -58,12 +59,14 @@ import MainLayout from './layout/MainLayout.vue';
 import GlobalSearchModal from './components/GlobalSearchModal.vue';
 import SelectionLookup from './components/knowledge/SelectionLookup.vue';
 import TaskPanel from './components/user-tasks/TaskPanel.vue';
+import FavoritesPanel from './components/favorites/FavoritesPanel.vue';
 import WorkspaceModal from './components/WorkspaceModal.vue';
 import StandaloneSetup from './components/StandaloneSetup.vue';
 import OfflineBanner from './components/OfflineBanner.vue';
 import AssistantModal from './components/assistant/AssistantModal.vue';
 import { useGlobalKeyboard } from './composables/useGlobalKeyboard';
 import { useTaskPanel } from './composables/useTaskPanel';
+import { useFavoritesPanel } from './composables/useFavoritesPanel';
 import { connectSocket } from './services/notifications/notification';
 import { subscribeExecutionPublication } from './services/notifications/executionPublication';
 import { bindCalendarAlarms } from './services/calendar/useCalendarAlarms';
@@ -79,6 +82,7 @@ const router = useRouter();
 const route = useRoute();
 const { showGlobalSearch, showAssistant } = useGlobalKeyboard();
 const { showTaskPanel } = useTaskPanel();
+const { showFavoritesPanel } = useFavoritesPanel();
 const { initTheme } = useTheme();
 const workspaceStore = useWorkspaceStore();
 const offlineStore = useOfflineStore();
