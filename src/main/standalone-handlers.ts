@@ -24,12 +24,15 @@ interface StandaloneHandlerDeps {
 }
 
 /**
- * Feature map the local services boot with: optional features the install
- * didn't enable are off; the base stays default-on.
+ * Feature map the local services boot with. The user's explicit selection
+ * (`standaloneEnabledFeatures`, updated from Settings) wins; otherwise the
+ * install profile applies, and a profile-less install defaults everything on.
  */
 export function resolveStandaloneFeatures(store: Store): Record<string, boolean> {
   const profile = store.get('standaloneProfile') as { features?: string[] } | undefined;
-  const enabled = profile?.features ?? (ALL_FEATURES as readonly string[]);
+  const enabled = (store.get('standaloneEnabledFeatures') as string[] | undefined)
+    ?? profile?.features
+    ?? (ALL_FEATURES as readonly string[]);
   return Object.fromEntries(ALL_FEATURES.map((f) => [f, enabled.includes(f)]));
 }
 
@@ -102,6 +105,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
         await installProfile(profile.components, emitProgress);
         // Persist the install so the backend boots with the optional flags off.
         store.set('standaloneProfile', { key: profile.key, features: profile.features });
+        // A fresh install resets any previous per-feature selection.
+        store.set('standaloneEnabledFeatures', profile.features);
         return { success: true };
       } catch (err: any) {
         console.error('Profile install failed:', err);
@@ -195,6 +200,22 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
 
     [IpcChannels.standalone.getFeatures]: () => {
       return resolveStandaloneFeatures(store);
+    },
+
+    [IpcChannels.standalone.setFeatures]: async (_, features: Record<string, boolean>) => {
+      if (!features || typeof features !== 'object') {
+        return { success: false, error: 'Invalid feature selection.' };
+      }
+      const enabled = ALL_FEATURES.filter((flag) => features[flag] !== false);
+      store.set('standaloneEnabledFeatures', enabled);
+      try {
+        if (standaloneManager.isRunning()) {
+          await standaloneManager.applyFeatures(resolveStandaloneFeatures(store));
+        }
+        return { success: true };
+      } catch (err: any) {
+        return { success: false, error: err.message };
+      }
     },
   });
 }

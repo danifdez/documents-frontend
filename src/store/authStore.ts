@@ -37,7 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
           const { useFeatureStore } = await import('./featureStore');
           const featureStore = useFeatureStore();
           featureStore.setBackendFeatures(data.features);
-          await featureStore.loadLocalPreferences();
+          await featureStore.loadLocalPreferences(true);
         }
       } catch { /* standalone server may not be ready yet */ }
       return;

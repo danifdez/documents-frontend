@@ -50,9 +50,6 @@ class StandaloneManager {
       return this.backend.url;
     }
 
-    const features = opts?.features ?? {};
-    const disabledFeatures = Object.entries(features).filter(([, on]) => !on).map(([k]) => k);
-
     // Fresh attempt: clear stale errors from a previous run so the UI doesn't
     // show errors for services that are now starting cleanly.
     this._errors = {};
@@ -61,11 +58,39 @@ class StandaloneManager {
     const dataDir = this.getDataDir();
     fs.mkdirSync(dataDir, { recursive: true });
 
-    this.postgres = new EmbeddedPostgresService(LOCAL_ID);
-    this.backend = new EmbeddedBackendService();
-
     // 1. Start PostgreSQL. The entity graph (Apache AGE) and embeddings
     // (pgvector) are extensions inside this same instance — no separate service.
+    await this.ensurePostgres();
+
+    // 2 & 3. Start Backend and the ML worker with the requested feature set.
+    await this.startBackendAndModels(opts?.features ?? {}, opts?.backendPort);
+
+    this._running = true;
+    return this.backend!.url;
+  }
+
+  /**
+   * Re-apply the feature set to the running local server. Backend and Models
+   * read `FEATURE_*` / `config.features` at boot, so they must be restarted;
+   * PostgreSQL is left untouched and keeps all data.
+   */
+  async applyFeatures(features: Record<string, boolean>): Promise<string | null> {
+    if (!this.isRunning() || !this.backend) {
+      return this.backend?.url ?? null;
+    }
+    const port = this.backend.port;
+    this._errors = {};
+    await this.stopBackendAndModels();
+    await this.startBackendAndModels(features, port);
+    return this.backend.url;
+  }
+
+  private async ensurePostgres(): Promise<void> {
+    if (this.postgres?.running) {
+      this._status.postgres = 'running';
+      return;
+    }
+    this.postgres = new EmbeddedPostgresService(LOCAL_ID);
     this._status.postgres = 'starting';
     try {
       await this.postgres.start();
@@ -76,16 +101,23 @@ class StandaloneManager {
       console.error('StandaloneManager: Postgres failed to start', err);
       throw new Error(`PostgreSQL failed to start: ${err}`);
     }
+  }
 
-    // 2. Start Backend
+  private async startBackendAndModels(features: Record<string, boolean>, backendPort?: number): Promise<void> {
+    const dataDir = this.getDataDir();
     const storagePath = path.join(dataDir, 'documents');
-    const creds = this.postgres.credentials;
+    const creds = this.postgres!.credentials;
     const modelsEnrollmentToken = randomBytes(32).toString('base64url');
+    const disabledFeatures = Object.entries(features).filter(([, on]) => !on).map(([k]) => k);
+
+    // Reuse the existing instance across restarts: it retains the port the
+    // workspace URL was built with, so feature changes never move the API.
+    if (!this.backend) this.backend = new EmbeddedBackendService();
 
     this._status.backend = 'starting';
     const backendConfig = {
       postgresHost: '127.0.0.1',
-      postgresPort: this.postgres.port,
+      postgresPort: this.postgres!.port,
       postgresUser: creds.user,
       postgresPassword: creds.password,
       postgresDatabase: creds.database,
@@ -93,37 +125,24 @@ class StandaloneManager {
       modelsEnrollmentToken,
       authEnabled: false,
       disabledFeatures,
-      port: opts?.backendPort,
+      port: backendPort,
     };
 
-    let attempt = 0;
-    // PostgreSQL readiness is awaited above, so a second full backend boot
-    // only conceals deterministic errors and delays recovery in the splash.
-    const maxAttempts = 1;
-    while (attempt < maxAttempts) {
-      attempt += 1;
-      try {
-        await this.backend.start(backendConfig);
-        this._status.backend = 'running';
-        break;
-      } catch (err) {
-        console.error(`Backend start attempt ${attempt} failed:`, err);
-        if (attempt >= maxAttempts) {
-          this._status.backend = 'error';
-          this._errors.backend = describeError(err);
-          // Do NOT stop Postgres here so the user can inspect logs and
-          // re-attempt startup from the UI. Leaving the DBs running helps
-          // diagnose boot races or migration problems.
-          console.error(`Backend failed to start after ${attempt} attempts; leaving services running for inspection.`);
-          throw new Error(`Backend failed to start after ${attempt} attempts: ${err}`);
-        }
-        // small backoff before retrying
-        await new Promise((res) => setTimeout(res, 2000 * attempt));
-      }
+    try {
+      await this.backend.start(backendConfig);
+      this._status.backend = 'running';
+    } catch (err) {
+      console.error('Backend start failed:', err);
+      this._status.backend = 'error';
+      this._errors.backend = describeError(err);
+      // Do NOT stop Postgres here so the user can inspect logs and
+      // re-attempt startup from the UI. Leaving the DB running helps
+      // diagnose boot races or migration problems.
+      throw new Error(`Backend failed to start: ${err}`);
     }
 
-    // 3. Start the ML worker (if installed). It consumes work exclusively through
-    // the Backend protocol. Non-fatal: the rest of the app still runs if it fails.
+    // The ML worker (if installed) consumes work exclusively through the
+    // Backend protocol. Non-fatal: the rest of the app still runs if it fails.
     if (EmbeddedModelsService.isInstalled()) {
       this._status.models = 'starting';
       try {
@@ -132,7 +151,7 @@ class StandaloneManager {
           enrollmentToken: modelsEnrollmentToken,
           postgres: {
             host: '127.0.0.1',
-            port: this.postgres.port,
+            port: this.postgres!.port,
             user: creds.user,
             password: creds.password,
             database: creds.database,
@@ -148,10 +167,9 @@ class StandaloneManager {
         this._status.models = 'not_installed';
         console.error('Models worker failed to start — marking as not_installed (non-fatal):', err);
       }
+    } else {
+      this._status.models = 'not_installed';
     }
-
-    this._running = true;
-    return this.backend.url;
   }
 
   async stop(): Promise<void> {
@@ -160,15 +178,19 @@ class StandaloneManager {
     this._running = false;
   }
 
-  private async stopServices(): Promise<void> {
+  private async stopBackendAndModels(): Promise<void> {
     if (embeddedModels.running) {
       try { await embeddedModels.stop(); } catch (e) { console.error('Error stopping models worker:', e); }
-      this._status.models = 'stopped';
     }
+    this._status.models = EmbeddedModelsService.isInstalled() ? 'stopped' : 'not_installed';
     if (this.backend) {
       try { await this.backend.stop(); } catch (e) { console.error('Error stopping backend:', e); }
       this._status.backend = 'stopped';
     }
+  }
+
+  private async stopServices(): Promise<void> {
+    await this.stopBackendAndModels();
     if (this.postgres) {
       try { await this.postgres.stop(); } catch (e) { console.error('Error stopping postgres:', e); }
       this._status.postgres = 'stopped';

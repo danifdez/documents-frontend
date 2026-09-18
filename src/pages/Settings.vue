@@ -221,6 +221,13 @@
             <div v-show="activeTab === 'features'">
                 <p class="text-sm text-text-muted mb-4">Enable or disable application features. Server-disabled
                     features cannot be enabled here.</p>
+                <p v-if="featureStore.standaloneMode" class="text-xs text-text-muted mb-4">Changes restart the local
+                    backend and AI service on this machine so the new capabilities take effect.</p>
+
+                <div v-if="featuresError"
+                    class="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+                    {{ featuresError }}
+                </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div v-for="flag in featureStore.featureFlags" :key="flag.key"
@@ -229,9 +236,12 @@
                             <span class="text-sm font-medium text-text-primary">{{ flag.label }}</span>
                             <p v-if="!flag.backendEnabled" class="text-xs text-text-muted mt-0.5">Disabled by server
                             </p>
+                            <p v-else-if="featuresApplyingKey === flag.key" class="text-xs text-text-muted mt-0.5">
+                                Applying…</p>
                         </div>
-                        <button v-if="flag.backendEnabled" @click="featureStore.toggleLocalFeature(flag.key)"
-                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer"
+                        <button v-if="flag.backendEnabled" @click="toggleFeature(flag.key)"
+                            :disabled="featuresApplying"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             :class="flag.enabled ? 'bg-accent' : 'bg-border'">
                             <span
                                 class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200"
@@ -636,6 +646,29 @@ async function switchToWorkspace(id: string) {
 
 async function deleteWorkspace(id: string) {
     await workspaceStore.removeWorkspace(id);
+}
+
+// ── Feature toggles ──
+const featuresApplying = ref(false);
+const featuresApplyingKey = ref<string | null>(null);
+const featuresError = ref('');
+
+async function toggleFeature(key: string) {
+    if (featuresApplying.value) return;
+    featuresApplying.value = true;
+    featuresApplyingKey.value = key;
+    featuresError.value = '';
+    try {
+        const result = await featureStore.toggleLocalFeature(key);
+        if (result && !result.success) {
+            featuresError.value = result.error || 'Could not update the feature. Please try again.';
+        }
+    } catch (e: any) {
+        featuresError.value = e?.message || 'Could not update the feature. Please try again.';
+    } finally {
+        featuresApplying.value = false;
+        featuresApplyingKey.value = null;
+    }
 }
 
 // ── Local server (standalone) lifecycle ──

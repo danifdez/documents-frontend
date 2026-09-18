@@ -78,6 +78,7 @@ export interface ElectronAPI {
     standaloneGetPort: () => Promise<number>;
     standaloneSetPort: (port: number) => Promise<{ success: boolean; url?: string; error?: string }>;
     standaloneGetFeatures: () => Promise<Record<string, boolean>>;
+    standaloneSetFeatures: (features: Record<string, boolean>) => Promise<{ success: boolean; error?: string }>;
     onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number; step?: number; totalSteps?: number; overallPercent?: number }) => void) => void;
 
     // Offline filesystem storage

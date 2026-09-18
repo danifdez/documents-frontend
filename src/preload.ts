@@ -121,6 +121,8 @@ const electronAPI: ElectronAPI = {
     standaloneGetPort: () => ipcRenderer.invoke(IpcChannels.standalone.getPort),
     standaloneSetPort: (port: number) => ipcRenderer.invoke(IpcChannels.standalone.setPort, port),
     standaloneGetFeatures: () => ipcRenderer.invoke(IpcChannels.standalone.getFeatures),
+    standaloneSetFeatures: (features: Record<string, boolean>) =>
+        ipcRenderer.invoke(IpcChannels.standalone.setFeatures, features),
     onStandaloneDownloadProgress: (callback: (progress: any) => void) =>
         ipcRenderer.on(IpcEvents.standalone.downloadProgress, (_event, progress) => callback(progress)),
 

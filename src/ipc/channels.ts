@@ -78,6 +78,7 @@ export const IpcChannels = {
     getPort: 'standalone:get-port',
     setPort: 'standalone:set-port',
     getFeatures: 'standalone:get-features',
+    setFeatures: 'standalone:set-features',
   },
   offline: {
     putItem: 'offline:put-item',

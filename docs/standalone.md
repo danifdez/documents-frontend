@@ -36,6 +36,8 @@ Two variants are available:
 
 Documents checks the computer and suggests the appropriate variant.
 
+Optional features (Canvas, Datasets, Timelines, Knowledge Base, Bibliography, and Relationships) run on the base installation and are off after the first setup. They can be enabled or disabled individually from **Settings → Features**. Changing one restarts the local backend and models service so the new capability takes effect; PostgreSQL keeps running and no project data is affected.
+
 ## Starting and stopping
 
 The local workspace starts automatically when it is opened. Required data services start before Documents makes the workspace available.
