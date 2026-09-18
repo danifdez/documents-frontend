@@ -306,193 +306,220 @@
 
             <!-- Server Tab -->
             <div v-show="activeTab === 'server'">
+                <p class="text-sm text-text-muted mb-6">
+                    <template v-if="standaloneFullyInstalled">Everything runs on this computer. Check that each part is
+                        working below, and keep it up to date.</template>
+                    <template v-else>Run Documents entirely on this computer — your documents never leave your
+                        device.</template>
+                </p>
+
+                <!-- Download progress / errors (shared by install and update) -->
+                <div v-if="standaloneDownloading" class="bg-surface-elevated rounded-2xl border border-border p-4 mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-text-secondary">Installing {{ friendlyComponent(downloadProgress.component) }}…</span>
+                        <span class="text-xs text-text-muted">{{ downloadProgress.percent }}%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-border rounded-full overflow-hidden">
+                        <div class="h-full bg-accent rounded-full transition-all duration-300"
+                            :style="{ width: downloadProgress.percent + '%' }"></div>
+                    </div>
+                </div>
+                <div v-if="standaloneDownloadError"
+                    class="mb-6 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+                    {{ standaloneDownloadError }}
+                </div>
 
                 <!-- ════ Installed → live service status (observability) ════ -->
                 <template v-if="standaloneFullyInstalled">
-                    <p class="text-sm text-text-muted mb-4">Local server status — services running on this machine</p>
+                    <!-- Overall status -->
+                    <section class="bg-surface-elevated rounded-2xl border border-border p-5 mb-6">
+                        <div class="flex items-center gap-3">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="overallStatus.dot"></span>
+                            <div class="min-w-0">
+                                <h3 class="text-base font-semibold text-text-primary">{{ overallStatus.title }}</h3>
+                                <p class="text-sm text-text-muted">{{ overallStatus.subtitle }}</p>
+                            </div>
+                        </div>
+                    </section>
 
-                    <div class="bg-surface-elevated rounded-2xl border border-border p-5 max-w-lg">
-                        <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Services</h3>
-                        <div class="space-y-3">
-                            <div v-for="svc in serviceStatusList" :key="svc.key">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full"
-                                            :class="statusDotClass(serviceStatus[svc.key])"></span>
-                                        <span class="text-sm text-text-primary">{{ svc.label }}</span>
-                                    </div>
-                                    <span class="text-xs" :class="statusTextClass(serviceStatus[svc.key])">{{
-                                        statusLabel(serviceStatus[svc.key]) }}</span>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <!-- Core service cards -->
+                        <section v-for="svc in serviceStatusList" :key="svc.key"
+                            class="bg-surface-elevated rounded-2xl border border-border p-5 flex flex-col">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold text-text-primary">{{ svc.label }}</h3>
+                                    <p class="text-xs text-text-muted mt-1">{{ svc.description }}</p>
                                 </div>
-                                <p v-if="serviceErrors[svc.key]"
-                                    class="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2 mt-1.5 ml-4 break-words whitespace-pre-wrap">
-                                    {{ serviceErrors[svc.key] }}</p>
+                                <span class="shrink-0 inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full text-xs font-medium"
+                                    :class="statusBadgeClass(serviceStatus[svc.key])">
+                                    <span class="w-1.5 h-1.5 rounded-full"
+                                        :class="statusDotClass(serviceStatus[svc.key])"></span>
+                                    {{ statusLabel(serviceStatus[svc.key]) }}
+                                </span>
                             </div>
-                        </div>
+                            <p v-if="serviceErrors[svc.key]"
+                                class="mt-3 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2 break-words whitespace-pre-wrap">
+                                {{ serviceErrors[svc.key] }}</p>
+                        </section>
 
-                        <div class="mt-5 pt-4 border-t border-border">
-                            <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-2">Local API address</h3>
-                            <p class="text-xs text-text-muted mb-3">Use this stable loopback address when connecting a local browser or agent. Changing the port restarts the local server.</p>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm text-text-secondary shrink-0">127.0.0.1:</span>
-                                <input v-model.number="standalonePort" type="number" min="1024" max="65535"
-                                    class="w-28 px-2 py-1.5 rounded-lg border border-border bg-surface text-sm text-text-primary" />
-                                <button @click="saveStandalonePort" :disabled="savingStandalonePort"
-                                    class="px-3 py-1.5 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-50">
-                                    {{ savingStandalonePort ? 'Saving…' : 'Save' }}
-                                </button>
+                        <!-- AI assistant card -->
+                        <section class="bg-surface-elevated rounded-2xl border border-border p-5 flex flex-col">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold text-text-primary">AI assistant</h3>
+                                    <p class="text-xs text-text-muted mt-1">Powers the assistant, summaries,
+                                        transcription and search.</p>
+                                </div>
+                                <span class="shrink-0 inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full text-xs font-medium"
+                                    :class="statusBadgeClass(serviceStatus.models)">
+                                    <span class="w-1.5 h-1.5 rounded-full"
+                                        :class="statusDotClass(serviceStatus.models)"></span>
+                                    {{ statusLabel(serviceStatus.models) }}
+                                </span>
                             </div>
-                            <p v-if="standalonePortError" class="text-xs text-red-500 mt-2">{{ standalonePortError }}</p>
-                        </div>
 
-                        <!-- AI / Inference Models (optional — manage here) -->
-                        <div class="mt-5 pt-4 border-t border-border">
-                            <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">AI /
-                                Inference</h3>
-                            <p class="text-xs text-text-muted mb-3">Document extraction, transcription, translation,
-                                entity recognition, summarization, semantic search.</p>
-
-                            <!-- GPU detection -->
-                            <div v-if="gpuInfo" class="mb-3 text-xs px-3 py-2 rounded-lg"
+                            <!-- Hardware / acceleration note -->
+                            <div v-if="gpuInfo" class="mt-3 text-xs px-3 py-2 rounded-lg"
                                 :class="gpuInfo.available && gpuInfo.cuda ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-surface-hover text-text-muted'">
                                 <template v-if="gpuInfo.available && gpuInfo.cuda">
-                                    GPU detected: {{ gpuInfo.name }} (CUDA) — GPU acceleration will be used
+                                    Graphics acceleration is active with {{ gpuInfo.name }}.
                                 </template>
                                 <template v-else-if="gpuInfo.available">
-                                    {{ gpuInfo.name }} detected — CPU inference will be used
+                                    {{ gpuInfo.name }} found. The assistant will run on the processor.
                                 </template>
                                 <template v-else>
-                                    No GPU detected — CPU inference will be used
+                                    No graphics card found. The assistant runs on the processor.
                                 </template>
                             </div>
 
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full"
-                                        :class="standaloneInstalled.models ? 'bg-green-500' : 'bg-border'"></span>
-                                    <span class="text-sm text-text-primary">Models Service</span>
-                                </div>
-                                <span class="text-xs text-text-muted">{{ modelsSize }}</span>
+                            <div class="mt-auto pt-4">
+                                <p v-if="standaloneInstalled.models" class="text-xs text-text-muted">
+                                    Installed on this computer · {{ modelsSize }}
+                                </p>
+                                <template v-else>
+                                    <p class="text-xs text-text-muted mb-3">Not installed yet. Install it to use the
+                                        assistant and search.</p>
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <button @click="installModels" :disabled="standaloneDownloading"
+                                            class="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                            {{ standaloneDownloading ? 'Installing…' : 'Install AI assistant' }}
+                                        </button>
+                                        <label v-if="gpuInfo?.cuda"
+                                            class="flex items-center gap-1.5 text-xs text-text-muted cursor-pointer">
+                                            <input type="checkbox" v-model="forceCpu" class="accent-accent w-3 h-3" />
+                                            Use processor only
+                                        </label>
+                                    </div>
+                                </template>
                             </div>
-
-                            <!-- Download progress -->
-                            <div v-if="standaloneDownloading" class="mb-3">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs text-text-secondary">Downloading {{ downloadProgress.component
-                                        }}...</span>
-                                    <span class="text-xs text-text-muted">{{ downloadProgress.percent }}%</span>
-                                </div>
-                                <div class="w-full h-1.5 bg-border rounded-full overflow-hidden">
-                                    <div class="h-full bg-accent rounded-full transition-all duration-300"
-                                        :style="{ width: downloadProgress.percent + '%' }"></div>
-                                </div>
-                            </div>
-
-                            <!-- Error -->
-                            <div v-if="standaloneDownloadError"
-                                class="mb-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
-                                {{ standaloneDownloadError }}
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                <button v-if="!standaloneInstalled.models" @click="installModels"
-                                    :disabled="standaloneDownloading"
-                                    class="px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {{ standaloneDownloading ? 'Installing...' : 'Install AI Features' }}
-                                </button>
-                                <button v-else @click="uninstallModels"
-                                    class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
-                                    Remove AI Features
-                                </button>
-                                <!-- Force CPU toggle when GPU is available -->
-                                <label v-if="gpuInfo?.cuda && !standaloneInstalled.models"
-                                    class="flex items-center gap-1.5 text-xs text-text-muted cursor-pointer ml-2">
-                                    <input type="checkbox" v-model="forceCpu" class="accent-accent w-3 h-3" />
-                                    Force CPU only
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="mt-5 pt-4 border-t border-border">
-                            <p class="text-xs text-text-muted mb-3">Downloads and activates newer local service versions without reinstalling Documents.</p>
-                            <button @click="updateStandaloneServices" :disabled="standaloneDownloading"
-                                class="px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                {{ standaloneDownloading ? 'Updating services...' : 'Update local services' }}
-                            </button>
-                        </div>
-
-                        <!-- Uninstall local server -->
-                        <div class="mt-5 pt-4 border-t border-border">
-                            <button @click="uninstallStandalone"
-                                class="px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
-                                Uninstall local server
-                            </button>
-                        </div>
+                        </section>
                     </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <!-- Updates -->
+                        <section class="bg-surface-elevated rounded-2xl border border-border p-5 flex flex-col">
+                            <h3 class="text-sm font-semibold text-text-primary">Updates</h3>
+                            <p class="text-xs text-text-muted mt-1 mb-4">Install newer versions of the local services
+                                without reinstalling Documents.</p>
+                            <button @click="updateStandaloneServices" :disabled="standaloneDownloading"
+                                class="self-start px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                {{ standaloneDownloading ? 'Updating…' : 'Update local services' }}
+                            </button>
+                        </section>
+
+                        <!-- Advanced -->
+                        <section class="bg-surface-elevated rounded-2xl border border-border p-5">
+                            <button @click="showAdvanced = !showAdvanced"
+                                class="w-full flex items-center justify-between gap-3 cursor-pointer">
+                                <div class="text-left">
+                                    <h3 class="text-sm font-semibold text-text-primary">Advanced</h3>
+                                    <p class="text-xs text-text-muted mt-1">Connection address for browsers and other
+                                        apps.</p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 text-text-muted transition-transform duration-200 shrink-0"
+                                    :class="{ 'rotate-180': showAdvanced }" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div v-if="showAdvanced" class="mt-4 pt-4 border-t border-border">
+                                <label class="block text-xs font-medium text-text-secondary mb-2">Local address</label>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm text-text-secondary shrink-0">127.0.0.1:</span>
+                                    <input v-model.number="standalonePort" type="number" min="1024" max="65535"
+                                        class="w-28 px-2 py-1.5 rounded-lg border border-border bg-surface text-sm text-text-primary" />
+                                    <button @click="saveStandalonePort" :disabled="savingStandalonePort"
+                                        class="px-3 py-1.5 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-50">
+                                        {{ savingStandalonePort ? 'Saving…' : 'Save' }}
+                                    </button>
+                                </div>
+                                <p class="text-xs text-text-muted mt-2">Changing the port restarts the local server.</p>
+                                <p v-if="standalonePortError" class="text-xs text-red-500 mt-2">{{ standalonePortError }}
+                                </p>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Remove local server -->
+                    <section class="mt-6 bg-surface-elevated rounded-2xl border border-border p-5 flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-sm font-semibold text-text-primary">Remove local server</h3>
+                            <p class="text-xs text-text-muted mt-1">Stops and removes the services from this computer.
+                                Your documents and projects are kept.</p>
+                        </div>
+                        <button @click="uninstallStandalone"
+                            class="shrink-0 px-4 py-2 rounded-lg border border-border text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
+                            Remove local server
+                        </button>
+                    </section>
                 </template>
 
                 <!-- ════ Not installed → install offer (hardware-gated) ════ -->
                 <template v-else>
-                    <p class="text-sm text-text-muted mb-4">Install and run all services locally on this machine</p>
+                    <!-- Checking hardware -->
+                    <div v-if="!hardwareReport" class="bg-surface-elevated rounded-2xl border border-border p-5">
+                        <p class="text-sm text-text-muted">Checking your hardware…</p>
+                    </div>
 
-                    <div class="bg-surface-elevated rounded-2xl border border-border p-5 max-w-lg">
-                        <!-- Checking hardware -->
-                        <p v-if="!hardwareReport" class="text-sm text-text-muted">Checking your hardware…</p>
+                    <!-- Hardware can't run it locally -->
+                    <div v-else-if="!hardwareReport.canInstall"
+                        class="bg-surface-elevated rounded-2xl border border-border p-5">
+                        <h3 class="text-base font-semibold text-text-primary">This computer can't run Documents locally
+                        </h3>
+                        <p class="text-sm text-text-secondary mt-1">{{ hardwareReport.blockReason }}</p>
+                        <p class="text-xs text-text-muted mt-3">You can still connect to a Documents server from the
+                            Workspaces tab.</p>
+                    </div>
 
-                        <!-- Hardware can't run it locally -->
-                        <template v-else-if="!hardwareReport.canInstall">
-                            <p class="text-sm text-text-secondary">This machine can't run Documents locally.</p>
-                            <p class="text-xs text-text-muted mt-1">{{ hardwareReport.blockReason }}</p>
-                        </template>
+                    <!-- Hardware allows installing -->
+                    <template v-else>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <section v-for="svc in installComponents" :key="svc.label"
+                                class="bg-surface-elevated rounded-2xl border border-border p-5">
+                                <h3 class="text-sm font-semibold text-text-primary">{{ svc.label }}</h3>
+                                <p class="text-xs text-text-muted mt-1">{{ svc.description }}</p>
+                            </section>
+                        </div>
 
-                        <!-- Hardware allows installing -->
-                        <template v-else>
-                            <h3 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-3">Core
-                                Services</h3>
-                            <div class="space-y-3 mb-4">
-                                <div v-for="svc in coreServices" :key="svc.key"
-                                    class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full"
-                                            :class="standaloneInstalled[svc.key] ? 'bg-green-500' : 'bg-border'"></span>
-                                        <span class="text-sm text-text-primary">{{ svc.label }}</span>
-                                    </div>
-                                    <span class="text-xs text-text-muted">{{ svc.size }}</span>
-                                </div>
-                            </div>
-
-                            <p class="text-xs text-text-muted mb-3">{{ hardwareSummary }}</p>
+                        <section class="bg-surface-elevated rounded-2xl border border-border p-5 mt-6">
+                            <h3 class="text-sm font-semibold text-text-primary">Ready to install</h3>
+                            <p class="text-xs text-text-muted mt-1">{{ hardwareSummary }}</p>
+                            <p class="text-xs text-text-muted mt-1">
+                                Download: about {{ hardwareReport.install.downloadGB }} GB
+                            </p>
                             <div v-if="hardwareReport.install.status === 'slow'"
-                                class="mb-3 text-xs text-amber-600 dark:text-amber-500">
+                                class="mt-2 text-xs text-amber-600 dark:text-amber-500">
                                 Runs slowly<template v-if="hardwareReport.install.reason"> — {{
                                     hardwareReport.install.reason }}</template>
                             </div>
-
-                            <!-- Download progress -->
-                            <div v-if="standaloneDownloading" class="mb-4">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs text-text-secondary">Downloading {{ downloadProgress.component
-                                        }}...</span>
-                                    <span class="text-xs text-text-muted">{{ downloadProgress.percent }}%</span>
-                                </div>
-                                <div class="w-full h-1.5 bg-border rounded-full overflow-hidden">
-                                    <div class="h-full bg-accent rounded-full transition-all duration-300"
-                                        :style="{ width: downloadProgress.percent + '%' }"></div>
-                                </div>
-                            </div>
-
-                            <!-- Error -->
-                            <div v-if="standaloneDownloadError"
-                                class="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
-                                {{ standaloneDownloadError }}
-                            </div>
-
                             <button @click="installStandalone" :disabled="standaloneDownloading"
-                                class="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                {{ standaloneDownloading ? 'Installing...' : 'Install Local Server (~350 MB)' }}
+                                class="mt-4 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                {{ standaloneDownloading ? 'Installing…' : 'Install local server' }}
                             </button>
-                        </template>
-                    </div>
+                        </section>
+                    </template>
                 </template>
             </div>
 
@@ -581,7 +608,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import PageHeader from '../components/ui/PageHeader.vue';
 import SegmentedControl from '../components/ui/SegmentedControl.vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
@@ -693,21 +720,37 @@ const {
     uninstallStandalone,
     updateStandaloneServices,
     installModels,
-    uninstallModels,
     subscribeDownloadProgress,
 } = useStandaloneManager();
 
-const coreServices = [
-    { key: 'backend' as const, label: 'Backend (NestJS)', size: '~50 MB' },
-    { key: 'postgres' as const, label: 'PostgreSQL', size: '~200 MB' },
+// User-facing description of the parts installed and running on this machine.
+const installComponents = [
+    { label: 'Database', description: 'Stores your projects, documents and settings.' },
+    { label: 'Application server', description: 'Runs Documents and keeps everything in sync.' },
+    { label: 'AI assistant', description: 'Powers the assistant, summaries, transcription and search.' },
 ];
 
 // ── Live service status (observability, shown once standalone is installed) ──
-const serviceStatusList: { key: ServiceKey; label: string }[] = [
-    { key: 'postgres', label: 'PostgreSQL' },
-    { key: 'backend', label: 'Backend (NestJS)' },
-    { key: 'models', label: 'Models Service' },
+const serviceStatusList: { key: ServiceKey; label: string; description: string }[] = [
+    { key: 'postgres', label: 'Database', description: 'Stores your projects, documents and settings.' },
+    { key: 'backend', label: 'Application server', description: 'Runs Documents and keeps everything in sync.' },
 ];
+
+// Friendly names for the installer progress steps.
+const COMPONENT_LABELS: Record<string, string> = {
+    node: 'system files',
+    postgres: 'the database',
+    backend: 'the application server',
+    'models-cpu': 'the AI assistant',
+    'models-gpu': 'the AI assistant',
+    'ai-models': 'the AI models',
+};
+
+function friendlyComponent(component: string): string {
+    return COMPONENT_LABELS[component] || 'the local server';
+}
+
+const showAdvanced = ref(false);
 
 const standalonePort = ref(32100);
 const savingStandalonePort = ref(false);
@@ -738,13 +781,33 @@ function statusDotClass(state: string): string {
 }
 function statusLabel(state: string): string {
     if (state === 'not_installed') return 'Not installed';
+    if (state === 'stopped') return 'Stopped';
     return state.charAt(0).toUpperCase() + state.slice(1);
 }
-function statusTextClass(state: string): string {
-    if (state === 'running') return 'text-green-600 dark:text-green-400';
-    if (state === 'error') return 'text-red-500';
-    return 'text-text-muted';
+function statusBadgeClass(state: string): string {
+    if (state === 'running') return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400';
+    if (state === 'starting') return 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-500';
+    if (state === 'error') return 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400';
+    return 'bg-surface-hover text-text-muted';
 }
+
+// Plain-language summary shown at the top of the Server tab.
+const overallStatus = computed(() => {
+    const states = serviceStatusList.map((svc) => serviceStatus.value[svc.key]);
+    if (states.includes('error')) {
+        return { dot: 'bg-red-500', title: 'Something needs attention', subtitle: 'One or more parts could not start. See the details below.' };
+    }
+    if (states.includes('starting')) {
+        return { dot: 'bg-amber-500 animate-pulse', title: 'Starting up…', subtitle: 'The local services are getting ready.' };
+    }
+    if (states.includes('stopped')) {
+        return { dot: 'bg-border', title: 'Local server is stopped', subtitle: 'Start it again from the Workspaces tab.' };
+    }
+    if (serviceStatus.value.models === 'not_installed') {
+        return { dot: 'bg-green-500', title: 'Local server is running', subtitle: 'Install the AI assistant below to use the assistant and search.' };
+    }
+    return { dot: 'bg-green-500', title: 'Everything is running', subtitle: 'All local services are working normally.' };
+});
 
 // Poll only while the Server tab is open and the local server is installed.
 watch(
