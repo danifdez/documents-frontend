@@ -2,6 +2,7 @@
     <div>
         <Toolbar :editor="null" :resourceId="resourceId" :hasWorkspace="hasWorkspace" @add-mark="handleAddMark"
             @remove-mark="handleRemoveMark" @add-comment="handleAddComment"
+            @add-reading-point="handleAddReadingPoint" @add-section-point="handleAddSectionPoint"
             @send-selection-to-workspace="onToolbarSendSelection" @send-selection-to-doc="onToolbarSendToDoc"
             @summarize-selection="onToolbarSummarizeSelection" />
         <div class="relative">
@@ -14,6 +15,8 @@
         </div>
         <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
             @save="saveComment" @cancel="cancelComment" />
+        <ReadingPointsLayer v-if="resourceId && resourceId !== 'new'" ref="readingPointsLayerRef"
+            :controller="readingPointsController" :target="extractedContent" />
         <div v-if="showContextMenu"
             :style="{ position: 'fixed', left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px', zIndex: 10000 }"
             class="bg-surface-elevated border-border border rounded shadow-lg">
@@ -46,6 +49,8 @@ import { useCommentCreate } from '../../services/comments/useCommentCreate';
 import { useCommentList } from '../../services/comments/useCommentList';
 import { useProjectStore } from '../../store/projectStore';
 import CommentModal from '../comments/CommentModal.vue';
+import ReadingPointsLayer from '../readingPoints/ReadingPointsLayer.vue';
+import { useReadingPointsController } from '../readingPoints/useReadingPointsController';
 import apiClient from '../../services/api';
 import type { ResourceContentMode } from '../../types/ResourceDisplayMode';
 
@@ -92,9 +97,33 @@ const props = defineProps({
         type: String as PropType<ResourceContentMode>,
         default: 'extracted',
     },
+    readingPointsController: {
+        type: Object,
+        default: null,
+    },
 });
 
 const emit = defineEmits(['content-updated', 'highlight-comment', 'send-selection-to-workspace', 'send-selection-to-doc', 'summarize-selection']);
+
+const readingPointsLayerRef = ref<any>(null);
+const readingPointsController = (props as any).readingPointsController
+    ?? useReadingPointsController(() => props.resourceId || '', 'resource');
+
+const handleAddReadingPoint = (coords?: { x: number; y: number }) =>
+    readingPointsLayerRef.value?.saveReadingAt(coords?.x ?? -1, coords?.y ?? -1);
+const handleAddSectionPoint = (coords?: { x: number; y: number }) =>
+    readingPointsLayerRef.value?.saveSectionAt(coords?.x ?? -1, coords?.y ?? -1);
+const onReadingPointKeydown = (event: KeyboardEvent) => {
+    if (!(event.ctrlKey || event.metaKey) || !event.shiftKey) return;
+    const key = event.key.toLowerCase();
+    if (key === 'm') {
+        event.preventDefault();
+        handleAddReadingPoint();
+    } else if (key === 'k') {
+        event.preventDefault();
+        handleAddSectionPoint();
+    }
+};
 
 const onToolbarSendSelection = (text: string) => {
     // Forward the event up to parent components (Resource.vue)
@@ -631,6 +660,7 @@ onMounted(() => {
         extractedContent.value.addEventListener('contextmenu', handleImageContextMenu);
     }
     document.addEventListener('click', handleClickOutside);
+    window.addEventListener('keydown', onReadingPointKeydown);
     setTimeout(() => buildToc(), 150);
 });
 
@@ -896,6 +926,7 @@ onBeforeUnmount(() => {
         extractedContent.value.removeEventListener('contextmenu', handleImageContextMenu);
     }
     document.removeEventListener('click', handleClickOutside);
+    window.removeEventListener('keydown', onReadingPointKeydown);
 });
 defineExpose({
     search,
@@ -908,6 +939,9 @@ defineExpose({
     clearEntityHighlights,
     highlightComment,
     removeCommentMark,
+    openReadingPoint(point: any) {
+        readingPointsLayerRef.value?.openPoint(point);
+    },
 });
 </script>
 

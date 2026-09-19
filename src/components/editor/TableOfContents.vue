@@ -2,7 +2,7 @@
     <div class="toc-sidebar flex flex-col h-full bg-surface-elevated rounded-2xl border border-border">
         <div class="flex items-center justify-between px-4 py-3 border-b border-border-light flex-shrink-0">
             <h3 class="text-sm font-semibold text-text-primary">Table of Contents</h3>
-            <button @click="extractHeadings" title="Refresh"
+            <button @click="refresh" title="Refresh"
                 class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
@@ -12,18 +12,31 @@
             </button>
         </div>
         <div class="flex-1 overflow-y-auto py-2">
-            <div v-if="headings.length === 0" class="text-text-muted text-sm px-4 py-6 text-center">
+            <div v-if="entries.length === 0" class="text-text-muted text-sm px-4 py-6 text-center">
                 No headings found
             </div>
             <nav v-else>
                 <ul>
-                    <li v-for="(heading, index) in headings" :key="index">
-                        <button @click="scrollToHeading(heading)" :class="[
-                            'w-full text-left py-1.5 pr-3 transition-colors hover:bg-surface-hover cursor-pointer',
-                            `toc-level-${heading.level}`
-                        ]" :style="{ paddingLeft: `${(heading.level - 1) * 12 + 16}px` }"
-                            :title="heading.text">
-                            <span class="block whitespace-normal break-words text-sm">{{ heading.text }}</span>
+                    <li v-for="entry in entries" :key="entry.key">
+                        <template v-if="entry.kind === 'heading'">
+                            <button @click="scrollToHeading(entry.heading!)" :class="[
+                                'w-full text-left py-1.5 pr-3 transition-colors hover:bg-surface-hover cursor-pointer',
+                                `toc-level-${entry.level}`
+                            ]" :style="{ paddingLeft: `${(entry.level - 1) * 12 + 16}px` }"
+                                :title="entry.label">
+                                <span class="block whitespace-normal break-words text-sm">{{ entry.label }}</span>
+                            </button>
+                        </template>
+                        <button v-else @click="goToPoint(entry.point!)"
+                            class="w-full text-left py-1.5 pr-3 transition-colors hover:bg-surface-hover cursor-pointer"
+                            :class="entry.kind === 'reading' ? 'toc-point-reading' : 'toc-point-section'"
+                            :style="{ paddingLeft: pointIndent(entry) }" :title="entry.label">
+                            <span class="flex items-center gap-1.5 min-w-0">
+                                <span class="toc-point-dot"
+                                    :class="entry.kind === 'reading' ? 'toc-point-dot-reading' : 'toc-point-dot-section'"></span>
+                                <span class="truncate text-sm">{{ entry.label }}</span>
+                                <span v-if="entry.point && entry.point.kind === 'reading'" class="toc-point-tag">progreso</span>
+                            </span>
                         </button>
                     </li>
                 </ul>
@@ -33,8 +46,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount } from 'vue';
-import Button from '../ui/Button.vue';
+import { onBeforeUnmount, ref, watch, computed } from 'vue';
+import { useReadingPointsController } from '../readingPoints/useReadingPointsController';
+import { useTocWithReadingPoints, type TocEntry, type TocHeadingLike } from '../readingPoints/useTocWithReadingPoints';
+import { scrollToPoint } from '../readingPoints/useReadingPointAnchors';
 
 interface Heading {
     id: string;
@@ -45,14 +60,27 @@ interface Heading {
 
 const props = defineProps<{
     editor: any;
+    controller?: ReturnType<typeof useReadingPointsController> | null;
+    target?: HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
     scrollTo: [position: number];
 }>();
 
-const headings = ref<Heading[]>([]);
+const headings = ref<TocHeadingLike[]>([]);
 const activeHeadingId = ref<string>('');
+
+const localController = useReadingPointsController(() => '', 'doc');
+const readingController = computed(() => props.controller ?? localController);
+const enabled = computed(() => Boolean(props.controller));
+const { entries } = useTocWithReadingPoints(headings, readingController.value, enabled);
+
+// Un marca de lectura va a nivel 0; el punto de libro se sangra un paso.
+const pointIndent = (entry: TocEntry): string => {
+    const base = entry.kind === 'reading' ? 0 : 12;
+    return `${base + 16}px`;
+};
 
 // Cleanup function for editor event listeners
 let editorUpdateCleanup: (() => void) | null = null;
@@ -129,7 +157,9 @@ const extractHeadings = () => {
     }
 
     headings.value = newHeadings;
-}; const generateHeadingId = (text: string): string => {
+};
+
+const generateHeadingId = (text: string): string => {
     return text
         .toLowerCase()
         .replace(/[^\w\s-]/g, '')
@@ -138,8 +168,6 @@ const extractHeadings = () => {
 };
 
 const scrollToHeading = (heading: Heading) => {
-    console.log('Scrolling to heading:', heading);
-
     // Set active heading for visual feedback
     activeHeadingId.value = heading.id;
 
@@ -169,8 +197,6 @@ const scrollToHeading = (heading: Heading) => {
                                 top: Math.max(0, targetScroll),
                                 behavior: 'smooth'
                             });
-
-                            console.log('Fallback scroll executed for:', heading.text);
                         }
                         break;
                     }
@@ -180,7 +206,18 @@ const scrollToHeading = (heading: Heading) => {
             }
         }
     }, 300);
-}; const updateActiveHeading = (scrollTop: number) => {
+};
+
+const goToPoint = (point: any) => {
+    if (props.target) scrollToPoint(props.target, point);
+};
+
+const refresh = () => {
+    extractHeadings();
+    readingController.value.load();
+};
+
+const updateActiveHeading = (scrollTop: number) => {
     // This would be called when the user scrolls to update the active heading
     // For now, we'll implement a simple version
     if (headings.value.length > 0) {
@@ -240,7 +277,9 @@ watch(() => props.editor, (newEditor, oldEditor) => {
             newEditor.off('update', updateHandler);
         };
     }
-}, { immediate: true });// Also watch document changes as fallback
+}, { immediate: true });
+
+// Also watch document changes as fallback
 watch(() => props.editor?.state?.doc?.content, () => {
     if (props.editor?.state?.doc) {
         setTimeout(() => {
@@ -248,6 +287,12 @@ watch(() => props.editor?.state?.doc?.content, () => {
         }, 100);
     }
 }, { deep: true });
+
+// El panel puede montarse con los puntos ya cargados por la página; si no,
+// recárgalos al aparecer.
+watch(() => props.controller, (value) => {
+    if (value) value.load();
+}, { immediate: true });
 
 defineExpose({
     extractHeadings,
@@ -302,6 +347,35 @@ onBeforeUnmount(() => {
     font-weight: 400;
     color: var(--color-text-muted);
     font-size: 0.9rem;
+}
+
+.toc-point-reading {
+    color: var(--color-text-primary);
+}
+
+.toc-point-section {
+    color: var(--color-text-secondary);
+}
+
+.toc-point-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+.toc-point-dot-reading {
+    background: #8ab4f8;
+}
+
+.toc-point-dot-section {
+    background: #49be8f;
+}
+
+.toc-point-tag {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--color-text-muted);
 }
 
 .toc-sidebar button:hover {

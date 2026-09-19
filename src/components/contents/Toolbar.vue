@@ -22,6 +22,27 @@
                 <span>Add Comment</span>
                 <span class="ml-auto text-xs text-text-muted">Ctrl+Shift+C</span>
             </button>
+            <button @click="handleContextMenuAction('reading')"
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+                    <path d="M9 8h7" stroke="#8ab4f8" />
+                </svg>
+                <span>Save reading mark here</span>
+                <span class="ml-auto text-xs text-text-muted">Ctrl+Shift+M</span>
+            </button>
+            <button @click="handleContextMenuAction('section')"
+                class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                    <path d="M9 8h6" stroke="#49be8f" />
+                </svg>
+                <span>Save bookmark here</span>
+                <span class="ml-auto text-xs text-text-muted">Ctrl+Shift+K</span>
+            </button>
             <button @click="handleContextMenuAction('send')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -145,7 +166,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment', 'send-selection-to-workspace', 'send-selection-to-doc', 'summarize-selection']);
+const emit = defineEmits(['remove-mark', 'add-mark', 'add-comment', 'add-reading-point', 'add-section-point', 'send-selection-to-workspace', 'send-selection-to-doc', 'summarize-selection']);
 
 const isMarkActive = ref(false);
 const activeMarkType = ref<MarkType | null>(null);
@@ -190,7 +211,7 @@ const handleAddComment = () => {
     emit('add-comment');
 };
 
-const handleContextMenuAction = (action: MarkType | 'comment' | 'send' | 'summarize' | 'send-to-doc' | 'search-kb' | 'search-wiki') => {
+const handleContextMenuAction = (action: MarkType | 'comment' | 'reading' | 'section' | 'send' | 'summarize' | 'send-to-doc' | 'search-kb' | 'search-wiki') => {
     if (action === 'search-kb') {
         searchInKB();
         return;
@@ -206,6 +227,10 @@ const handleContextMenuAction = (action: MarkType | 'comment' | 'send' | 'summar
         handleAddMark(action as MarkType);
     } else if (action === 'comment') {
         handleAddComment();
+    } else if (action === 'reading') {
+        emit('add-reading-point', { ...contextMenuPosition.value });
+    } else if (action === 'section') {
+        emit('add-section-point', { ...contextMenuPosition.value });
     } else if (action === 'send') {
         // get selection and emit to parent
         try {

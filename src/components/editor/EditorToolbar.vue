@@ -336,6 +336,21 @@
           <rect x="6" y="11.5" width="5" height="1.5" rx="0.75" fill="currentColor" />
         </svg>
       </Button>
+      <Button @click="emit('add-reading-point')" title="Save reading mark (Ctrl+Shift+M)" size="small" borderless>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+          <path d="M9 8h7" stroke="#8ab4f8" />
+        </svg>
+      </Button>
+      <Button @click="emit('add-section-point')" title="Save bookmark (Ctrl+Shift+K)" size="small" borderless>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+          <path d="M9 8h6" stroke="#49be8f" />
+        </svg>
+      </Button>
     </template>
 
     <!-- References (document + knowledge) -->
@@ -450,7 +465,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference', 'add-dataset-view', 'add-dataset-chart', 'add-canvas-view', 'add-timeline-view', 'marker-applied', 'convert-table-to-dataset']);
+const emit = defineEmits(['add-comment', 'add-mark', 'remove-mark', 'add-reference', 'add-dataset-view', 'add-dataset-chart', 'add-canvas-view', 'add-timeline-view', 'marker-applied', 'convert-table-to-dataset', 'add-reading-point', 'add-section-point']);
 
 // -- Unified dropdown state --
 const activeDropdown = ref<string | null>(null);

@@ -79,6 +79,7 @@
                         <div class="flex-1 overflow-hidden">
                             <EditorContent ref="editorContentRef" :content="resource.content" :is-saving="isSaving"
                                 :saved-successfully="savedSuccessfully" context="resource"
+                                :reading-points-controller="readingPointsController"
                                 @content-change="handleEditContentChange" />
                         </div>
                     </div>
@@ -178,6 +179,7 @@
                     <div v-if="isEditMode && editType !== 'overview'" class="w-full flex-1 overflow-y-auto">
                         <EditorContent ref="editorContentRef" :content="editContent" :is-saving="false"
                             :saved-successfully="savedSuccessfully" context="resource"
+                            :reading-points-controller="readingPointsController"
                             @content-change="handleEditContentChange" />
                     </div>
                     <div v-else-if="isEditMode && editType === 'overview'"
@@ -295,7 +297,7 @@
                             <div class="flex-1 overflow-y-auto px-5 py-4">
                                 <HtmlContent v-if="displayMode === 'translated'" ref="translatedContent"
                                     :content="resource.translatedContent" :resource-id="String(resource.id)"
-                                    :display-mode="displayMode"
+                                    :display-mode="displayMode" :reading-points-controller="readingPointsController"
                                     @send-selection-to-workspace="handleToolbarSendSelection"
                                     @send-selection-to-doc="handleSendToDoc" />
                                 <ResourceOverview v-else-if="displayMode === 'overview'"
@@ -304,6 +306,7 @@
                                 <HtmlContent v-else-if="resource.id" ref="extractedContent"
                                     :content="resource.content" :resource-id="String(resource.id)"
                                     :display-mode="'extracted'" :has-workspace="!!workspaceDocument"
+                                    :reading-points-controller="readingPointsController"
                                     @send-selection-to-workspace="handleToolbarSendSelection"
                                     @send-selection-to-doc="handleSendToDoc"
                                     @summarize-selection="handleSummarizeSelection" />
@@ -313,12 +316,14 @@
                         <HtmlContent v-else-if="!isImageFile && displayMode === 'extracted' && resource.id"
                             ref="extractedContent" :content="resource.content" :resource-id="String(resource.id)"
                             :display-mode="displayMode" :has-workspace="!!workspaceDocument"
+                            :reading-points-controller="readingPointsController"
                             @send-selection-to-workspace="handleToolbarSendSelection"
                             @send-selection-to-doc="handleSendToDoc"
                             @summarize-selection="handleSummarizeSelection" />
                         <HtmlContent v-else-if="displayMode === 'translated'" ref="translatedContent"
                             :content="resource.translatedContent" :resource-id="String(resource.id)"
-                            :display-mode="displayMode" @send-selection-to-workspace="handleToolbarSendSelection"
+                            :display-mode="displayMode" :reading-points-controller="readingPointsController"
+                            @send-selection-to-workspace="handleToolbarSendSelection"
                             @send-selection-to-doc="handleSendToDoc" />
                         <ResourceOverview v-else-if="displayMode === 'overview'"
                             :summary="resource.summary" :keyPoints="resource.keyPoints"
@@ -414,16 +419,33 @@
                     <CommentSidebar v-else-if="viewSideBar === 'comments'" :resource-id="String(resource.id)"
                         @comment-clicked="findAndHighlightResourceComment"
                         @comment-deleted="removeResourceCommentMark" />
-                    <div v-else-if="viewSideBar === 'index'" class="bg-surface-elevated rounded-2xl border border-border">
-                        <div class="px-4 py-3 border-b border-border-light">
+                    <div v-else-if="viewSideBar === 'index'" class="bg-surface-elevated rounded-2xl border border-border flex flex-col">
+                        <div class="px-4 py-3 border-b border-border-light flex items-center justify-between">
                             <span class="text-sm font-semibold text-text-primary">Table of Contents</span>
+                            <button @click="refreshTocFromChild" title="Refresh"
+                                class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            </button>
                         </div>
-                        <div v-if="!tocItems.length" class="px-4 py-6 text-sm text-text-muted text-center">No headings found.</div>
+                        <div v-if="tocEntries.length === 0" class="px-4 py-6 text-sm text-text-muted text-center">No headings found.</div>
                         <ul v-else class="py-2">
-                            <li v-for="item in tocItems" :key="item.id"
-                                :style="{ paddingLeft: (item.level - 1) * 12 + 16 + 'px' }">
-                                <a href="#" @click.prevent="scrollToHeadingFromSidebar(item.id)"
-                                    class="block py-1 text-sm text-accent hover:text-accent-dark hover:bg-surface-hover rounded transition-colors">{{ item.text }}</a>
+                            <li v-for="entry in tocEntries" :key="entry.key">
+                                <a v-if="entry.kind === 'heading'" href="#"
+                                    @click.prevent="scrollToHeadingFromSidebar(entry.heading!.id)"
+                                    :style="{ paddingLeft: (entry.level - 1) * 12 + 16 + 'px' }"
+                                    class="block py-1 text-sm text-accent hover:text-accent-dark hover:bg-surface-hover rounded transition-colors">{{ entry.label }}</a>
+                                <button v-else type="button" @click="goToReadingPoint(entry.point!)"
+                                    :style="{ paddingLeft: (entry.kind === 'reading' ? 0 : 12) + 16 + 'px' }"
+                                    class="w-full text-left flex items-center gap-1.5 py-1 text-sm hover:bg-surface-hover rounded transition-colors cursor-pointer"
+                                    :class="entry.kind === 'reading' ? 'text-text-primary' : 'text-text-secondary'">
+                                    <span class="w-2 h-2 rounded-full flex-shrink-0"
+                                        :class="entry.kind === 'reading' ? 'bg-[#8ab4f8]' : 'bg-[#49be8f]'"></span>
+                                    <span class="truncate">{{ entry.label }}</span>
+                                </button>
                             </li>
                         </ul>
                     </div>
@@ -513,6 +535,8 @@ import ResourceRelationships from '../components/resources/ResourceRelationships
 import ResourceMediaPreview from '../components/resources/ResourceMediaPreview.vue';
 import ResourceDocumentEditor from '../components/resources/ResourceDocumentEditor.vue';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
+import { useReadingPointsController } from '../components/readingPoints/useReadingPointsController';
+import { useTocWithReadingPoints } from '../components/readingPoints/useTocWithReadingPoints';
 import ChatSidebar from '../components/ui/ChatSidebar.vue';
 import EntitiesList from '../components/entities/EntitiesList.vue';
 import PendingEntitiesValidator from '../components/entities/PendingEntitiesValidator.vue';
@@ -563,6 +587,9 @@ const splitEditor = ref();
 const workspaceEditor = ref();
 const viewSideBar = ref<'properties' | 'comments' | 'index' | 'entities' | 'dates'>('properties');
 const datesView = ref<'list' | 'timeline'>('list');
+
+// Reading points (marcas de lectura y puntos de libro) del recurso.
+const readingPointsController = useReadingPointsController(() => String(resourceId.value || ''), 'resource');
 const { dates: resourceDates, loading: datesLoading, fetchDates: loadResourceDates, removeDate: removeResourceDate } = useResourceDates();
 
 const refreshDates = async () => {
@@ -710,6 +737,23 @@ const {
     refreshToc: refreshTocFromChild,
     scrollToHeading: scrollToHeadingFromSidebar,
 } = useResourceToc(extractedContent);
+
+// El índice del recurso mezcla los encabezados extraídos con las marcas de
+// lectura y puntos de libro, ordenados por su posición en el contenido.
+const { entries: tocEntries } = useTocWithReadingPoints(
+    tocItems,
+    readingPointsController,
+    computed(() => true),
+);
+
+const goToReadingPoint = (point: any) => {
+    if (translatedContent.value && (translatedContent.value as any).openReadingPoint) {
+        (translatedContent.value as any).openReadingPoint(point);
+    }
+    if (extractedContent.value && (extractedContent.value as any).openReadingPoint) {
+        (extractedContent.value as any).openReadingPoint(point);
+    }
+};
 
 
 const { isPdfFile, isHtmlFile, isImageFile, isVideoFile, isAudioFile } = useResourceIcon(computed(() => resource.value.mimeType));
@@ -899,6 +943,7 @@ watch(resourceId, () => {
     loadResourceDetails();
     // Reload workspace document for the new resource
     loadWorkspaceDocument();
+    readingPointsController.load();
 });
 
 // Watch for content becoming available and switch from raw to extracted view

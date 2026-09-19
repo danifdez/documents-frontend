@@ -91,7 +91,8 @@
           <EditorContent ref="editorContentRef" :content="docData?.content" :isSaving="isSaving"
             :savedSuccessfully="savedSuccessfully" :show-toc="showToc" @content-change="handleEditorContentChange"
             @toggle-comments="toggleComments" @highlight-comment="highlightComment"
-            @comment-created="refreshCommentSidebar" />
+            @comment-created="refreshCommentSidebar"
+            :reading-points-controller="readingPointsController" />
         </div>
 
         <!-- Split View: Dropped Document -->
@@ -175,7 +176,7 @@
               :doc-id="String(route.params.id)" @comment-clicked="findAndHighlightCommentMark"
               @comment-deleted="removeCommentMark" @comment-added="loadCommentCount" />
             <TableOfContents v-else-if="viewSideBar === 'toc'" ref="tocRef" :editor="editorContentRef?.editor"
-              @scroll-to="scrollToPosition" />
+              :controller="readingPointsController" :target="editorScrollTarget" @scroll-to="scrollToPosition" />
             <SemanticSearchPanel v-else-if="viewSideBar === 'search'"
               :project-id="projectStore.currentProject?.id"
               @insert-link="insertSearchResultLink" />
@@ -217,6 +218,7 @@ import EditorContent from '../components/editor/EditorContent.vue';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import { useProjectStore } from '../store/projectStore';
 import CommentSidebar from '../components/comments/CommentSidebar.vue';
+import { useReadingPointsController } from '../components/readingPoints/useReadingPointsController';
 import TableOfContents from '../components/editor/TableOfContents.vue';
 import Button from '../components/ui/Button.vue';
 import ButtonGroup from '../components/ui/ButtonGroup.vue';
@@ -247,6 +249,10 @@ const tocRef = ref(null);
 const showRemoveDocModal = ref(false);
 const isLoadingDocument = ref(false);
 const showSidebar = ref(!isNewDocument.value);
+
+// Reading points (marcas de lectura y puntos de libro)
+const readingPointsController = useReadingPointsController(() => String(route.params.id || ''), 'doc');
+const editorScrollTarget = computed(() => editorContentRef.value?.editorScrollRef ?? null);
 
 // Comment count
 const commentCount = ref(0);
@@ -446,6 +452,7 @@ onMounted(loadDocumentData);
 watch(() => route.params.id, (newId, oldId) => {
   if (newId !== oldId && route.path.startsWith('/document/')) {
     loadDocumentData();
+    readingPointsController.load();
   }
 });
 

@@ -163,6 +163,9 @@ export const useOfflineStore = defineStore('offline', () => {
     for (const m of bundle.marks || []) {
       await putOfflineItem(wsId, 'mark', m.id, m, now, type, id);
     }
+    for (const p of bundle.readingPoints || []) {
+      await putOfflineItem(wsId, 'reading-point', p.id, p, now, type, id);
+    }
     for (const n of bundle.notes || []) {
       await putOfflineItem(wsId, 'note', n.id, n, now, type, id);
       offlineItemKeys.value.add(`note:${n.id}`);
@@ -188,6 +191,7 @@ export const useOfflineStore = defineStore('offline', () => {
       threads: (bundle.threads || []).length,
       comments: (bundle.comments || []).length,
       marks: (bundle.marks || []).length,
+      readingPoints: (bundle.readingPoints || []).length,
       notes: (bundle.notes || []).length,
       files: (bundle.files || []).length,
     };
@@ -281,6 +285,7 @@ export const useOfflineStore = defineStore('offline', () => {
           for (const t of changes.threads || []) await putOfflineItem(wsId, 'thread', t.id, t, now);
           for (const c of changes.comments || []) await putOfflineItem(wsId, 'comment', c.id, c, now);
           for (const m of changes.marks || []) await putOfflineItem(wsId, 'mark', m.id, m, now);
+          for (const p of changes.readingPoints || []) await putOfflineItem(wsId, 'reading-point', p.id, p, now);
           for (const n of changes.notes || []) await putOfflineItem(wsId, 'note', n.id, n, now);
         }
       }

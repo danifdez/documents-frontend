@@ -7,6 +7,8 @@
             @add-dataset-chart="showDatasetChartModal = true" @add-canvas-view="showCanvasViewModal = true"
             @add-timeline-view="showTimelineViewModal = true"
             @convert-table-to-dataset="handleConvertTableToDataset"
+            @add-reading-point="handleAddReadingPoint"
+            @add-section-point="handleAddSectionPoint"
             @marker-applied="emit('marker-applied')" />
         <div class="editor-scroll-wrapper">
             <div class="flex-1 p-4 border border-border rounded-lg overflow-auto bg-surface-elevated min-h-[300px] outline-none font-sans leading-relaxed editor-content"
@@ -34,6 +36,8 @@
         </div>
         <CommentModal :is-visible="showCommentModal" :selected-text="selectedCommentText" :is-loading="isCommentLoading"
             @save="saveComment" @cancel="cancelComment" />
+        <ReadingPointsLayer v-if="showReadingPoints" ref="readingPointsLayerRef"
+            :controller="readingPointsController" :target="editorScrollRef" :enabled="showReadingPoints" />
         <InsertReferenceModal
             v-model="showInsertReferenceModal"
             :entries="bibliographyEntries"
@@ -75,6 +79,8 @@ import { MathExtension } from './extensions/MathExtension';
 import { VideoExtension } from './extensions/VideoExtension';
 import EditorToolbar from './EditorToolbar.vue';
 import CommentModal from '../comments/CommentModal.vue';
+import ReadingPointsLayer from '../readingPoints/ReadingPointsLayer.vue';
+import { useReadingPointsController } from '../readingPoints/useReadingPointsController';
 import { useRoute, useRouter } from 'vue-router';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
@@ -128,6 +134,10 @@ const props = defineProps({
         type: String,
         default: 'apa',
     },
+    readingPointsController: {
+        type: Object,
+        default: null,
+    },
 });
 
 const emit = defineEmits([
@@ -160,6 +170,27 @@ const {
     applyMark,
     loadDocumentMarks,
 } = useEditorAnnotations(editor, emit, props);
+const readingPointsLayerRef = ref<any>(null);
+const readingPointsController = (props as any).readingPointsController
+    ?? useReadingPointsController(
+        () => String(route.params.id || ''),
+        props.context === 'resource' ? 'resource' : 'doc',
+    );
+const showReadingPoints = props.context !== 'summary' && props.context !== 'knowledge';
+
+const handleAddReadingPoint = () => readingPointsLayerRef.value?.saveReadingAt(-1, -1);
+const handleAddSectionPoint = () => readingPointsLayerRef.value?.saveSectionAt(-1, -1);
+const onReadingPointKeydown = (event: KeyboardEvent) => {
+    if (!(event.ctrlKey || event.metaKey) || !event.shiftKey) return;
+    const key = event.key.toLowerCase();
+    if (key === 'm') {
+        event.preventDefault();
+        handleAddReadingPoint();
+    } else if (key === 'k') {
+        event.preventDefault();
+        handleAddSectionPoint();
+    }
+};
 const matches = ref([]);
 const showInsertReferenceModal = ref(false);
 const showDatasetViewModal = ref(false);
@@ -467,6 +498,7 @@ const loadAndApplySettings = async () => {
 
 onMounted(async () => {
     isMounted.value = true;
+    window.addEventListener('keydown', onReadingPointKeydown);
 
     editor.value = new Editor({
         extensions: [
@@ -598,6 +630,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
     isMounted.value = false;
+    window.removeEventListener('keydown', onReadingPointKeydown);
     if (editorScrollRef.value) {
         editorScrollRef.value.removeEventListener('scroll', updateMarkerPositions);
     }
@@ -819,6 +852,11 @@ const scrollToPosition = (position: number) => {
     }, 150);
 }; defineExpose({
     editor,
+    editorScrollRef,
+    readingPointsController,
+    openReadingPoint(point: any) {
+        readingPointsLayerRef.value?.openPoint(point);
+    },
     setLink,
     search,
     scrollTo,

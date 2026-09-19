@@ -49,6 +49,8 @@ const listPatterns: Array<{ regex: RegExp; type: string; filterByParent?: { type
   { regex: /^\/comments\/resource\/(\d+)\/?$/, type: 'comment' },
   { regex: /^\/marks\/doc\/(\d+)\/?$/, type: 'mark' },
   { regex: /^\/marks\/resource\/(\d+)\/?$/, type: 'mark' },
+  { regex: /^\/reading-points\/doc\/(\d+)\/?$/, type: 'reading-point' },
+  { regex: /^\/reading-points\/resource\/(\d+)\/?$/, type: 'reading-point' },
   { regex: /^\/notes\/?$/, type: 'note' },
   { regex: /^\/notes\/project\/(\d+)\/?$/, type: 'note' },
   { regex: /^\/canvases\/project\/(\d+)\/?$/, type: '__empty__' },
