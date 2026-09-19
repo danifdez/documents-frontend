@@ -8,6 +8,8 @@
 
             <!-- General Tab -->
             <div v-show="activeTab === 'general'">
+                <!-- Appearance -->
+                <h2 class="text-sm font-semibold text-text-primary mb-4">Appearance</h2>
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
 
                     <!-- Theme -->
@@ -82,10 +84,9 @@
                     </section>
 
                 </div>
-            </div>
 
-            <!-- Application Tab -->
-            <div v-show="activeTab === 'application'">
+                <!-- Application -->
+                <h2 class="text-sm font-semibold text-text-primary mt-8 mb-4">Application</h2>
                 <p class="text-sm text-text-muted mb-4">
                     Control how the app behaves when you close the window, how it starts with your session, and the
                     global shortcut to bring it back from the tray.
@@ -202,7 +203,8 @@
 
                     <!-- Voice preload -->
                     <section v-if="voiceLocalAvailable" class="bg-surface-elevated rounded-2xl border border-border p-5">
-                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice</h2>
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Voice startup
+                        </h2>
                         <label class="flex items-start gap-2 cursor-pointer">
                             <input type="checkbox" v-model="preloadVoiceModel" @change="saveAppSettings"
                                 class="accent-accent mt-1" />
@@ -215,10 +217,9 @@
                     </section>
 
                 </div>
-            </div>
 
-            <!-- Features Tab -->
-            <div v-show="activeTab === 'features'">
+                <!-- Features -->
+                <h2 class="text-sm font-semibold text-text-primary mt-8 mb-4">Features</h2>
                 <p class="text-sm text-text-muted mb-4">Enable or disable application features. Server-disabled
                     features cannot be enabled here.</p>
                 <p v-if="featureStore.standaloneMode" class="text-xs text-text-muted mb-4">Changes restart the local
@@ -635,12 +636,10 @@ const featureStore = useFeatureStore();
 const router = useRouter();
 
 // ── Tabs ──
-type TabId = 'general' | 'application' | 'features' | 'workspaces' | 'server' | 'export';
+type TabId = 'general' | 'workspaces' | 'server' | 'export';
 const activeTab = ref<TabId>('general');
 const tabs: { value: TabId; label: string }[] = [
     { value: 'general', label: 'General' },
-    { value: 'application', label: 'Application' },
-    { value: 'features', label: 'Features' },
     { value: 'workspaces', label: 'Workspaces' },
     { value: 'server', label: 'Server' },
     { value: 'export', label: 'Export' },
