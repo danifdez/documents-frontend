@@ -41,6 +41,7 @@ export function executionProgressLabel(
       step.worker?.kind === "browser" ||
       [
         "browser.read_current_page",
+        "browser.run_task",
         "browser.navigate",
         "browser.go_back",
         "browser.click",
@@ -50,6 +51,11 @@ export function executionProgressLabel(
   );
   if (!browserStep) return "Thinking…";
   if (!browserStep.worker) return "Waiting for IA Browser…";
+  if (browserStep.taskType === "browser.run_task") {
+    return browserStep.stepStatus === "result_received"
+      ? "Receiving the research from IA Browser…"
+      : "IA Browser is working in a separate tab…";
+  }
   if (browserStep.stepStatus === "result_received") {
     return [
       "browser.navigate",

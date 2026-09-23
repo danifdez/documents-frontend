@@ -222,8 +222,8 @@
                 <h2 class="text-sm font-semibold text-text-primary mt-8 mb-4">Features</h2>
                 <p class="text-sm text-text-muted mb-4">Enable or disable application features. Server-disabled
                     features cannot be enabled here.</p>
-                <p v-if="featureStore.standaloneMode" class="text-xs text-text-muted mb-4">Changes restart the local
-                    backend and AI service on this machine so the new capabilities take effect.</p>
+                <p v-if="featureStore.standaloneMode" class="text-xs text-text-muted mb-4">Some changes restart the local
+                    backend and AI service on this machine.</p>
 
                 <div v-if="featuresError"
                     class="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
@@ -235,13 +235,16 @@
                         class="bg-surface-elevated rounded-2xl border border-border p-4 flex items-center justify-between">
                         <div>
                             <span class="text-sm font-medium text-text-primary">{{ flag.label }}</span>
+                            <p v-if="flag.key === 'browser_federation'" class="text-xs text-text-muted mt-0.5">Let the personal assistant use a paired IA Browser in a separate tab.</p>
+                            <p v-if="flag.key === 'browser_federation'" class="text-xs text-text-muted mt-0.5">{{ browserStatusText }}</p>
+                            <p v-if="flag.key === 'browser_federation' && authStore.authRequired && !authStore.isAdmin" class="text-xs text-text-muted mt-0.5">An administrator can change this setting.</p>
                             <p v-if="!flag.backendEnabled" class="text-xs text-text-muted mt-0.5">Disabled by server
                             </p>
                             <p v-else-if="featuresApplyingKey === flag.key" class="text-xs text-text-muted mt-0.5">
                                 Applying…</p>
                         </div>
                         <button v-if="flag.backendEnabled" @click="toggleFeature(flag.key)"
-                            :disabled="featuresApplying"
+                            :disabled="featuresApplying || (flag.key === 'browser_federation' && authStore.authRequired && !authStore.isAdmin)"
                             class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             :class="flag.enabled ? 'bg-accent' : 'bg-border'">
                             <span
@@ -609,7 +612,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import PageHeader from '../components/ui/PageHeader.vue';
 import SegmentedControl from '../components/ui/SegmentedControl.vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
@@ -620,6 +623,7 @@ import { useWorkspaceStore } from '../store/workspaceStore';
 import { useAuthStore } from '../store/authStore';
 import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
+import apiClient from '../services/api';
 import { useRouter } from 'vue-router';
 import WorkspaceModal from '../components/WorkspaceModal.vue';
 import VoiceSettings from '../components/settings/VoiceSettings.vue';
@@ -678,6 +682,33 @@ async function deleteWorkspace(id: string) {
 const featuresApplying = ref(false);
 const featuresApplyingKey = ref<string | null>(null);
 const featuresError = ref('');
+const browserStatus = ref<'ready' | 'update_required' | 'offline' | 'not_paired' | 'unavailable' | null>(null);
+const browserStatusText = computed(() => {
+    if (!featureStore.isEnabled('browser_federation')) return 'Turn this on to allow browser tasks.';
+    if (browserStatus.value === 'ready') return 'IA Browser is connected and ready.';
+    if (browserStatus.value === 'update_required') return 'Update IA Browser to use assistant tasks.';
+    if (browserStatus.value === 'offline') return 'Open the paired IA Browser to use this feature.';
+    if (browserStatus.value === 'not_paired') return 'Pair IA Browser in its Documents settings.';
+    if (browserStatus.value === 'unavailable') return 'Could not check the browser connection.';
+    return 'Checking the browser connection…';
+});
+
+async function loadBrowserStatus() {
+    try {
+        const { data } = await apiClient.get<{ enabled: boolean; browser: typeof browserStatus.value }>(
+            '/features/browser-federation/status',
+        );
+        browserStatus.value = data.browser;
+        featureStore.setBackendFeatures({
+            ...featureStore.backendFeatures,
+            browser_federation: data.enabled,
+        });
+    } catch {
+        browserStatus.value = 'unavailable';
+    }
+}
+
+let browserStatusTimer: ReturnType<typeof setInterval> | null = null;
 
 async function toggleFeature(key: string) {
     if (featuresApplying.value) return;
@@ -689,6 +720,7 @@ async function toggleFeature(key: string) {
         if (result && !result.success) {
             featuresError.value = result.error || 'Could not update the feature. Please try again.';
         }
+        if (key === 'browser_federation' && result?.success) await loadBrowserStatus();
     } catch (e: any) {
         featuresError.value = e?.message || 'Could not update the feature. Please try again.';
     } finally {
@@ -1012,5 +1044,10 @@ onMounted(() => {
     loadHardwareReport();
     loadStandalonePort();
     subscribeDownloadProgress();
+    void loadBrowserStatus();
+    browserStatusTimer = setInterval(() => { void loadBrowserStatus(); }, 10_000);
+});
+onUnmounted(() => {
+    if (browserStatusTimer) clearInterval(browserStatusTimer);
 });
 </script>

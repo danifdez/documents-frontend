@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import apiClient from '../services/api';
 
 export const FEATURE_LABELS: Record<string, string> = {
   canvas: 'Canvas',
@@ -8,6 +9,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   knowledge_base: 'Knowledge Base',
   bibliography: 'Bibliography',
   relationships: 'Relationships',
+  browser_federation: 'Browser tasks',
 };
 
 export interface FeatureToggleResult {
@@ -30,10 +32,13 @@ export const useFeatureStore = defineStore('features', () => {
   async function loadLocalPreferences(isStandalone = false) {
     standaloneMode.value = isStandalone;
     if (isStandalone) {
-      // The local server boots with the persisted selection; it is the single
-      // source of truth for both backend and models feature flags.
+      // Keep the backend's live Browser setting while loading local
+      // features that require a service restart.
       if (window.electronAPI?.standaloneGetFeatures) {
-        setBackendFeatures(await window.electronAPI.standaloneGetFeatures());
+        setBackendFeatures({
+          ...backendFeatures.value,
+          ...await window.electronAPI.standaloneGetFeatures(),
+        });
       }
       return;
     }
@@ -44,6 +49,7 @@ export const useFeatureStore = defineStore('features', () => {
   }
 
   function isEnabled(flag: string): boolean {
+    if (flag === 'browser_federation') return backendFeatures.value[flag] === true;
     if (standaloneMode.value) return backendFeatures.value[flag] !== false;
     if (backendFeatures.value[flag] === false) return false;
     if (disabledFeatures.value.includes(flag)) return false;
@@ -51,11 +57,20 @@ export const useFeatureStore = defineStore('features', () => {
   }
 
   function isBackendEnabled(flag: string): boolean {
+    if (flag === 'browser_federation') return true;
     if (standaloneMode.value) return true;
     return backendFeatures.value[flag] !== false;
   }
 
   async function toggleLocalFeature(flag: string): Promise<FeatureToggleResult> {
+    if (flag === 'browser_federation') {
+      const enabled = !isEnabled(flag);
+      const { data } = await apiClient.patch<{ enabled: boolean }>(
+        '/features/browser-federation', { enabled },
+      );
+      setBackendFeatures({ ...backendFeatures.value, browser_federation: data.enabled });
+      return { success: true };
+    }
     if (standaloneMode.value) {
       if (!window.electronAPI?.standaloneSetFeatures) {
         return { success: false, error: 'Local server controls are unavailable.' };

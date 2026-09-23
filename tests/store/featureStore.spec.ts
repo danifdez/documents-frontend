@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { useFeatureStore } from '@/store/featureStore';
 import { setServerReachable } from '@/services/offline/offlineInterceptor';
 import { reconnectSocket } from '@/services/notifications/notification';
+import apiClient from '@/services/api';
 
 vi.mock('@/services/offline/offlineInterceptor', () => ({
   setServerReachable: vi.fn(),
@@ -12,6 +13,9 @@ vi.mock('@/services/notifications/notification', () => ({
 }));
 vi.mock('@/store/workspaceStore', () => ({
   useWorkspaceStore: () => ({ activeWorkspace: { url: 'http://127.0.0.1:32100' } }),
+}));
+vi.mock('@/services/api', () => ({
+  default: { patch: vi.fn() },
 }));
 
 function setElectronApi(api: Record<string, any>) {
@@ -24,6 +28,7 @@ describe('featureStore', () => {
     (window as any).electronAPI = undefined;
     vi.mocked(setServerReachable).mockClear();
     vi.mocked(reconnectSocket).mockClear();
+    vi.mocked(apiClient.patch).mockReset();
   });
 
   describe('standalone mode', () => {
@@ -76,6 +81,25 @@ describe('featureStore', () => {
       expect(store.isEnabled('canvas')).toBe(false);
       expect(setServerReachable).not.toHaveBeenCalled();
       expect(reconnectSocket).not.toHaveBeenCalled();
+    });
+
+    it('updates IA Browser tasks through the backend without restarting local services', async () => {
+      const standaloneSetFeatures = vi.fn();
+      setElectronApi({
+        standaloneGetFeatures: vi.fn().mockResolvedValue({ canvas: true }),
+        standaloneSetFeatures,
+      });
+      vi.mocked(apiClient.patch).mockResolvedValue({ data: { enabled: true } });
+      const store = useFeatureStore();
+      store.setBackendFeatures({ browser_federation: false });
+      await store.loadLocalPreferences(true);
+
+      expect(store.isEnabled('browser_federation')).toBe(false);
+      await store.toggleLocalFeature('browser_federation');
+
+      expect(apiClient.patch).toHaveBeenCalledWith('/features/browser-federation', { enabled: true });
+      expect(store.isEnabled('browser_federation')).toBe(true);
+      expect(standaloneSetFeatures).not.toHaveBeenCalled();
     });
 
   });

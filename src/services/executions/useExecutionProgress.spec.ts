@@ -47,6 +47,25 @@ describe("executionProgressLabel", () => {
     );
   });
 
+  it("shows progress for a browser task in its own tab", () => {
+    const worker = {
+      workerId: "browser-1",
+      name: "IA Browser",
+      kind: "browser" as const,
+    };
+    expect(executionProgressLabel(progress(null, "browser.run_task"))).toBe(
+      "Waiting for IA Browser…",
+    );
+    expect(executionProgressLabel(progress(worker, "browser.run_task"))).toBe(
+      "IA Browser is working in a separate tab…",
+    );
+    expect(
+      executionProgressLabel(
+        progress(worker, "browser.run_task", "result_received"),
+      ),
+    ).toBe("Receiving the research from IA Browser…");
+  });
+
   it("distinguishes navigation and its verification phase", () => {
     const worker = {
       workerId: "browser-1",
