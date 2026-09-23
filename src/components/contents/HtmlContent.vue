@@ -53,6 +53,7 @@ import ReadingPointsLayer from '../readingPoints/ReadingPointsLayer.vue';
 import { useReadingPointsController } from '../readingPoints/useReadingPointsController';
 import apiClient from '../../services/api';
 import type { ResourceContentMode } from '../../types/ResourceDisplayMode';
+import { findEvidenceFragments } from '../../utils/evidenceFocus';
 
 const extractedContent = ref<HTMLDivElement | null>(null);
 const matches = ref([]);
@@ -286,6 +287,40 @@ const search = (text: string) => {
 
     return matches.value.length;
 }
+const focusEvidence = (quote: string) => {
+    const root = extractedContent.value;
+    if (!root) return false;
+
+    clearHighlights();
+    const nodes: Text[] = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (node.nodeType === Node.TEXT_NODE) {
+            nodes.push(node as Text);
+        }
+    }
+    const fragments = findEvidenceFragments(
+        nodes.map((node) => ({ target: node, text: node.textContent || '' })),
+        quote,
+    );
+    if (!fragments.length) return false;
+
+    const highlighted: HTMLElement[] = [];
+    for (const fragment of fragments) {
+        const range = document.createRange();
+        range.setStart(fragment.target, fragment.from);
+        range.setEnd(fragment.target, fragment.to);
+        const highlight = document.createElement('mark');
+        highlight.className = 'search-highlight evidence-highlight';
+        range.surroundContents(highlight);
+        highlighted.push(highlight);
+    }
+    matches.value = highlighted;
+    scrollTo(0);
+    return true;
+};
+
 
 const scrollTo = (index: number) => {
     matches.value.forEach((el, idx) =>
@@ -297,6 +332,7 @@ const scrollTo = (index: number) => {
 };
 
 const clearHighlights = () => {
+    matches.value = [];
     const highlights = extractedContent.value.querySelectorAll('mark.search-highlight');
     highlights.forEach(mark => {
         const parent = mark.parentNode;
@@ -934,6 +970,7 @@ defineExpose({
     scrollTo,
     scrollToHeading,
     toc,
+    focusEvidence,
     clearHighlights,
     highlightEntity,
     clearEntityHighlights,

@@ -249,6 +249,18 @@ const tocRef = ref(null);
 const showRemoveDocModal = ref(false);
 const isLoadingDocument = ref(false);
 const showSidebar = ref(!isNewDocument.value);
+const evidenceFromRoute = () => {
+  const evidence = route.query.evidence;
+  return typeof evidence === 'string' ? evidence : '';
+};
+
+const focusEvidenceFromRoute = async () => {
+  const evidence = evidenceFromRoute();
+  if (!evidence) return;
+  await nextTick();
+  (editorContentRef.value as any)?.focusEvidence?.(evidence);
+};
+
 
 // Reading points (marcas de lectura y puntos de libro)
 const readingPointsController = useReadingPointsController(() => String(route.params.id || ''), 'doc');
@@ -445,6 +457,7 @@ const loadDocumentData = async () => {
 
   // Load comment count after document is ready
   loadCommentCount();
+  await focusEvidenceFromRoute();
 };
 
 onMounted(loadDocumentData);
@@ -454,6 +467,9 @@ watch(() => route.params.id, (newId, oldId) => {
     loadDocumentData();
     readingPointsController.load();
   }
+});
+watch(() => route.query.evidence, () => {
+  focusEvidenceFromRoute();
 });
 
 const autoSave = useAutoSave(async () => {

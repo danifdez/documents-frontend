@@ -504,7 +504,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useRouter } from 'vue-router';
 import { useResource } from '../services/resources/useResource';
@@ -877,6 +877,21 @@ watch(displayMode, (newMode: ResourceDisplayMode) => {
     }
 });
 
+const evidenceFromRoute = () => {
+    const evidence = route.query.evidence;
+    return typeof evidence === 'string' ? evidence : '';
+};
+
+const focusEvidenceFromRoute = async () => {
+    const evidence = evidenceFromRoute();
+    if (!evidence) return;
+    if (resource.value.content?.trim().length) {
+        displayMode.value = 'extracted';
+    }
+    await nextTick();
+    (extractedContent.value as any)?.focusEvidence?.(evidence);
+};
+
 const loadResourceDetails = async () => {
     try {
         const data = await loadResource(resourceId.value);
@@ -919,6 +934,7 @@ const loadResourceDetails = async () => {
         if (isPreviewableHtmlFile.value && displayMode.value === 'raw') {
             await loadRawHtmlContent();
         }
+        await focusEvidenceFromRoute();
     } catch (err) {
         console.error('Failed to load resource:', err);
     }
@@ -946,6 +962,9 @@ watch(resourceId, () => {
     readingPointsController.load();
 });
 
+watch(() => route.query.evidence, () => {
+    focusEvidenceFromRoute();
+});
 // Watch for content becoming available and switch from raw to extracted view
 watch(() => resource.value.content, (newContent, oldContent) => {
     // If we're in raw mode because there was no content, and content becomes available

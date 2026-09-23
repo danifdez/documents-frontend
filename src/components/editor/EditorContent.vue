@@ -103,6 +103,7 @@ import { useNotification } from '../../composables/useNotification';
 import { useBibliography } from '../../services/bibliography/useBibliography';
 import type { BibliographyEntry } from '../../types/Bibliography';
 import type { CitationStyle } from '../../services/citations/citationFormatter';
+import { findEvidenceFragments } from '../../utils/evidenceFocus';
 import 'katex/dist/katex.min.css';
 
 const props = defineProps({
@@ -790,7 +791,37 @@ const clearHighlights = () => {
         editor.value.view.dispatch(editor.value.state.tr);
     }
 };
+const focusEvidence = (quote: string) => {
+    if (!editor.value) return false;
 
+    const segments: Array<{ target: number; text: string }> = [];
+    editor.value.state.doc.descendants((node, pos) => {
+        if (node.isText) {
+            segments.push({ target: pos, text: node.text || '' });
+        }
+    });
+    const fragments = findEvidenceFragments(
+        segments,
+        quote,
+    );
+    if (!fragments.length) return false;
+
+    const decorations = fragments.map((fragment) =>
+        Decoration.inline(fragment.target + fragment.from,
+            fragment.target + fragment.to,
+            { class: 'search-highlight evidence-highlight' })
+    );
+    matches.value = fragments.map((fragment) => ({
+        from: fragment.target + fragment.from,
+        to: fragment.target + fragment.to,
+        match: quote,
+    }));
+    currentDecorations = DecorationSet.create(editor.value.state.doc, decorations);
+    editor.value.view.dispatch(editor.value.state.tr);
+    scrollTo(0);
+    return true;
+
+};
 const scrollToPosition = (position: number) => {
     if (!editor.value) return;
 
@@ -862,6 +893,7 @@ const scrollToPosition = (position: number) => {
     scrollTo,
     scrollToPosition,
     clearHighlights,
+    focusEvidence,
     findAndHighlightCommentMark,
     removeCommentMark,
     undo() {
