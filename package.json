@@ -36,7 +36,7 @@
     "@vitest/coverage-v8": "4.1.11",
     "@vue/test-utils": "2.4.11",
     "autoprefixer": "10.5.4",
-    "electron": "43.2.0",
+    "electron": "43.7.5",
     "eslint": "9.39.4",
     "eslint-plugin-import": "2.32.0",
     "happy-dom": "20.11.1",
