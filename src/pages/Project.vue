@@ -316,7 +316,8 @@ const { canvases: projectCanvases, isLoading: isCanvasesLoading, loadCanvasesByP
 const { saveDocument } = useDocument();
 const { saveCanvas } = useCanvas();
 const { loadResourceTypes, getResourceTypeAbbreviation, getResourceTypeName } = useResourceType();
-const { notes: projectNotes, isLoading: isNotesLoading, loadNotesByProject } = useNotes();
+const { notes: projectNotes, notesRevision, isLoading: isNotesLoading, loadNotesByProject } = useNotes();
+watch(notesRevision, () => { loadNotesByProject(route.params.id).catch(() => {}); });
 const { events: projectEvents, isLoading: isEventsLoading, loadEventsByProject, createEvent } = useCalendarEvents();
 const { timelines: projectTimelines, isLoading: isTimelinesLoading, loadTimelinesByProject } = useTimelines();
 const projectResources = ref([]);

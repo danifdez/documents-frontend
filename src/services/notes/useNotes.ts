@@ -2,6 +2,8 @@ import { ref } from 'vue';
 import apiClient from '../api';
 import type { Note } from '../../types/Note';
 
+const notesRevision = ref(0);
+
 export function useNotes() {
     const notes = ref<Note[]>([]);
     const note = ref<Note | null>(null);
@@ -75,6 +77,7 @@ export function useNotes() {
     const createNote = async (data: Partial<Note>) => {
         try {
             const response = await apiClient.post('/notes', data);
+            notesRevision.value++;
             return response.data;
         } catch (err) {
             error.value = err;
@@ -85,6 +88,7 @@ export function useNotes() {
     const updateNote = async (id: string | number, data: Partial<Note>) => {
         try {
             const response = await apiClient.patch(`/notes/${id}`, data);
+            notesRevision.value++;
             return response.data;
         } catch (err) {
             error.value = err;
@@ -95,6 +99,7 @@ export function useNotes() {
     const deleteNote = async (id: string | number) => {
         try {
             const response = await apiClient.delete(`/notes/${id}`);
+            notesRevision.value++;
             return response.data;
         } catch (err) {
             error.value = err;
@@ -104,6 +109,7 @@ export function useNotes() {
 
     return {
         notes,
+        notesRevision,
         note,
         error,
         isLoading,

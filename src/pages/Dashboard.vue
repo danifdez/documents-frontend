@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import ProjectList from '../components/projects/ProjectList.vue';
 import RecentNotesPanel from '../components/notes/RecentNotesPanel.vue';
 import UpcomingEventsPanel from '../components/calendar/UpcomingEventsPanel.vue';
@@ -144,7 +144,8 @@ const pendingResources = ref([]);
 const showDeleteResourceDialog = ref(false);
 const resourceToDelete = ref(null);
 
-const { notes: allNotes, isLoading: isNotesLoading, loadNotes } = useNotes();
+const { notes: allNotes, notesRevision, isLoading: isNotesLoading, loadNotes } = useNotes();
+watch(notesRevision, () => { loadNotes().catch(() => {}); });
 const { events: allEvents, isLoading: isEventsLoading, loadEventsByRange, createEvent } = useCalendarEvents();
 const { projects: projectsList, loadProjects: loadProjectsList } = useProjectList();
 
