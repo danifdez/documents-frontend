@@ -1,28 +1,18 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 // NOTE: complements useUsers.ts (pending consolidation).
 
 export const useUserAvatar = () => {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
+    const { isLoading, error, request } = useApiRequest();
 
-    const fetchUserAvatar = async (userId: number | string): Promise<Blob> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
+    const fetchUserAvatar = (userId: number | string): Promise<Blob> =>
+        request('Failed to fetch avatar', async () => {
             const { data } = await apiClient.get(`/users/${userId}/avatar`, {
                 responseType: 'blob',
             });
             return data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch avatar';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
     return {
         isLoading,

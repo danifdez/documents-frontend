@@ -1,5 +1,5 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 export interface EntityTranslation {
     [locale: string]: string;
@@ -49,130 +49,41 @@ export interface EntityDetail extends Entity {
 }
 
 export const useEntities = () => {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
+    const { isLoading, error, request } = useApiRequest();
 
-    const removeEntityFromResource = async (resourceId: string, entityId: number): Promise<void> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
+    const removeEntityFromResource = (resourceId: string, entityId: number): Promise<void> =>
+        request('Failed to remove entity from resource', async () => {
             await apiClient.delete(`/resources/${resourceId}/entities/${entityId}`);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to remove entity from resource';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
-    const mergeEntities = async (sourceEntityId: number, targetEntityId: number): Promise<Entity> => {
-        isLoading.value = true;
-        error.value = null;
+    const mergeEntities = (sourceEntityId: number, targetEntityId: number): Promise<Entity> =>
+        request('Failed to merge entities', async () =>
+            (await apiClient.post(`/entities/${sourceEntityId}/merge/${targetEntityId}`)).data);
 
-        try {
-            const response = await apiClient.post(`/entities/${sourceEntityId}/merge/${targetEntityId}`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to merge entities';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
-
-    const searchEntities = async (searchTerm: string): Promise<Entity[]> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
+    const searchEntities = (searchTerm: string): Promise<Entity[]> =>
+        request('Failed to search entities', async () => {
             if (!searchTerm || searchTerm.trim().length === 0) {
                 return [];
             }
-            const response = await apiClient.get(`/entities/search?q=${encodeURIComponent(searchTerm.trim())}`);
+            return (await apiClient.get(`/entities/search?q=${encodeURIComponent(searchTerm.trim())}`)).data;
+        });
 
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to search entities';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const getAllEntities = (): Promise<Entity[]> =>
+        request('Failed to fetch entities', async () => (await apiClient.get('/entities')).data);
 
-    const getAllEntities = async (): Promise<Entity[]> => {
-        isLoading.value = true;
-        error.value = null;
+    const updateEntity = (entityId: number, data: { name?: string; description?: string; entityTypeId?: number }): Promise<Entity> =>
+        request('Failed to update entity', async () => (await apiClient.patch(`/entities/${entityId}`, data)).data);
 
-        try {
-            const response = await apiClient.get('/entities');
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch entities';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
-
-    const updateEntity = async (entityId: number, data: { name?: string; description?: string; entityTypeId?: number }): Promise<Entity> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
-            const response = await apiClient.patch(`/entities/${entityId}`, data);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to update entity';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
-
-    const deleteEntity = async (entityId: number): Promise<void> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
+    const deleteEntity = (entityId: number): Promise<void> =>
+        request('Failed to delete entity', async () => {
             await apiClient.delete(`/entities/${entityId}`);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to delete entity';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
-    const getEntityById = async (entityId: number): Promise<EntityDetail> => {
-        isLoading.value = true;
-        error.value = null;
+    const getEntityById = (entityId: number): Promise<EntityDetail> =>
+        request('Failed to fetch entity', async () => (await apiClient.get(`/entities/${entityId}/detailed`)).data);
 
-        try {
-            const response = await apiClient.get(`/entities/${entityId}/detailed`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch entity';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
-
-    const createEntity = async (data: { name: string; entityTypeId: number; description?: string }): Promise<Entity> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
-            const response = await apiClient.post('/entities', data);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to create entity';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const createEntity = (data: { name: string; entityTypeId: number; description?: string }): Promise<Entity> =>
+        request('Failed to create entity', async () => (await apiClient.post('/entities', data)).data);
 
     return {
         isLoading,

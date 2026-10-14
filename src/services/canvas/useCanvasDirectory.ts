@@ -1,27 +1,16 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 // NOTE: complements useCanvas.ts / useCanvasList.ts (pending consolidation).
 
 export const useCanvasDirectory = () => {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
+    const { isLoading, error, request } = useApiRequest();
 
-    const fetchCanvases = async (projectId?: number | string): Promise<any[]> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
+    const fetchCanvases = (projectId?: number | string): Promise<any[]> =>
+        request('Failed to fetch canvases', async () => {
             const url = projectId ? `/canvases/project/${projectId}` : '/canvases';
-            const response = await apiClient.get(url);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch canvases';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+            return (await apiClient.get(url)).data;
+        });
 
     return {
         isLoading,

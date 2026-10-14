@@ -1,5 +1,5 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 export type EntityScope = 'document' | 'project' | 'global';
 
@@ -67,84 +67,30 @@ export interface UpdatePendingEntityDto {
 }
 
 export const usePendingEntities = () => {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
+    const { isLoading, error, request } = useApiRequest();
 
-    const fetchPendingEntitiesByResourceId = async (resourceId: string): Promise<PendingEntity[]> => {
-        isLoading.value = true;
-        error.value = null;
+    const fetchPendingEntitiesByResourceId = (resourceId: string): Promise<PendingEntity[]> =>
+        request('Failed to fetch pending entities', async () =>
+            (await apiClient.get<PendingEntity[]>(`/pending-entities/resource/${resourceId}`)).data);
 
-        try {
-            const response = await apiClient.get<PendingEntity[]>(`/pending-entities/resource/${resourceId}`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch pending entities';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const createPendingEntity = (dto: CreatePendingEntityDto): Promise<PendingEntity> =>
+        request('Failed to create pending entity', async () =>
+            (await apiClient.post<PendingEntity>('/pending-entities', dto)).data);
 
-    const createPendingEntity = async (dto: CreatePendingEntityDto): Promise<PendingEntity> => {
-        isLoading.value = true;
-        error.value = null;
+    const updatePendingEntity = (id: number, dto: UpdatePendingEntityDto): Promise<PendingEntity> =>
+        request('Failed to update pending entity', async () =>
+            (await apiClient.put<PendingEntity>(`/pending-entities/${id}`, dto)).data);
 
-        try {
-            const response = await apiClient.post<PendingEntity>('/pending-entities', dto);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to create pending entity';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
-
-    const updatePendingEntity = async (id: number, dto: UpdatePendingEntityDto): Promise<PendingEntity> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
-            const response = await apiClient.put<PendingEntity>(`/pending-entities/${id}`, dto);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to update pending entity';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
-
-    const deletePendingEntity = async (id: number): Promise<void> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
+    const deletePendingEntity = (id: number): Promise<void> =>
+        request('Failed to delete pending entity', async () => {
             await apiClient.delete(`/pending-entities/${id}`);
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to delete pending entity';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
-    const confirmEntities = async (resourceId: string): Promise<{ confirmed: number; errors: string[] }> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
-            const response = await apiClient.post<{ confirmed: number; errors: string[] }>(
+    const confirmEntities = (resourceId: string): Promise<{ confirmed: number; errors: string[] }> =>
+        request('Failed to confirm entities', async () =>
+            (await apiClient.post<{ confirmed: number; errors: string[] }>(
                 `/pending-entities/resource/${resourceId}/confirm`
-            );
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to confirm entities';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+            )).data);
 
     return {
         isLoading,

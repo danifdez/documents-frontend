@@ -1,27 +1,17 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 import type { PermissionGroup } from './usePermissionGroups';
 
 // NOTE: complements usePermissionGroups.ts (pending consolidation).
 
 export const useGroupLookup = () => {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
+    const { isLoading, error, request } = useApiRequest();
 
-    const fetchGroup = async (id: number | string): Promise<PermissionGroup> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
+    const fetchGroup = (id: number | string): Promise<PermissionGroup> =>
+        request('Failed to fetch group', async () => {
             const { data } = await apiClient.get<PermissionGroup>(`/groups/${id}`);
             return data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch group';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+        });
 
     return {
         isLoading,

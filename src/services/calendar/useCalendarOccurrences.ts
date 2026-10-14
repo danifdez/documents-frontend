@@ -1,27 +1,16 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 // NOTE: complements useCalendarEvents.ts (pending consolidation).
 
 export const useCalendarOccurrences = () => {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
+    const { isLoading, error, request } = useApiRequest();
 
-    const unmarkOccurrenceComplete = async (eventId: string | number, occurrenceStart: string): Promise<any> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
+    const unmarkOccurrenceComplete = (eventId: string | number, occurrenceStart: string): Promise<any> =>
+        request('Failed to unmark occurrence', async () => {
             const encoded = encodeURIComponent(occurrenceStart);
-            const response = await apiClient.delete(`/calendar-events/${eventId}/occurrences/${encoded}/complete`);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to unmark occurrence';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+            return (await apiClient.delete(`/calendar-events/${eventId}/occurrences/${encoded}/complete`)).data;
+        });
 
     return {
         isLoading,

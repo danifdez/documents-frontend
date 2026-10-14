@@ -1,5 +1,5 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 export interface DataSourceProvider {
     type: string;
@@ -51,36 +51,26 @@ export interface DataSource {
 }
 
 export function useDataSources() {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
+    const { isLoading, error, request } = useApiRequest();
 
     const getProviders = async (): Promise<DataSourceProvider[]> => {
         const response = await apiClient.get('/data-sources/providers');
         return response.data;
     };
 
-    const getAllDataSources = async (projectId?: number): Promise<DataSource[]> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
+    const getAllDataSources = (projectId?: number): Promise<DataSource[]> =>
+        request('Failed to load data sources', async () => {
             const params: Record<string, any> = {};
             if (projectId) params.projectId = projectId;
-            const response = await apiClient.get('/data-sources', { params });
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to load data sources';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+            return (await apiClient.get('/data-sources', { params })).data;
+        });
 
     const getDataSource = async (id: number): Promise<DataSource> => {
         const response = await apiClient.get(`/data-sources/${id}`);
         return response.data;
     };
 
-    const createDataSource = async (data: {
+    const createDataSource = (data: {
         name: string;
         description?: string;
         providerType: string;
@@ -93,19 +83,9 @@ export function useDataSources() {
         projectId?: number;
         enabled?: boolean;
         rateLimitRpm?: number;
-    }): Promise<DataSource> => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post('/data-sources', data);
-            return response.data;
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to create data source';
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    }): Promise<DataSource> =>
+        request('Failed to create data source', async () =>
+            (await apiClient.post('/data-sources', data)).data);
 
     const updateDataSource = async (id: number, data: Record<string, any>): Promise<DataSource> => {
         const response = await apiClient.patch(`/data-sources/${id}`, data);
