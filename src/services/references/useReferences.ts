@@ -1,5 +1,5 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 const detailEndpoints: Record<string, (refId: string | number) => string> = {
     resource: (refId) => `/resources/${refId}`,
@@ -9,22 +9,7 @@ const detailEndpoints: Record<string, (refId: string | number) => string> = {
 };
 
 export const useReferences = () => {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
-
-    const request = async <R>(failureMessage: string, run: () => Promise<R>): Promise<R> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
-            return await run();
-        } catch (err: any) {
-            error.value = err.response?.data?.message || failureMessage;
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const { isLoading, error, request } = useApiRequest();
 
     const searchReferences = (query: string, type?: string): Promise<any[]> =>
         request('Failed to search references', async () =>

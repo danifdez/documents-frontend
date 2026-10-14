@@ -1,25 +1,10 @@
-import { ref } from 'vue';
 import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 // NOTE: complements useBibliography.ts (pending consolidation).
 
 export const useBibliographyAssignment = () => {
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
-
-    const request = async <R>(failureMessage: string, run: () => Promise<R>): Promise<R> => {
-        isLoading.value = true;
-        error.value = null;
-
-        try {
-            return await run();
-        } catch (err: any) {
-            error.value = err.response?.data?.message || failureMessage;
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const { isLoading, error, request } = useApiRequest();
 
     const makeEntryGlobal = (id: number): Promise<any> =>
         request('Failed to make entry global', async () =>
