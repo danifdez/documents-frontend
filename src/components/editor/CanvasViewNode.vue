@@ -79,7 +79,7 @@
 
         <!-- Canvas preview with pan/zoom -->
         <div v-else ref="viewportRef" class="canvas-viewport relative overflow-hidden cursor-grab active:cursor-grabbing"
-            style="height: 280px;" @wheel.prevent="onWheel" @mousedown.stop="onMouseDown"
+            style="height: 280px;" @wheel.prevent="onWheel" @mousedown.stop="startPan($event, handleDrag)"
             @dragstart.prevent.stop>
             <svg :viewBox="currentViewBox" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
                 <!-- Edges -->
@@ -202,9 +202,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useCanvas } from '../../services/canvas/useCanvas';
 import type { CanvasData, CanvasNode, CanvasEdge } from '../../types/canvas';
+import { usePanZoom, type PanDrag } from '../../composables/usePanZoom';
 
 const { loadCanvas: fetchCanvas } = useCanvas();
 
@@ -223,31 +224,13 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const viewportRef = ref<HTMLElement | null>(null);
 
-// Pan & zoom state — initialize from persisted attrs
-const zoom = ref(props.initialZoom || 1);
-const panX = ref(props.initialPanX || 0);
-const panY = ref(props.initialPanY || 0);
-
-// Debounced persist
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
-const persistView = () => {
-    if (!props.onViewChange) return;
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-        props.onViewChange!({
-            zoom: Math.round(zoom.value * 1000) / 1000,
-            panX: Math.round(panX.value * 100) / 100,
-            panY: Math.round(panY.value * 100) / 100,
-        });
-    }, 400);
-};
-const isPanning = ref(false);
-let panStartX = 0;
-let panStartY = 0;
-let panStartPanX = 0;
-let panStartPanY = 0;
-
-const zoomLabel = computed(() => `${Math.round(zoom.value * 100)}%`);
+const { zoom, panX, panY, zoomLabel, zoomIn, zoomOut, resetView, onWheel, startPan } = usePanZoom({
+    initialZoom: props.initialZoom,
+    initialPanX: props.initialPanX,
+    initialPanY: props.initialPanY,
+    minZoom: 0.2,
+    onViewChange: (state) => props.onViewChange?.(state),
+});
 
 const getNodeWidth = (node: CanvasNode) => node.style?.width || 150;
 const getNodeHeight = (node: CanvasNode) => node.style?.height || 60;
@@ -294,29 +277,7 @@ const currentViewBox = computed(() => {
     return `${cx - vw / 2} ${cy - vh / 2} ${vw} ${vh}`;
 });
 
-const zoomIn = () => { zoom.value = Math.min(zoom.value * 1.3, 5); persistView(); };
-const zoomOut = () => { zoom.value = Math.max(zoom.value / 1.3, 0.2); persistView(); };
-const resetView = () => { zoom.value = 1; panX.value = 0; panY.value = 0; persistView(); };
-
-const onWheel = (e: WheelEvent) => {
-    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-    zoom.value = Math.min(Math.max(zoom.value * factor, 0.2), 5);
-    persistView();
-};
-
-const onMouseDown = (e: MouseEvent) => {
-    if (e.button !== 0) return;
-    isPanning.value = true;
-    panStartX = e.clientX;
-    panStartY = e.clientY;
-    panStartPanX = panX.value;
-    panStartPanY = panY.value;
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-};
-
-const onMouseMove = (e: MouseEvent) => {
-    if (!isPanning.value) return;
+const handleDrag = ({ dx, dy, startPanX, startPanY }: PanDrag) => {
     const b = baseBounds.value;
     // Convert pixel delta to SVG coordinate delta
     const el = viewportRef.value;
@@ -324,21 +285,9 @@ const onMouseMove = (e: MouseEvent) => {
     const rect = el.getBoundingClientRect();
     const scaleX = (b.w / zoom.value) / rect.width;
     const scaleY = (b.h / zoom.value) / rect.height;
-    panX.value = panStartPanX - (e.clientX - panStartX) * scaleX;
-    panY.value = panStartPanY - (e.clientY - panStartY) * scaleY;
+    panX.value = startPanX - dx * scaleX;
+    panY.value = startPanY - dy * scaleY;
 };
-
-const onMouseUp = () => {
-    isPanning.value = false;
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-    persistView();
-};
-
-onUnmounted(() => {
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-});
 
 const getDiamondPoints = (node: CanvasNode) => {
     const x = node.position.x;

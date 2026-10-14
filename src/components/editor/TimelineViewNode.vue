@@ -81,7 +81,7 @@
 
         <!-- Timeline image with pan/zoom -->
         <div v-else ref="viewportRef" class="timeline-viewport overflow-hidden cursor-grab active:cursor-grabbing"
-            style="height: 300px;" @wheel.prevent="onWheel" @mousedown.stop="onMouseDown"
+            style="height: 300px;" @wheel.prevent="onWheel" @mousedown.stop="startPan($event, handleDrag)"
             @dragstart.prevent.stop>
             <img v-if="timelineImage" :src="timelineImage" draggable="false"
                 :style="imageTransformStyle"
@@ -101,8 +101,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useTimelines } from '../../services/timelines/useTimelines';
+import { usePanZoom, type PanDrag } from '../../composables/usePanZoom';
 
 const { loadTimeline: fetchTimeline } = useTimelines();
 
@@ -127,76 +128,25 @@ const epochs = ref<any[]>([]);
 const timelineImage = ref<string | null>(null);
 const viewportRef = ref<HTMLElement | null>(null);
 
-// Pan & zoom state — initialize from persisted attrs
-const zoom = ref(props.initialZoom || 1);
-const panX = ref(props.initialPanX || 0);
-const panY = ref(props.initialPanY || 0);
+const { zoom, panX, panY, isPanning, zoomLabel, zoomIn, zoomOut, resetView, onWheel, startPan } =
+    usePanZoom({
+        initialZoom: props.initialZoom,
+        initialPanX: props.initialPanX,
+        initialPanY: props.initialPanY,
+        minZoom: 0.25,
+        onViewChange: (state) => props.onViewChange?.(state),
+    });
 
-// Debounced persist
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
-const persistView = () => {
-    if (!props.onViewChange) return;
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-        props.onViewChange!({
-            zoom: Math.round(zoom.value * 1000) / 1000,
-            panX: Math.round(panX.value * 100) / 100,
-            panY: Math.round(panY.value * 100) / 100,
-        });
-    }, 400);
+const handleDrag = ({ dx, dy, startPanX, startPanY }: PanDrag) => {
+    panX.value = startPanX + dx / zoom.value;
+    panY.value = startPanY + dy / zoom.value;
 };
-const isPanning = ref(false);
-let panStartX = 0;
-let panStartY = 0;
-let panStartPanX = 0;
-let panStartPanY = 0;
-
-const zoomLabel = computed(() => `${Math.round(zoom.value * 100)}%`);
 
 const imageTransformStyle = computed(() => ({
     transform: `scale(${zoom.value}) translate(${panX.value}px, ${panY.value}px)`,
     transformOrigin: 'center center',
     transition: isPanning.value ? 'none' : 'transform 0.1s ease',
 }));
-
-const zoomIn = () => { zoom.value = Math.min(zoom.value * 1.3, 5); persistView(); };
-const zoomOut = () => { zoom.value = Math.max(zoom.value / 1.3, 0.25); persistView(); };
-const resetView = () => { zoom.value = 1; panX.value = 0; panY.value = 0; persistView(); };
-
-const onWheel = (e: WheelEvent) => {
-    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-    zoom.value = Math.min(Math.max(zoom.value * factor, 0.25), 5);
-    persistView();
-};
-
-const onMouseDown = (e: MouseEvent) => {
-    if (e.button !== 0) return;
-    isPanning.value = true;
-    panStartX = e.clientX;
-    panStartY = e.clientY;
-    panStartPanX = panX.value;
-    panStartPanY = panY.value;
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-};
-
-const onMouseMove = (e: MouseEvent) => {
-    if (!isPanning.value) return;
-    panX.value = panStartPanX + (e.clientX - panStartX) / zoom.value;
-    panY.value = panStartPanY + (e.clientY - panStartY) / zoom.value;
-};
-
-const onMouseUp = () => {
-    isPanning.value = false;
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-    persistView();
-};
-
-onUnmounted(() => {
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-});
 
 const filterLabel = computed(() => {
     if (props.filterMode === 'epoch' && props.epochId) {
