@@ -241,7 +241,6 @@
 <script setup>
 import { onMounted, ref, computed, watch } from 'vue';
 import { useDocumentList } from '../services/documents/useDocumentList';
-import { useCanvasList } from '../services/canvas/useCanvasList';
 import { useResourceList } from '../services/resources/useResourceList';
 import { useThreadList } from '../services/threads/useThreadList';
 import { useNotes } from '../services/notes/useNotes';
@@ -274,14 +273,13 @@ import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 const route = useRoute();
 const router = useRouter();
 const { documents, loadDocuments } = useDocumentList();
-const { canvases, loadCanvasesByThread } = useCanvasList();
+const { canvases, loadCanvasesByThread, saveCanvas } = useCanvas();
 const { loadResourcesByThread, assignResourceToThread } = useResourceList();
 const { threads: projectThreads, loadThreads: loadProjectThreads } = useThreadList();
 const { notes: threadNotes, notesRevision, isLoading: isNotesLoading, loadNotesByThread } = useNotes();
 const { loadThread, loadChildThreads, updateThread, deleteThread, archiveThread, unarchiveThread } = useThread();
 const { updateResource } = useResource();
 const { saveDocument } = useDocument();
-const { saveCanvas } = useCanvas();
 const { showSearch, showNotesPanel } = useGlobalKeyboard();
 
 const openNotesPanel = () => {

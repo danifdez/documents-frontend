@@ -64,7 +64,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { useCanvasDirectory } from '../../services/canvas/useCanvasDirectory';
+import { useCanvas } from '../../services/canvas/useCanvas';
 import Button from '../ui/Button.vue';
 import { useProjectStore } from '../../store/projectStore';
 
@@ -88,7 +88,7 @@ const canvases = ref<CanvasInfo[]>([]);
 const selectedCanvasId = ref<number | null>(null);
 const loadingCanvases = ref(false);
 const projectStore = useProjectStore();
-const { fetchCanvases } = useCanvasDirectory();
+const { fetchCanvases } = useCanvas();
 
 watch(modelValue, async (open) => {
     if (open) {

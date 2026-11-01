@@ -247,7 +247,6 @@
 <script setup>
 import { useThreadList } from '../services/threads/useThreadList';
 import { useDocumentProjectList } from '../services/documents/useDocumentProjectList';
-import { useCanvasList } from '../services/canvas/useCanvasList';
 import { useResourceList } from '../services/resources/useResourceList';
 import { useResourceType } from '../services/resources/useResourceType';
 import { useProject } from '../services/projects/useProject';
@@ -312,9 +311,9 @@ const { deleteProject, archiveProject, unarchiveProject } = useProject();
 const { isLoading, threads, loadThreads } = useThreadList();
 const { isLoading: isDocsLoading, documents: projectDocuments, loadDocumentsByProject } = useDocumentProjectList();
 const { isLoading: isResourcesLoading, loadResourcesByProject } = useResourceList();
-const { canvases: projectCanvases, isLoading: isCanvasesLoading, loadCanvasesByProject } = useCanvasList();
-const { saveDocument } = useDocument();
+const { canvases: projectCanvases, isLoading: isCanvasesLoading, loadCanvasesByProject } = useCanvas();
 const { saveCanvas } = useCanvas();
+const { saveDocument } = useDocument();
 const { loadResourceTypes, getResourceTypeAbbreviation, getResourceTypeName } = useResourceType();
 const { notes: projectNotes, notesRevision, isLoading: isNotesLoading, loadNotesByProject } = useNotes();
 watch(notesRevision, () => { loadNotesByProject(route.params.id).catch(() => {}); });

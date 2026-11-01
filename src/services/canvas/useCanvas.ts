@@ -1,68 +1,52 @@
-import { ref } from "vue";
-import apiClient from "../api";
+import { ref } from 'vue';
+import apiClient from '../api';
+import { useApiRequest } from '../../composables/useApiRequest';
 
 export function useCanvas() {
-    const error = ref(null);
-    const isLoading = ref(false);
+    const { isLoading, error, request } = useApiRequest();
+    const canvases = ref<any[]>([]);
 
-    const loadCanvas = async (id: string): Promise<object> => {
-        isLoading.value = true;
-        const response = await apiClient.get(`/canvases/${id}`);
-        isLoading.value = false;
-        return response.data;
-    };
+    const loadCanvas = (id: string): Promise<object> =>
+        request('Failed to load canvas', async () => (await apiClient.get(`/canvases/${id}`)).data);
 
-    const saveCanvas = async (id: string, canvasData: object) => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.patch(`/canvases/${id}`, canvasData);
-            return response.data;
-        } catch (err) {
-            error.value = err.message || 'Failed to save canvas';
-            console.error(error.value);
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const saveCanvas = (id: string, canvasData: object): Promise<object> =>
+        request('Failed to save canvas', async () => (await apiClient.patch(`/canvases/${id}`, canvasData)).data);
 
-    const createCanvas = async (canvasData: object) => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.post(`/canvases`, canvasData);
-            return response.data;
-        } catch (err) {
-            error.value = err.message || 'Failed to create canvas';
-            console.error(error.value);
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const createCanvas = (canvasData: object): Promise<object> =>
+        request('Failed to create canvas', async () => (await apiClient.post('/canvases', canvasData)).data);
 
-    const removeCanvas = async (id: string) => {
-        isLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiClient.delete(`/canvases/${id}`);
-            return response.data;
-        } catch (err) {
-            error.value = err.message || 'Failed to remove canvas';
-            console.error(error.value);
-            throw err;
-        } finally {
-            isLoading.value = false;
-        }
-    };
+    const removeCanvas = (id: string): Promise<object> =>
+        request('Failed to remove canvas', async () => (await apiClient.delete(`/canvases/${id}`)).data);
+
+    const loadCanvasesByThread = (threadId: string | number): Promise<any[]> =>
+        request('Failed to load canvases', async () => {
+            canvases.value = (await apiClient.get(`/canvases/thread/${threadId}`)).data;
+            return canvases.value;
+        });
+
+    const loadCanvasesByProject = (projectId: string | number): Promise<any[]> =>
+        request('Failed to load canvases', async () => {
+            canvases.value = (await apiClient.get(`/canvases/project/${projectId}`)).data;
+            return canvases.value;
+        });
+
+    const fetchCanvases = (projectId?: number | string): Promise<any[]> =>
+        request('Failed to fetch canvases', async () => {
+            const url = projectId ? `/canvases/project/${projectId}` : '/canvases';
+            canvases.value = (await apiClient.get(url)).data;
+            return canvases.value;
+        });
 
     return {
+        canvases,
         error,
         isLoading,
         loadCanvas,
         saveCanvas,
         createCanvas,
         removeCanvas,
+        loadCanvasesByThread,
+        loadCanvasesByProject,
+        fetchCanvases,
     };
 }
