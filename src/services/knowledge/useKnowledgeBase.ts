@@ -80,9 +80,9 @@ export function useKnowledgeBase() {
     const loadByEntityId = async (entityId: number) => {
         try {
             const response = await apiClient.get(`/knowledge-entries/by-entity/${entityId}`);
-            return response.data as KnowledgeEntry | null;
+            return response.data as KnowledgeEntry[];
         } catch {
-            return null;
+            return [] as KnowledgeEntry[];
         }
     };
 
