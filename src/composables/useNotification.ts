@@ -1,8 +1,12 @@
-import { useToast, TYPE, POSITION, ToastOptions } from 'vue-toastification';
+import { useToast, TYPE, POSITION } from 'vue-toastification';
 import { h } from 'vue';
 import { isServerReachable } from '../services/offline/offlineInterceptor';
 
-interface NotificationOptions extends ToastOptions {
+// `vue-toastification` does not re-export `ToastOptions` from its entry point,
+// so derive it from the `toast()` signature instead of importing a deep path.
+type ToastOptions = NonNullable<Parameters<ReturnType<typeof useToast>>[1]>;
+
+type NotificationOptions = ToastOptions & {
     title?: string;
     link?: {
         text: string;
@@ -13,7 +17,7 @@ interface NotificationOptions extends ToastOptions {
         text: string;
         onClick: () => void;
     };
-}
+};
 
 export function useNotification() {
     const toast = useToast();

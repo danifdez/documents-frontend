@@ -217,7 +217,7 @@ const refresh = () => {
     readingController.value.load();
 };
 
-const updateActiveHeading = (scrollTop: number) => {
+const updateActiveHeading = (_scrollTop: number) => {
     // This would be called when the user scrolls to update the active heading
     // For now, we'll implement a simple version
     if (headings.value.length > 0) {
@@ -229,7 +229,7 @@ const updateActiveHeading = (scrollTop: number) => {
 };
 
 // Watch for editor changes to update headings
-watch(() => props.editor, (newEditor, oldEditor) => {
+watch(() => props.editor, (newEditor, _oldEditor) => {
     // Cleanup previous editor listeners
     if (editorUpdateCleanup) {
         editorUpdateCleanup();

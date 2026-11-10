@@ -1,4 +1,3 @@
-import axios from 'axios';
 import apiClient from '../api';
 
 export function useResourceDetails() {
@@ -39,10 +38,13 @@ export function useResourceDetails() {
         });
     };
 
-    // Plain axios so the download request stays free of apiClient interceptors
+    // Downloads are text, not binary, so the offline interceptor would happily
+    // cache a whole document in localStorage. Skip the write-through cache while
+    // keeping the auth header and the offline read fallback.
     const fetchRawFileText = async (id: string): Promise<string> => {
-        const response = await axios.get(`${apiClient.defaults.baseURL}/resources/${id}/download`, {
-            responseType: 'text'
+        const response = await apiClient.get(`/resources/${id}/download`, {
+            responseType: 'text',
+            headers: { 'x-offline-skip-cache': '1' },
         });
         return response.data;
     };

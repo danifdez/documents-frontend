@@ -184,9 +184,9 @@ const kbResults = ref<KnowledgeEntry[]>([]);
 const wikiResult = ref<any>(null);
 const wikiError = ref<string | null>(null);
 const contextMenuSelectedText = ref('');
-const { createMark, isLoading: isMarkLoading } = useMarkCreate();
+const { createMark } = useMarkCreate();
 const { deleteMark } = useMarkDelete();
-const { marks, loadMarks } = useMarks();
+const { loadMarks } = useMarks();
 const { updateMark } = useMarkUpdate();
 const markContentMap = ref<Map<string, string>>(new Map());
 
@@ -552,7 +552,7 @@ const checkForMarkChanges = (editor: Record<string, any>) => {
     const doc = editor.state.doc;
     const markChanges = new Map<string, string>();
 
-    const processNode = (node: Record<string, any>, pos: number) => {
+    const processNode = (node: Record<string, any>) => {
         const marks = node.marks.filter((mark: Record<string, any>) => mark.type.name === 'textMark');
 
         if (marks.length > 0) {

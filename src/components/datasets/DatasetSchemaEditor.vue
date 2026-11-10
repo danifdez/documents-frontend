@@ -177,7 +177,6 @@ const suggestColumns = async () => {
         }
         const deadline = Date.now() + 60_000;
         // Poll until completion or timeout
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             await new Promise((r) => setTimeout(r, 2000));
             const { status, result } = await getProposeColumnsResult(executionId);

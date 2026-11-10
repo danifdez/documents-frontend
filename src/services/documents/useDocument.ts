@@ -5,7 +5,7 @@ export function useDocument() {
     const error = ref(null);
     const isLoading = ref(false);
 
-    const loadDocument = async (id: string): Promise<object> => {
+    const loadDocument = async (id: string | number): Promise<object> => {
         isLoading.value = true;
         const response = await apiClient.get(`/docs/${id}`);
 
@@ -13,7 +13,7 @@ export function useDocument() {
         return response.data;
     };
 
-    const saveDocument = async (id: string, docData: object) => {
+    const saveDocument = async (id: string | number, docData: object) => {
         isLoading.value = true;
         error.value = null;
         try {
@@ -43,7 +43,7 @@ export function useDocument() {
         }
     };
 
-    const removeDocument = async (id: string) => {
+    const removeDocument = async (id: string | number) => {
         isLoading.value = true;
         error.value = null;
         try {

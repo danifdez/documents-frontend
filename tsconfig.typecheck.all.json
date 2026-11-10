@@ -1,0 +1,5 @@
+{
+    "extends": "./tsconfig.typecheck.json",
+    "include": ["forge.env.d.ts", "src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"],
+    "exclude": ["node_modules", "dist", "out", ".vite", "coverage", "src/**/*.spec.ts"]
+}

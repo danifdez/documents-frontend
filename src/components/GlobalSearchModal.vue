@@ -50,13 +50,12 @@
                                         <router-link v-for="(result, i) in group.items" :key="`${result.collection}-${result.id}-${i}`"
                                             :to="getResultLink(result)"
                                             class="flex items-start gap-3 px-6 py-3 hover:bg-surface-hover transition-colors group"
-                                            @click.native="close">
+                                            @click="close">
                                             <!-- Icon -->
                                             <div
                                                 class="shrink-0 mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center"
                                                 :class="collectionIconBg(result.collection)">
-                                                <component :is="'span'"
-                                                    class="text-xs" v-html="collectionIcon(result.collection)" />
+                                                <span class="text-xs" v-html="collectionIcon(result.collection)"></span>
                                             </div>
                                             <!-- Content -->
                                             <div class="flex-1 min-w-0">

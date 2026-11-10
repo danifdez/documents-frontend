@@ -680,7 +680,6 @@ const isCancelingNameEdit = ref(false);
 const showChat = ref(false);
 const extractedContent = ref<string | null>(null);
 const translatedContent = ref<string | null>(null);
-const summaryContent = ref<string | null>(null);
 const defaultLanguage = ref<string>('en');
 const isConfirming = ref(false);
 const hasPendingEntities = ref(false);
@@ -696,7 +695,6 @@ const isExtracting = computed(() => {
     if (isVideoFile.value || isAudioFile.value) return false;
     return !resource.value.content || resource.value.content.trim().length === 0;
 });
-const canInteract = computed(() => !isPendingConfirmation.value && !isExtracting.value);
 const shouldShowEntitiesTab = computed(() =>
     featureStore.isEnabled('relationships') && (
         resource.value.status === 'entities' ||
@@ -991,22 +989,6 @@ watch(() => resource.value.status, (newStatus, oldStatus) => {
         viewSideBar.value = 'entities';
     }
 });
-
-const getResourceContentForDocument = (): string => {
-    if (resource.value.content) {
-        return resource.value.content;
-    }
-    if (resource.value.translatedContent) {
-        return resource.value.translatedContent;
-    }
-    return '';
-};
-
-const onDocumentCreated = (document: Record<string, any>) => {
-    notification.success(`Document "${document.name}" created successfully`);
-    splitDocument.value = document;
-    splitViewActive.value = true;
-};
 
 const closeSplitView = () => {
     splitViewActive.value = false;

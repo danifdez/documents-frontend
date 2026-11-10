@@ -133,7 +133,7 @@ export function useRelationships() {
                 };
                 return data.value;
             })
-            .catch((err: unknown) => {
+            .catch((err: unknown): RelationshipData => {
                 error.value = errorMessage(err, 'Failed to query relationships');
                 return { entities: [], relationships: [] };
             })
@@ -142,27 +142,26 @@ export function useRelationships() {
             });
     };
 
-    const _modify = (
+    const _modify = async (
         url: string,
         method: 'post' | 'put' | 'delete',
         payload: object | { data: object },
     ): Promise<void> => {
         isLoading.value = true;
         error.value = null;
-        const request = method === 'delete' && 'data' in payload
-            ? apiClient.delete(url, { data: payload.data })
-            : method === 'post'
-                ? apiClient.post(url, payload)
-                : apiClient.put(url, payload);
-
-        return request
-            .then(() => undefined)
-            .catch((err: unknown) => {
-                error.value = errorMessage(err, 'Failed to modify relationship');
-            })
-            .finally(() => {
-                isLoading.value = false;
-            });
+        try {
+            if (method === 'delete' && 'data' in payload) {
+                await apiClient.delete(url, { data: payload.data });
+            } else if (method === 'post') {
+                await apiClient.post(url, payload);
+            } else {
+                await apiClient.put(url, payload);
+            }
+        } catch (err: unknown) {
+            error.value = errorMessage(err, 'Failed to modify relationship');
+        } finally {
+            isLoading.value = false;
+        }
     };
 
     return {

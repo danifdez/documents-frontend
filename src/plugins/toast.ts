@@ -1,11 +1,11 @@
-import Toast, { PluginOptions } from 'vue-toastification';
+import Toast, { PluginOptions, POSITION } from 'vue-toastification';
 import { App } from 'vue';
 
 const options: PluginOptions = {
     transition: "Vue-Toastification__fade",
     maxToasts: 5,
     newestOnTop: true,
-    position: "bottom-right",
+    position: POSITION.BOTTOM_RIGHT,
     timeout: 5000,
     closeOnClick: true,
     pauseOnFocusLoss: true,

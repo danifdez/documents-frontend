@@ -53,7 +53,7 @@
         <div class="relative" :style="{ width: scaledTimelineWidth + 'px', height: timelineHeight + 'px' }">
 
           <!-- Epoch bands — alternating above and below axis -->
-          <template v-for="(epoch, eIdx) in epochs" :key="'epoch-' + epoch.id">
+          <template v-for="epoch in epochs" :key="'epoch-' + epoch.id">
             <div
               class="absolute rounded cursor-pointer hover:opacity-90 transition-opacity"
               :style="{
@@ -137,7 +137,7 @@
 
           <!-- CARDS MODE (with lane assignment to avoid overlap) -->
           <template v-if="showCards">
-            <template v-for="(el, index) in cardLayout" :key="'card-' + el.event.id">
+            <template v-for="el in cardLayout" :key="'card-' + el.event.id">
               <!-- Connector line -->
               <div
                 class="absolute w-px bg-border z-10"
@@ -160,7 +160,7 @@
 
           <!-- COMPACT LABELS MODE (with lane assignment) -->
           <template v-else>
-            <template v-for="(el, index) in labelLayout" :key="'label-' + el.event.id">
+            <template v-for="el in labelLayout" :key="'label-' + el.event.id">
               <!-- Connector -->
               <div
                 class="absolute z-10"

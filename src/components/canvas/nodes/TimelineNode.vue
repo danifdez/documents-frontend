@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
@@ -146,7 +146,6 @@ const renderImage = () => {
 
   // Detect large gaps between consecutive events
   // A gap is "large" if it's > 3x the median gap
-  const gaps: { after: number; gapMs: number }[] = [];
   const sortedDates = [...dates].sort((a, b) => a - b);
   const allGaps: number[] = [];
   for (let i = 1; i < sortedDates.length; i++) {
@@ -312,7 +311,7 @@ const renderImage = () => {
   const lanesBelow: Lane[] = [];
 
   const assignLane = (x: number, preferAbove: boolean): { above: boolean; row: number } => {
-    const tryAssign = (lanes: Lane[], above: boolean): number | null => {
+    const tryAssign = (lanes: Lane[]): number | null => {
       for (let row = 0; row < 3; row++) {
         const overlapping = lanes.some(l => l.row === row && x < l.right + cardGap && x + cardW > l.x - cardGap);
         if (!overlapping) {
@@ -325,9 +324,9 @@ const renderImage = () => {
 
     const primary = preferAbove ? lanesAbove : lanesBelow;
     const secondary = preferAbove ? lanesBelow : lanesAbove;
-    let row = tryAssign(primary, preferAbove);
+    let row = tryAssign(primary);
     if (row !== null) return { above: preferAbove, row };
-    row = tryAssign(secondary, !preferAbove);
+    row = tryAssign(secondary);
     if (row !== null) return { above: !preferAbove, row };
     // fallback
     const lanes = preferAbove ? lanesAbove : lanesBelow;

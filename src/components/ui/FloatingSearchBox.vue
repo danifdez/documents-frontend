@@ -99,7 +99,7 @@ const closeSearch = () => {
 const performSearch = () => {
     totalResults.value = 0;
     results.value = [];
-    props.activeContents.forEach((content, index) => {
+    props.activeContents.forEach((content) => {
         const numResults = content.content.value.search(searchQuery.value);
         if (numResults > 0) {
             hasResults.value = true;

@@ -669,7 +669,6 @@ const projectResources = ref<Record<string, any>[]>([]);
 const showCards = ref(true);
 const showExportMenu = ref(false);
 const exportDropdownRef = ref<HTMLElement | null>(null);
-const timelineAreaRef = ref<HTMLElement | null>(null);
 
 // Close export dropdown on click outside
 const onClickOutsideExport = (e: MouseEvent) => {

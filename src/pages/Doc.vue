@@ -294,7 +294,6 @@ const closeSplitView = () => {
 const swapSplitDocument = async () => {
   if (!splitDocument.value || isNewDocument.value) return;
 
-  const currentDocId = docData.value.id;
   const currentDocData = { ...docData.value };
   const splitDocId = splitDocument.value.id;
 

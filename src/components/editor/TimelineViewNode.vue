@@ -390,7 +390,7 @@ const renderImage = () => {
     const lanesBelow: Lane[] = [];
 
     const assignLane = (x: number, preferAbove: boolean): { above: boolean; row: number } => {
-        const tryAssign = (lanes: Lane[], above: boolean): number | null => {
+        const tryAssign = (lanes: Lane[]): number | null => {
             for (let row = 0; row < 3; row++) {
                 const overlapping = lanes.some(l => l.row === row && x < l.right + cardGap && x + cardW > l.x - cardGap);
                 if (!overlapping) {
@@ -403,9 +403,9 @@ const renderImage = () => {
 
         const primary = preferAbove ? lanesAbove : lanesBelow;
         const secondary = preferAbove ? lanesBelow : lanesAbove;
-        let row = tryAssign(primary, preferAbove);
+        let row = tryAssign(primary);
         if (row !== null) return { above: preferAbove, row };
-        row = tryAssign(secondary, !preferAbove);
+        row = tryAssign(secondary);
         if (row !== null) return { above: !preferAbove, row };
         const lanes = preferAbove ? lanesAbove : lanesBelow;
         lanes.push({ x: x - cardW / 2, right: x + cardW / 2, row: 0 });

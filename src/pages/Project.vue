@@ -255,7 +255,6 @@ import { useCalendarEvents } from '../services/calendar/useCalendarEvents';
 import { useTimelines } from '../services/timelines/useTimelines';
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import PageHeader from '../components/ui/PageHeader.vue';
 import OfflineToggle from '../components/OfflineToggle.vue';
 import MoveToThreadModal from '../components/ui/MoveToThreadModal.vue';
@@ -271,7 +270,6 @@ import ImportDocumentModal from '../components/documents/ImportDocumentModal.vue
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import SearchInput from '../components/search/SearchInput.vue';
 import FilterBadge from '../components/search/FilterBadge.vue';
-import Card from '../components/ui/Card.vue';
 import IconType from '../components/resources/IconType.vue';
 import RecentNotesPanel from '../components/notes/RecentNotesPanel.vue';
 import UpcomingEventsPanel from '../components/calendar/UpcomingEventsPanel.vue';
@@ -281,13 +279,14 @@ import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useGlobalKeyboard } from '../composables/useGlobalKeyboard';
 
-const { showSearch, showNotesPanel } = useGlobalKeyboard();
+const { showSearch, showNotesPanel, noteToOpen } = useGlobalKeyboard();
 
 const openNotesPanel = () => {
   showNotesPanel.value = true;
 };
 
 const openNoteInPanel = (noteId) => {
+  noteToOpen.value = noteId;
   showNotesPanel.value = true;
 };
 const route = useRoute();
@@ -314,7 +313,7 @@ const { isLoading: isResourcesLoading, loadResourcesByProject } = useResourceLis
 const { canvases: projectCanvases, isLoading: isCanvasesLoading, loadCanvasesByProject } = useCanvas();
 const { saveCanvas } = useCanvas();
 const { saveDocument } = useDocument();
-const { loadResourceTypes, getResourceTypeAbbreviation, getResourceTypeName } = useResourceType();
+const { loadResourceTypes, getResourceTypeName } = useResourceType();
 const { notes: projectNotes, notesRevision, isLoading: isNotesLoading, loadNotesByProject } = useNotes();
 watch(notesRevision, () => { loadNotesByProject(route.params.id).catch(() => {}); });
 const { events: projectEvents, isLoading: isEventsLoading, loadEventsByProject, createEvent } = useCalendarEvents();
@@ -553,10 +552,6 @@ const allDocsAndCanvases = computed(() => {
 const handleThreadCreated = async () => {
   const id = route.params.id;
   loadThreads(id);
-};
-
-const searchThreads = (searchTerm) => {
-  filterThreadsAndDocuments(searchTerm);
 };
 
 const formatDate = (dateStr) => {

@@ -173,7 +173,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import LoadingSpinner from '../ui/LoadingSpinner.vue';
-import { useEntities, type Entity, type EntityAlias, type EntityTranslation } from '../../services/entities/useEntities';
+import { useEntities, type Entity } from '../../services/entities/useEntities';
 import { useNotification } from '../../composables/useNotification';
 import Button from '../ui/Button.vue';
 import ConfirmModal from '../ui/ConfirmModal.vue';
@@ -198,10 +198,6 @@ const emit = defineEmits<{
     'entity:merged': [sourceEntityId: number, targetEntity: Entity];
     'entity:highlight': [entity: Entity];
 }>();
-
-const formatAliases = (aliases: EntityAlias[]): string => {
-    return aliases.map(alias => `${alias.value} (${alias.locale})`).join(', ');
-};
 
 /**
  * Get the display text for an entity based on current display mode.
@@ -238,10 +234,6 @@ const displayEntityType = (entity: Entity | null): string => {
     if (!entity) return '';
     // entity may have an entityType relation or a flat 'type' property
     return (entity.entityType && (entity.entityType.name as string)) || ((entity as any).type as string) || '';
-};
-
-const getAliasValues = (aliases: EntityAlias[] | null): string[] => {
-    return aliases ? aliases.map(alias => alias.value) : [];
 };
 
 const selectedHighlightEntity = ref<Entity | null>(null);
@@ -290,7 +282,7 @@ const displayedEntities = computed(() => {
     });
 });
 
-const { removeEntityFromResource, mergeEntities, searchEntities, getAllEntities, isLoading, updateEntity } = useEntities();
+const { removeEntityFromResource, mergeEntities, searchEntities, updateEntity } = useEntities();
 const notification = useNotification();
 
 const editingEntityId = ref<number | null>(null);
@@ -348,32 +340,6 @@ const getEntityTypeBadgeClass = (typeName: string) => {
     return typeColorMap[typeName] || 'bg-purple-100 text-purple-800';
 };
 
-// Auto-save functionality for entity editing
-const saveTimers = new Map<number, NodeJS.Timeout>();
-const DEBOUNCE_MS = 800;
-
-const scheduleSave = (entity: Entity) => {
-    if (!entity || !entity.id) return;
-
-    // Clear existing timer
-    const existing = saveTimers.get(entity.id);
-    if (existing) {
-        clearTimeout(existing);
-    }
-
-    const timer = setTimeout(async () => {
-        saveTimers.delete(entity.id);
-        try {
-            await saveEntity(entity);
-        } catch (err) {
-            console.error('Auto-save failed for entity', entity.id, err);
-            notification.error('Failed to save entity changes');
-        }
-    }, DEBOUNCE_MS);
-
-    saveTimers.set(entity.id, timer);
-};
-
 const saveEntity = async (entity: Entity) => {
     isSaving.value = entity.id;
     try {
@@ -399,11 +365,6 @@ const saveEntity = async (entity: Entity) => {
 const startEditing = (entity: Entity) => {
     editSnapshot.value = { name: entity.name, description: entity.description };
     editingEntityId.value = entity.id;
-};
-
-const stopEditing = () => {
-    editSnapshot.value = null;
-    editingEntityId.value = null;
 };
 
 const cancelEditing = (entity: Entity) => {

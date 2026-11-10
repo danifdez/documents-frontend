@@ -53,7 +53,9 @@ function tryLoadBindings(): boolean {
   if (bindingsAttempted) return bindingsLoaded;
   bindingsAttempted = true;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional native module, loaded lazily
     const sw = require('smart-whisper');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional native module, loaded lazily
     const ffmpeg = require('ffmpeg-static');
     if (typeof sw?.Whisper !== 'function') return false;
     if (typeof ffmpeg !== 'string') return false;

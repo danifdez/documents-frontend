@@ -1,4 +1,4 @@
-import { getSocket } from '../notifications/notification';
+import { onSocketEvent } from '../notifications/notification';
 import { useMissedAlarmsStore } from '../../store/missedAlarmsStore';
 
 export interface CalendarAlarmPayload {
@@ -18,12 +18,11 @@ let bound = false;
 export function bindCalendarAlarms() {
   if (bound) return;
   bound = true;
-  const socket = getSocket();
   const missed = useMissedAlarmsStore();
-  socket.on('calendar:alarm', (payload: CalendarAlarmPayload) => {
+  onSocketEvent('calendar:alarm', (payload: CalendarAlarmPayload) => {
     window.calendarAlarms?.showAlarmNotification(payload);
   });
-  socket.on('calendar:missed', (payload: CalendarMissedPayload) => {
+  onSocketEvent('calendar:missed', (payload: CalendarMissedPayload) => {
     missed.replaceItems(payload.items);
     window.calendarAlarms?.showMissedAggregate(payload);
   });

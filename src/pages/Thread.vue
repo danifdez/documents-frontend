@@ -247,7 +247,6 @@ import { useNotes } from '../services/notes/useNotes';
 import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '../components/ui/PageHeader.vue';
 import OfflineToggle from '../components/OfflineToggle.vue';
-import EmptyState from '../components/ui/EmptyState.vue';
 import SearchInput from '../components/search/SearchInput.vue';
 import FilterBadge from '../components/search/FilterBadge.vue';
 import IconType from '../components/resources/IconType.vue';
@@ -280,13 +279,14 @@ const { notes: threadNotes, notesRevision, isLoading: isNotesLoading, loadNotesB
 const { loadThread, loadChildThreads, updateThread, deleteThread, archiveThread, unarchiveThread } = useThread();
 const { updateResource } = useResource();
 const { saveDocument } = useDocument();
-const { showSearch, showNotesPanel } = useGlobalKeyboard();
+const { showSearch, showNotesPanel, noteToOpen } = useGlobalKeyboard();
 
 const openNotesPanel = () => {
   showNotesPanel.value = true;
 };
 
 const openNoteInPanel = (noteId) => {
+  noteToOpen.value = noteId;
   showNotesPanel.value = true;
 };
 const thread = ref(null);

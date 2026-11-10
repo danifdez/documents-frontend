@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { workspaceKey } from './workspaceScope';
-import { setServerReachable } from './offline/offlineInterceptor';
+import { getApiBaseUrl, setApiBaseUrlValue } from './apiBase';
+import {
+    registerOfflineInterceptors,
+    setServerReachable,
+} from './offline/offlineInterceptor';
 
 const apiClient = axios.create({
     headers: {
@@ -8,12 +12,14 @@ const apiClient = axios.create({
     },
 });
 
-// Initialize with default
-apiClient.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Initialize with the origin of the active workspace.
+apiClient.defaults.baseURL = getApiBaseUrl();
 
-// Dynamic base URL for workspace switching
+// Dynamic base URL for workspace switching. Keeps axios and the shared origin
+// (`services/apiBase.ts`) in sync so sockets and media URLs follow the switch.
 export function setApiBaseUrl(url: string) {
     apiClient.defaults.baseURL = url;
+    setApiBaseUrlValue(url);
     setServerReachable(true);
 }
 
@@ -99,7 +105,6 @@ apiClient.interceptors.response.use(
 );
 
 // Register offline interceptors (must be after auth interceptors)
-import { registerOfflineInterceptors } from './offline/offlineInterceptor';
 registerOfflineInterceptors(apiClient);
 
 export default apiClient;

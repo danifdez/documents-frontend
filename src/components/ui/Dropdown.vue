@@ -36,7 +36,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import Button from './Button.vue';
 
-const props = defineProps({
+defineProps({
     label: {
         type: String,
         default: 'Options'

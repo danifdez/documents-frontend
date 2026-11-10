@@ -151,13 +151,14 @@ const { projects: projectsList, loadProjects: loadProjectsList } = useProjectLis
 
 const showNewEventModal = ref(false);
 
-const { showSearch, showNotesPanel } = useGlobalKeyboard();
+const { showSearch, showNotesPanel, noteToOpen } = useGlobalKeyboard();
 
 const openNotesPanel = () => {
   showNotesPanel.value = true;
 };
 
 const openNoteInPanel = (noteId) => {
+  noteToOpen.value = noteId;
   showNotesPanel.value = true;
 };
 

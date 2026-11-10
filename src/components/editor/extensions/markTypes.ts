@@ -55,8 +55,3 @@ export function markStyle(type: string | null | undefined): string {
 export function generateMarkId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
-
-// Alias retained for callers that still use the old marker naming.
-export const MARKER_CONFIG = MARK_CONFIG;
-export const generateMarkerId = generateMarkId;
-export type MarkerType = MarkType;

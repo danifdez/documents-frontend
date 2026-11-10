@@ -1,9 +1,10 @@
 import { io, Socket } from 'socket.io-client';
 import { VoiceCancelledError, type VoiceDriver, type VoiceEngine, type VoicePartial, type VoiceQueuedInfo } from '../../types/voice';
 import { getAccessToken } from '../workspaceScope';
+import { getApiBaseUrl } from '../apiBase';
 
 function getNamespaceUrl(): string {
-  const base = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || 'http://localhost:3000';
+  const base = getApiBaseUrl();
   return `${base.replace(/\/$/, '')}/voice`;
 }
 

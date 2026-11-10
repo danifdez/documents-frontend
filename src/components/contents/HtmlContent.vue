@@ -411,7 +411,7 @@ const highlightEntity = (entityName: string, aliases: string[] = []) => {
 
     const nodesToProcess: Text[] = [];
     let node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
         nodesToProcess.push(node as Text);
     }
 
@@ -557,7 +557,7 @@ const wrapTextWithMark = (text: string, markId: string, type: string = 'highligh
 
     const textNodes = [];
     let node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
         textNodes.push(node);
     }
 
@@ -602,7 +602,7 @@ const wrapTextWithComment = (text: string, commentId: string) => {
 
     const textNodes = [];
     let node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
         textNodes.push(node);
     }
 
@@ -724,7 +724,7 @@ const slugify = (text: string) => {
         .toLowerCase()
         .trim()
         .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9\-]/g, '')
+        .replace(/[^a-z0-9-]/g, '')
         .replace(/-+/g, '-');
 };
 
@@ -885,7 +885,7 @@ const handleImageContextMenu = (event) => {
     }
 };
 
-const handleClickOutside = (event) => {
+const handleClickOutside = () => {
     if (showContextMenu.value) {
         showContextMenu.value = false;
     }

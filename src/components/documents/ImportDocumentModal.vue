@@ -69,6 +69,8 @@ import { ref } from 'vue';
 import Modal from '../ui/Modal/Modal.vue';
 import Button from '../ui/Button.vue';
 import { useNotification } from '../../composables/useNotification';
+import { getApiBaseUrl } from '../../services/apiBase';
+import { getAccessToken } from '../../services/workspaceScope';
 
 const props = defineProps({
   modelValue: {
@@ -93,7 +95,6 @@ const dragCounter = ref(0);
 const isImporting = ref(false);
 const processedCount = ref(0);
 const notification = useNotification();
-const API_URL = 'http://localhost:3000';
 
 const uploadFile = async (file: any) => {
   // If Electron API is available and we have a path, use it
@@ -113,10 +114,17 @@ const uploadFile = async (file: any) => {
       if (props.threadId) {
         fd.append('threadId', props.threadId);
       }
-      const resp = await fetch(`${API_URL}/resources/upload`, {
+      const headers: Record<string, string> = {};
+      const token = getAccessToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const resp = await fetch(`${getApiBaseUrl()}/resources/upload`, {
         method: 'POST',
+        headers,
         body: fd,
       });
+      if (!resp.ok) {
+        return { error: `Upload failed with status ${resp.status}` };
+      }
       const json = await resp.json();
       return json;
     } catch (err) {
@@ -228,7 +236,6 @@ const importDocuments = async () => {
     const uploadPromises = selectedFiles.value.map(file => {
       return (async () => {
         try {
-          const path = (file as any).path;
           const r = await uploadFile(file);
           processedCount.value++;
           return { status: 'fulfilled', value: r };

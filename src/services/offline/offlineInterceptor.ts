@@ -195,12 +195,14 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
       }
 
       // Write-through cache: store every successful GET so we can serve it
-      // from cache the next time the backend is unreachable.
+      // from cache the next time the backend is unreachable. Callers that must
+      // not persist a response (large text downloads) opt out with the header.
       if (response.config.method === 'get' && response.status >= 200 && response.status < 300) {
         const url = response.config.url || '';
+        const skipCache = response.config.headers?.['x-offline-skip-cache'] === '1';
         // Skip caching of binary file downloads and the auth/refresh endpoint.
         const isBinary = response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer';
-        if (url && !isBinary && !url.startsWith('/auth/refresh')) {
+        if (url && !isBinary && !skipCache && !url.startsWith('/auth/refresh')) {
           try {
             setUrlCache(getActiveWorkspaceId(), 'get', url, response.data);
           } catch { /* ignore caching failures */ }

@@ -63,7 +63,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import type { DatasetField } from '../../services/datasets/useDatasets';
 
 const props = defineProps<{

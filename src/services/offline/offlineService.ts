@@ -1,7 +1,5 @@
 import { useOfflineStore } from '../../store/offlineStore';
 import { useNotification } from '../../composables/useNotification';
-import { getOfflineFilePath } from './offlineDb';
-import { getActiveWorkspaceId } from '../workspaceScope';
 
 export async function downloadForOffline(type: 'resource' | 'thread' | 'project', id: number) {
   const offlineStore = useOfflineStore();
@@ -35,11 +33,4 @@ export async function downloadForOffline(type: 'resource' | 'thread' | 'project'
 export async function removeFromOffline(type: string, id: number) {
   const offlineStore = useOfflineStore();
   await offlineStore.removeOffline(type, id);
-}
-
-export async function getOfflineFileUrl(resourceId: number): Promise<string | null> {
-  const wsId = getActiveWorkspaceId();
-  const filePath = await getOfflineFilePath(wsId, resourceId);
-  if (!filePath) return null;
-  return `file://${filePath}`;
 }

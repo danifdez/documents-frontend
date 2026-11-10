@@ -1,4 +1,4 @@
-import { getSocket } from '../notifications/notification';
+import { onSocketEvent } from '../notifications/notification';
 
 export interface TaskReminderPayload {
   taskId: number;
@@ -15,11 +15,10 @@ let bound = false;
 export function bindTaskReminders() {
   if (bound) return;
   bound = true;
-  const socket = getSocket();
-  socket.on('task:reminder', (payload: TaskReminderPayload) => {
+  onSocketEvent('task:reminder', (payload: TaskReminderPayload) => {
     window.taskReminders?.showReminderNotification(payload);
   });
-  socket.on('task:missed', (payload: TaskMissedPayload) => {
+  onSocketEvent('task:missed', (payload: TaskMissedPayload) => {
     window.taskReminders?.showMissedAggregate(payload);
   });
 }

@@ -1,6 +1,6 @@
 import { computed, type Ref } from 'vue';
-import type { ReadingPoint } from '../services/readingPoints/useReadingPoints';
-import type { useReadingPointsController } from '../components/readingPoints/useReadingPointsController';
+import type { ReadingPoint } from '../../services/readingPoints/useReadingPoints';
+import type { useReadingPointsController } from './useReadingPointsController';
 
 export interface TocHeadingLike {
   id: string;
@@ -55,7 +55,7 @@ export function useTocWithReadingPoints(
   enabled: Ref<boolean>,
 ) {
   const entries = computed<TocEntry[]>(() => {
-    const headingEntries: TocEntry[] = headings.value.map((heading, index) => ({
+    const headingEntries: TocEntry[] = headings.value.map((heading, index): TocEntry => ({
       key: `heading:${heading.id}:${index}`,
       kind: 'heading',
       label: heading.text,

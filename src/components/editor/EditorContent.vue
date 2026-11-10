@@ -81,7 +81,7 @@ import EditorToolbar from './EditorToolbar.vue';
 import CommentModal from '../comments/CommentModal.vue';
 import ReadingPointsLayer from '../readingPoints/ReadingPointsLayer.vue';
 import { useReadingPointsController } from '../readingPoints/useReadingPointsController';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useMarkUpdate } from '../../services/marks/useMarkUpdate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useEditorAnnotations } from './composables/useEditorAnnotations';
@@ -99,9 +99,7 @@ import TimelineViewConfigModal from '../../components/canvas/TimelinePickerModal
 import TableToDatasetModal from './TableToDatasetModal.vue';
 import { parseTableFromEditor, type ParsedTable } from './utils/parseTableFromEditor';
 import { normalizeTableWidths } from './utils/normalizeTableWidths';
-import { useNotification } from '../../composables/useNotification';
 import { useBibliography } from '../../services/bibliography/useBibliography';
-import type { BibliographyEntry } from '../../types/Bibliography';
 import type { CitationStyle } from '../../services/citations/citationFormatter';
 import { findEvidenceFragments } from '../../utils/evidenceFocus';
 import 'katex/dist/katex.min.css';
@@ -153,8 +151,6 @@ const emit = defineEmits([
 const editor = ref(null);
 const isMounted = ref(false);
 const route = useRoute();
-const router = useRouter();
-const notification = useNotification();
 const { updateMark } = useMarkUpdate();
 const { deleteMark } = useMarkDelete();
 const {
@@ -166,7 +162,6 @@ const {
     handleAddCommentRequest,
     saveComment,
     cancelComment,
-    isMarkLoading,
     markContentMap,
     applyMark,
     loadDocumentMarks,
@@ -286,7 +281,7 @@ const highlightComment = (commentId: string) => {
     emit('highlight-comment', commentId);
 };
 
-const onMarkClick = (markId: string, markType: MarkType) => {
+const onMarkClick = (markId: string) => {
     emit('highlight-mark', markId);
     const el = editorWithGutterRef.value?.querySelector(`[data-mark-id="${markId}"]`) as HTMLElement | null;
     if (el) {
@@ -318,7 +313,7 @@ const checkForMarkChanges = (editor: Editor) => {
     const doc = editor.state.doc;
     const markChanges = new Map<string, string>();
 
-    const processNode = (node: Record<string, any>, pos: number) => {
+    const processNode = (node: Record<string, any>) => {
         const marks = node.marks.filter((mark: Record<string, any>) => mark.type.name === 'textMark');
 
         if (marks.length > 0) {

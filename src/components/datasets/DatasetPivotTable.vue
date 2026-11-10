@@ -190,7 +190,6 @@ import {
     formatDatasetValue,
     formatDatasetLabel as formatLabel,
 } from '../../services/datasets/datasetFormatter';
-import HelpTip from '../ui/HelpTip.vue';
 
 Chart.register(...registerables);
 

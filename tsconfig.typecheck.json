@@ -1,0 +1,15 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"],
+            "vite": ["./node_modules/vite/dist/node/index.d.ts"]
+        }
+    },
+    "include": ["forge.env.d.ts", "src/**/*.ts", "src/**/*.d.ts"],
+    "exclude": ["node_modules", "dist", "out", ".vite", "coverage", "src/**/*.spec.ts"]
+}

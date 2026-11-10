@@ -470,6 +470,8 @@ import DatasetChartConfigModal from '../components/editor/DatasetChartConfigModa
 import TimelinePickerModal from '../components/canvas/TimelinePickerModal.vue';
 import EntityPickerModal from '../components/canvas/EntityPickerModal.vue';
 import { useAutoSave } from '../composables/useAutoSave';
+import apiClient from '../services/api';
+import { getApiBaseUrl } from '../services/apiBase';
 
 const route = useRoute();
 const router = useRouter();
@@ -519,8 +521,8 @@ const fetchProjectStats = async () => {
   if (!projectId || projectStats.value) return;
   loadingStats.value = true;
   try {
-    const response = await fetch(`${apiBaseUrl}/projects/${projectId}/stats`);
-    projectStats.value = await response.json();
+    const { data } = await apiClient.get(`/projects/${projectId}/stats`);
+    projectStats.value = data;
   } catch (e) {
     console.error('Failed to load project stats:', e);
     projectStats.value = {};
@@ -751,7 +753,7 @@ const imageTabs = [
   { id: 'project' as const, label: 'Project' },
 ];
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const apiBaseUrl = getApiBaseUrl();
 const getResourceViewUrl = (id: number) => `${apiBaseUrl}/resources/${id}/view`;
 
 const isNewCanvas = computed(() => route.params.id === 'new');

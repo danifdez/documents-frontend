@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 min-h-0 overflow-auto px-2 py-4" ref="scrollContainerRef" data-timeline-export
+  <div class="flex-1 min-h-0 overflow-auto px-2 py-4" ref="scrollContainerRef" data-timeline-export>
     <!-- Epoch filter chips -->
     <div v-if="epochs.length > 0" class="flex items-center gap-1.5 mb-3 max-w-3xl mx-auto">
       <div
@@ -60,7 +60,7 @@
         </template>
 
         <!-- Epoch bands -->
-        <template v-for="(epoch, eIdx) in epochs" :key="'epoch-' + epoch.id">
+        <template v-for="epoch in epochs" :key="'epoch-' + epoch.id">
           <div
             class="absolute cursor-pointer hover:opacity-90 transition-opacity left-0 right-0 rounded"
             :style="{
@@ -247,7 +247,6 @@ const visibleEvents = computed(() => {
 const CARD_W = 160;
 const CARD_H = 48;
 const CARD_GAP = 4;
-const LABEL_W = 160;
 const LABEL_H = 22;
 const LABEL_GAP = 2;
 const PADDING_PX = 30;

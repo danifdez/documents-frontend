@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
+import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import { Chart, registerables } from 'chart.js';
 import { useDatasets } from '../../services/datasets/useDatasets';
 

@@ -166,7 +166,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import type { BibliographyEntry, ZoteroCreator } from '../../types/Bibliography';
+import type { BibliographyEntry } from '../../types/Bibliography';
 import FormField from '../ui/FormField.vue';
 
 const props = defineProps<{

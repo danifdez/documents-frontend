@@ -5,6 +5,7 @@ const showSearch = ref(false);
 const showGlobalSearch = ref(false);
 const showNotesPanel = ref(false);
 const quickNoteRequested = ref(0);
+const noteToOpen = ref<number | null>(null);
 const showAssistant = ref(false);
 
 let initialized = false;
@@ -65,6 +66,7 @@ export function useGlobalKeyboard() {
         showGlobalSearch,
         showNotesPanel,
         quickNoteRequested,
+        noteToOpen,
         showAssistant,
     };
 }

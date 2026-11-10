@@ -76,7 +76,7 @@ const props = defineProps<{
     assistantId: number | null;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
     (e: 'update:show', v: boolean): void;
 }>();
 

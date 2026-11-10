@@ -57,7 +57,6 @@ const props = defineProps({
 const emit = defineEmits(['search', 'close']);
 
 const searchValue = ref('');
-let openValue: string | null = null;
 const inputRef = ref<HTMLInputElement | null>(null);
 
 
@@ -94,12 +93,9 @@ watch(
     (val) => {
         if (val) {
             searchValue.value = props.value ?? '';
-            openValue = props.value ?? '';
             setTimeout(() => {
                 inputRef.value?.focus();
             }, 0);
-        } else {
-            openValue = null;
         }
     }
 );

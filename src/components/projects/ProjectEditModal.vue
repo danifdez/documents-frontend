@@ -4,16 +4,18 @@
             <FormField label="Project Name" v-model="projectData.name" required placeholder="Enter project name" />
 
             <FormField label="Description (optional)" v-model="projectData.description" type="textarea" placeholder="Enter project description" />
+        </form>
 
-            <div class="flex justify-end pt-2" slot="footer">
+        <template #footer>
+            <div class="flex justify-end pt-2">
                 <Button type="button" variant="secondary" @click="closeModal" class="mr-2">
                     Cancel
                 </Button>
-                <Button type="submit" :disabled="isSubmitting">
+                <Button type="button" :disabled="isSubmitting" @click="saveProject">
                     {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
                 </Button>
             </div>
-        </form>
+        </template>
     </Modal>
 </template>
 

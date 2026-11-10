@@ -224,10 +224,7 @@ watch(() => props.modelValue, async (visible) => {
 
     // If initialNoteId provided, select that note
     if (props.initialNoteId) {
-      const found = notes.value.find(n => n.id === props.initialNoteId);
-      if (found) {
-        selectNote(found);
-      }
+      await openWithNote(props.initialNoteId);
     }
   } else {
     // Clean up on close
@@ -269,7 +266,7 @@ onBeforeUnmount(() => {
   if (saveTimeout) clearTimeout(saveTimeout);
 });
 
-async function selectNote(note: Note) {
+async function selectNote(note: Pick<Note, 'id'>) {
   // Save current note if pending
   if (saveTimeout) {
     clearTimeout(saveTimeout);
@@ -390,15 +387,12 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-// Public method to open with a specific note
-function openWithNote(noteId: number) {
+// Opens a specific note. `selectNote` reloads it by id, so a note that is not
+// in the currently listed set (for example, another project's note) still opens.
+async function openWithNote(noteId: number) {
   const found = notes.value.find(n => n.id === noteId);
-  if (found) {
-    selectNote(found);
-  }
+  await selectNote(found ?? { id: noteId });
 }
-
-defineExpose({ openWithNote, createNewNote });
 </script>
 
 <style scoped>

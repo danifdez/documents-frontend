@@ -245,10 +245,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
-import Button from '../ui/Button.vue';
 import MergeEntityModal from './MergeEntityModal.vue';
 import ConfirmModal from '../ui/ConfirmModal.vue';
-import { usePendingEntities, type PendingEntity, type EntityAlias, type EntityScope } from '../../services/entities/usePendingEntities';
+import { usePendingEntities, type PendingEntity, type EntityScope } from '../../services/entities/usePendingEntities';
 import { useEntities } from '../../services/entities/useEntities';
 import { usePendingEntityValidation } from '../../services/entities/usePendingEntityValidation';
 import { useEntityTypes } from '../../services/entity-types/useEntityTypes';
@@ -286,7 +285,7 @@ const isSaving = ref<number | null>(null);
 const isConfirming = ref(false);
 const showAddEntityForm = ref(false);
 const expandedEntityId = ref<number | null>(null);
-const newEntity = ref({ name: '', description: '', entityTypeId: undefined as number | undefined, scope: 'document' as 'document' });
+const newEntity = ref({ name: '', description: '', entityTypeId: undefined as number | undefined, scope: 'document' as const });
 
 const showMergeModal = ref(false);
 const entityToMerge = ref<PendingEntity | null>(null);
@@ -539,7 +538,7 @@ const quickConfirmEntity = async (entity: PendingEntity) => {
 const confirmAllEntities = async () => {
     isConfirming.value = true;
     try {
-        const result = await confirmEntities(props.resourceId);
+        await confirmEntities(props.resourceId);
         emit('entities:confirmed');
         await loadData();
     } catch { } finally { isConfirming.value = false; }

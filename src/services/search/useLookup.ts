@@ -42,7 +42,7 @@ export function useLookup() {
         }).then(res => (res.data || []).map((r: any) => ({
             ...r,
             source: 'natural' as const,
-        }))).catch(() => []);
+        }))).catch((): LookupResult[] => []);
 
         const ragSearch = new Promise<LookupResult[]>((resolve) => {
             const timeout = setTimeout(() => {

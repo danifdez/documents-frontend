@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { ref, readonly } from 'vue';
+import { getApiBaseUrl } from '../apiBase';
 import { setServerReachable } from '../offline/offlineInterceptor';
 import { getAccessToken } from '../workspaceScope';
 import {
@@ -8,7 +8,8 @@ import {
     isExecutionPublicationKnown,
 } from './executionPublication';
 
-const isConnected = ref(false);
+type SocketEventListener = (...args: any[]) => void;
+
 let connectErrorLogged = false;
 
 const SOCKET_OPTIONS = {
@@ -19,14 +20,17 @@ const SOCKET_OPTIONS = {
     timeout: 5000,
 };
 
+// Listeners registered through `onSocketEvent`. They live outside any single
+// Socket instance so they can be re-attached whenever the socket is rebuilt
+// (login, workspace switch, local server restart). Binding them directly to the
+// current instance — as `useCalendarAlarms`/`useTaskReminders` used to do — makes
+// them silently disappear after a reconnect.
+const eventListeners = new Map<string, Set<SocketEventListener>>();
+
 function bindConnectionEvents(s: Socket) {
     s.on('connect', () => {
-        isConnected.value = true;
         connectErrorLogged = false;
         setServerReachable(true);
-    });
-    s.on('disconnect', () => {
-        isConnected.value = false;
     });
     s.on('connect_error', () => {
         if (!connectErrorLogged) {
@@ -50,14 +54,22 @@ function bindConnectionEvents(s: Socket) {
 
 let socket: Socket | null = null;
 
-function getOrCreateSocket(url?: string): Socket {
-    if (socket) return socket;
-    socket = io(url || import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+function createSocket(url?: string): Socket {
+    const created = io(url || getApiBaseUrl(), {
         auth: { token: getAccessToken() },
         autoConnect: false,
         ...SOCKET_OPTIONS,
     });
-    bindConnectionEvents(socket);
+    bindConnectionEvents(created);
+    for (const [event, listeners] of eventListeners) {
+        for (const listener of listeners) created.on(event, listener);
+    }
+    return created;
+}
+
+function getOrCreateSocket(url?: string): Socket {
+    if (socket) return socket;
+    socket = createSocket(url);
     return socket;
 }
 
@@ -74,11 +86,7 @@ export function reconnectSocket(url?: string) {
         socket.disconnect();
         socket = null;
     }
-    socket = io(url || import.meta.env.VITE_API_URL || 'http://localhost:3000', {
-        auth: { token: getAccessToken() },
-        ...SOCKET_OPTIONS,
-    });
-    bindConnectionEvents(socket);
+    socket = createSocket(url);
     socket.connect();
 }
 
@@ -86,4 +94,22 @@ export function getSocket(): Socket {
     return getOrCreateSocket();
 }
 
-export const socketConnected = readonly(isConnected);
+/**
+ * Subscribes to a backend socket event and keeps the subscription alive across
+ * socket rebuilds. Returns an unsubscribe function.
+ */
+export function onSocketEvent(
+    event: string,
+    listener: SocketEventListener,
+): () => void {
+    const listeners = eventListeners.get(event) ?? new Set<SocketEventListener>();
+    listeners.add(listener);
+    eventListeners.set(event, listeners);
+    socket?.on(event, listener);
+
+    return () => {
+        listeners.delete(listener);
+        if (listeners.size === 0) eventListeners.delete(event);
+        socket?.off(event, listener);
+    };
+}

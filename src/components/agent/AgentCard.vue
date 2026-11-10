@@ -54,7 +54,7 @@ const props = defineProps<{
     active: boolean;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
     (e: 'select'): void;
     (e: 'edit'): void;
 }>();

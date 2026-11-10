@@ -355,7 +355,6 @@ const {
     isLoading,
     loadAll,
     loadByProject,
-    loadGlobal,
     createEntry,
     updateEntry,
     deleteEntry,

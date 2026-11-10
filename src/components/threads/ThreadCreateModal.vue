@@ -3,16 +3,18 @@
         <form @submit.prevent="addThread" class="space-y-4">
             <FormField label="Thread Name" v-model="threadName" placeholder="Enter thread name" required />
             <FormField label="Description" v-model="threadDescription" type="textarea" placeholder="Enter thread description" hint="Optional" />
+        </form>
 
-            <div class="flex justify-end pt-2" slot="footer">
+        <template #footer>
+            <div class="flex justify-end pt-2">
                 <Button type="button" variant="secondary" @click="closeModal" class="mr-2">
                     Cancel
                 </Button>
-                <Button type="submit" :disabled="isSubmitting">
+                <Button type="button" :disabled="isSubmitting" @click="addThread">
                     {{ isSubmitting ? 'Creating...' : 'Create Thread' }}
                 </Button>
             </div>
-        </form>
+        </template>
     </Modal>
 </template>
 
@@ -40,7 +42,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'thread:created']);
 
-const { newThreadId, status, isLoading, createThread } = useThreadCreate();
+const { newThreadId, status, createThread } = useThreadCreate();
 const threadName = ref('');
 const threadDescription = ref('');
 const isSubmitting = ref(false);

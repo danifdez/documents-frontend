@@ -17,7 +17,7 @@
                     <span>{{ extent.max }}</span>
                 </div>
                 <div class="relative h-16">
-                    <template v-for="(item, idx) in placed" :key="item.id">
+                    <template v-for="item in placed" :key="item.id">
                         <button @click="$emit('select', item)"
                             :style="{ left: item.leftPct + '%' }"
                             :title="`${item.date} · ${item.rawExpression}`"

@@ -18,17 +18,8 @@ export async function deleteOfflineItem(wsId: string, type: string, id: number) 
   await window.electronAPI.offlineDeleteItem(wsId, type, id);
 }
 
-export async function getAllOfflineKeys(wsId: string): Promise<string[]> {
-  const manifest = await window.electronAPI.offlineGetManifest(wsId);
-  return manifest.keys;
-}
-
 export async function getAllOfflineItemsByWorkspace(wsId: string) {
   return window.electronAPI.offlineGetAllItemsByWorkspace(wsId);
-}
-
-export async function clearAllOfflineData(wsId: string) {
-  await window.electronAPI.offlineClearAll(wsId);
 }
 
 // ── Offline Files ──

@@ -30,7 +30,7 @@ export const useProjectStore = defineStore('project', () => {
             return;
         }
 
-        if (currentProject.value && currentProject.value.id === id) {
+        if (currentProject.value && String(currentProject.value.id) === String(id)) {
             return;
         }
 
