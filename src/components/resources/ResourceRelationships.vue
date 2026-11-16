@@ -354,7 +354,7 @@ const drawFrame = () => {
 
         // Edge label
         const mx = (s.x + t.x) / 2, my = (s.y + t.y) / 2;
-        const label = l.predicate.replace(/_/g, ' ');
+        const label = l.predicate.replaceAll('_', ' ');
         ctx.fillStyle = mutedColor;
         ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         ctx.fillText(label.length > 28 ? label.slice(0, 27) + '...' : label, mx, my - 6);
