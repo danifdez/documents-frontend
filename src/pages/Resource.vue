@@ -269,7 +269,7 @@
                                 <!-- Add new keyword button -->
                                 <button @click="addKeyword"
                                     class="flex items-center gap-1 text-text-muted hover:text-accent px-2 py-1 rounded-full text-sm border border-dashed border-border hover:border-accent">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" aria-hidden="true"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M12 4v16m8-8H4" />
