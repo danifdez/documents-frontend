@@ -112,7 +112,7 @@
                           <path stroke-linecap="round" stroke-linejoin="round"
                             d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                         </svg>
-                        <svg v-else-if="item.type === 'document'" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                        <svg v-else-if="item.type === 'document'" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" aria-hidden="true"
                           viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                           <path stroke-linecap="round" stroke-linejoin="round"
                             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
