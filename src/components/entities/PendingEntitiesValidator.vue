@@ -16,7 +16,7 @@
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white text-xs font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
                         <div v-if="isConfirming"
                             class="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <svg v-else class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        <svg v-else class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
                             stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
