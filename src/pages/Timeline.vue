@@ -179,7 +179,7 @@
               Epoch
             </Button>
             <Button v-if="!isSynced" size="small" @click="openAddEvent" :disabled="isNewTimeline && !timelineData.name">
-              <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Event
