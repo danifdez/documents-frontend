@@ -187,7 +187,7 @@
       <div class="relative">
         <Button @click="toggleDropdown('link')" title="Insert/Edit Link (Ctrl+K)" size="small"
           :active="editor?.isActive('link')" borderless>
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <path d="M9 7H7C5.89543 7 5 7.89543 5 9V11C5 12.1046 5.89543 13 7 13H9" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" />
             <path d="M11 13H13C14.1046 13 15 12.1046 15 11V9C15 7.89543 14.1046 7 13 7H11" stroke="currentColor"
