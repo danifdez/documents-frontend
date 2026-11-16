@@ -29,7 +29,7 @@
                             <!-- Results -->
                             <div v-if="term" class="border-t border-border-light overflow-y-auto flex-1 min-h-0">
                                 <div v-if="!loading && results.length === 0" class="px-6 py-16 text-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
                                         class="h-10 w-10 mx-auto text-text-muted/40 mb-3" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25">
                                         <path stroke-linecap="round" stroke-linejoin="round"
