@@ -210,8 +210,9 @@
                             <div class="space-y-2">
                                 <div v-for="(kp, idx) in editKeyPoints" :key="idx" class="flex items-center gap-2">
                                     <button @click="moveKeyPointUp(idx)" :disabled="idx === 0"
-                                        class="p-1 hover:bg-surface-hover rounded disabled:opacity-30 disabled:cursor-not-allowed">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        class="p-1 hover:bg-surface-hover rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                                        aria-label="Move key point up">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" aria-hidden="true"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M5 15l7-7 7 7" />
