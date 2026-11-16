@@ -214,7 +214,7 @@ export function detectGpu(): GpuInfo {
         timeout: 5000,
         encoding: 'utf-8',
       });
-      if (output && output.includes('Apple')) {
+      if (output?.includes('Apple')) {
         result.available = true;
         const match = output.match(/Chipset Model:\s*(.+)/);
         result.name = match ? match[1].trim() : 'Apple GPU';
