@@ -225,7 +225,7 @@ const drawRelationships = async (nodeId: string) => {
     for (const rel of relationships) {
       const srcName = String(rel.source).toLowerCase();
       const tgtName = String(rel.target).toLowerCase();
-      const label = (rel.predicate || '').replace(/_/g, ' ');
+      const label = (rel.predicate || '').replaceAll('_', ' ');
 
       let fromNodeId: string | null = null;
       let toNodeId: string | null = null;
