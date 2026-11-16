@@ -73,7 +73,7 @@
                       <span class="hidden shrink-0 items-center gap-0.5 group-hover:flex">
                         <button class="fav-action text-text-muted" title="Add subcategory"
                           @click.stop="startAddChild(category.id)">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" aria-hidden="true"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
                           </svg>
