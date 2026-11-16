@@ -42,7 +42,7 @@
       <div v-else-if="!sortedEvents.length" class="flex items-center justify-center h-full text-xs text-text-muted">
         No events
       </div>
-      <img v-else-if="timelineImage" :src="timelineImage" class="h-full max-w-none" style="object-fit: contain; min-width: 100%;" />
+      <img v-else-if="timelineImage" :src="timelineImage" :alt="node.data.timelineName ? 'Timeline: ' + node.data.timelineName : 'Timeline events'" class="h-full max-w-none" style="object-fit: contain; min-width: 100%;" />
     </div>
   </div>
 </template>
