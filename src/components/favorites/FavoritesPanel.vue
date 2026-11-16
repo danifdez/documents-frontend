@@ -81,7 +81,7 @@
                         <button class="fav-action text-text-muted" title="Rename"
                           @click.stop="startCategoryRename(category)">
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="1.75">
+                            stroke="currentColor" stroke-width="1.75" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round"
                               d="M16.5 3.75l3.75 3.75L8 19.75H4.25V16L16.5 3.75z" />
                           </svg>
