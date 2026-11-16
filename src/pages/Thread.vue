@@ -169,7 +169,7 @@
                 <button @click.stop="openMoveModal({ id: resource.id, name: resource.title || resource.name, type: 'resource', key: `r-${resource.id}` })"
                   class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface transition-colors opacity-0 group-hover:opacity-100 shrink-0 cursor-pointer"
                   title="Move to...">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                   </svg>
                 </button>
