@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="closable && $emit('close')">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" tabindex="-1" @click.self="closable && $emit('close')" @keydown.esc="closable && $emit('close')">
     <div class="bg-surface border border-border rounded-2xl shadow-xl w-full max-w-sm p-6">
       <h2 class="text-lg font-semibold text-text-primary mb-4">
         {{ editing ? 'Edit Workspace' : 'Add Workspace' }}
