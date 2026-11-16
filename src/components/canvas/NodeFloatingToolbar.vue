@@ -118,7 +118,7 @@
 
         <!-- Border width -->
         <button @click="cycleBorderWidth" :title="`Width: ${data.borderWidth || 1.5}`" :class="btnClass">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
             :stroke-width="borderWidthPreview">
             <line x1="3" y1="12" x2="21" y2="12" />
           </svg>
