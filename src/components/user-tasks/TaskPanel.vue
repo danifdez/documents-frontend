@@ -226,7 +226,7 @@ const addTask = async () => {
         // datetime-local emits naive local time; the browser interprets it as
         // local and toISOString() converts to UTC.
         const parsed = new Date(newReminderAt.value);
-        if (isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
+        if (Number.isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
             newReminderError.value = true;
             return;
         }
