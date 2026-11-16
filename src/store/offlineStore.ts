@@ -172,10 +172,12 @@ export const useOfflineStore = defineStore('offline', () => {
     }
 
     // Store files — pass base64 directly to filesystem
-    for (const f of bundle.files || []) {
-      const ext = extFromMime(f.mimeType || 'application/octet-stream');
-      await putOfflineFile(wsId, f.resourceId, f.base64, f.mimeType, ext);
-    }
+    await Promise.all(
+      (bundle.files || []).map((f: any) => {
+        const ext = extFromMime(f.mimeType || 'application/octet-stream');
+        return putOfflineFile(wsId, f.resourceId, f.base64, f.mimeType, ext);
+      }),
+    );
 
     // Mark the parent item itself
     offlineItemKeys.value.add(`${type}:${id}`);
