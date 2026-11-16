@@ -5,7 +5,7 @@
         <div class="flex items-center justify-between px-4 py-2.5 bg-surface border-b border-border">
             <div class="flex items-center gap-2">
                 <svg class="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                    stroke-width="1.75">
+                    stroke-width="1.75" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
