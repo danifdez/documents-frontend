@@ -54,7 +54,7 @@
                                 class="flex items-center gap-1.5 px-2.5 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer text-sm"
                                 :class="{ '!bg-accent-subtle !text-accent-dark': memoryOpen }">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="1.75">
+                                    stroke="currentColor" stroke-width="1.75" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0 0V4m0 14v3m4-7h3M5 11H2m17.071-6.071l-2.121 2.121M7.05 16.95l-2.121 2.121M19.071 19.071l-2.121-2.121M7.05 7.05L4.929 4.929" />
                                 </svg>
