@@ -169,7 +169,7 @@
                     </button>
                     <div v-else-if="entity.isConfirmed"
                         class="shrink-0 w-[18px] h-[18px] rounded bg-green-500 flex items-center justify-center" title="Confirmed">
-                        <svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
