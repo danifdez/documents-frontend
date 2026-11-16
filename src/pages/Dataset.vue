@@ -203,7 +203,7 @@
                                     <button v-for="ct in chartModes" :key="ct.id" @click="selectChartMode(ct.id)"
                                         class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
                                         :class="visualMode === ct.id ? 'bg-accent text-white' : 'bg-surface border border-border text-text-secondary hover:bg-surface-hover'">
-                                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <svg class="h-3.5 w-3.5 shrink-0" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path v-for="(d, i) in ct.paths" :key="i" :d="d" />
                                         </svg>
                                         {{ ct.label }}
