@@ -75,7 +75,7 @@
                   : 'text-text-muted hover:text-text-secondary hover:bg-surface-hover'"
                 @click="setLayout(layout.value)"
               >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" v-html="layout.icon"></svg>
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" v-html="layout.icon"></svg>
                 <span>{{ layout.label }}</span>
               </button>
             </div>
