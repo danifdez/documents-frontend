@@ -201,7 +201,7 @@ export function detectGpu(): GpuInfo {
       result.available = true;
       result.name = name;
       result.cuda = true;
-      result.vramGB = Math.round((parseInt(mib, 10) || 0) / 1024);
+      result.vramGB = Math.round((Number.parseInt(mib, 10) || 0) / 1024);
     }
   } catch {
     // nvidia-smi not found or no GPU
