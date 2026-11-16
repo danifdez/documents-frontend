@@ -407,7 +407,7 @@
 
     <!-- Undo/Redo (all contexts) -->
     <Button @click="editor?.chain().focus().undo().run()" title="Undo (Ctrl+Z)" size="small" borderless>
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <path d="M7 7L3 10L7 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round" />
         <path d="M3 10H13C15.2091 10 17 11.7909 17 14C17 16.2091 15.2091 18 13 18H11" stroke="currentColor"
