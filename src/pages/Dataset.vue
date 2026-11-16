@@ -293,7 +293,7 @@
                             <div v-if="!activeResult && !activeRunning"
                                 class="flex-1 flex items-center justify-center bg-surface-elevated rounded-2xl border border-border">
                                 <div class="text-center">
-                                    <svg class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <svg class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16" />
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16V9" />
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4" />
