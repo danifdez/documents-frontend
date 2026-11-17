@@ -267,6 +267,9 @@ onBeforeUnmount(() => {
 });
 
 async function selectNote(note: Pick<Note, 'id'>) {
+  // Unmount the outgoing editor and cancel its dictation before waiting on a save.
+  editorReady.value = false;
+
   // Save current note if pending
   if (saveTimeout) {
     clearTimeout(saveTimeout);
@@ -277,8 +280,6 @@ async function selectNote(note: Pick<Note, 'id'>) {
       } catch { /* silent */ }
     }
   }
-
-  editorReady.value = false;
 
   try {
     const data = await loadNote(note.id);

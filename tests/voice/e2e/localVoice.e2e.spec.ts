@@ -6,6 +6,7 @@ import * as fs from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import * as path from 'node:path';
 declare const voiceTest: { inputs(): number[][]; loads(): number; finish(text: string): void };
+declare const notesTest: { holdSaves(): void; releaseSaves(): void; saves(): { id: number; content: string }[] };
 const root = path.resolve(__dirname, '../../..');
 const output = process.env.VOICE_SAFETY_OUTPUT!;
 let app: ElectronApplication;
@@ -125,4 +126,97 @@ test('cancelled capture keeps its incomplete call without publishing late text',
   await app.evaluate(() => voiceTest.finish('LATE_CAPTURE_RESULT')); await stopping;
   expect(await page.evaluate((id) => window.voice!.getCaptureLocal(id, true), requestId)).toEqual(capture);
   await expect(page.locator('#result')).toHaveText('');
+});
+
+const editor = () => page.locator('.notes-overlay .ProseMirror');
+const noteVoiceButton = (name: string) => page.locator('.notes-overlay').getByRole('button', { name });
+
+async function startNoteDictation() {
+  await page.getByRole('button', { name: 'Open notes' }).click();
+  await page.getByRole('button', { name: /First note/ }).click();
+  await expect(editor()).toHaveText('Notes: | existing ending');
+  await editor().evaluate((node) => {
+    (node as HTMLElement).focus();
+    window.getSelection()!.collapse(node.querySelector('p')!.lastChild!, 1);
+  });
+  await expect.poll(() => editor().evaluate((node) => {
+    const tiptap = (node as HTMLElement & { editor: { state: { selection: { from: number } } } }).editor;
+    return tiptap.state.selection.from;
+  })).toBe('Notes: '.length + 1);
+  await noteVoiceButton('Start dictation').dispatchEvent('pointerdown', { button: 0 });
+  await expect(noteVoiceButton('Stop dictation')).toBeVisible();
+}
+
+async function finishNoteCall(index: number, transcript: string) {
+  await expect.poll(() => app.evaluate(() => voiceTest.inputs().length)).toBe(index);
+  await app.evaluate((_electron, text) => voiceTest.finish(text), transcript);
+}
+
+async function waitForVoiceDrain() {
+  await expect.poll(() => page.evaluate(async () => {
+    try {
+      const { sessionId } = await window.voice!.startLocal();
+      await window.voice!.cancelLocal(sessionId);
+      return true;
+    } catch { return false; }
+  })).toBe(true);
+}
+
+test('note editor replaces partials at the caret and inserts the final transcript once', async () => {
+  await startNoteDictation();
+  await finishNoteCall(1, 'buy');
+  await expect(editor()).toHaveText('Notes: buy| existing ending');
+  await finishNoteCall(2, 'buy bread today');
+  await expect(editor()).toHaveText('Notes: buy bread today| existing ending');
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerup')));
+  await finishNoteCall(3, 'buy bread');
+  await expect(noteVoiceButton('Start dictation')).toBeEnabled();
+  await expect(editor()).toHaveText('Notes: buy bread| existing ending');
+  await expect(editor().locator('strong')).toHaveText('Notes:');
+  await expect.poll(() => editor().evaluate((node) => {
+    const selection = window.getSelection();
+    if (!selection?.isCollapsed || !selection.anchorNode || !node.contains(selection.anchorNode)) return null;
+    const range = document.createRange();
+    range.setStart(node, 0);
+    range.setEnd(selection.anchorNode, selection.anchorOffset);
+    return range.toString();
+  })).toBe('Notes: buy bread');
+});
+
+test('cancelling the pointer discards an in-flight partial in the open note', async () => {
+  await startNoteDictation();
+  await expect.poll(() => app.evaluate(() => voiceTest.inputs().length)).toBe(1);
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointercancel')));
+  await expect(noteVoiceButton('Start dictation')).toBeEnabled();
+  await finishNoteCall(1, 'late partial after cancellation');
+  await waitForVoiceDrain();
+  await expect(editor()).toHaveText('Notes: | existing ending');
+  expect(await app.evaluate(() => voiceTest.inputs())).toEqual([[1]]);
+  expect(await page.evaluate(() => notesTest.saves())).toEqual([]);
+});
+
+test('switching notes while the previous save is pending discards the late final', async () => {
+  await startNoteDictation();
+  await finishNoteCall(1, 'first partial');
+  await expect(editor()).toHaveText('Notes: first partial| existing ending');
+  await page.evaluate(() => {
+    notesTest.holdSaves();
+    window.dispatchEvent(new PointerEvent('pointerup'));
+  });
+  await expect.poll(() => app.evaluate(() => voiceTest.inputs().length)).toBe(2);
+  await page.getByRole('button', { name: /Second note/ }).click();
+  await expect.poll(() => page.evaluate(() => notesTest.saves().length)).toBeGreaterThan(0);
+  try {
+    const stillMounted = await editor().count();
+    await finishNoteCall(2, 'late final from first note');
+    await waitForVoiceDrain();
+    expect(stillMounted).toBe(0);
+  } finally {
+    await page.evaluate(() => notesTest.releaseSaves());
+  }
+  await expect(editor()).toHaveText('Other document');
+  await page.getByRole('button', { name: /First note/ }).click();
+  await expect(editor()).toHaveText('Notes: first partial| existing ending');
+  const saves = await page.evaluate(() => notesTest.saves());
+  expect(saves.every((save) => save.id === 1 && !save.content.includes('late final'))).toBe(true);
 });

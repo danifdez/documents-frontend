@@ -158,14 +158,16 @@ const buttonClass = computed(() => {
 // because the user may drag the pointer outside the button before
 // releasing.
 let holding = false;
+let pointerCancelled = false;
 
 function onPointerDown(ev: PointerEvent) {
   if (locked || props.disabled) return;
   if (state.value !== 'idle' && state.value !== 'error') return;
   if (ev.button !== 0) return; // primary button only
+  pointerCancelled = false;
   holding = true;
   window.addEventListener('pointerup', onWindowPointerUp);
-  window.addEventListener('pointercancel', onWindowPointerUp);
+  window.addEventListener('pointercancel', onWindowPointerCancel);
   void startSession().then(() => {
     // If released during startup, stop immediately.
     if (!holding && state.value === 'recording') {
@@ -174,10 +176,14 @@ function onPointerDown(ev: PointerEvent) {
   });
 }
 
-function onWindowPointerUp() {
+function releasePointer() {
   window.removeEventListener('pointerup', onWindowPointerUp);
-  window.removeEventListener('pointercancel', onWindowPointerUp);
+  window.removeEventListener('pointercancel', onWindowPointerCancel);
   holding = false;
+}
+
+function onWindowPointerUp() {
+  releasePointer();
   if (state.value === 'recording') {
     void stopSession();
   } else if (state.value === 'queued') {
@@ -187,12 +193,19 @@ function onWindowPointerUp() {
   // startSession to resolve and check `holding`.
 }
 
+function onWindowPointerCancel() {
+  releasePointer();
+  pointerCancelled = true;
+  setState('idle');
+  void cleanup();
+}
+
 async function startSession() {
   locked = true;
   try {
     setState('requestingPermission');
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    if (disposed) { await cleanup(); return; }
+    if (disposed || pointerCancelled) { await cleanup(); return; }
 
     if (typeof MediaRecorder === 'undefined') {
       throw new Error('MediaRecorder not available in this environment.');
@@ -206,7 +219,7 @@ async function startSession() {
     }
 
     await driver.start();
-    if (disposed) { await cleanup(); return; }
+    if (disposed || pointerCancelled) { await cleanup(); return; }
 
     // start() resolved → we have a worker assigned. Start recording now.
     const mimeType = pickMimeType();
@@ -225,7 +238,7 @@ async function startSession() {
     setState('recording');
   } catch (err) {
     await cleanup();
-    if (err instanceof VoiceCancelledError) {
+    if (pointerCancelled || err instanceof VoiceCancelledError) {
       setState('idle');
       return;
     }
@@ -359,8 +372,7 @@ async function cleanup() {
 
 onBeforeUnmount(() => {
   disposed = true;
-  window.removeEventListener('pointerup', onWindowPointerUp);
-  window.removeEventListener('pointercancel', onWindowPointerUp);
+  releasePointer();
   void cleanup();
 });
 </script>
