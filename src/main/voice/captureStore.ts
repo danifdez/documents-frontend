@@ -11,6 +11,9 @@ export const CAPTURE_LIMITS = { audioBytes: 4 * 1024 * 1024, journalBytes: 16 * 
   eventBytes: 128 * 1024, events: 5000, records: 64 };
 export const CAPTURE_MISSING = ['model.loaded_instance_identity', 'engine.native_binary_identity',
   'engine.effective_generation_defaults', 'code.runtime_fingerprints', 'renderer.delivery_ack', 'editor.effects'];
+const UNEXPOSED_NATIVE_SETTINGS = ['engine.compute_backend', 'engine.thread_count', 'engine.sampling_strategy',
+  'engine.beam_size', 'engine.temperature_schedule', 'engine.decoder_thresholds', 'engine.context_settings'];
+export const isDetectedLanguage = (value: unknown): value is string => typeof value === 'string' && /^[a-z]{2,3}$/.test(value);
 export function canonical(value: unknown): string {
   return JSON.stringify(value, (_key, item) => item && typeof item === 'object' && !Array.isArray(item)
     ? Object.fromEntries(Object.keys(item).sort().map((key) => [key, item[key]])) : item);
@@ -173,7 +176,7 @@ export class LocalCaptureStore {
       if (!body.length || body.length !== value.size || captureHash(body) !== value.sha256 || bytes !== value.totalBytes || bytes > CAPTURE_LIMITS.audioBytes) throw new Error('Local capture audio differs');
       artifacts[String(count)] = { sha256: String(value.sha256), size: body.length, base64: body.toString('base64') };
     }
-    const calls = new Map<number, { final: boolean; nativeRequested: boolean; completed?: string; modelInstanceId?: string; sent?: boolean }>();
+    const calls = new Map<number, { final: boolean; nativeRequested: boolean; detailRequested: boolean; completed?: string; modelInstanceId?: string; sent?: boolean }>();
     const observed: Buffer[] = [];
     for (const event of events) {
       const value = event.payload;
@@ -184,13 +187,22 @@ export class LocalCaptureStore {
         if (value.index !== calls.size + 1 || calls.size >= 128 || typeof value.final !== 'boolean' ||
             value.nativeRequested !== (audio.length > 0) || input?.sha256 !== captureHash(audio) ||
             input.bytes !== audio.length || input.chunks !== observed.length) throw new Error('Local capture call input differs');
-        calls.set(value.index as number, { final: value.final, nativeRequested: value.nativeRequested });
+        const parameters = value.parameters as Record<string, unknown> | undefined;
+        const detailRequested = parameters?.format === 'detail';
+        if (parameters && Object.hasOwn(parameters, 'format') && (!detailRequested || !value.nativeRequested)) {
+          throw new Error('Local capture result format differs');
+        }
+        calls.set(value.index as number, { final: value.final, nativeRequested: value.nativeRequested, detailRequested });
       }
       if (event.eventType === 'call.completed') {
         const call = calls.get(value.index as number);
         if (!call || call.completed !== undefined || call.final !== value.final || typeof value.text !== 'string' ||
             Buffer.byteLength(value.text) > 16 * 1024) throw new Error('Local capture call result differs');
         call.completed = value.text;
+        if (Object.hasOwn(value, 'detectedLanguage') !== call.detailRequested ||
+            (call.detailRequested && (value.nativeInvoked !== true || (value.detectedLanguage !== null && !isDetectedLanguage(value.detectedLanguage))))) {
+          throw new Error('Local capture detected language differs');
+        }
         if (Object.hasOwn(value, 'modelInstanceId')) {
           if (!call.nativeRequested || value.nativeInvoked !== true) throw new Error('Local capture model identity has no native call');
           call.modelInstanceId = captureId(value.modelInstanceId as string);
@@ -216,6 +228,7 @@ export class LocalCaptureStore {
     if (nativeCalls.length && nativeCalls.every((call) => call.modelInstanceId !== undefined)) {
       missing.splice(missing.indexOf('model.loaded_instance_identity'), 1);
     }
+    if (nativeCalls.some((call) => call.detailRequested)) missing.push(...UNEXPOSED_NATIVE_SETTINGS);
     if (torn) missing.push('capture.torn_tail');
     if (!closed.length) missing.push('capture.terminal_unconfirmed');
     const started = events.filter((event) => event.eventType === 'call.started');

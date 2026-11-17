@@ -38,6 +38,20 @@ async function completed() {
   return read();
 }
 describe('opt-in capture integrated with local dictation', () => {
+  it.each([
+    { segments: [{ text: 'Synthetic result', lang: 'en', tokens: ['private token'] }], expected: 'en' },
+    { segments: [{ text: 'Synthetic result', lang: 'en' }, { text: 'More text', lang: 'es' }], expected: null },
+    { segments: [], expected: null },
+  ])('records the language returned by the native detail response without retaining tokens', async ({ segments, expected }) => {
+    model.transcribe.mockResolvedValueOnce({ result: Promise.resolve(segments) });
+    const capture = await completed();
+    expect(model.transcribe).toHaveBeenCalledWith(expect.any(Float32Array), expect.objectContaining({ language: 'auto', format: 'detail' }));
+    expect(capture.events.find((event) => event.eventType === 'call.started')?.payload.parameters).toMatchObject({ language: 'auto', format: 'detail' });
+    expect(capture.events.find((event) => event.eventType === 'call.completed')?.payload.detectedLanguage).toBe(expected);
+    expect(capture.missing).toEqual(expect.arrayContaining(['engine.effective_generation_defaults', 'engine.thread_count', 'engine.beam_size']));
+    expect(JSON.stringify(capture)).not.toContain('private token');
+  });
+
   it('identifies the model returned by each task rather than the long-lived Whisper wrapper', async () => {
     const firstModel = { handle: 'private native value' };
     const reloadedModel = { handle: 'another private native value' };
@@ -114,6 +128,7 @@ describe('opt-in capture integrated with local dictation', () => {
   it('does not write any evidence for normal dictation', async () => {
     const start = await engine.startSession(owner.wc); engine.pushChunk(owner.wc, start.sessionId, Buffer.from([1]));
     await engine.stopSession(owner.wc, start.sessionId);
+    expect(model.transcribe.mock.calls[0][1]).not.toHaveProperty('format');
     await expect(fs.stat(root)).rejects.toMatchObject({ code: 'ENOENT' });
   });
   it('persists exact inputs once, actual PCM identity and bounded outputs', async () => {

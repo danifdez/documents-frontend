@@ -6,12 +6,12 @@ import { ensureModelDownloaded, isModelReady, modelPath, MODEL_MANIFEST } from '
 import { IpcEvents } from '../../ipc/channels';
 import { decodeAudio } from './decodeAudio';
 import { endianness } from 'node:os';
-import { CAPTURE_LIMITS, captureHash, localCaptureStore, type LocalCaptureStore, type CaptureWriter } from './captureStore';
+import { CAPTURE_LIMITS, captureHash, isDetectedLanguage, localCaptureStore, type LocalCaptureStore, type CaptureWriter } from './captureStore';
 import type { LocalVoiceStartOptions, LocalCaptureSnapshot } from '../../types/voice';
 import { loadVoiceBindings, validateEngineIdentity, type VoiceEngineIdentity } from './runtimeIdentity';
 
 interface WhisperLike {
-  transcribe(pcm: Float32Array, opts: { language: string; print_realtime: boolean; print_progress: boolean; print_timestamps: boolean; print_special: boolean }): Promise<{ result: Promise<{ text: string }[]>; model?: object }>;
+  transcribe(pcm: Float32Array, opts: { language: string; print_realtime: boolean; print_progress: boolean; print_timestamps: boolean; print_special: boolean; format?: 'detail' }): Promise<{ result: Promise<{ text: string; lang?: string }[]>; model?: object }>;
   free(): Promise<void>;
 }
 interface WhisperCtor { new (file: string, opts: { gpu: boolean }): WhisperLike }
@@ -257,7 +257,8 @@ export class LocalEngine {
       try {
         const index = s.calls + 1;
         if (index > VOICE_LIMITS.calls) throw new Error('Call limit exceeded');
-        const parameters = { language: 'auto', print_realtime: false, print_progress: false, print_timestamps: false, print_special: false };
+        const parameters = { language: 'auto', print_realtime: false, print_progress: false, print_timestamps: false, print_special: false,
+          ...(s.capture && audio.length ? { format: 'detail' as const } : {}) };
         if (s.capture) await s.capture.event('call.started', { index, final, parameters, nativeRequested: audio.length > 0, input: { sha256: captureHash(audio), bytes: audio.length, chunks: s.chunks.length } });
         if (s.phase !== expected) return;
         s.calls = index;
@@ -282,6 +283,11 @@ export class LocalEngine {
           this.runtime.identity?.();
           details = { decoded,
             decodeUs: Number((decodeEnd - decodeStart) / 1000n), inferenceUs: Number((inferenceEnd - inferenceStart) / 1000n), modelReadyBeforeAndAfter: true };
+          if (parameters.format === 'detail') {
+            const detectedLanguage = segments[0]?.lang;
+            details.detectedLanguage = isDetectedLanguage(detectedLanguage) && segments.every((segment) => segment.lang === detectedLanguage)
+              ? detectedLanguage : null;
+          }
           // The task holds the model used by the native call, including after a reload.
           if (s.capture && task.model) {
             const modelInstanceId = this.modelInstances.get(task.model) ?? randomUUID();
