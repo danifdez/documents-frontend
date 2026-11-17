@@ -127,7 +127,7 @@ vi.mock("@/services/api", () => ({
 
 ## Isolated local voice safety checks
 
-These checks use the production IPC bridge, driver and voice button with a
+By default, these checks use the production IPC bridge, driver and voice button with a
 simulated recognizer and decoder. They do not access a microphone, load/download
 speech models, start Backend/Models or run the database reset setup.
 
@@ -142,6 +142,14 @@ configuration builds only the test harness and actual voice components, uses
 Electron's sandbox, and keeps a separate profile for each test. Profiles and
 artifacts are retained for inspection; the normal E2E global setup and its
 `manage reset` are not used. The harness controls never ship in the application.
+
+For the editor timing run, set `VOICE_TEST_TIMING_MANIFEST` to an absolute path to
+a private JSON manifest with `model` (the installed, pinned GGML file) and `trials`
+(objects with `label`, `audio`, and `frames`). Each audio file must be an authorized
+16 kHz mono PCM16 WAV with a 44-byte header. Use a fresh `VOICE_SAFETY_OUTPUT` and
+select `-g 'measure real dictation latency'`. The test uses the real local engine
+and editor with a paced test recorder, then exports one capture and renderer-clock
+timeline per trial in `timing/`.
 
 
 The local model preparation tests in `tests/voice/modelManager.spec.ts` use tiny

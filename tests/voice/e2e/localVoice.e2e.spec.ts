@@ -3,32 +3,93 @@ import { build as bundle } from 'esbuild';
 import { build } from '../../../node_modules/vite/dist/node/index.js';
 import vue from '@vitejs/plugin-vue';
 import * as fs from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import * as path from 'node:path';
+import { installTimedAudio, observeEditorTiming, type EditorTiming } from './fixtures/editorTiming';
 declare const voiceTest: { inputs(): number[][]; loads(): number; finish(text: string): void; armEditorCapture(requestId: string): void };
 declare const notesTest: { holdSaves(): void; releaseSaves(): void; saves(): { id: number; content: string }[] };
+declare const editorTiming: EditorTiming;
 const root = path.resolve(__dirname, '../../..');
 const output = process.env.VOICE_SAFETY_OUTPUT!;
+const benchmarkTitle = 'measure real dictation latency in the note editor';
+const benchmarkManifest = process.env.VOICE_TEST_TIMING_MANIFEST;
 let app: ElectronApplication;
 let page: Page;
 let profile: string;
-function launchOptions() {
-  return { args: [path.join(output, 'main.cjs'), '--evaluation-capture'], env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined,
-    VOICE_TEST_PROFILE: profile, VOICE_TEST_HTML: path.join(output, 'renderer/index.html'), VOICE_TEST_PRELOAD: path.join(output, 'preload.cjs') } };
+let mainBundle: string;
+function launchOptions(realEngine = false) {
+  return { args: [mainBundle, '--evaluation-capture'], env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined,
+    VOICE_TEST_PROFILE: profile, VOICE_TEST_HTML: path.join(output, 'renderer/index.html'), VOICE_TEST_PRELOAD: path.join(output, 'preload.cjs'),
+    VOICE_TEST_REAL_ENGINE: realEngine ? '1' : undefined } };
 }
 test.beforeAll(async () => {
   if (!output || !path.isAbsolute(output)) throw new Error('An explicit isolated output directory is required');
   await build({ configFile: false, root: path.join(__dirname, 'fixtures'), base: './', plugins: [vue()], build: { outDir: path.join(output, 'renderer'), emptyOutDir: false }, logLevel: 'error' });
-  await bundle({ entryPoints: [path.join(__dirname, 'fixtures/main.ts')], outfile: path.join(output, 'main.cjs'), bundle: true, platform: 'node', external: ['electron', 'smart-whisper', 'ffmpeg-static'] });
+  let mainDirectory = output;
+  if (benchmarkManifest) {
+    const buildCache = path.join(root, '.vite');
+    await fs.mkdir(buildCache, { recursive: true });
+    mainDirectory = await fs.mkdtemp(path.join(buildCache, 'voice-timing-'));
+  }
+  mainBundle = path.join(mainDirectory, 'main.cjs');
+  await bundle({ entryPoints: [path.join(__dirname, 'fixtures/main.ts')], outfile: mainBundle, bundle: true, platform: 'node', external: ['electron', 'smart-whisper', 'ffmpeg-static'] });
   await bundle({ entryPoints: [path.join(root, 'src/preload.ts')], outfile: path.join(output, 'preload.cjs'), bundle: true, platform: 'node', external: ['electron'] });
 });
 test.beforeEach(async ({ playwright }, info) => {
-  profile = path.join(output, 'profiles', `${Date.now()}-${info.testId}`); await fs.mkdir(profile, { recursive: true });
-  app = await playwright._electron.launch(launchOptions());
+  const realEngine = info.title === benchmarkTitle;
+  test.skip(realEngine && !benchmarkManifest, 'Opt-in real voice timing with a pinned model and authorized audio');
+  profile = path.join(output, 'profiles', `${Date.now()}-${info.testId}`); await fs.mkdir(profile, { recursive: true, mode: 0o700 });
+  if (realEngine) {
+    const { model } = await readBenchmark();
+    await fs.mkdir(path.join(profile, 'voice-models'), { mode: 0o700 });
+    const target = path.join(profile, 'voice-models', 'whisper-base.ggml');
+    await fs.copyFile(model, target, constants.COPYFILE_EXCL);
+    await fs.chmod(target, 0o600);
+  }
+  app = await playwright._electron.launch(launchOptions(realEngine));
   page = await app.firstWindow();
   await expect.poll(() => app.windows().length).toBe(2);
   for (const window of app.windows()) { await window.waitForURL(/index.html/); await window.waitForLoadState(); }
   await expect.poll(() => page.evaluate(() => window.voice!.refreshAvailability())).toBe(true);
+});
+
+interface TimingCase { label: string; audio: string; frames: number }
+async function readBenchmark(): Promise<{ model: string; trials: TimingCase[] }> {
+  if (!benchmarkManifest || !path.isAbsolute(benchmarkManifest)) throw new Error('Use a private timing manifest');
+  return JSON.parse(await fs.readFile(benchmarkManifest, 'utf8'));
+}
+
+test(benchmarkTitle, async () => {
+  test.setTimeout(20 * 60 * 1000);
+  const { trials } = await readBenchmark();
+  const directory = path.join(output, 'timing');
+  await fs.mkdir(directory, { mode: 0o700 });
+  for (const [index, trial] of trials.entries()) {
+    await test.step(`${index + 1} ${trial.label}`, async () => {
+      if (index) {
+        await page.reload();
+        await expect.poll(() => page.evaluate(() => window.voice!.refreshAvailability())).toBe(true);
+      }
+      const audio = await fs.readFile(trial.audio);
+      if (audio.length !== 44 + trial.frames * 2 || audio.length > 4 * 1024 * 1024) throw new Error('Unexpected WAV fixture size');
+      await page.evaluate(installTimedAudio, audio.toString('base64'));
+      const requestId = await startNoteDictation();
+      await page.evaluate(observeEditorTiming, requestId);
+      await expect.poll(() => page.evaluate(() => editorTiming.audioEndedUs !== null && editorTiming.outputs.some((event) => !event.final && event.editorApplied)), { timeout: 75000 }).toBe(true);
+      await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerup')));
+      await expect.poll(() => page.evaluate(() => editorTiming.outputs.some((event) => event.final && event.editorApplied)), { timeout: 90000 }).toBe(true);
+      await expect.poll(() => page.evaluate(async (id) => {
+        const status = await window.voice!.getStatusLocal(id);
+        return status.status;
+      }, requestId)).toBe('completed');
+      const capture = await page.evaluate((id) => window.voice!.getCaptureLocal(id, true), requestId);
+      const timing = await page.evaluate(() => editorTiming);
+      await fs.writeFile(path.join(directory, `${String(index).padStart(3, '0')}-${requestId}.json`), JSON.stringify({
+        capture, evidence_mode: 'observed', timing, trial: { index, label: trial.label, frames: trial.frames },
+      }), { flag: 'wx', mode: 0o600 });
+    });
+  }
 });
 test.afterEach(async () => { await app?.close(); });
 async function startAndStop() {
@@ -131,18 +192,23 @@ test('cancelled capture keeps its incomplete call without publishing late text',
 const editor = () => page.locator('.notes-overlay .ProseMirror');
 const noteVoiceButton = (name: string) => page.locator('.notes-overlay').getByRole('button', { name });
 
-async function startNoteDictation() {
+async function openNoteEditor() {
   await page.getByRole('button', { name: 'Open notes' }).click();
   await page.getByRole('button', { name: /First note/ }).click();
   await expect(editor()).toHaveText('Notes: | existing ending');
-  await editor().evaluate((node) => {
+}
+
+async function startNoteDictation(selectSuffix = false) {
+  await openNoteEditor();
+  await editor().evaluate((node, select) => {
     (node as HTMLElement).focus();
-    window.getSelection()!.collapse(node.querySelector('p')!.lastChild!, 1);
-  });
+    const suffix = node.querySelector('p')!.lastChild!;
+    window.getSelection()!.setBaseAndExtent(suffix, 1, suffix, select ? suffix.textContent!.length : 1);
+  }, selectSuffix);
   await expect.poll(() => editor().evaluate((node) => {
-    const tiptap = (node as HTMLElement & { editor: { state: { selection: { from: number } } } }).editor;
-    return tiptap.state.selection.from;
-  })).toBe('Notes: '.length + 1);
+    const tiptap = (node as HTMLElement & { editor: { state: { selection: { from: number; to: number } } } }).editor;
+    return [tiptap.state.selection.from, tiptap.state.selection.to];
+  })).toEqual(['Notes: '.length + 1, (selectSuffix ? 'Notes: | existing ending'.length : 'Notes: '.length) + 1]);
   const requestId = randomUUID();
   await app.evaluate((_electron, id) => voiceTest.armEditorCapture(id), requestId);
   await noteVoiceButton('Start dictation').dispatchEvent('pointerdown', { button: 0 });
@@ -254,4 +320,53 @@ test('switching notes while the previous save is pending discards the late final
     first_partial: firstPartial, editors_during_save: stillMounted, second_note: secondNote,
     first_note_after_return: await editor().textContent(), saves,
   });
+});
+
+test('note dictation handles permission denial without changing the note', async () => {
+  await openNoteEditor();
+  await page.evaluate(() => {
+    navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('Permission denied', 'NotAllowedError'); };
+  });
+  const button = noteVoiceButton('Start dictation');
+  await button.dispatchEvent('pointerdown', { button: 0 });
+  await expect(button).toHaveAttribute('title', 'Microphone permission denied. Enable it in your system settings.');
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerup')));
+  await expect(editor()).toHaveText('Notes: | existing ending');
+  expect(await app.evaluate(() => voiceTest.inputs())).toEqual([]);
+  expect(await page.evaluate(() => notesTest.saves())).toEqual([]);
+});
+
+test('note dictation preserves a prior selection when the caret and focus move', async () => {
+  await startNoteDictation(true);
+  await editor().evaluate((node) => {
+    const suffix = node.querySelector('p')!.lastChild!;
+    window.getSelection()!.collapse(suffix, suffix.textContent!.length);
+  });
+  await page.getByPlaceholder('Note title').focus();
+  await finishNoteCall(1, 'draft');
+  await expect(editor()).toHaveText('Notes: draft| existing ending');
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerup')));
+  await finishNoteCall(2, 'final');
+  await expect(noteVoiceButton('Start dictation')).toBeEnabled();
+  await expect(editor()).toHaveText('Notes: final| existing ending');
+});
+
+test('empty partial and final recognition leave the note text unchanged', async () => {
+  const requestId = await startNoteDictation();
+  await finishNoteCall(1, '');
+  await expect.poll(() => page.evaluate(async (id) => {
+    try {
+      const capture = await window.voice!.getCaptureLocal(id, true);
+      return capture.events.some((event) => event.eventType === 'output.sent' && event.payload.final === false);
+    } catch {
+      return false; // The partial may still be committed to the journal.
+    }
+  }, requestId)).toBe(true);
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerup')));
+  await finishNoteCall(2, '');
+  await expect.poll(() => page.evaluate(async (id) => (await window.voice!.getStatusLocal(id)).status, requestId)).toBe('completed');
+  const capture = await page.evaluate((id) => window.voice!.getCaptureLocal(id, true), requestId);
+  expect(capture.events.filter((event) => event.eventType === 'call.completed').map((event) => event.payload.text)).toEqual(['', '']);
+  await expect(editor()).toHaveText('Notes: | existing ending');
+  expect(await page.evaluate(() => notesTest.saves())).toEqual([]);
 });

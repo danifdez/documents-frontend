@@ -9,7 +9,8 @@ const inputs: number[][] = [];
 let loads = 0;
 let armedCapture: string | undefined;
 const pending: ((segments: { text: string }[]) => void)[] = [];
-const engine = new LocalEngine({
+const liveEngine = process.env.VOICE_TEST_REAL_ENGINE === '1';
+const engine = liveEngine ? new LocalEngine(undefined, undefined, { allowModelDownload: false }) : new LocalEngine({
   available: () => true, hasModel: async () => true,
   load: async () => { loads++; return { transcribe: async () => ({ result: new Promise((resolve) => pending.push(resolve)) }), free: async () => undefined }; },
   decode: async (input) => { inputs.push([...input]); return new Float32Array([1]); },
@@ -31,8 +32,10 @@ Object.assign(globalThis, { voiceTest: {
   },
 } });
 app.whenReady().then(async () => {
-  const windows = [new BrowserWindow({ show: false, webPreferences: { preload: process.env.VOICE_TEST_PRELOAD! } }),
-    new BrowserWindow({ show: false, webPreferences: { preload: process.env.VOICE_TEST_PRELOAD! } })];
+  const createWindow = () => new BrowserWindow({ show: false, webPreferences: {
+    preload: process.env.VOICE_TEST_PRELOAD!, backgroundThrottling: !liveEngine,
+  } });
+  const windows = [createWindow(), createWindow()];
   const captureAllowed = (sender: Electron.WebContents) => process.argv.includes('--evaluation-capture') && sender === windows[0].webContents;
   const handlers = createVoiceHandlers((sender) => windows.some((window) => window.webContents === sender), engine, captureAllowed);
   const start = handlers[IpcChannels.voice.start]!;
@@ -46,7 +49,7 @@ app.whenReady().then(async () => {
     const requestId = armedCapture;
     armedCapture = undefined;
     editorCapture = { id: requestId, sequence: 0 };
-    return start(event, { capture: { requestId, consent: 'granted', purpose: 'evaluation', mediaType: 'audio/webm;codecs=opus' } });
+    return start(event, { capture: { requestId, consent: 'granted', purpose: 'evaluation', mediaType: liveEngine ? 'audio/wav' : 'audio/webm;codecs=opus' } });
   };
   handlers[IpcChannels.voice.chunk] = (event, id: unknown, data: unknown, sequence?: number) => {
     if (editorCapture && id === editorCapture.id && sequence === undefined && captureAllowed(event.sender) && event.senderFrame === event.sender.mainFrame) {

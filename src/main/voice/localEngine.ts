@@ -250,16 +250,37 @@ export class LocalEngine {
   }
 
   private run(s: Session, final: boolean): Promise<void> {
-    const audio = Buffer.concat(s.chunks);
     const expected: Phase = final ? 'stopping' : 'recording';
     const timer = setTimeout(() => this.fail(s, 'Local voice processing timed out'), VOICE_LIMITS.callMs);
     const work = (async () => {
       try {
         const index = s.calls + 1;
         if (index > VOICE_LIMITS.calls) throw new Error('Call limit exceeded');
-        const parameters = { language: 'auto', print_realtime: false, print_progress: false, print_timestamps: false, print_special: false,
-          ...(s.capture && audio.length ? { format: 'detail' as const } : {}) };
-        if (s.capture) await s.capture.event('call.started', { index, final, parameters, nativeRequested: audio.length > 0, input: { sha256: captureHash(audio), bytes: audio.length, chunks: s.chunks.length } });
+        const snapshotInput = () => {
+          const audio = Buffer.concat(s.chunks);
+          const parameters = { language: 'auto', print_realtime: false, print_progress: false, print_timestamps: false, print_special: false,
+            ...(s.capture && audio.length ? { format: 'detail' as const } : {}) };
+          return { audio, parameters };
+        };
+        const capture = s.capture;
+        let input;
+        if (capture) {
+          // Record a prefix after the preceding checked writes and before later chunks.
+          const started = s.inputWrites.then(async () => {
+            if (s.phase !== expected) return;
+            const snapshot = snapshotInput();
+            const { audio, parameters } = snapshot;
+            await capture.event('call.started', { index, final, parameters, nativeRequested: audio.length > 0,
+              input: { sha256: captureHash(audio), bytes: audio.length, chunks: s.chunks.length } });
+            return snapshot;
+          });
+          s.inputWrites = started.then((): undefined => undefined, (): undefined => undefined);
+          input = await started;
+        } else {
+          input = snapshotInput();
+        }
+        if (!input) return;
+        const { audio, parameters } = input;
         if (s.phase !== expected) return;
         s.calls = index;
         let text = '';

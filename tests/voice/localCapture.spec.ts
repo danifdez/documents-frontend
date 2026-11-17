@@ -131,6 +131,40 @@ describe('opt-in capture integrated with local dictation', () => {
     expect(model.transcribe.mock.calls[0][1]).not.toHaveProperty('format');
     await expect(fs.stat(root)).rejects.toMatchObject({ code: 'ENOENT' });
   });
+  it('records exactly the confirmed input prefix when a partial races an input acknowledgement', async () => {
+    vi.useFakeTimers();
+    try {
+      const start = await engine.startSession(owner.wc, options);
+      await engine.pushChunk(owner.wc, start.sessionId, Buffer.from([1]), 1);
+      let release!: () => void;
+      let committed!: () => void;
+      const acknowledged = new Promise<void>((resolve) => { release = resolve; });
+      const committedOnDisk = new Promise<void>((resolve) => { committed = resolve; });
+      const write = CaptureWriter.prototype.input;
+      vi.spyOn(CaptureWriter.prototype, 'input').mockImplementationOnce(async function (this: CaptureWriter, sequence, body) {
+        const stored = await write.call(this, sequence, body);
+        committed();
+        await acknowledged;
+        return stored;
+      });
+      const second = engine.pushChunk(owner.wc, start.sessionId, Buffer.from([2]), 2);
+      await committedOnDisk;
+      await vi.advanceTimersByTimeAsync(2000);
+      const third = engine.pushChunk(owner.wc, start.sessionId, Buffer.from([3]), 3);
+      release();
+      await Promise.all([second, third]);
+      await engine.stopSession(owner.wc, start.sessionId);
+      const capture = await read();
+      const calls = capture.events.filter((event) => event.eventType === 'call.started');
+      expect(calls.map((event) => event.payload.input)).toEqual([
+        { sha256: captureHash(Buffer.from([1, 2])), bytes: 2, chunks: 2 },
+        { sha256: captureHash(Buffer.from([1, 2, 3])), bytes: 3, chunks: 3 },
+      ]);
+      expect(capture.status).toBe('completed');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('persists exact inputs once, actual PCM identity and bounded outputs', async () => {
     model.transcribe.mockImplementationOnce(async (pcm: Float32Array) => { pcm[0] = 9; return { result: Promise.resolve([{ text: 'Synthetic result' }]) }; });
     const start = await engine.startSession(owner.wc, options);
