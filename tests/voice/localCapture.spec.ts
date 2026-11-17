@@ -38,6 +38,31 @@ async function completed() {
   return read();
 }
 describe('opt-in capture integrated with local dictation', () => {
+  it('identifies the model returned by each task rather than the long-lived Whisper wrapper', async () => {
+    const firstModel = { handle: 'private native value' };
+    const reloadedModel = { handle: 'another private native value' };
+    model.transcribe.mockImplementation(async () => ({
+      model: firstModel, result: Promise.resolve([{ text: 'Synthetic result' }]),
+    }));
+    const first = await completed();
+    options.capture.requestId = randomUUID();
+    const reused = await completed();
+    model.transcribe.mockImplementationOnce(async () => ({
+      model: reloadedModel, result: Promise.resolve([{ text: 'Synthetic result' }]),
+    }));
+    options.capture.requestId = randomUUID();
+    const reloaded = await completed();
+    const instance = (capture: LocalCaptureSnapshot) => capture.events.find((event) => event.eventType === 'call.completed')?.payload.modelInstanceId;
+    expect(instance(first)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(instance(reused)).toBe(instance(first));
+    expect(instance(reloaded)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(instance(reloaded)).not.toBe(instance(first));
+    expect(runtime.load).toHaveBeenCalledTimes(1);
+    expect(reloaded.missing).not.toContain('model.loaded_instance_identity');
+    expect(reloaded.missing).toContain('engine.effective_generation_defaults');
+    expect(JSON.stringify(reloaded)).not.toContain('private native value');
+  });
+
   it('retains observed engine identity in the same journal and reopens it without invoking the runtime', async () => {
     const binary = { sha256: captureHash('simulated binary'), sizeBytes: 16 };
     const identity: VoiceEngineIdentity = { adapter: { name: 'smart-whisper', version: '0.8.1', entry: binary }, nativeBinary: binary,

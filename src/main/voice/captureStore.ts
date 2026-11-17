@@ -173,7 +173,7 @@ export class LocalCaptureStore {
       if (!body.length || body.length !== value.size || captureHash(body) !== value.sha256 || bytes !== value.totalBytes || bytes > CAPTURE_LIMITS.audioBytes) throw new Error('Local capture audio differs');
       artifacts[String(count)] = { sha256: String(value.sha256), size: body.length, base64: body.toString('base64') };
     }
-    const calls = new Map<number, { final: boolean; completed?: string; sent?: boolean }>();
+    const calls = new Map<number, { final: boolean; nativeRequested: boolean; completed?: string; modelInstanceId?: string; sent?: boolean }>();
     const observed: Buffer[] = [];
     for (const event of events) {
       const value = event.payload;
@@ -184,13 +184,17 @@ export class LocalCaptureStore {
         if (value.index !== calls.size + 1 || calls.size >= 128 || typeof value.final !== 'boolean' ||
             value.nativeRequested !== (audio.length > 0) || input?.sha256 !== captureHash(audio) ||
             input.bytes !== audio.length || input.chunks !== observed.length) throw new Error('Local capture call input differs');
-        calls.set(value.index as number, { final: value.final });
+        calls.set(value.index as number, { final: value.final, nativeRequested: value.nativeRequested });
       }
       if (event.eventType === 'call.completed') {
         const call = calls.get(value.index as number);
         if (!call || call.completed !== undefined || call.final !== value.final || typeof value.text !== 'string' ||
             Buffer.byteLength(value.text) > 16 * 1024) throw new Error('Local capture call result differs');
         call.completed = value.text;
+        if (Object.hasOwn(value, 'modelInstanceId')) {
+          if (!call.nativeRequested || value.nativeInvoked !== true) throw new Error('Local capture model identity has no native call');
+          call.modelInstanceId = captureId(value.modelInstanceId as string);
+        }
       }
       if (event.eventType === 'output.sent') {
         const call = calls.get(value.index as number);
@@ -208,6 +212,10 @@ export class LocalCaptureStore {
     if (identities.length > 1 || (identities.length && identities[0].sequence !== 2)) throw new Error('Local capture engine identity order differs');
     if (identities.length) validateEngineIdentity(identities[0].payload);
     const missing = identities.length ? [...CAPTURE_MISSING.filter((item) => item !== 'engine.native_binary_identity'), ...ENGINE_IDENTITY_MISSING] : [...CAPTURE_MISSING];
+    const nativeCalls = [...calls.values()].filter((call) => call.nativeRequested);
+    if (nativeCalls.length && nativeCalls.every((call) => call.modelInstanceId !== undefined)) {
+      missing.splice(missing.indexOf('model.loaded_instance_identity'), 1);
+    }
     if (torn) missing.push('capture.torn_tail');
     if (!closed.length) missing.push('capture.terminal_unconfirmed');
     const started = events.filter((event) => event.eventType === 'call.started');

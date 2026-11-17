@@ -11,7 +11,7 @@ import type { LocalVoiceStartOptions, LocalCaptureSnapshot } from '../../types/v
 import { loadVoiceBindings, validateEngineIdentity, type VoiceEngineIdentity } from './runtimeIdentity';
 
 interface WhisperLike {
-  transcribe(pcm: Float32Array, opts: { language: string; print_realtime: boolean; print_progress: boolean; print_timestamps: boolean; print_special: boolean }): Promise<{ result: Promise<{ text: string }[]> }>;
+  transcribe(pcm: Float32Array, opts: { language: string; print_realtime: boolean; print_progress: boolean; print_timestamps: boolean; print_special: boolean }): Promise<{ result: Promise<{ text: string }[]>; model?: object }>;
   free(): Promise<void>;
 }
 interface WhisperCtor { new (file: string, opts: { gpu: boolean }): WhisperLike }
@@ -92,6 +92,7 @@ interface Session {
 export class LocalEngine {
   private session: Session | null = null;
   private whisper: WhisperLike | null = null;
+  private readonly modelInstances = new WeakMap<object, string>();
   private preloadPromise: Promise<void> | null = null;
   private closing = false;
   constructor(private readonly runtime: VoiceRuntime = defaultRuntime, private readonly captures: LocalCaptureStore = localCaptureStore, private readonly options = { allowModelDownload: true }) {}
@@ -281,6 +282,12 @@ export class LocalEngine {
           this.runtime.identity?.();
           details = { decoded,
             decodeUs: Number((decodeEnd - decodeStart) / 1000n), inferenceUs: Number((inferenceEnd - inferenceStart) / 1000n), modelReadyBeforeAndAfter: true };
+          // The task holds the model used by the native call, including after a reload.
+          if (s.capture && task.model) {
+            const modelInstanceId = this.modelInstances.get(task.model) ?? randomUUID();
+            this.modelInstances.set(task.model, modelInstanceId);
+            details.modelInstanceId = modelInstanceId;
+          }
           text = segments.map((segment) => segment.text).join(' ').trim();
           if (Buffer.byteLength(text) > VOICE_LIMITS.textBytes) throw new Error('Output limit exceeded');
         }
