@@ -8,6 +8,7 @@ import { decodeAudio } from './decodeAudio';
 import { endianness } from 'node:os';
 import { CAPTURE_LIMITS, captureHash, localCaptureStore, type LocalCaptureStore, type CaptureWriter } from './captureStore';
 import type { LocalVoiceStartOptions, LocalCaptureSnapshot } from '../../types/voice';
+import { loadVoiceBindings, validateEngineIdentity, type VoiceEngineIdentity } from './runtimeIdentity';
 
 interface WhisperLike {
   transcribe(pcm: Float32Array, opts: { language: string; print_realtime: boolean; print_progress: boolean; print_timestamps: boolean; print_special: boolean }): Promise<{ result: Promise<{ text: string }[]> }>;
@@ -19,26 +20,22 @@ export interface VoiceRuntime {
   hasModel(): Promise<boolean>;
   load(progress: (p: LocalModelProgress) => void, options?: { allowModelDownload: boolean }): Promise<WhisperLike>;
   decode(input: Buffer, signal: AbortSignal): Promise<Float32Array>;
+  identity?(): VoiceEngineIdentity;
 }
 
 let WhisperClass: WhisperCtor | null = null;
-let ffmpegPath: string | null = null;
+let bindings: ReturnType<typeof loadVoiceBindings> | undefined;
 let bindingsAttempted = false;
 function tryLoadBindings(): boolean {
   if (!bindingsAttempted) {
     bindingsAttempted = true;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional native modules
-      const sw = require('smart-whisper');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional native modules
-      const ffmpeg = require('ffmpeg-static');
-      if (typeof sw?.Whisper === 'function' && typeof ffmpeg === 'string') {
-        WhisperClass = sw.Whisper;
-        ffmpegPath = ffmpeg;
-      }
+      bindings = loadVoiceBindings();
+      WhisperClass = bindings.Whisper;
     } catch { /* Local voice remains unavailable. */ }
   }
-  return WhisperClass !== null && ffmpegPath !== null;
+  try { bindings?.verify(); return WhisperClass !== null && bindings !== undefined; }
+  catch { return false; }
 }
 const defaultRuntime: VoiceRuntime = {
   available: tryLoadBindings,
@@ -47,9 +44,16 @@ const defaultRuntime: VoiceRuntime = {
     if (!tryLoadBindings()) throw new Error('Local voice is unavailable');
     if (options?.allowModelDownload !== false) await ensureModelDownloaded(progress);
     else if (!(await isModelReady())) throw new Error('Local model must already be installed');
+    bindings!.verify();
     return new WhisperClass!(modelPath(), { gpu: false });
   },
-  decode: (input, signal) => decodeAudio(ffmpegPath!, input, signal),
+  async decode(input, signal) {
+    bindings!.verify();
+    const pcm = await decodeAudio(bindings!.decoder, input, signal);
+    bindings!.verify();
+    return pcm;
+  },
+  identity: () => bindings!.identity(),
 };
 
 export const VOICE_LIMITS = {
@@ -146,6 +150,12 @@ export class LocalEngine {
       if (!this.isAvailable()) throw new Error('Local voice is unavailable');
       await this.preload(owner);
       if (s.phase !== 'starting' || owner.isDestroyed()) throw new Error('Local voice session was cancelled');
+      if (s.capture && this.runtime.identity) {
+        const identity = this.runtime.identity();
+        validateEngineIdentity(identity);
+        await s.capture.event('engine.observed', identity as unknown as Record<string, unknown>);
+        if (s.phase !== 'starting') throw new Error('Local voice session was cancelled');
+      }
       s.phase = 'recording';
       if (s.capture) await s.capture.event('session.recording', {});
       if (s.phase !== 'recording') throw new Error('Local voice session was cancelled');
@@ -260,6 +270,7 @@ export class LocalEngine {
           if (s.phase !== expected) return;
           if (!(await this.runtime.hasModel())) throw new Error('Local voice model verification failed');
           if (s.phase !== expected) return;
+          this.runtime.identity?.();
           const inferenceStart = process.hrtime.bigint();
           const task = await this.whisper!.transcribe(pcm, parameters);
           const segments = await task.result;
@@ -267,6 +278,7 @@ export class LocalEngine {
           if (s.phase !== expected) return;
           if (!(await this.runtime.hasModel())) throw new Error('Local voice model verification failed');
           if (s.phase !== expected) return;
+          this.runtime.identity?.();
           details = { decoded,
             decodeUs: Number((decodeEnd - decodeStart) / 1000n), inferenceUs: Number((inferenceEnd - inferenceStart) / 1000n), modelReadyBeforeAndAfter: true };
           text = segments.map((segment) => segment.text).join(' ').trim();

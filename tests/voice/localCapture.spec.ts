@@ -12,6 +12,7 @@ import { CaptureWriter, LocalCaptureStore, captureHash } from '@/main/voice/capt
 import { createVoiceHandlers } from '@/main/ipc/voice-handlers';
 import { IpcChannels, IpcEvents } from '@/ipc/channels';
 import type { LocalVoiceStartOptions, LocalCaptureSnapshot } from '@/types/voice';
+import { ENGINE_IDENTITY_MISSING, type VoiceEngineIdentity } from '@/main/voice/runtimeIdentity';
 class Window extends EventEmitter {
   send = vi.fn(); mainFrame = {}; isDestroyed() { return false; }
   get wc() { return this as unknown as WebContents; }
@@ -37,6 +38,33 @@ async function completed() {
   return read();
 }
 describe('opt-in capture integrated with local dictation', () => {
+  it('retains observed engine identity in the same journal and reopens it without invoking the runtime', async () => {
+    const binary = { sha256: captureHash('simulated binary'), sizeBytes: 16 };
+    const identity: VoiceEngineIdentity = { adapter: { name: 'smart-whisper', version: '0.8.1', entry: binary }, nativeBinary: binary,
+      decoder: { source: 'system', binary }, runtime: { platform: 'linux', arch: 'x64', node: '24.0.0', electron: '44.7.2', modules: '149' },
+      verification: 'module_load_and_file_checks' };
+    runtime.identity = vi.fn(() => identity);
+    const capture = await completed();
+    expect(capture.events[1]).toMatchObject({ eventType: 'engine.observed', payload: identity });
+    expect(capture.events.filter((event) => event.eventType === 'engine.observed')).toHaveLength(1);
+    expect(capture.missing).not.toContain('engine.native_binary_identity');
+    expect(capture.missing).toEqual(expect.arrayContaining(['model.loaded_instance_identity', 'engine.effective_generation_defaults', ...ENGINE_IDENTITY_MISSING]));
+    const bytes = await fs.readFile(path.join(root, options.capture.requestId, 'events.jsonl'));
+    vi.mocked(runtime.identity).mockClear(); vi.mocked(runtime.load).mockClear(); model.transcribe.mockClear();
+    for (let i = 0; i < 3; i++) {
+      expect(await engine.startSession(owner.wc, options)).toMatchObject({ claimed: false, status: 'completed' });
+      expect(await read()).toEqual(capture);
+    }
+    expect(runtime.identity).not.toHaveBeenCalled(); expect(runtime.load).not.toHaveBeenCalled(); expect(model.transcribe).not.toHaveBeenCalled();
+    expect(await fs.readFile(path.join(root, options.capture.requestId, 'events.jsonl'))).toEqual(bytes);
+  });
+  it('fails before accepting audio if engine identity includes unapproved fields', async () => {
+    runtime.identity = vi.fn(() => ({ path: '/private/SECRET' }) as unknown as VoiceEngineIdentity);
+    await expect(engine.startSession(owner.wc, options)).rejects.toThrow('capture could not be started');
+    const snapshot = await read(); expect(snapshot.status).toBe('failed');
+    expect(snapshot.missing).toContain('engine.native_binary_identity'); expect(JSON.stringify(snapshot)).not.toContain('SECRET');
+    expect(model.transcribe).not.toHaveBeenCalled();
+  });
   it('reports active preparation without reading a journal that is still being created', async () => {
     let resolve!: (value: typeof model) => void;
     vi.mocked(runtime.load).mockImplementationOnce(() => new Promise((done) => { resolve = done; }));

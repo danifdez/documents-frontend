@@ -5,6 +5,7 @@ import * as fs from 'node:fs';
 import * as fsp from 'node:fs/promises';
 import * as path from 'node:path';
 import type { LocalCaptureOptions, LocalCaptureSnapshot, LocalCaptureEvent } from '../../types/voice';
+import { ENGINE_IDENTITY_MISSING, validateEngineIdentity } from './runtimeIdentity';
 
 export const CAPTURE_LIMITS = { audioBytes: 4 * 1024 * 1024, journalBytes: 16 * 1024 * 1024,
   eventBytes: 128 * 1024, events: 5000, records: 64 };
@@ -203,7 +204,10 @@ export class LocalCaptureStore {
     const status = closed[0]?.payload.status;
     if (status !== undefined && !['completed', 'cancelled', 'failed'].includes(String(status))) throw new Error('Invalid local capture state');
     if (status === 'completed' && ![...calls.values()].some((call) => call.final && call.sent)) throw new Error('Local capture final is unconfirmed');
-    const missing = [...CAPTURE_MISSING];
+    const identities = events.filter((event) => event.eventType === 'engine.observed');
+    if (identities.length > 1 || (identities.length && identities[0].sequence !== 2)) throw new Error('Local capture engine identity order differs');
+    if (identities.length) validateEngineIdentity(identities[0].payload);
+    const missing = identities.length ? [...CAPTURE_MISSING.filter((item) => item !== 'engine.native_binary_identity'), ...ENGINE_IDENTITY_MISSING] : [...CAPTURE_MISSING];
     if (torn) missing.push('capture.torn_tail');
     if (!closed.length) missing.push('capture.terminal_unconfirmed');
     const started = events.filter((event) => event.eventType === 'call.started');

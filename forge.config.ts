@@ -10,7 +10,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: { unpackDir: '**/node_modules/{smart-whisper,ffmpeg-static}' },
     executableName: 'documents-frontend',
     extraResource: ['standalone-release-source.json'],
     // Electron Packager picks this PNG for Linux taskbars. Platform-specific

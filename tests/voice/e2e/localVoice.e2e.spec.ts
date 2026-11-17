@@ -97,6 +97,11 @@ test('authorized capture survives process restart and never replays recognition'
   await app.evaluate(() => voiceTest.finish('Captured synthetic result')); await stopping;
   const capture = await page.evaluate((id) => window.voice!.getCaptureLocal(id, true), requestId);
   expect(capture).toMatchObject({ status: 'completed', artifacts: { '1': { base64: 'Bwg=' } } });
+  expect(capture.events[1]).toMatchObject({ eventType: 'engine.observed', payload: { adapter: { name: 'smart-whisper', version: '0.8.1' } } });
+  expect(capture.missing).not.toContain('engine.native_binary_identity');
+  expect(capture.missing).toContain('engine.whisper_cpp_revision');
+  const exports = path.join(output, 'exports'); await fs.mkdir(exports, { recursive: true, mode: 0o700 });
+  await fs.writeFile(path.join(exports, `engine-capture-${requestId}.json`), JSON.stringify({ capture, evidence_mode: 'simulated' }), { flag: 'wx', mode: 0o600 });
   const journal = path.join(profile, 'evaluation/voice', requestId, 'events.jsonl'); const bytes = await fs.readFile(journal);
   expect(await page.evaluate((id) => window.voice!.getCaptureLocal(id), requestId)).toEqual({ sessionId: requestId, status: 'completed', claimed: false });
   await app.close(); app = await playwright._electron.launch(launchOptions()); page = await app.firstWindow(); await page.waitForLoadState();
