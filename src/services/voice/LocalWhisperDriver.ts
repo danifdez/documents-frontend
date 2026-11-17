@@ -1,153 +1,134 @@
 import { VoiceCancelledError, type VoiceDriver, type VoiceEngine, type VoicePartial } from '../../types/voice';
 
-/**
- * Local engine driver. Talks to the main process `localEngine` through the
- * `window.voice` bridge exposed by the preload (Task 08).
- *
- * The local engine does not support queueing (it is for a single user), so
- * this implementation does not expose `onQueued`.
- */
+/** The existing IPC bridge owns processing; this driver orders delivery and close. */
 export class LocalWhisperDriver implements VoiceDriver {
   readonly engine: VoiceEngine = 'local';
-
   private sessionId: string | null = null;
+  private generation = 0;
+  private starting?: Promise<void>;
+  private stopping?: Promise<void>;
+  private chunks = Promise.resolve();
   private partialCbs = new Set<(p: VoicePartial) => void>();
   private errorCbs = new Set<(err: Error) => void>();
-  private unsubPartial: (() => void) | null = null;
-  private unsubError: (() => void) | null = null;
-  private stopResolver: (() => void) | null = null;
-  private stopTimer: ReturnType<typeof setTimeout> | null = null;
-  private startReject: ((err: Error) => void) | null = null;
+  private unsubPartial?: () => void;
+  private unsubError?: () => void;
+  private completion?: { resolve(): void; reject(error: Error): void };
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     const bridge = window.voice;
-    if (!bridge) {
-      throw new Error('local engine not available in this environment');
-    }
-    if (!bridge.isLocalAvailable()) {
-      throw new Error('local engine not available (native bindings failed to load)');
-    }
-    return new Promise<void>((resolve, reject) => {
-      this.startReject = reject;
-      this.unsubPartial = bridge.onPartialLocal((payload) => this.onMainPartial(payload));
-      this.unsubError = bridge.onErrorLocal((payload) => this.onMainError(payload));
-      console.log('[local-driver] start: subscribed listeners, calling bridge.startLocal()');
-      bridge.startLocal()
-        .then(({ sessionId }) => {
-          console.log('[local-driver] start: got sessionId', sessionId);
-          this.sessionId = sessionId;
-          this.startReject = null;
-          resolve();
-        })
-        .catch((err) => {
-          console.error('[local-driver] start: startLocal rejected', err);
-          this.startReject = null;
-          this.teardown();
-          reject(err instanceof Error ? err : new Error(String(err)));
-        });
+    if (!bridge?.isLocalAvailable()) return Promise.reject(new Error('Local voice is unavailable'));
+    if (this.starting || this.stopping || this.sessionId) return Promise.reject(new Error('Local voice is already active'));
+    const generation = ++this.generation;
+    this.chunks = Promise.resolve();
+    this.unsubPartial = bridge.onPartialLocal((payload) => {
+      if (generation !== this.generation || payload.sessionId !== this.sessionId) return;
+      for (const callback of this.partialCbs) {
+        try { callback({ text: payload.text, isFinal: payload.isFinal }); } catch { /* Keep finalization independent of listeners. */ }
+      }
+      if (payload.isFinal) this.completion?.resolve();
     });
+    this.unsubError = bridge.onErrorLocal((payload) => {
+      if (generation !== this.generation || payload.sessionId !== this.sessionId) return;
+      const error = new Error(payload.message);
+      this.completion?.reject(error);
+      this.emitError(error);
+      void this.cancel();
+    });
+    const work = (async () => {
+      try {
+        const { sessionId } = await bridge.startLocal();
+        if (generation !== this.generation) {
+          await bridge.cancelLocal(sessionId).catch((): undefined => undefined);
+          throw new VoiceCancelledError();
+        }
+        this.sessionId = sessionId;
+      } catch (error) {
+        if (generation === this.generation) this.teardown();
+        throw error;
+      }
+    })();
+    this.starting = work;
+    void work.finally(() => { if (this.starting === work) this.starting = undefined; }).catch((): undefined => undefined);
+    return work;
   }
 
   pushChunk(chunk: Blob): void {
     const bridge = window.voice;
-    if (!bridge || !this.sessionId) return;
-    chunk.arrayBuffer()
-      .then((buf) => bridge.pushChunkLocal(this.sessionId!, buf))
-      .catch((err) => this.emitError(err instanceof Error ? err : new Error(String(err))));
+    const id = this.sessionId;
+    const generation = this.generation;
+    if (!bridge || !id || this.stopping) return;
+    this.chunks = this.chunks.then(async () => {
+      if (generation !== this.generation) return;
+      const bytes = await chunk.arrayBuffer();
+      if (generation === this.generation) await bridge.pushChunkLocal(id, bytes);
+    }).catch(() => {
+      if (generation !== this.generation) return;
+      const error = new Error('Local voice audio could not be delivered');
+      this.completion?.reject(error);
+      this.emitError(error);
+      void this.cancel();
+    });
   }
 
   stop(): Promise<void> {
+    if (this.stopping) return this.stopping;
     const bridge = window.voice;
-    console.log('[local-driver] stop called, bridge?=', !!bridge, 'sessionId=', this.sessionId);
-    if (!bridge || !this.sessionId) {
-      console.warn('[local-driver] stop: shortcut (no bridge or no sessionId)');
-      this.teardown();
-      return Promise.resolve();
-    }
-    return new Promise<void>((resolve) => {
-      this.stopResolver = () => {
-        console.log('[local-driver] stop: resolver invoked');
-        resolve();
-        this.teardown();
-      };
-      // CPU inference of whisper-base on 5-10s of audio can take 10-20s
-      // on modest machines. We leave a wide margin: if after 60s the
-      // partial hasn't arrived, we assume the engine is stuck.
-      this.stopTimer = setTimeout(() => {
-        if (this.stopResolver) {
-          console.warn('[local-driver] stop: 60s timeout (transcription took too long)');
-          const r = this.stopResolver;
-          this.stopResolver = null;
-          r();
-        }
-      }, 60000);
-      console.log('[local-driver] stop: emitting bridge.stopLocal');
-      bridge.stopLocal(this.sessionId!).catch((err) => {
-        console.error('[local-driver] stop: stopLocal rejected', err);
-        this.emitError(err instanceof Error ? err : new Error(String(err)));
-      });
+    const id = this.sessionId;
+    const generation = this.generation;
+    if (!bridge || !id) return Promise.resolve();
+    const final = new Promise<void>((resolve, reject) => { this.completion = { resolve, reject }; });
+    const timer = setTimeout(() => {
+      this.completion?.reject(new Error('Local voice processing timed out'));
+      void bridge.cancelLocal(id).catch((): undefined => undefined);
+    }, 60000);
+    const work = (async () => {
+      // Blob conversion and IPC delivery must finish before requesting the final pass.
+      const delivery = (async () => {
+        await this.chunks;
+        if (generation !== this.generation) throw new VoiceCancelledError();
+        await bridge.stopLocal(id);
+      })();
+      await Promise.all([final, delivery]);
+    })().finally(() => {
+      clearTimeout(timer);
+      if (generation === this.generation) this.teardown();
+      if (this.stopping === work) this.stopping = undefined;
     });
+    // A final/error can precede the last queued chunk's delivery.
+    void final.catch((): undefined => undefined);
+    this.stopping = work;
+    return work;
   }
 
   async cancel(): Promise<void> {
     const bridge = window.voice;
-    if (bridge && this.sessionId) {
-      try { await bridge.cancelLocal(this.sessionId); } catch { /* ignore */ }
-    }
-    if (this.startReject) {
-      const reject = this.startReject;
-      this.startReject = null;
-      reject(new VoiceCancelledError());
-    }
+    const id = this.sessionId;
+    const pendingStart = !!this.starting;
+    this.generation++;
+    this.completion?.reject(new VoiceCancelledError());
     this.teardown();
+    if (bridge && (id || pendingStart)) {
+      try { await bridge.cancelLocal(id ?? undefined); } catch { /* Session may already be closed. */ }
+    }
   }
-
   onPartial(cb: (p: VoicePartial) => void): () => void {
     this.partialCbs.add(cb);
     return () => this.partialCbs.delete(cb);
   }
-
-  onError(cb: (err: Error) => void): () => void {
+  onError(cb: (error: Error) => void): () => void {
     this.errorCbs.add(cb);
     return () => this.errorCbs.delete(cb);
   }
-
-  // ── Internals ─────────────────────────────────────────────────────────
-
-  private onMainPartial(payload: { sessionId: string; text: string; isFinal: boolean }) {
-    console.log('[local-driver] onMainPartial', payload, 'expected sessionId=', this.sessionId, 'cbs=', this.partialCbs.size);
-    if (payload.sessionId !== this.sessionId) {
-      console.warn('[local-driver] dropping: sessionId mismatch');
-      return;
-    }
-    const part: VoicePartial = { text: payload.text, isFinal: payload.isFinal };
-    for (const cb of this.partialCbs) {
-      try { cb(part); } catch (e) { console.error('[local-driver] cb threw', e); }
-    }
-    if (payload.isFinal && this.stopResolver) {
-      const r = this.stopResolver;
-      this.stopResolver = null;
-      if (this.stopTimer) { clearTimeout(this.stopTimer); this.stopTimer = null; }
-      r();
+  private emitError(error: Error) {
+    for (const callback of this.errorCbs) {
+      try { callback(error); } catch { /* One listener must not prevent cancellation. */ }
     }
   }
-
-  private onMainError(payload: { sessionId: string; message: string }) {
-    if (payload.sessionId !== this.sessionId) return;
-    this.emitError(new Error(payload.message));
-  }
-
-  private emitError(err: Error) {
-    for (const cb of this.errorCbs) {
-      try { cb(err); } catch { /* swallow */ }
-    }
-  }
-
   private teardown() {
-    if (this.stopTimer) { clearTimeout(this.stopTimer); this.stopTimer = null; }
-    this.stopResolver = null;
-    if (this.unsubPartial) { this.unsubPartial(); this.unsubPartial = null; }
-    if (this.unsubError) { this.unsubError(); this.unsubError = null; }
+    this.generation++;
+    this.unsubPartial?.(); this.unsubPartial = undefined;
+    this.unsubError?.(); this.unsubError = undefined;
+    this.completion = undefined;
     this.sessionId = null;
   }
 }

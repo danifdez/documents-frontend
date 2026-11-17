@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Notification, screen, Menu, globalShortcut, session, Tray, nativeImage, dialog } from 'electron';
 import { localEngine } from './main/voice/localEngine';
 import path from 'path';
+import { pathToFileURL } from 'node:url';
 import fs from 'fs';
 import axios from 'axios';
 import Store from 'electron-store';
@@ -790,7 +791,17 @@ app.whenReady().then(() => {
   // ── Renderer-invoked IPC. One declarative map per domain; spread order
   // mirrors the previous inline registration order.
   registerIpcHandlers({
-    ...createVoiceHandlers(),
+    ...createVoiceHandlers((sender) => {
+      if (sender !== mainWindow?.webContents && sender !== quickAssistantWindow?.webContents) return false;
+      try {
+        const expected = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL || pathToFileURL(
+          path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+        ).href);
+        const actual = new URL(sender.getURL());
+        expected.hash = actual.hash = '';
+        return expected.href === actual.href;
+      } catch { return false; }
+    }),
     ...createNotificationHandlers({
       showAlarmNotification,
       showMissedAggregate,

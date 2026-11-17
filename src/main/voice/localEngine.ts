@@ -1,293 +1,246 @@
-/**
- * Local transcription engine that runs in Electron's main process.
- *
- * Stack:
- *   - `smart-whisper` for inference (native bindings around whisper.cpp).
- *   - `ffmpeg-static` to decode the webm/opus chunks coming from the
- *     renderer's `MediaRecorder` into PCM s16le 16 kHz mono. We then convert
- *     to Float32, which is what smart-whisper expects.
- *
- * Pseudo-streaming: smart-whisper does not expose native streaming, but we
- * re-transcribe the full accumulated buffer every `STREAMING_INTERVAL_MS`
- * while recording and emit `partial` with `isFinal:false`. The renderer
- * already replaces the dictated range on every partial, so visually the
- * text grows as the user speaks. On `stop` we wait for the in-flight
- * transcription (its result is discarded), run the final pass on the full
- * buffer, and emit `isFinal:true`. The quadratic cost is acceptable for
- * dictations <60s.
- *
- * Single session at a time (the local engine is for a single user).
- *
- * Events emitted to the renderer (via `webContents.send`):
- *   - `voice:local:partial`          { sessionId, text, isFinal }
- *   - `voice:local:error`            { sessionId, message }
- *   - `voice:local:loading-progress` { downloaded, total, percent }
- */
-import { EventEmitter } from 'node:events';
+/** Single-owner local dictation. Cancelled native work drains before reuse. */
 import { randomUUID } from 'node:crypto';
-import { spawn } from 'node:child_process';
 import type { WebContents } from 'electron';
 import type { LocalModelProgress, LocalVoicePartial, StartLocalResult } from './types';
 import { ensureModelDownloaded, isModelReady, modelPath } from './modelManager';
 import { IpcEvents } from '../../ipc/channels';
-
-// Lazy bindings: we load `smart-whisper` and `ffmpeg-static` via lazy
-// `require` so that (1) a native compilation failure does not prevent the
-// app from starting, and (2) the app falls back to the remote engine
-// transparently when the bindings are not available.
+import { decodeAudio } from './decodeAudio';
 
 interface WhisperLike {
-  transcribe(pcm: Float32Array, opts?: { language?: string }): Promise<{ result: Promise<{ text: string }[]> }>;
+  transcribe(pcm: Float32Array, opts: { language: string; print_realtime: boolean; print_progress: boolean; print_timestamps: boolean; print_special: boolean }): Promise<{ result: Promise<{ text: string }[]> }>;
   free(): Promise<void>;
 }
-interface WhisperCtor {
-  new (modelPath: string, opts: { gpu: boolean }): WhisperLike;
+interface WhisperCtor { new (file: string, opts: { gpu: boolean }): WhisperLike }
+export interface VoiceRuntime {
+  available(): boolean;
+  hasModel(): Promise<boolean>;
+  load(progress: (p: LocalModelProgress) => void): Promise<WhisperLike>;
+  decode(input: Buffer, signal: AbortSignal): Promise<Float32Array>;
 }
 
 let WhisperClass: WhisperCtor | null = null;
 let ffmpegPath: string | null = null;
-let bindingsLoaded = false;
 let bindingsAttempted = false;
-
 function tryLoadBindings(): boolean {
-  if (bindingsAttempted) return bindingsLoaded;
-  bindingsAttempted = true;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional native module, loaded lazily
-    const sw = require('smart-whisper');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional native module, loaded lazily
-    const ffmpeg = require('ffmpeg-static');
-    if (typeof sw?.Whisper !== 'function') return false;
-    if (typeof ffmpeg !== 'string') return false;
-    WhisperClass = sw.Whisper as WhisperCtor;
-    ffmpegPath = ffmpeg;
-    bindingsLoaded = true;
-    return true;
-  } catch {
-    WhisperClass = null;
-    ffmpegPath = null;
-    bindingsLoaded = false;
-    return false;
+  if (!bindingsAttempted) {
+    bindingsAttempted = true;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional native modules
+      const sw = require('smart-whisper');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- optional native modules
+      const ffmpeg = require('ffmpeg-static');
+      if (typeof sw?.Whisper === 'function' && typeof ffmpeg === 'string') {
+        WhisperClass = sw.Whisper;
+        ffmpegPath = ffmpeg;
+      }
+    } catch { /* Local voice remains unavailable. */ }
   }
+  return WhisperClass !== null && ffmpegPath !== null;
+}
+const defaultRuntime: VoiceRuntime = {
+  available: tryLoadBindings,
+  hasModel: isModelReady,
+  async load(progress) {
+    if (!tryLoadBindings()) throw new Error('Local voice is unavailable');
+    if (!(await isModelReady())) await ensureModelDownloaded(progress);
+    return new WhisperClass!(modelPath(), { gpu: false });
+  },
+  decode: (input, signal) => decodeAudio(ffmpegPath!, input, signal),
+};
+
+export const VOICE_LIMITS = {
+  chunkBytes: 256 * 1024,
+  audioBytes: 32 * 1024 * 1024,
+  chunks: 4096,
+  calls: 128,
+  textBytes: 16 * 1024,
+  sessionMs: 5 * 60 * 1000,
+  callMs: 60 * 1000,
+};
+type Phase = 'starting' | 'recording' | 'stopping' | 'closed';
+interface Session {
+  id: string;
+  owner: WebContents;
+  phase: Phase;
+  loading: boolean;
+  chunks: Buffer[];
+  bytes: number;
+  calls: number;
+  abort: AbortController;
+  pending?: Promise<void>;
+  stop?: Promise<void>;
+  interval?: ReturnType<typeof setInterval>;
+  deadline?: ReturnType<typeof setTimeout>;
+  detach(): void;
 }
 
-/** Decode an audio buffer (webm/opus/ogg/wav) into PCM Float32 16 kHz mono. */
-function decodeToPcmFloat32(input: Buffer): Promise<Float32Array> {
-  if (!ffmpegPath) return Promise.reject(new Error('ffmpeg-static not available'));
-  return new Promise((resolve, reject) => {
-    const args = [
-      '-loglevel', 'error',
-      '-i', 'pipe:0',
-      '-f', 's16le',
-      '-acodec', 'pcm_s16le',
-      '-ar', '16000',
-      '-ac', '1',
-      'pipe:1',
-    ];
-    const proc = spawn(ffmpegPath!, args, { stdio: ['pipe', 'pipe', 'pipe'] });
-    const chunks: Buffer[] = [];
-    proc.stdout.on('data', (b: Buffer) => chunks.push(b));
-    let stderr = '';
-    proc.stderr.on('data', (b: Buffer) => { stderr += b.toString(); });
-    proc.on('error', reject);
-    proc.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`ffmpeg exited with ${code}: ${stderr.slice(0, 200)}`));
-        return;
-      }
-      const s16 = Buffer.concat(chunks);
-      const samples = s16.length / 2;
-      const out = new Float32Array(samples);
-      for (let i = 0; i < samples; i++) {
-        const v = s16.readInt16LE(i * 2);
-        out[i] = v / 32768;
-      }
-      resolve(out);
-    });
-    proc.stdin.end(input);
-  });
-}
-
-
-const STREAMING_INTERVAL_MS = 2000;
-
-class LocalEngine extends EventEmitter {
-  private activeSessionId: string | null = null;
-  private buffer: Buffer[] = [];
+export class LocalEngine {
+  private session: Session | null = null;
   private whisper: WhisperLike | null = null;
-  private renderer: WebContents | null = null;
-  // Pseudo-streaming state. `generation` is bumped when the session stops
-  // so any in-flight transcription's result is discarded; `partialBusy`
-  // avoids overlapping two transcriptions on the same whisper instance.
-  private streamingInterval: ReturnType<typeof setInterval> | null = null;
-  private partialBusy = false;
-  private generation = 0;
-
-  bindRenderer(wc: WebContents | null) {
-    this.renderer = wc;
-  }
-
-  isAvailable(): boolean {
-    return tryLoadBindings();
-  }
-
-  hasModel(): Promise<boolean> {
-    return isModelReady();
-  }
-
-  /**
-   * Preload: download the model if missing and instantiate the whisper
-   * object in memory. Idempotent. Called from the renderer at startup and
-   * when the user switches the engine to `local` in Settings, so the first
-   * recording does not have to wait for the download or model load.
-   */
   private preloadPromise: Promise<void> | null = null;
-  preload(): Promise<void> {
+  private closing = false;
+  constructor(private readonly runtime: VoiceRuntime = defaultRuntime) {}
+
+  isAvailable(): boolean { return this.runtime.available(); }
+  hasModel(): Promise<boolean> { return this.runtime.hasModel(); }
+  preload(recipient?: WebContents): Promise<void> {
+    if (this.closing) return Promise.reject(new Error('Local voice is shutting down'));
     if (!this.isAvailable()) return Promise.resolve();
-    if (this.preloadPromise) return this.preloadPromise;
-    this.preloadPromise = (async () => {
-      if (!(await isModelReady())) {
-        await ensureModelDownloaded((p) => this.emitProgress(p));
-      }
-      if (!this.whisper) {
-        this.whisper = new WhisperClass!(modelPath(), { gpu: false });
-      }
-    })().catch((err) => {
-      // Reset so the next call can retry.
-      this.preloadPromise = null;
-      throw err;
-    });
+    if (!this.preloadPromise) {
+      this.preloadPromise = this.runtime.load((progress) => {
+        if (recipient && !recipient.isDestroyed()) {
+          try { recipient.send(IpcEvents.voice.loadingProgress, progress); } catch { /* Window closed. */ }
+        }
+      }).then((whisper) => { this.whisper = whisper; }).catch(() => {
+        this.preloadPromise = null;
+        throw new Error('Local voice model could not be prepared');
+      });
+    }
     return this.preloadPromise;
   }
 
-  async startSession(): Promise<StartLocalResult> {
-    if (this.activeSessionId) {
-      throw new Error('a local session is already active');
-    }
-    if (!this.isAvailable()) {
-      throw new Error('local engine not available (bindings not loaded)');
-    }
-    await this.preload();
-    const sessionId = randomUUID();
-    this.activeSessionId = sessionId;
-    this.buffer = [];
-    this.generation += 1;
-    const gen = this.generation;
-    this.streamingInterval = setInterval(() => {
-      void this.tryEmitStreamingPartial(sessionId, gen);
-    }, STREAMING_INTERVAL_MS);
-    return { sessionId };
-  }
-
-  private async tryEmitStreamingPartial(sessionId: string, gen: number): Promise<void> {
-    if (this.partialBusy) return;
-    if (gen !== this.generation) return;
-    if (this.activeSessionId !== sessionId) return;
-    if (this.buffer.length === 0) return;
-    if (!this.whisper) return;
-    this.partialBusy = true;
+  async startSession(owner: WebContents): Promise<StartLocalResult> {
+    if (this.closing || this.session || owner.isDestroyed()) throw new Error('Local voice is busy or unavailable');
+    if (!this.isAvailable()) throw new Error('Local voice is unavailable');
+    // Reserve before awaiting model preparation; no second caller can take over.
+    const s: Session = { id: randomUUID(), owner, phase: 'starting', loading: true,
+      chunks: [], bytes: 0, calls: 0, abort: new AbortController(), detach: () => undefined };
+    this.session = s;
+    const lost = () => this.close(s);
+    const navigation = (details: { isMainFrame: boolean; isSameDocument: boolean }) => {
+      if (details.isMainFrame && !details.isSameDocument) this.close(s);
+    };
+    owner.once('destroyed', lost);
+    owner.once('render-process-gone', lost);
+    owner.on('did-start-navigation', navigation);
+    s.detach = () => {
+      owner.removeListener('destroyed', lost);
+      owner.removeListener('render-process-gone', lost);
+      owner.removeListener('did-start-navigation', navigation);
+    };
+    s.deadline = setTimeout(() => this.fail(s, 'Local voice session limit exceeded'), VOICE_LIMITS.sessionMs);
     try {
-      const audio = Buffer.concat(this.buffer);
-      const pcm = await decodeToPcmFloat32(audio);
-      if (gen !== this.generation) return;
-      const task = await this.whisper.transcribe(pcm, { language: 'auto' });
-      const segments = await task.result;
-      if (gen !== this.generation) return;
-      const text = segments.map((s) => s.text).join(' ').trim();
-      console.log('[voice/local] streaming partial text="' + text + '"');
-      this.emitPartial(sessionId, { text, isFinal: false });
-    } catch (e) {
-      console.warn('[voice/local] streaming partial failed', e);
+      await this.preload(owner);
+      if (s.phase !== 'starting' || owner.isDestroyed()) throw new Error('Local voice session was cancelled');
+      s.phase = 'recording';
+      s.interval = setInterval(() => {
+        if (!s.pending && s.phase === 'recording' && s.chunks.length) {
+          void this.run(s, false).catch((): undefined => undefined);
+        }
+      }, 2000);
+      return { sessionId: s.id };
+    } catch (error) {
+      this.close(s);
+      throw error;
     } finally {
-      this.partialBusy = false;
+      s.loading = false;
+      this.release(s);
     }
   }
 
-  pushChunk(sessionId: string, buf: Buffer): void {
-    if (this.activeSessionId !== sessionId) return;
-    this.buffer.push(buf);
+  private owned(owner: WebContents, id?: string): Session | null {
+    const s = this.session;
+    if (!s) return null;
+    if (s.owner !== owner || (id !== s.id && !(id === undefined && s.loading))) {
+      throw new Error('Local voice session is unavailable');
+    }
+    return s;
+  }
+  pushChunk(owner: WebContents, id: string, input: Buffer): void {
+    const s = this.owned(owner, id);
+    if (!s || s.phase === 'closed' || s.phase === 'stopping') return;
+    if (s.phase !== 'recording' || !Buffer.isBuffer(input) || !input.length || input.length > VOICE_LIMITS.chunkBytes ||
+        s.bytes + input.length > VOICE_LIMITS.audioBytes || s.chunks.length >= VOICE_LIMITS.chunks) {
+      this.fail(s, 'Local voice input limit exceeded');
+      throw new Error('Invalid local voice input');
+    }
+    s.bytes += input.length;
+    s.chunks.push(Buffer.from(input));
+  }
+  stopSession(owner: WebContents, id: string): Promise<void> {
+    const s = this.owned(owner, id);
+    if (!s || s.phase === 'closed') return Promise.resolve();
+    if (s.stop) return s.stop;
+    if (s.phase !== 'recording') return Promise.reject(new Error('Local voice session is not ready'));
+    s.phase = 'stopping';
+    clearInterval(s.interval);
+    s.stop = (async () => {
+      // Do not launch a final pass until the previous native call has drained.
+      await s.pending;
+      if (s.phase === 'closed') return;
+      await this.run(s, true);
+    })();
+    return s.stop;
+  }
+  async cancelSession(owner: WebContents, id?: string): Promise<void> {
+    const s = this.owned(owner, id);
+    if (s) this.close(s);
   }
 
-  async stopSession(sessionId: string): Promise<void> {
-    console.log('[voice/local] stopSession sessionId=', sessionId, 'active=', this.activeSessionId, 'chunks=', this.buffer.length);
-    if (this.activeSessionId !== sessionId) {
-      console.warn('[voice/local] stopSession: id mismatch — ignoring');
-      return;
-    }
-    // Stop streaming and invalidate any in-flight inference; its result will
-    // be discarded by the `generation` check.
-    this.generation += 1;
-    if (this.streamingInterval) {
-      clearInterval(this.streamingInterval);
-      this.streamingInterval = null;
-    }
-    // Wait for the in-flight partial to finish so we do not run two
-    // inferences in parallel on the same whisper instance.
-    const waitStart = Date.now();
-    while (this.partialBusy && Date.now() - waitStart < 30000) {
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    try {
-      const audio = Buffer.concat(this.buffer);
-      if (audio.length === 0 || !this.whisper) {
-        console.warn('[voice/local] empty buffer or no whisper instance — emitting empty final');
-        this.emitPartial(sessionId, { text: '', isFinal: true });
-      } else {
-        const pcm = await decodeToPcmFloat32(audio);
-        const task = await this.whisper.transcribe(pcm, { language: 'auto' });
-        const segments = await task.result;
-        const text = segments.map((s) => s.text).join(' ').trim();
-        console.log('[voice/local] final text="' + text + '"');
-        this.emitPartial(sessionId, { text, isFinal: true });
+  private run(s: Session, final: boolean): Promise<void> {
+    const audio = Buffer.concat(s.chunks);
+    const expected: Phase = final ? 'stopping' : 'recording';
+    const timer = setTimeout(() => this.fail(s, 'Local voice processing timed out'), VOICE_LIMITS.callMs);
+    const work = (async () => {
+      try {
+        if (++s.calls > VOICE_LIMITS.calls) throw new Error('Call limit exceeded');
+        let text = '';
+        if (audio.length) {
+          const pcm = await this.runtime.decode(audio, s.abort.signal);
+          if (s.phase !== expected) return;
+          const task = await this.whisper!.transcribe(pcm, { language: 'auto', print_realtime: false, print_progress: false, print_timestamps: false, print_special: false });
+          const segments = await task.result;
+          if (s.phase !== expected) return;
+          text = segments.map((segment) => segment.text).join(' ').trim();
+          if (Buffer.byteLength(text) > VOICE_LIMITS.textBytes) throw new Error('Output limit exceeded');
+        }
+        if (s.phase !== expected || s.owner.isDestroyed()) return;
+        s.owner.send(IpcEvents.voice.partial, { sessionId: s.id, text, isFinal: final } satisfies LocalVoicePartial & { sessionId: string });
+        if (final) this.close(s);
+      } catch {
+        if (s.phase !== 'closed') {
+          this.fail(s, 'Local voice processing failed');
+          throw new Error('Local voice processing failed');
+        }
       }
-    } catch (err) {
-      console.error('[voice/local] stopSession threw', err);
-      this.emitError(sessionId, (err as Error).message);
-    } finally {
-      this.activeSessionId = null;
-      this.buffer = [];
+    })();
+    s.pending = work;
+    // Always keep the reservation until the actual work settles, including timeout/cancel.
+    void work.finally(() => {
+      clearTimeout(timer);
+      if (s.pending === work) s.pending = undefined;
+      this.release(s);
+    }).catch((): undefined => undefined);
+    return work;
+  }
+  private fail(s: Session, message: string) {
+    if (s.phase !== 'closed' && !s.owner.isDestroyed()) {
+      try { s.owner.send(IpcEvents.voice.error, { sessionId: s.id, message }); } catch { /* Window closed. */ }
+    }
+    this.close(s);
+  }
+  private close(s: Session) {
+    s.phase = 'closed';
+    clearInterval(s.interval);
+    clearTimeout(s.deadline);
+    s.abort.abort();
+    s.chunks = [];
+    this.release(s);
+  }
+  private release(s: Session) {
+    if (s.phase === 'closed' && !s.loading && !s.pending && this.session === s) {
+      s.detach();
+      this.session = null;
     }
   }
-
-  async cancelSession(sessionId: string): Promise<void> {
-    if (this.activeSessionId !== sessionId) return;
-    this.generation += 1;
-    if (this.streamingInterval) {
-      clearInterval(this.streamingInterval);
-      this.streamingInterval = null;
-    }
-    this.activeSessionId = null;
-    this.buffer = [];
-  }
-
   async shutdown(): Promise<void> {
-    this.generation += 1;
-    if (this.streamingInterval) {
-      clearInterval(this.streamingInterval);
-      this.streamingInterval = null;
-    }
-    this.activeSessionId = null;
-    this.buffer = [];
-    if (this.whisper) {
-      try { await this.whisper.free(); } catch { /* ignore */ }
-      this.whisper = null;
-    }
-  }
-
-  private emitPartial(sessionId: string, p: LocalVoicePartial) {
-    if (!this.renderer || this.renderer.isDestroyed()) return;
-    this.renderer.send(IpcEvents.voice.partial, { sessionId, ...p });
-  }
-
-  private emitError(sessionId: string, message: string) {
-    if (!this.renderer || this.renderer.isDestroyed()) return;
-    this.renderer.send(IpcEvents.voice.error, { sessionId, message });
-  }
-
-  private emitProgress(p: LocalModelProgress) {
-    if (!this.renderer || this.renderer.isDestroyed()) return;
-    this.renderer.send(IpcEvents.voice.loadingProgress, p);
+    this.closing = true;
+    const s = this.session;
+    if (s) this.close(s);
+    await this.preloadPromise?.catch((): undefined => undefined);
+    await s?.pending?.catch((): undefined => undefined);
+    await this.whisper?.free();
+    this.whisper = null;
   }
 }
-
 export const localEngine = new LocalEngine();

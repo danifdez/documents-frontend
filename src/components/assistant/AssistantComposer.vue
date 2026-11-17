@@ -53,15 +53,12 @@ const canSend = computed(() => !props.disabled && text.value.trim().length > 0);
 const dictation = useDictationInsert(textareaRef, text);
 
 function onDictationState(state: string) {
-    console.log('[composer/dictation] state →', state, 'anchorBefore=', (textareaRef.value as any)?.selectionStart);
     if (state === 'recording') dictation.beginDictation();
     else if (state === 'idle' || state === 'error') dictation.endDictation();
 }
 
-function onDictation(partial: string, isFinal: boolean) {
-    console.log('[composer/dictation] partial received', { partial, isFinal, currentText: text.value, aborted: dictation.aborted.value });
+function onDictation(partial: string, _isFinal: boolean) {
     dictation.applyPartial(partial);
-    console.log('[composer/dictation] after applyPartial, text=', text.value);
 }
 
 function send() {

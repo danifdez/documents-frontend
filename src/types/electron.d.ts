@@ -115,7 +115,7 @@ export interface VoiceLocalBridge {
     startLocal: () => Promise<{ sessionId: string }>;
     pushChunkLocal: (sessionId: string, buf: ArrayBuffer) => Promise<void>;
     stopLocal: (sessionId: string) => Promise<void>;
-    cancelLocal: (sessionId: string) => Promise<void>;
+    cancelLocal: (sessionId?: string) => Promise<void>;
     onPartialLocal: (cb: (p: { sessionId: string; text: string; isFinal: boolean }) => void) => () => void;
     onErrorLocal: (cb: (p: { sessionId: string; message: string }) => void) => () => void;
     onLoadingProgress: (cb: (p: { downloaded: number; total: number | null; percent: number }) => void) => () => void;

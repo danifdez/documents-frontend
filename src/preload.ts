@@ -40,11 +40,10 @@ const voice: VoiceLocalBridge = {
     pushChunkLocal: (sessionId: string, buf: ArrayBuffer): Promise<void> =>
         ipcRenderer.invoke(IpcChannels.voice.chunk, sessionId, buf),
     stopLocal: (sessionId: string): Promise<void> => ipcRenderer.invoke(IpcChannels.voice.stop, sessionId),
-    cancelLocal: (sessionId: string): Promise<void> =>
+    cancelLocal: (sessionId?: string): Promise<void> =>
         ipcRenderer.invoke(IpcChannels.voice.cancel, sessionId),
     onPartialLocal: (cb: (payload: { sessionId: string; text: string; isFinal: boolean }) => void) => {
         const handler = (_e: unknown, payload: { sessionId: string; text: string; isFinal: boolean }) => {
-            console.log('[preload] IPC voice:local:partial', payload);
             cb(payload);
         };
         ipcRenderer.on(IpcEvents.voice.partial, handler);

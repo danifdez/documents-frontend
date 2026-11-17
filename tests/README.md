@@ -123,3 +123,22 @@ vi.mock("@/services/api", () => ({
 5. Test edge cases and error scenarios
 6. Use data-test attributes for element selection
 7. Clean up after tests (handled automatically in setup.ts)
+
+
+## Isolated local voice safety checks
+
+These checks use the production IPC bridge, driver and voice button with a
+simulated recognizer and decoder. They do not access a microphone, load/download
+speech models, start Backend/Models or run the database reset setup.
+
+```bash
+./node_modules/.bin/vitest run tests/voice --maxWorkers=2
+VOICE_SAFETY_OUTPUT=/absolute/private/path/local-voice-safety \
+  ./node_modules/.bin/playwright test --config tests/voice/e2e/playwright.config.ts
+```
+
+Use an external directory for `VOICE_SAFETY_OUTPUT`. The standalone Playwright
+configuration builds only the test harness and actual voice components, uses
+Electron's sandbox, and keeps a separate profile for each test. Profiles and
+artifacts are retained for inspection; the normal E2E global setup and its
+`manage reset` are not used. The harness controls never ship in the application.

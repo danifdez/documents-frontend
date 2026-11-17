@@ -107,9 +107,11 @@ let unsubError: (() => void) | null = null;
 let unsubQueued: (() => void) | null = null;
 let recorder: MediaRecorder | null = null;
 let stream: MediaStream | null = null;
+let disposed = false;
 let locked = false; // prevents rapid double clicks during transitions
 
 function setState(next: VoiceState) {
+  if (disposed) return;
   state.value = next;
   emit('stateChange', next);
 }
@@ -190,6 +192,7 @@ async function startSession() {
   try {
     setState('requestingPermission');
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (disposed) { await cleanup(); return; }
 
     if (typeof MediaRecorder === 'undefined') {
       throw new Error('MediaRecorder not available in this environment.');
@@ -203,6 +206,7 @@ async function startSession() {
     }
 
     await driver.start();
+    if (disposed) { await cleanup(); return; }
 
     // start() resolved → we have a worker assigned. Start recording now.
     const mimeType = pickMimeType();
@@ -237,7 +241,22 @@ async function stopSession() {
   try {
     setState('stopping');
     if (recorder && recorder.state !== 'inactive') {
-      recorder.stop();
+      const current = recorder;
+      await new Promise<void>((resolve, reject) => {
+        const finish = (failed = false) => {
+          clearTimeout(timer);
+          current.removeEventListener('stop', stopped);
+          current.removeEventListener('error', failedStop);
+          if (failed) reject(new Error('Audio recording could not be finalized'));
+          else resolve();
+        };
+        const stopped = () => finish();
+        const failedStop = () => finish(true);
+        const timer = setTimeout(failedStop, 15000);
+        current.addEventListener('stop', stopped, { once: true });
+        current.addEventListener('error', failedStop, { once: true });
+        try { current.stop(); } catch { finish(true); }
+      });
     }
     if (driver) {
       await driver.stop();
@@ -276,7 +295,7 @@ function pickMimeType(): string | undefined {
 }
 
 function onPartial(p: VoicePartial) {
-  emit('transcribed', p.text, p.isFinal);
+  if (!disposed && (state.value === 'recording' || state.value === 'stopping')) emit('transcribed', p.text, p.isFinal);
 }
 
 function onQueuedInfo(info: VoiceQueuedInfo) {
@@ -294,6 +313,7 @@ function onDriverError(err: Error) {
 }
 
 function showError(err: unknown) {
+  if (disposed) return;
   const e = err instanceof Error ? err : new Error(String(err));
   tooltip.value = friendlyMessage(e);
   setState('error');
@@ -317,7 +337,10 @@ async function cleanup() {
   queuePosition.value = 0;
   queueEta.value = 0;
 
+  const currentDriver = driver;
+  driver = null;
   if (recorder) {
+    recorder.ondataavailable = null;
     try {
       if (recorder.state !== 'inactive') recorder.stop();
     } catch { /* ignore */ }
@@ -331,10 +354,11 @@ async function cleanup() {
   if (unsubPartial) { unsubPartial(); unsubPartial = null; }
   if (unsubError) { unsubError(); unsubError = null; }
   if (unsubQueued) { unsubQueued(); unsubQueued = null; }
-  driver = null;
+  await currentDriver?.cancel();
 }
 
 onBeforeUnmount(() => {
+  disposed = true;
   window.removeEventListener('pointerup', onWindowPointerUp);
   window.removeEventListener('pointercancel', onWindowPointerUp);
   void cleanup();
