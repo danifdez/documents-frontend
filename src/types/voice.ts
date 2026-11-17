@@ -45,6 +45,7 @@ export interface VoiceDriver {
 /** Local capture is separate from microphone permission and normal dictation. */
 export interface LocalCaptureOptions {
   requestId: string;
+  requestHash?: string;
   consent: 'granted';
   purpose: 'evaluation';
   mediaType: 'audio/wav' | 'audio/webm' | 'audio/webm;codecs=opus' | 'audio/ogg' | 'audio/ogg;codecs=opus';
@@ -69,3 +70,5 @@ export interface LocalCaptureSnapshot {
   manifestHash?: string;
 }
 export interface LocalCaptureReceipt { sessionId: string; status: LocalCaptureSnapshot['status']; claimed: boolean }
+
+export interface LocalCaptureStatus { sessionId: string; status: LocalCaptureSnapshot['status'] | 'not_found'; phase: string }

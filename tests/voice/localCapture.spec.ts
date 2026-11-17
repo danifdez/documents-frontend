@@ -37,6 +37,27 @@ async function completed() {
   return read();
 }
 describe('opt-in capture integrated with local dictation', () => {
+  it('reports active preparation without reading a journal that is still being created', async () => {
+    let resolve!: (value: typeof model) => void;
+    vi.mocked(runtime.load).mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    const starting=engine.startSession(owner.wc,options);
+    await vi.waitFor(() => expect(runtime.load).toHaveBeenCalledTimes(1));
+    const read=vi.spyOn(store,'lookup').mockRejectedValueOnce(new Error('PRIVATE_STORAGE'));
+    expect(await engine.captureStatus(options.capture.requestId)).toMatchObject({ status:'running',phase:'starting' });
+    expect(read).not.toHaveBeenCalled();read.mockRestore();resolve(model);
+    const accepted=await starting;await engine.cancelSession(owner.wc,accepted.sessionId);
+  });
+  it('distinguishes genuine absence from an unreadable existing record', async () => {
+    expect(await engine.captureStatus(options.capture.requestId)).toMatchObject({ status:'not_found' });
+    await completed();await fs.unlink(path.join(root,options.capture.requestId,'events.jsonl'));
+    await expect(engine.captureStatus(options.capture.requestId)).rejects.toThrow('status could not be read');
+  });
+  it('passes the installed-only policy into the existing runtime preparation', async () => {
+    engine=new LocalEngine(runtime,store,{allowModelDownload:false});
+    const accepted=await engine.startSession(owner.wc,options);
+    expect(runtime.load).toHaveBeenCalledWith(expect.any(Function),{allowModelDownload:false});
+    await engine.cancelSession(owner.wc,accepted.sessionId);
+  });
   it('does not write any evidence for normal dictation', async () => {
     const start = await engine.startSession(owner.wc); engine.pushChunk(owner.wc, start.sessionId, Buffer.from([1]));
     await engine.stopSession(owner.wc, start.sessionId);

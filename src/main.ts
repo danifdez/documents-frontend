@@ -1,5 +1,7 @@
 import { app, BrowserWindow, Notification, screen, Menu, globalShortcut, session, Tray, nativeImage, dialog } from 'electron';
 import { localEngine } from './main/voice/localEngine';
+import { evaluationProfile } from './main/evaluation/profile';
+import { startEvaluation } from './main/evaluation/control';
 import path from 'path';
 import { pathToFileURL } from 'node:url';
 import fs from 'fs';
@@ -29,11 +31,14 @@ if (squirrelStartup) {
   app.quit();
 }
 
+const labProfile = evaluationProfile(process.argv);
 const testUserDataDir = process.env.NODE_ENV === 'test'
   ? process.env.DOCUMENTS_TEST_USER_DATA_DIR
   : undefined;
 
-if (testUserDataDir) {
+if (labProfile) {
+  app.setPath('userData', labProfile);
+} else if (testUserDataDir) {
   app.setPath('userData', testUserDataDir);
 } else if (!app.isPackaged) {
   app.setPath('userData', path.join(app.getPath('appData'), 'documents-frontend-dev'));
@@ -774,7 +779,12 @@ const createWindow = () => {
 };
 
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  if (labProfile) {
+    const lab = await startEvaluation(labProfile, path.join(__dirname, 'preload.js'));
+    app.once('before-quit', () => { void lab.engine.shutdown(); });
+    return;
+  }
   // Grant microphone permissions to the renderer. Without this getUserMedia
   // hangs indefinitely: Electron does not propagate the request to the OS
   // by default. Only the permissions actively used by the app are granted.
@@ -916,6 +926,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
+  if (labProfile) return;
   // With the residente mode the main window is usually
   // hidden, not destroyed. Show + focus instead of recreating.
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -933,6 +944,7 @@ app.on('activate', () => {
 // `requestSingleInstanceLock` block at the top of this module) by the time
 // this fires.
 app.on('second-instance', () => {
+  if (labProfile) return;
   if (!mainWindow || mainWindow.isDestroyed()) {
     createWindow();
     return;

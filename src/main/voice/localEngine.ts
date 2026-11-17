@@ -17,7 +17,7 @@ interface WhisperCtor { new (file: string, opts: { gpu: boolean }): WhisperLike 
 export interface VoiceRuntime {
   available(): boolean;
   hasModel(): Promise<boolean>;
-  load(progress: (p: LocalModelProgress) => void): Promise<WhisperLike>;
+  load(progress: (p: LocalModelProgress) => void, options?: { allowModelDownload: boolean }): Promise<WhisperLike>;
   decode(input: Buffer, signal: AbortSignal): Promise<Float32Array>;
 }
 
@@ -43,9 +43,10 @@ function tryLoadBindings(): boolean {
 const defaultRuntime: VoiceRuntime = {
   available: tryLoadBindings,
   hasModel: isModelReady,
-  async load(progress) {
+  async load(progress, options) {
     if (!tryLoadBindings()) throw new Error('Local voice is unavailable');
-    await ensureModelDownloaded(progress);
+    if (options?.allowModelDownload !== false) await ensureModelDownloaded(progress);
+    else if (!(await isModelReady())) throw new Error('Local model must already be installed');
     return new WhisperClass!(modelPath(), { gpu: false });
   },
   decode: (input, signal) => decodeAudio(ffmpegPath!, input, signal),
@@ -89,7 +90,7 @@ export class LocalEngine {
   private whisper: WhisperLike | null = null;
   private preloadPromise: Promise<void> | null = null;
   private closing = false;
-  constructor(private readonly runtime: VoiceRuntime = defaultRuntime, private readonly captures: LocalCaptureStore = localCaptureStore) {}
+  constructor(private readonly runtime: VoiceRuntime = defaultRuntime, private readonly captures: LocalCaptureStore = localCaptureStore, private readonly options = { allowModelDownload: true }) {}
 
   isAvailable(): boolean { return this.runtime.available(); }
   hasModel(): Promise<boolean> { return this.runtime.hasModel(); }
@@ -101,7 +102,7 @@ export class LocalEngine {
         if (recipient && !recipient.isDestroyed()) {
           try { recipient.send(IpcEvents.voice.loadingProgress, progress); } catch { /* Window closed. */ }
         }
-      }).then((whisper) => { this.whisper = whisper; }).catch(() => {
+      }, this.options).then((whisper) => { this.whisper = whisper; }).catch(() => {
         this.preloadPromise = null;
         throw new Error('Local voice model could not be prepared');
       });
@@ -323,6 +324,15 @@ export class LocalEngine {
       s.detach();
       this.session = null;
     }
+  }
+  async captureStatus(requestId: string): Promise<import('../../types/voice').LocalCaptureStatus> {
+    try {
+      const active = this.session?.id === requestId ? this.session : null;
+      if (active && active.phase !== 'closed') return { sessionId: requestId, status: 'running', phase: active.phase };
+      await active?.captureClosing;
+      const capture = await this.captures.lookup(requestId);
+      return { sessionId: requestId, status: capture?.status ?? 'not_found', phase: this.session?.id === requestId ? this.session.phase : 'closed' };
+    } catch { throw new Error('Local voice status could not be read'); }
   }
   async capture(requestId: string): Promise<LocalCaptureSnapshot> {
     try { return await this.captures.read(requestId); } catch { throw new Error('Local voice capture could not be read'); }

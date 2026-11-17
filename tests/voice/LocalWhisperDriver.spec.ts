@@ -11,6 +11,7 @@ let driver: LocalWhisperDriver;
 beforeEach(() => {
   vi.useFakeTimers();
   bridge = { isLocalAvailable: () => true, refreshAvailability: async () => true, hasModel: async () => true, preloadLocal: async () => undefined,
+    getStatusLocal: vi.fn(async () => ({ sessionId: 'one', status: 'not_found', phase: 'closed' })),
     getCaptureLocal: vi.fn(async () => { throw new Error('No capture in normal dictation'); }),
     startLocal: vi.fn(async () => ({ sessionId: 'one' })), pushChunkLocal: vi.fn(async () => undefined), stopLocal: vi.fn(async () => undefined), cancelLocal: vi.fn(async () => undefined),
     onPartialLocal: (cb) => { partial = cb; return vi.fn(); }, onErrorLocal: () => vi.fn(), onLoadingProgress: () => vi.fn() };

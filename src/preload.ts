@@ -2,6 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer } from 'electron';
+import { attachEvaluationRelay } from './evaluation-relay';
 import { IpcChannels, IpcEvents } from './ipc/channels';
 import type {
     CalendarAlarmsBridge,
@@ -37,6 +38,7 @@ const voice: VoiceLocalBridge = {
     hasModel: (): Promise<boolean> => ipcRenderer.invoke(IpcChannels.voice.hasModel),
     preloadLocal: (): Promise<void> => ipcRenderer.invoke(IpcChannels.voice.preload),
     startLocal: (options) => ipcRenderer.invoke(IpcChannels.voice.start, options),
+    getStatusLocal: (requestId) => ipcRenderer.invoke(IpcChannels.voice.status, requestId),
     getCaptureLocal: (requestId, exportEvidence = false) => ipcRenderer.invoke(IpcChannels.voice.capture, requestId, exportEvidence),
     pushChunkLocal: (sessionId: string, buf: ArrayBuffer, sequence?: number): Promise<void> =>
         ipcRenderer.invoke(IpcChannels.voice.chunk, sessionId, buf, sequence),
@@ -225,3 +227,5 @@ const quickAssistant: QuickAssistantBridge = {
 };
 
 contextBridge.exposeInMainWorld('quickAssistant', quickAssistant);
+
+attachEvaluationRelay(voice);

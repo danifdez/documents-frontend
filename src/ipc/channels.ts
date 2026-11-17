@@ -4,6 +4,7 @@
 
 /** Channels the renderer invokes and the main process handles. */
 export const IpcChannels = {
+  evaluation: { result: 'evaluation:result' },
   voice: {
     isAvailable: 'voice:local:isAvailable',
     hasModel: 'voice:local:hasModel',
@@ -13,6 +14,7 @@ export const IpcChannels = {
     stop: 'voice:local:stop',
     cancel: 'voice:local:cancel',
     capture: 'voice:local:capture',
+    status: 'voice:local:status',
   },
   calendar: {
     showAlarm: 'calendar:show-alarm',
@@ -101,6 +103,7 @@ export const IpcChannels = {
 
 /** Channels the main process pushes to the renderer (`webContents.send`). */
 export const IpcEvents = {
+  evaluation: { request: 'evaluation:request' },
   voice: {
     partial: 'voice:local:partial',
     error: 'voice:local:error',

@@ -200,3 +200,55 @@ read-only recovery, failure and cancellation without real models. The isolated
 Electron suite also closes/relaunches its process to check stable recovery and
 zero repeated engine initialization, and checks cancellation with a late
 simulated result. Its retained profiles contain synthetic test data only.
+
+## Private Electron case control
+
+On Linux, an operator can launch the application with `--evaluation-control`,
+`--evaluation-capture` and `--evaluation-profile=/absolute/private/profile`.
+The profile must already be owned by the unprivileged local user, have mode
+0700, have no path aliases, and contain a regular unaliased 0600 marker named
+`.ai-train-laboratory` with the exact contents `ai-train-laboratory/1\n`.
+Known personal Documents profiles and their children are rejected even when marked.
+The evaluation branch uses a separate hidden, sandboxed window with a fixed CSP,
+denies navigation/new windows/media permissions, and skips the normal renderer,
+tray, startup model preload and standalone service startup.
+
+`evaluation.sock` is a 0600 Unix socket inside that profile. Its private
+`evaluation-control.json` contains a random token; the token is never a case
+field or MLflow artifact. Each newline-framed request is bounded to 8 MiB and
+contains only `token`, `operation`, `requestId` and `input`. The fixed operations
+are health, run, status, capture, cancel and shutdown. There is no shell, script,
+URL, module loader, general IPC dispatcher or debugging endpoint. The control
+relays voice operations through preload into the existing owner/main-frame IPC
+handlers. A simulation is injected only by the isolated test entry, not selected
+by a production command flag or supplied code in a case. Health reports that
+fixed runtime mode; it does not promise a model is installed.
+
+A run requires hashed inline chunks and explicit execution conditions:
+`delivery: ordered_ack`, `finish: stop | cancel`, and the matching
+`evidence_mode: simulated | observed`. These conditions are hashed with the audio
+into the optional immutable capture grant `requestHash`. Older exports remain
+readable. The trusted renderer owns the whole delivery/finish sequence after
+submission; disconnecting the controller does not replay or interrupt it.
+Repeated UUIDs return the existing capture, and conflicting inputs fail. A
+submission reply confirms the controller received the intent; status/capture
+establish the actual product acceptance. A failed or uncertain intent is never
+automatically dispatched again.
+
+`getStatusLocal` distinguishes genuine missing records from unreadable ones.
+An active starting/recording/stopping phase is reported from the existing
+session while its journal may still be in flight; closing waits for its capture
+write. No read failure becomes permission to restart. Cancel keeps the native
+reservation until work drains. Shutdown closes new control connections, cancels
+and drains the engine, then quits. Existing profiles, audio, tokens, manifests
+and preparation data are retained; stale endpoints/startup uncertainty require
+review rather than automatic profile cleanup or another launch.
+
+The production evaluation engine requires an already installed verified model;
+this mode never invokes model download. The isolated control fixture injects a
+simulated runtime into that same engine and control implementation. The control
+E2E tests launch a plain Electron child without inspector ports or a sandbox
+bypass. They check private authorization, bounds, wrong-mode requests, conflicting
+identities, repeated collection and cancellation with pending simulated native
+work. Their profiles survive for inspection. The existing UI/recorder E2E tests
+remain in the same isolated suite.

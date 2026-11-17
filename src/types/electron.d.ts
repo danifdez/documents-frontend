@@ -113,6 +113,7 @@ export interface VoiceLocalBridge {
     hasModel: () => Promise<boolean>;
     preloadLocal: () => Promise<void>;
     startLocal: (options?: import('./voice').LocalVoiceStartOptions) => Promise<import('../main/voice/types').StartLocalResult>;
+    getStatusLocal: (requestId: string) => Promise<import('./voice').LocalCaptureStatus>;
     getCaptureLocal: (requestId: string, exportEvidence?: boolean) => Promise<import('./voice').LocalCaptureSnapshot | import('./voice').LocalCaptureReceipt>;
     pushChunkLocal: (sessionId: string, buf: ArrayBuffer, sequence?: number) => Promise<void>;
     stopLocal: (sessionId: string) => Promise<void>;

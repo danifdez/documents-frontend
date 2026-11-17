@@ -117,6 +117,7 @@ export class LocalCaptureStore {
   constructor(private readonly root: () => string) {}
   async open(options: LocalCaptureOptions, identity: Record<string, unknown>): Promise<{ claimed: boolean; writer?: CaptureWriter; status: LocalCaptureSnapshot['status'] }> {
     if (options.consent !== 'granted' || options.purpose !== 'evaluation' || !['audio/wav', 'audio/webm', 'audio/webm;codecs=opus', 'audio/ogg', 'audio/ogg;codecs=opus'].includes(options.mediaType)) throw new Error('Local capture consent required');
+    if (options.requestHash !== undefined && !/^sha256:[0-9a-f]{64}$/.test(options.requestHash)) throw new Error('Invalid capture request hash');
     const id = captureId(options.requestId);
     await directory(this.root(), true);
     const dir = path.join(this.root(), id);
@@ -137,6 +138,13 @@ export class LocalCaptureStore {
     const writer = new CaptureWriter(options, dir, () => this.live.delete(id));
     await writer.event('session.accepted', { capture: options, identity, missing: CAPTURE_MISSING });
     return { claimed: true, writer, status: 'running' };
+  }
+  async lookup(requestId: string): Promise<LocalCaptureSnapshot | null> {
+    const id = captureId(requestId);
+    for (const dir of [this.root(), path.join(this.root(), id)]) {
+      try { await directory(dir); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
+    }
+    return this.read(id);
   }
   async read(requestId: string): Promise<LocalCaptureSnapshot> {
     const id = captureId(requestId); await directory(this.root());

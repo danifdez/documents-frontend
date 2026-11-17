@@ -28,7 +28,8 @@ export function createVoiceHandlers(isTrustedWindow: (sender: WebContents) => bo
       const value = options as LocalVoiceStartOptions;
       if (!value || typeof value !== 'object' || Object.keys(value).join() !== 'capture' || !value.capture ||
           typeof value.capture !== 'object' || Array.isArray(value.capture) ||
-          Object.keys(value.capture).sort().join() !== 'consent,mediaType,purpose,requestId' ||
+          Object.keys(value.capture).filter((key) => key !== 'requestHash').sort().join() !== 'consent,mediaType,purpose,requestId' ||
+          (value.capture.requestHash !== undefined && !/^sha256:[0-9a-f]{64}$/.test(value.capture.requestHash)) ||
           value.capture.consent !== 'granted' || value.capture.purpose !== 'evaluation' ||
           !['audio/wav', 'audio/webm', 'audio/webm;codecs=opus', 'audio/ogg', 'audio/ogg;codecs=opus'].includes(value.capture.mediaType) ||
           !captureAllowed(sender)) throw new Error('Local voice capture authorization required');
@@ -45,6 +46,11 @@ export function createVoiceHandlers(isTrustedWindow: (sender: WebContents) => bo
       return engine.pushChunk(sender, session, Buffer.from(input instanceof ArrayBuffer ? new Uint8Array(input) : input), sequence);
     },
     [IpcChannels.voice.stop]: (event, sessionId: unknown) => engine.stopSession(owner(event), id(sessionId)),
+    [IpcChannels.voice.status]: (event, requestId: string) => {
+      const sender = owner(event);
+      if (!captureAllowed(sender)) throw new Error('Local voice capture authorization required');
+      return engine.captureStatus(id(requestId));
+    },
     [IpcChannels.voice.capture]: async (event, requestId: string, exportEvidence = false) => {
       const sender = owner(event);
       if (!captureAllowed(sender) || typeof exportEvidence !== 'boolean') throw new Error('Local voice capture authorization required');
