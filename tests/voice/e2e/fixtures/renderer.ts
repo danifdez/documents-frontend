@@ -3,18 +3,28 @@ import { createPinia } from 'pinia';
 import VoiceCaptureButton from '../../../../src/components/voice/VoiceCaptureButton.vue';
 import NotesPanel from '../../../../src/components/notes/NotesPanel.vue';
 import apiClient from '../../../../src/services/api';
+import { setApiBaseUrlValue } from '../../../../src/services/apiBase';
+import { workspaceKey } from '../../../../src/services/workspaceScope';
+import { useVoiceSettingsStore } from '../../../../src/store/voiceSettingsStore';
 
 const notes = [
   { id: 1, title: 'First note', content: '<p><strong>Notes:</strong> | existing ending</p>', updatedAt: '2026-01-01T00:00:00Z' },
   { id: 2, title: 'Second note', content: '<p>Other document</p>', updatedAt: '2026-01-02T00:00:00Z' },
 ];
 const saves: { id: number; content: string }[] = [];
+const pinia = createPinia();
 let saveBarrier: Promise<void> | undefined;
 let releaseSave: (() => void) | undefined;
 Object.assign(window, { notesTest: {
   holdSaves: () => { saveBarrier = new Promise((resolve) => { releaseSave = resolve; }); },
   releaseSaves: () => { releaseSave?.(); saveBarrier = undefined; },
   saves: () => saves,
+  useRemote: (origin: string, token: string) => {
+    setApiBaseUrlValue(origin);
+    localStorage.setItem(workspaceKey('accessToken'), token);
+    useVoiceSettingsStore(pinia).setEngine('remote');
+  },
+  clearRemote: () => localStorage.removeItem(workspaceKey('accessToken')),
 } });
 apiClient.defaults.adapter = async (config) => {
   let data: unknown;
@@ -60,4 +70,4 @@ createApp({
       h('output', { id: 'result' }, text.value), h('output', { id: 'count' }, String(count.value)), h('output', { id: 'state' }, state.value),
     ]);
   },
-}).use(createPinia()).mount('#app');
+}).use(pinia).mount('#app');

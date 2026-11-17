@@ -23,6 +23,7 @@ export class BackendWhisperDriver implements VoiceDriver {
   private queuedCbs = new Set<(info: VoiceQueuedInfo) => void>();
   private stopResolver: (() => void) | null = null;
   private stopTimer: ReturnType<typeof setTimeout> | null = null;
+  private pendingAudio = Promise.resolve();
   /** Reject of the promise returned by start() while it has not yet resolved.
    *  If the user cancels while queued, we invoke it to unblock the
    *  component's await. */
@@ -43,7 +44,7 @@ export class BackendWhisperDriver implements VoiceDriver {
         timeout: 5000,
       });
       this.socket = socket;
-      this.startReject = reject;
+      this.pendingAudio = Promise.resolve();
 
       const settleResolve = () => {
         this.startReject = null;
@@ -53,10 +54,12 @@ export class BackendWhisperDriver implements VoiceDriver {
       const settleReject = (err: Error) => {
         this.startReject = null;
         cleanup();
+        this.teardown();
         reject(err);
       };
+      this.startReject = settleReject;
       const onError = (err: { message?: string }) => {
-        settleReject(new Error(err?.message || 'could not start dictation'));
+        this.fail(new Error(err?.message || 'Remote dictation failed'));
       };
       const onConnectError = (err: Error) => {
         settleReject(new Error(err.message || 'could not connect to the voice server'));
@@ -64,7 +67,6 @@ export class BackendWhisperDriver implements VoiceDriver {
       const cleanup = () => {
         socket.off('voice:ready', settleResolve);
         socket.off('voice:assigned', settleResolve);
-        socket.off('voice:error', onError);
         socket.off('connect_error', onConnectError);
       };
 
@@ -85,10 +87,12 @@ export class BackendWhisperDriver implements VoiceDriver {
   pushChunk(chunk: Blob): void {
     const socket = this.socket;
     if (!socket || socket.disconnected) return;
-    chunk.arrayBuffer().then((buf) => {
-      if (!socket.disconnected) socket.emit('voice:chunk', buf);
-    }).catch((err) => {
-      this.emitError(err instanceof Error ? err : new Error(String(err)));
+    this.pendingAudio = this.pendingAudio.then(async () => {
+      if (this.socket !== socket || socket.disconnected) return;
+      const buffer = await chunk.arrayBuffer();
+      if (this.socket === socket && !socket.disconnected) socket.emit('voice:chunk', buffer);
+    }).catch(() => {
+      if (this.socket === socket) this.fail(new Error('Could not send dictation audio'));
     });
   }
 
@@ -104,14 +108,10 @@ export class BackendWhisperDriver implements VoiceDriver {
         resolve();
         this.teardown();
       };
-      this.stopTimer = setTimeout(() => {
-        if (this.stopResolver) {
-          const r = this.stopResolver;
-          this.stopResolver = null;
-          r();
-        }
-      }, 5000);
-      socket.emit('voice:stop', {});
+      this.stopTimer = setTimeout(() => this.fail(new Error('Remote dictation did not return a final result')), 5000);
+      void this.pendingAudio.then(() => {
+        if (this.socket === socket && !socket.disconnected) socket.emit('voice:stop', {});
+      });
     });
   }
 
@@ -125,7 +125,8 @@ export class BackendWhisperDriver implements VoiceDriver {
       this.startReject = null;
       reject(new VoiceCancelledError());
     }
-    this.teardown();
+    if (this.stopResolver) this.stopResolver();
+    else this.teardown();
   }
 
   onPartial(cb: (p: VoicePartial) => void): () => void {
@@ -164,12 +165,18 @@ export class BackendWhisperDriver implements VoiceDriver {
   }
 
   private onSocketLost() {
-    if (this.stopResolver) {
-      // Fine — we asked for stop and the server closed afterwards.
+    this.fail(new Error('Connection lost with the voice server'));
+  }
+
+  private fail(error: Error) {
+    if (this.startReject) {
+      this.startReject(error);
       return;
     }
-    this.emitError(new Error('connection lost with the voice server'));
-    this.teardown();
+    const stopping = this.stopResolver;
+    if (stopping) stopping();
+    else this.teardown();
+    this.emitError(error);
   }
 
   private emitError(err: Error) {

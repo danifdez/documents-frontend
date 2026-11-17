@@ -8,7 +8,8 @@ import { randomUUID } from 'node:crypto';
 import * as path from 'node:path';
 import { installTimedAudio, observeEditorTiming, type EditorTiming } from './fixtures/editorTiming';
 declare const voiceTest: { inputs(): number[][]; loads(): number; finish(text: string): void; armEditorCapture(requestId: string): void };
-declare const notesTest: { holdSaves(): void; releaseSaves(): void; saves(): { id: number; content: string }[] };
+declare const notesTest: { holdSaves(): void; releaseSaves(): void; saves(): { id: number; content: string }[];
+  useRemote(origin: string, token: string): void; clearRemote(): void };
 declare const editorTiming: EditorTiming;
 const root = path.resolve(__dirname, '../../..');
 const output = process.env.VOICE_SAFETY_OUTPUT!;
@@ -198,7 +199,7 @@ async function openNoteEditor() {
   await expect(editor()).toHaveText('Notes: | existing ending');
 }
 
-async function startNoteDictation(selectSuffix = false) {
+async function openNoteAtDictationCaret(selectSuffix = false) {
   await openNoteEditor();
   await editor().evaluate((node, select) => {
     (node as HTMLElement).focus();
@@ -209,12 +210,82 @@ async function startNoteDictation(selectSuffix = false) {
     const tiptap = (node as HTMLElement & { editor: { state: { selection: { from: number; to: number } } } }).editor;
     return [tiptap.state.selection.from, tiptap.state.selection.to];
   })).toEqual(['Notes: '.length + 1, (selectSuffix ? 'Notes: | existing ending'.length : 'Notes: '.length) + 1]);
+}
+
+async function startNoteDictation(selectSuffix = false) {
+  await openNoteAtDictationCaret(selectSuffix);
   const requestId = randomUUID();
   await app.evaluate((_electron, id) => voiceTest.armEditorCapture(id), requestId);
   await noteVoiceButton('Start dictation').dispatchEvent('pointerdown', { button: 0 });
   await expect(noteVoiceButton('Stop dictation')).toBeVisible();
   return requestId;
 }
+
+test('remote dictation in the real note editor', async () => {
+  const manifestPath = process.env.VOICE_TEST_REMOTE_MANIFEST;
+  test.skip(!manifestPath, 'Opt-in remote voice trial against the authenticated local laboratory');
+  test.setTimeout(120000);
+  const { url, token, audio } = JSON.parse(await fs.readFile(manifestPath!, 'utf8'));
+  const origin = new URL(url);
+  if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || origin.origin !== url || !path.isAbsolute(audio)) {
+    throw new Error('Remote voice trial requires a private loopback connection and an explicit audio file');
+  }
+  const audioBytes = await fs.readFile(audio);
+  let receipt: { requestId: string; executionId: string } | undefined;
+  const transcripts: { text: string; isFinal: boolean }[] = [];
+  const observe = (frame: string) => {
+    for (const packet of frame.split('\x1e')) {
+      if (!packet.startsWith('42/voice,')) continue;
+      const [event, payload] = JSON.parse(packet.slice('42/voice,'.length));
+      if (event === 'voice:accepted') receipt = payload;
+      if (event === 'voice:partial') transcripts.push({ text: payload.text, isFinal: payload.isFinal });
+    }
+  };
+  page.on('websocket', (socket) => {
+    if (new URL(socket.url()).host === origin.host) {
+      socket.on('framereceived', ({ payload }) => { if (typeof payload === 'string') observe(payload); });
+    }
+  });
+  page.on('response', async (response) => {
+    const target = new URL(response.url());
+    if (target.origin === origin.origin && target.pathname === '/socket.io/' && response.request().method() === 'GET') {
+      const text = await response.text().catch(() => '');
+      observe(text);
+    }
+  });
+  await openNoteAtDictationCaret();
+  await page.evaluate(installTimedAudio, audioBytes.toString('base64'));
+  await page.evaluate(({ url, token }) => notesTest.useRemote(url, token), { url, token });
+  const reportPath = path.join(output, 'remote-live.json');
+  try {
+    await noteVoiceButton('Start dictation').dispatchEvent('pointerdown', { button: 0 });
+    await expect.poll(() => Boolean(receipt)).toBe(true);
+    const ids = { request_id: receipt!.requestId, execution_id: receipt!.executionId };
+    await fs.writeFile(reportPath, JSON.stringify(ids), { flag: 'wx', mode: 0o600 });
+    await expect(noteVoiceButton('Stop dictation')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => editorTiming.audioEndedUs !== null), { timeout: 15000 }).toBe(true);
+    await expect.poll(() => transcripts.filter((item) => !item.isFinal && item.text).length, { timeout: 35000 }).toBeGreaterThanOrEqual(2);
+    const latestPartial = transcripts.at(-1)!;
+    await expect(editor()).toHaveText(`Notes: ${latestPartial.text}| existing ending`);
+    const stop = await page.evaluate(() => {
+      const at = performance.now();
+      window.dispatchEvent(new PointerEvent('pointerup'));
+      return at;
+    });
+    await expect.poll(() => transcripts.filter((item) => item.isFinal).length, { timeout: 30000 }).toBe(1);
+    const final = transcripts.find((item) => item.isFinal)!;
+    expect(final.text.trim()).not.toBe('');
+    await expect(noteVoiceButton('Start dictation')).toBeEnabled();
+    await expect(editor()).toHaveText(`Notes: ${final.text}| existing ending`);
+    await expect(editor().locator('strong')).toHaveText('Notes:');
+    const observedMs = await page.evaluate((at) => Math.round(performance.now() - at), stop);
+    await fs.writeFile(reportPath, JSON.stringify({ ...ids, passed: true, partial_count: transcripts.length - 1,
+      final_count: 1, existing_text_and_format_preserved: true, latest_partial_replaces_preview: true,
+      stop_to_final_observed_upper_bound_ms: observedMs }), { mode: 0o600 });
+  } finally {
+    await page.evaluate(() => notesTest.clearRemote());
+  }
+});
 
 async function finishNoteCall(index: number, transcript: string) {
   await expect.poll(() => app.evaluate(() => voiceTest.inputs().length)).toBe(index);
