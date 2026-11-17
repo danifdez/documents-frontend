@@ -142,3 +142,11 @@ configuration builds only the test harness and actual voice components, uses
 Electron's sandbox, and keeps a separate profile for each test. Profiles and
 artifacts are retained for inspection; the normal E2E global setup and its
 `manage reset` are not used. The harness controls never ship in the application.
+
+
+The local model preparation tests in `tests/voice/modelManager.spec.ts` use tiny
+files and a simulated HTTPS transport. They cover fixed-manifest verification,
+existing-file preservation, symlinks/hardlinks, private no-clobber publication,
+redirect restrictions, bounded responses and timeout/failure cleanup. No actual
+GGML weights are downloaded or passed to the native recognizer. Local engine
+tests also verify that file verification gates each call and its delivered result.

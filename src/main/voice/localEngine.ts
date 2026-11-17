@@ -42,7 +42,7 @@ const defaultRuntime: VoiceRuntime = {
   hasModel: isModelReady,
   async load(progress) {
     if (!tryLoadBindings()) throw new Error('Local voice is unavailable');
-    if (!(await isModelReady())) await ensureModelDownloaded(progress);
+    await ensureModelDownloaded(progress);
     return new WhisperClass!(modelPath(), { gpu: false });
   },
   decode: (input, signal) => decodeAudio(ffmpegPath!, input, signal),
@@ -188,8 +188,12 @@ export class LocalEngine {
         if (audio.length) {
           const pcm = await this.runtime.decode(audio, s.abort.signal);
           if (s.phase !== expected) return;
+          if (!(await this.runtime.hasModel())) throw new Error('Local voice model verification failed');
+          if (s.phase !== expected) return;
           const task = await this.whisper!.transcribe(pcm, { language: 'auto', print_realtime: false, print_progress: false, print_timestamps: false, print_special: false });
           const segments = await task.result;
+          if (s.phase !== expected) return;
+          if (!(await this.runtime.hasModel())) throw new Error('Local voice model verification failed');
           if (s.phase !== expected) return;
           text = segments.map((segment) => segment.text).join(' ').trim();
           if (Buffer.byteLength(text) > VOICE_LIMITS.textBytes) throw new Error('Output limit exceeded');

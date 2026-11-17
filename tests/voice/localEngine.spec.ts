@@ -130,6 +130,22 @@ describe('local voice ownership and lifecycle', () => {
     expect(model.free).toHaveBeenCalledTimes(1); expect(partials()).toHaveLength(0);
     expect(model.transcribe).toHaveBeenCalledWith(expect.any(Float32Array), expect.objectContaining({ print_realtime: false, print_progress: false }));
   });
+  it('revalidates the model before a new call even when preparation is cached', async () => {
+    const first = await engine.startSession(owner.wc); engine.pushChunk(owner.wc, first.sessionId, Buffer.from([1]));
+    await engine.stopSession(owner.wc, first.sessionId);
+    runtime.hasModel = async () => false;
+    const next = await engine.startSession(owner.wc); engine.pushChunk(owner.wc, next.sessionId, Buffer.from([1]));
+    await expect(engine.stopSession(owner.wc, next.sessionId)).rejects.toThrow('processing failed');
+    expect(runtime.load).toHaveBeenCalledTimes(1); expect(model.transcribe).toHaveBeenCalledTimes(1);
+  });
+  it('does not deliver a result when model verification changes during native work', async () => {
+    const native = deferred<{ text: string }[]>(); model.transcribe.mockResolvedValueOnce({ result: native.promise });
+    const s = await engine.startSession(owner.wc); engine.pushChunk(owner.wc, s.sessionId, Buffer.from([1]));
+    const pending = engine.stopSession(owner.wc, s.sessionId); const rejected = expect(pending).rejects.toThrow('processing failed');
+    await vi.advanceTimersByTimeAsync(0); expect(model.transcribe).toHaveBeenCalledTimes(1);
+    runtime.hasModel = async () => false; native.resolve([{ text: 'Unverified result' }]); await rejected;
+    expect(partials()).toHaveLength(0);
+  });
   it('rejects output beyond its limit without sending partial or final text', async () => {
     model.transcribe.mockResolvedValueOnce({ result: Promise.resolve([{ text: 'x'.repeat(VOICE_LIMITS.textBytes + 1) }]) });
     const s = await engine.startSession(owner.wc); engine.pushChunk(owner.wc, s.sessionId, Buffer.from([1]));
