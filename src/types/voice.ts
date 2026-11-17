@@ -40,3 +40,32 @@ export interface VoiceDriver {
   /** Optional: the remote driver emits it when the client is queued. */
   onQueued?(cb: (info: VoiceQueuedInfo) => void): () => void;
 }
+
+
+/** Local capture is separate from microphone permission and normal dictation. */
+export interface LocalCaptureOptions {
+  requestId: string;
+  consent: 'granted';
+  purpose: 'evaluation';
+  mediaType: 'audio/wav' | 'audio/webm' | 'audio/webm;codecs=opus' | 'audio/ogg' | 'audio/ogg;codecs=opus';
+}
+export interface LocalVoiceStartOptions { capture: LocalCaptureOptions }
+export interface LocalCaptureEvent {
+  sequence: number;
+  occurredAt: string;
+  eventType: string;
+  payload: Record<string, unknown>;
+  previousHash: string | null;
+  contentHash: string;
+}
+export interface LocalCaptureSnapshot {
+  schemaVersion: 'voice-local-capture/1';
+  requestId: string;
+  capture: LocalCaptureOptions;
+  status: 'running' | 'completed' | 'cancelled' | 'failed' | 'interrupted';
+  events: LocalCaptureEvent[];
+  artifacts: Record<string, { sha256: string; size: number; base64: string }>;
+  missing: string[];
+  manifestHash?: string;
+}
+export interface LocalCaptureReceipt { sessionId: string; status: LocalCaptureSnapshot['status']; claimed: boolean }

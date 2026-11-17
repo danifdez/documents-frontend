@@ -3,12 +3,18 @@ import { build as bundle } from 'esbuild';
 import { build } from '../../../node_modules/vite/dist/node/index.js';
 import vue from '@vitejs/plugin-vue';
 import * as fs from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import * as path from 'node:path';
-declare const voiceTest: { inputs(): number[][]; finish(text: string): void };
+declare const voiceTest: { inputs(): number[][]; loads(): number; finish(text: string): void };
 const root = path.resolve(__dirname, '../../..');
 const output = process.env.VOICE_SAFETY_OUTPUT!;
 let app: ElectronApplication;
 let page: Page;
+let profile: string;
+function launchOptions() {
+  return { args: [path.join(output, 'main.cjs'), '--evaluation-capture'], env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined,
+    VOICE_TEST_PROFILE: profile, VOICE_TEST_HTML: path.join(output, 'renderer/index.html'), VOICE_TEST_PRELOAD: path.join(output, 'preload.cjs') } };
+}
 test.beforeAll(async () => {
   if (!output || !path.isAbsolute(output)) throw new Error('An explicit isolated output directory is required');
   await build({ configFile: false, root: path.join(__dirname, 'fixtures'), base: './', plugins: [vue()], build: { outDir: path.join(output, 'renderer'), emptyOutDir: false }, logLevel: 'error' });
@@ -16,10 +22,11 @@ test.beforeAll(async () => {
   await bundle({ entryPoints: [path.join(root, 'src/preload.ts')], outfile: path.join(output, 'preload.cjs'), bundle: true, platform: 'node', external: ['electron'] });
 });
 test.beforeEach(async ({ playwright }, info) => {
-  const profile = path.join(output, 'profiles', `${Date.now()}-${info.testId}`); await fs.mkdir(profile, { recursive: true });
-  app = await playwright._electron.launch({ args: [path.join(output, 'main.cjs')], env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined,
-    VOICE_TEST_PROFILE: profile, VOICE_TEST_HTML: path.join(output, 'renderer/index.html'), VOICE_TEST_PRELOAD: path.join(output, 'preload.cjs') } });
-  page = await app.firstWindow(); await page.waitForURL(/index.html/); await page.waitForLoadState();
+  profile = path.join(output, 'profiles', `${Date.now()}-${info.testId}`); await fs.mkdir(profile, { recursive: true });
+  app = await playwright._electron.launch(launchOptions());
+  page = await app.firstWindow();
+  await expect.poll(() => app.windows().length).toBe(2);
+  for (const window of app.windows()) { await window.waitForURL(/index.html/); await window.waitForLoadState(); }
   await expect.poll(() => page.evaluate(() => window.voice!.refreshAvailability())).toBe(true);
 });
 test.afterEach(async () => { await app?.close(); });
@@ -68,5 +75,49 @@ test('main-frame reload invalidates the old session without delivering its nativ
     try { sessionId = await page.evaluate(async () => (await window.voice!.startLocal()).sessionId); return true; } catch { return false; }
   }).toBe(true);
   await page.evaluate((id) => window.voice!.cancelLocal(id), sessionId);
+  await expect(page.locator('#result')).toHaveText('');
+});
+
+
+test('authorized capture survives process restart and never replays recognition', async ({ playwright }) => {
+  const requestId = randomUUID();
+  const options = { capture: { requestId, consent: 'granted' as const, purpose: 'evaluation' as const, mediaType: 'audio/wav' as const } };
+  const start = await page.evaluate((value) => window.voice!.startLocal(value), options);
+  expect(start).toMatchObject({ sessionId: requestId, claimed: true });
+  const other = app.windows().find((window) => window !== page)!;
+  expect(await other.evaluate(async (id) => {
+    try { await window.voice!.getCaptureLocal(id, true); return false; } catch { return true; }
+  }, requestId)).toBe(true);
+  await page.evaluate(async (id) => {
+    await window.voice!.pushChunkLocal(id, new Uint8Array([7, 8]).buffer, 1);
+    await window.voice!.pushChunkLocal(id, new Uint8Array([7, 8]).buffer, 1);
+  }, requestId);
+  const stopping = page.evaluate((id) => window.voice!.stopLocal(id), requestId);
+  await expect.poll(() => app.evaluate(() => voiceTest.inputs())).toEqual([[7, 8]]);
+  await app.evaluate(() => voiceTest.finish('Captured synthetic result')); await stopping;
+  const capture = await page.evaluate((id) => window.voice!.getCaptureLocal(id, true), requestId);
+  expect(capture).toMatchObject({ status: 'completed', artifacts: { '1': { base64: 'Bwg=' } } });
+  const journal = path.join(profile, 'evaluation/voice', requestId, 'events.jsonl'); const bytes = await fs.readFile(journal);
+  expect(await page.evaluate((id) => window.voice!.getCaptureLocal(id), requestId)).toEqual({ sessionId: requestId, status: 'completed', claimed: false });
+  await app.close(); app = await playwright._electron.launch(launchOptions()); page = await app.firstWindow(); await page.waitForLoadState();
+  for (let i = 0; i < 3; i++) {
+    expect(await page.evaluate((id) => window.voice!.getCaptureLocal(id, true), requestId)).toEqual(capture);
+    expect(await page.evaluate((value) => window.voice!.startLocal(value), options)).toEqual({ sessionId: requestId, status: 'completed', claimed: false });
+  }
+  expect(await app.evaluate(() => voiceTest.inputs())).toEqual([]); expect(await app.evaluate(() => voiceTest.loads())).toBe(0);
+  expect(await fs.readFile(journal)).toEqual(bytes);
+});
+
+test('cancelled capture keeps its incomplete call without publishing late text', async () => {
+  const requestId = randomUUID();
+  await page.evaluate((id) => window.voice!.startLocal({ capture: { requestId: id, consent: 'granted', purpose: 'evaluation', mediaType: 'audio/wav' } }), requestId);
+  await page.evaluate((id) => window.voice!.pushChunkLocal(id, new Uint8Array([3]).buffer, 1), requestId);
+  const stopping = page.evaluate((id) => window.voice!.stopLocal(id), requestId);
+  await expect.poll(() => app.evaluate(() => voiceTest.inputs().length)).toBe(1);
+  await page.evaluate((id) => window.voice!.cancelLocal(id), requestId);
+  const capture = await page.evaluate((id) => window.voice!.getCaptureLocal(id, true), requestId);
+  expect(capture).toMatchObject({ status: 'cancelled', missing: expect.arrayContaining(['call.1.finish']) });
+  await app.evaluate(() => voiceTest.finish('LATE_CAPTURE_RESULT')); await stopping;
+  expect(await page.evaluate((id) => window.voice!.getCaptureLocal(id, true), requestId)).toEqual(capture);
   await expect(page.locator('#result')).toHaveText('');
 });

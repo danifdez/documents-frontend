@@ -112,8 +112,9 @@ export interface VoiceLocalBridge {
     refreshAvailability: () => Promise<boolean>;
     hasModel: () => Promise<boolean>;
     preloadLocal: () => Promise<void>;
-    startLocal: () => Promise<{ sessionId: string }>;
-    pushChunkLocal: (sessionId: string, buf: ArrayBuffer) => Promise<void>;
+    startLocal: (options?: import('./voice').LocalVoiceStartOptions) => Promise<import('../main/voice/types').StartLocalResult>;
+    getCaptureLocal: (requestId: string, exportEvidence?: boolean) => Promise<import('./voice').LocalCaptureSnapshot | import('./voice').LocalCaptureReceipt>;
+    pushChunkLocal: (sessionId: string, buf: ArrayBuffer, sequence?: number) => Promise<void>;
     stopLocal: (sessionId: string) => Promise<void>;
     cancelLocal: (sessionId?: string) => Promise<void>;
     onPartialLocal: (cb: (p: { sessionId: string; text: string; isFinal: boolean }) => void) => () => void;

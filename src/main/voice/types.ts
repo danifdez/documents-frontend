@@ -26,4 +26,6 @@ export interface LocalModelProgress {
  */
 export interface StartLocalResult {
   sessionId: string;
+  claimed?: boolean;
+  status?: import('../../types/voice').LocalCaptureSnapshot['status'];
 }

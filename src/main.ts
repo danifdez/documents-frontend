@@ -801,7 +801,7 @@ app.whenReady().then(() => {
         expected.hash = actual.hash = '';
         return expected.href === actual.href;
       } catch { return false; }
-    }),
+    }, undefined, (sender) => process.argv.includes('--evaluation-capture') && sender === mainWindow?.webContents),
     ...createNotificationHandlers({
       showAlarmNotification,
       showMissedAggregate,

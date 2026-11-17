@@ -36,9 +36,10 @@ const voice: VoiceLocalBridge = {
     refreshAvailability: refreshLocalAvailable,
     hasModel: (): Promise<boolean> => ipcRenderer.invoke(IpcChannels.voice.hasModel),
     preloadLocal: (): Promise<void> => ipcRenderer.invoke(IpcChannels.voice.preload),
-    startLocal: (): Promise<{ sessionId: string }> => ipcRenderer.invoke(IpcChannels.voice.start),
-    pushChunkLocal: (sessionId: string, buf: ArrayBuffer): Promise<void> =>
-        ipcRenderer.invoke(IpcChannels.voice.chunk, sessionId, buf),
+    startLocal: (options) => ipcRenderer.invoke(IpcChannels.voice.start, options),
+    getCaptureLocal: (requestId, exportEvidence = false) => ipcRenderer.invoke(IpcChannels.voice.capture, requestId, exportEvidence),
+    pushChunkLocal: (sessionId: string, buf: ArrayBuffer, sequence?: number): Promise<void> =>
+        ipcRenderer.invoke(IpcChannels.voice.chunk, sessionId, buf, sequence),
     stopLocal: (sessionId: string): Promise<void> => ipcRenderer.invoke(IpcChannels.voice.stop, sessionId),
     cancelLocal: (sessionId?: string): Promise<void> =>
         ipcRenderer.invoke(IpcChannels.voice.cancel, sessionId),

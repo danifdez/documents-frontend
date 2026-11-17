@@ -12,6 +12,7 @@ export const IpcChannels = {
     chunk: 'voice:local:chunk',
     stop: 'voice:local:stop',
     cancel: 'voice:local:cancel',
+    capture: 'voice:local:capture',
   },
   calendar: {
     showAlarm: 'calendar:show-alarm',

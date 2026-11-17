@@ -150,3 +150,53 @@ existing-file preservation, symlinks/hardlinks, private no-clobber publication,
 redirect restrictions, bounded responses and timeout/failure cleanup. No actual
 GGML weights are downloaded or passed to the native recognizer. Local engine
 tests also verify that file verification gates each call and its delivered result.
+
+
+Local evaluation capture is disabled for ordinary dictation. An operator must
+launch Electron with `--evaluation-capture`; only the trusted main application
+window's main frame may then request it. Each `startLocal` call must explicitly
+supply `{ capture: { requestId, consent: 'granted', purpose: 'evaluation',
+mediaType: 'audio/wav' } }` (the allowed Ogg/WebM formats are also accepted).
+Use a fresh lowercase UUIDv4 for a new operation and numbered `pushChunkLocal`
+inputs starting at 1. This is a laboratory IPC operation; the normal microphone
+button and driver do not opt into it automatically.
+
+Captures live in the Electron OS profile at `userData/evaluation/voice/<UUID>/`,
+with private directories/files (0700/0600 on POSIX), no caller-supplied paths or
+network destinations, and no automatic purge. They are local profile data,
+not Backend execution records or an additional case bank. Active operations
+retain their original window owner. After a restart, access requires the same
+OS profile and the explicit main-process launch permission. It does not grant
+access to another Backend user's data.
+
+The journal records consent, ordered original audio, call input hashes,
+parameters, PCM hash/shape, measured decoding/inference durations, bounded
+results, main-process send events and terminal state. Audio is persisted and
+synced before it is acknowledged or processed. Captured sessions retain at most
+4 MiB of audio, 16 MiB of journal and 5000 events; a profile holds at most 64
+records. Quota or write failures reject further work and preserve prior data.
+Normal dictation retains its existing limits. The chained hashes detect damaged
+or inconsistent evidence; they are not signatures against the OS profile owner.
+
+`getCaptureLocal(requestId)` returns only a receipt. Supplying `true` explicitly
+exports a validated snapshot with sensitive audio and text. It verifies the
+journal chain, audio hashes/order and call/output bindings. A torn final append
+exposes only its verified prefix as interrupted; unreadable or inconsistent
+records fail closed. No read repairs files or restarts recognition. Repeating
+`startLocal` with an existing identity and the same immutable grant returns
+`claimed: false`; callers must inspect/collect that capture rather than send
+audio again. Interrupted captures require a new UUID for a deliberately new run.
+
+The capture distinguishes the expected GGML manifest and file readiness checks
+from the missing loaded-model/native-binary identity and effective native
+settings. The PCM hash is taken before native execution. `output.sent` means
+that main invoked Electron's send method; renderer receipt and editor effects
+remain unverified. No claim of complete inference reconstruction or quality is
+made. The ai-train/MLflow collector is a subsequent block.
+
+`captureStore.spec.ts` and `localCapture.spec.ts` cover opt-in authorization,
+private files, bounds, corruption, interrupted appends, duplicate input,
+read-only recovery, failure and cancellation without real models. The isolated
+Electron suite also closes/relaunches its process to check stable recovery and
+zero repeated engine initialization, and checks cancellation with a late
+simulated result. Its retained profiles contain synthetic test data only.
