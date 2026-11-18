@@ -39,7 +39,7 @@
                 <div class="px-4 py-2.5 border-t border-border-light bg-surface flex items-center justify-between gap-2">
                     <button type="button" @click="openSource" :disabled="!sourceTitle"
                         class="px-2.5 py-1 text-xs font-medium border border-border rounded-lg text-text-secondary hover:bg-surface-hover cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                        Open source ↗
+                        Open source
                     </button>
                     <button type="button" @click="emit('re-extract')"
                         class="px-2.5 py-1 text-xs font-medium bg-accent text-white rounded-lg hover:bg-accent-dark cursor-pointer">
@@ -53,10 +53,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import type { CellAnchor } from '../../services/datasets/useDatasets';
 import { useResourceDirectory } from '../../services/resources/useResourceDirectory';
 
 const { fetchResource } = useResourceDirectory();
+const router = useRouter();
 
 const props = defineProps<{
     isOpen: boolean;
@@ -115,10 +117,13 @@ const fetchSourceTitle = async () => {
 
 const openSource = () => {
     if (!props.anchor?.sourceResourceId || !sourceTitle.value) return;
-    const url = props.anchor.page
-        ? `/resources/${props.anchor.sourceResourceId}?page=${props.anchor.page}`
-        : `/resources/${props.anchor.sourceResourceId}`;
-    window.open(url, '_blank', 'noopener');
+    const { sourceResourceId, page } = props.anchor;
+    emit('close');
+    void router.push({
+        name: 'Resource',
+        params: { id: sourceResourceId },
+        query: page == null ? {} : { page: String(page) },
+    });
 };
 
 const onKey = (event: KeyboardEvent) => {
@@ -137,7 +142,7 @@ watch(() => props.isOpen, (open) => {
     if (open) {
         fetchSourceTitle();
     }
-});
+}, { immediate: true });
 
 onMounted(() => {
     document.addEventListener('keydown', onKey);
