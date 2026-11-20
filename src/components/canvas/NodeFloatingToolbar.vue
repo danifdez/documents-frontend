@@ -279,7 +279,7 @@ const selectBorderColor = (color: string) => {
 const borderStyles = ['solid', 'dashed', 'dotted', 'none'] as const;
 const cycleBorderStyle = () => {
   const current = props.data.borderStyle || 'solid';
-  const idx = borderStyles.findIndex(style => style === current);
+  const idx = borderStyles.indexOf(current);
   emit('update', { borderStyle: borderStyles[(idx + 1) % borderStyles.length] });
 };
 
