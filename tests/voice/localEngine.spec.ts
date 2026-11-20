@@ -2,6 +2,7 @@
 import { EventEmitter } from 'node:events';
 import type { WebContents } from 'electron';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('electron', () => ({ app: { getPath: vi.fn() } }));
 vi.mock('@/main/voice/modelManager', () => ({ ensureModelDownloaded: vi.fn(() => { throw new Error('No real models'); }), isModelReady: vi.fn(), modelPath: vi.fn() }));
 import { LocalEngine, VOICE_LIMITS, type VoiceRuntime } from '@/main/voice/localEngine';
 import { createVoiceHandlers } from '@/main/ipc/voice-handlers';

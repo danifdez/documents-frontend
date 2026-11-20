@@ -28,7 +28,7 @@ import { createQuickAssistantHandlers } from './main/ipc/quick-assistant-handler
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
-// Imported (not require()'d) so Vite bundles it into main.js — a bare require()
+// Imported (not require()'d) so Vite bundles it into the main process — a bare require()
 // stays external and the dependency is not shipped in the packaged app.
 if (squirrelStartup) {
   app.quit();
@@ -219,7 +219,7 @@ function createQuickAssistantWindow(): BrowserWindow {
     backgroundColor: '#000000',
     icon: getAppIconPath(),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   });
 
@@ -606,7 +606,7 @@ function createSplashWindow() {
     icon: getAppIconPath(),
     webPreferences: {
       devTools: false,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   });
 
@@ -727,7 +727,7 @@ const createWindow = () => {
     icon: getAppIconPath(),
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   });
 
@@ -784,7 +784,7 @@ const createWindow = () => {
 
 app.whenReady().then(async () => {
   if (labProfile) {
-    const lab = await startEvaluation(labProfile, path.join(__dirname, 'preload.js'));
+    const lab = await startEvaluation(labProfile, path.join(__dirname, 'preload.cjs'));
     app.once('before-quit', () => { void lab.engine.shutdown(); });
     return;
   }

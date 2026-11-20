@@ -745,6 +745,7 @@ async function extractTarGz(
     strip: 0,
     preservePaths: false,
     filter: (entryPath, entry) => {
+      if (!('type' in entry)) throw new Error('Unexpected TAR entry metadata');
       assertSafeArchiveEntry(entryPath, entry.type, entry.linkpath);
       return true;
     },

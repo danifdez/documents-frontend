@@ -5,7 +5,7 @@ import * as path from 'path';
 import { mockModelExecutions } from './api-mocks';
 import { waitForOnline } from './helpers';
 
-const MAIN_ENTRY = path.join(__dirname, '..', '..', '..', '.vite', 'build', 'main.js');
+const MAIN_ENTRY = path.join(__dirname, '..', '..', '..', '.vite', 'build', 'main.cjs');
 const WORKSPACE_NAME = 'Test Workspace';
 const WORKSPACE_URL = process.env.TEST_API_URL || 'http://localhost:3000';
 
