@@ -3,7 +3,7 @@ import { createApp } from 'vue';
 import DatasetViewNode from '../DatasetViewNode.vue';
 
 export interface DatasetViewOptions {
-    HTMLAttributes: Record<string, any>;
+    HTMLAttributes: Record<string, unknown>;
 }
 
 declare module '@tiptap/core' {
@@ -37,7 +37,7 @@ export const DatasetViewExtension = Node.create<DatasetViewOptions>({
             datasetId: {
                 default: null,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-dataset-id');
+                    const val = element.dataset.datasetId;
                     return val ? Number(val) : null;
                 },
                 renderHTML: (attributes) => ({
@@ -46,21 +46,21 @@ export const DatasetViewExtension = Node.create<DatasetViewOptions>({
             },
             datasetName: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-dataset-name') || '',
+                parseHTML: (element) => element.dataset.datasetName || '',
                 renderHTML: (attributes) => ({
                     'data-dataset-name': attributes.datasetName,
                 }),
             },
             fields: {
                 default: '[]',
-                parseHTML: (element) => element.getAttribute('data-fields') || '[]',
+                parseHTML: (element) => element.dataset.fields || '[]',
                 renderHTML: (attributes) => ({
                     'data-fields': attributes.fields,
                 }),
             },
             filters: {
                 default: '[]',
-                parseHTML: (element) => element.getAttribute('data-filters') || '[]',
+                parseHTML: (element) => element.dataset.filters || '[]',
                 renderHTML: (attributes) => ({
                     'data-filters': attributes.filters,
                 }),

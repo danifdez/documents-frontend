@@ -139,6 +139,7 @@
 </template>
 
 <script setup lang="ts">
+import { getErrorMessage, getResponseError } from '../../utils/errorDetails';
 import { computed, ref, watch } from 'vue';
 import LoadingSpinner from '../ui/LoadingSpinner.vue';
 import {
@@ -228,7 +229,7 @@ async function openEdit(file: IndexedFile) {
             return;
         }
         editorContent.value = result.content;
-    } catch (error: any) {
+    } catch (error: unknown) {
         editorError.value = apiError(error, 'Could not read the file');
     } finally {
         editorLoading.value = false;
@@ -264,7 +265,7 @@ async function saveEditor() {
         );
         await refresh();
         editorMode.value = null;
-    } catch (error: any) {
+    } catch (error: unknown) {
         editorError.value = apiError(
             error,
             editorMode.value === 'create' ? 'Could not create the file' : 'Could not save the file',
@@ -288,8 +289,8 @@ async function onDrop(event: DragEvent) {
         try {
             await api.upload(props.ownerType, props.ownerId, file);
             uploads.value = uploads.value.filter((item) => item !== upload);
-        } catch (error: any) {
-            upload.error = error?.response?.data?.error || error?.message || 'Upload failed';
+        } catch (error: unknown) {
+            upload.error = getResponseError(error, 'error') || getErrorMessage(error) || 'Upload failed';
         }
     }
     await refresh();
@@ -325,8 +326,8 @@ function isEditableFilename(filename: string): boolean {
     return editableExtensions.has(extension);
 }
 
-function apiError(error: any, fallback: string): string {
-    return error?.response?.data?.error || error?.message || fallback;
+function apiError(error: unknown, fallback: string): string {
+    return getResponseError(error, 'error') || getErrorMessage(error) || fallback;
 }
 
 function formatSize(bytes: number): string {

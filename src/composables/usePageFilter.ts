@@ -1,6 +1,6 @@
 import { ref, computed, type Ref } from 'vue';
 
-export function usePageFilter<T extends Record<string, any>>(
+export function usePageFilter<T extends object>(
   items: Ref<T[]>,
   fields: (keyof T)[],
 ) {

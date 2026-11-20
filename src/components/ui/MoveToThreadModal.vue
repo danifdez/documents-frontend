@@ -11,7 +11,7 @@
           class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors w-full cursor-pointer"
           :class="selectedThreadId === null && confirmed ? 'bg-accent/10 text-accent' : 'hover:bg-surface-hover text-text-primary'">
           <div class="w-5 h-5 rounded flex items-center justify-center bg-accent-subtle text-accent shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
           </div>

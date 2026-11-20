@@ -85,7 +85,7 @@
                             <button v-if="selection === 'agent' && activeAgent" @click="openAgentEditor(activeAgent)"
                                 class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
                                 title="Edit agent">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="1.75">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -96,7 +96,7 @@
                             <button @click="close"
                                 class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
                                 title="Close (Esc)">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="1.75">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -140,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import { getErrorMessage, getResponseError } from '../../utils/errorDetails';
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import AssistantSidebar from './AssistantSidebar.vue';
 import AssistantChat from './AssistantChat.vue';
@@ -268,8 +269,8 @@ async function chooseAssistantFolder() {
         await assistantStore.updateWorkingFolder(selected);
         workingFolderOpen.value = true;
         memoryOpen.value = false;
-    } catch (error: any) {
-        alert(error?.response?.data?.message || error?.message || 'Could not set the working folder');
+    } catch (error: unknown) {
+        alert(getResponseError(error) || getErrorMessage(error) || 'Could not set the working folder');
     }
 }
 

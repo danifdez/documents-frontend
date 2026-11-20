@@ -1,7 +1,7 @@
 import { app } from 'electron';
-import path from 'path';
-import fs from 'fs';
-import { randomBytes } from 'crypto';
+import path from 'node:path';
+import fs from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import { EmbeddedPostgresService } from './embedded-postgres';
 import { EmbeddedBackendService } from './embedded-backend';
 import { EmbeddedModelsService, embeddedModels } from './embedded-models';

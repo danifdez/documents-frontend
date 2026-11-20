@@ -1,6 +1,6 @@
+import type { ReadingPoint, ReadingPointKind, ReadingPointAnchor } from './useReadingPoints';
 import { ref } from 'vue';
 import apiClient from '../api';
-import type { ReadingPointKind, ReadingPointAnchor } from './useReadingPoints';
 
 export const useReadingPointCreate = () => {
     const isLoading = ref(false);
@@ -12,12 +12,12 @@ export const useReadingPointCreate = () => {
         label: string,
         entityType: 'doc' | 'resource' = 'doc',
         anchor: ReadingPointAnchor = {},
-    ): Promise<any> => {
+    ): Promise<ReadingPoint> => {
         isLoading.value = true;
         error.value = null;
 
         try {
-            const payload: Record<string, any> = { kind, label };
+            const payload: Record<string, unknown> = { kind, label };
             if (anchor.exact !== undefined) payload.exact = anchor.exact;
             if (anchor.fragmentId !== undefined) payload.fragmentId = anchor.fragmentId;
             if (anchor.prefix !== undefined) payload.prefix = anchor.prefix;

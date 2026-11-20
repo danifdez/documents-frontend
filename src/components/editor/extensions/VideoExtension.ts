@@ -1,7 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 
 export interface VideoOptions {
-    HTMLAttributes: Record<string, any>;
+    HTMLAttributes: Record<string, unknown>;
     allowFullscreen: boolean;
     width: number;
     height: number;
@@ -77,7 +77,7 @@ export const VideoExtension = Node.create<VideoOptions>({
                     const video = element.querySelector('video');
                     if (iframe) return iframe.getAttribute('src');
                     if (video) return video.getAttribute('src') || video.querySelector('source')?.getAttribute('src');
-                    return element.getAttribute('data-video-src');
+                    return element.dataset.videoSrc ?? null;
                 },
                 renderHTML: (attributes) => ({
                     'data-video-src': attributes.src,
@@ -151,7 +151,7 @@ export const VideoExtension = Node.create<VideoOptions>({
         return ({ node }) => {
             const dom = document.createElement('div');
             dom.classList.add('video-embed');
-            dom.setAttribute('data-video-embed', '');
+            dom.dataset.videoEmbed = '';
             dom.style.cssText = 'margin:12px 0;text-align:center;';
 
             const src = node.attrs.src || '';

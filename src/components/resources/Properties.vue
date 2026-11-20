@@ -4,7 +4,7 @@
         <div class="grid grid-cols-[6rem_1fr] items-start gap-x-2 px-3 py-2">
             <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider pt-1">Project</span>
             <div>
-                <select v-if="isEditingProject" v-model="editProjectId" @change="handleProjectChange"
+                <select aria-label="Resource project" v-if="isEditingProject" v-model="editProjectId" @change="handleProjectChange"
                     @keyup.escape="cancelProjectEdit"
                     class="w-full bg-surface border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                     ref="projectDropdown">
@@ -23,7 +23,7 @@
         <div class="grid grid-cols-[6rem_1fr] items-start gap-x-2 px-3 py-2">
             <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider pt-1">Type</span>
             <div>
-                <select v-if="isEditingType" v-model="editResourceType" @change="handleTypeChange"
+                <select aria-label="Resource type" v-if="isEditingType" v-model="editResourceType" @change="handleTypeChange"
                     @keyup.escape="cancelTypeEdit"
                     class="w-full bg-surface border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                     ref="typeDropdown">
@@ -46,7 +46,7 @@
             <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider pt-1">Authors</span>
             <div>
                 <div v-if="isEditingAuthors" class="relative">
-                    <input v-model="editResourceAuthors" @input="handleAuthorInput" @blur="handleAuthorsBlur"
+                    <input aria-label="Resource authors" v-model="editResourceAuthors" @input="handleAuthorInput" @blur="handleAuthorsBlur"
                         @keydown.enter="handleAuthorsEnter" @keyup.escape="cancelAuthorsEdit"
                         @keydown.down.prevent="navigateAuthorSuggestions(1)"
                         @keydown.up.prevent="navigateAuthorSuggestions(-1)"
@@ -64,7 +64,7 @@
                 </div>
                 <div v-else @dblclick="startAuthorsEdit" class="cursor-pointer hover:bg-surface-hover px-2 py-1 rounded text-sm min-h-[24px]" title="Double-click to edit">
                     <span v-if="resource.authors && resource.authors.length > 0" class="text-text-primary">
-                        {{ resource.authors.map((a: any) => a.name).join(', ') }}
+                        {{ resource.authors.map((a: Author) => a.name).join(', ') }}
                     </span>
                     <span v-else class="text-text-muted italic text-xs">--</span>
                 </div>
@@ -120,6 +120,7 @@
 </template>
 
 <script setup lang="ts">
+import type { Project } from '../../types/Project';
 import { onMounted, ref, computed } from 'vue';
 import { useResourceType } from '../../services/resources/useResourceType';
 import { useResource } from '../../services/resources/useResource';
@@ -175,7 +176,7 @@ const props = defineProps({
 const displayTypeName = computed(() => {
     if (!props.resource.type) return null;
     const typeId = typeof props.resource.type === 'object' ? props.resource.type.id : props.resource.type;
-    const typeIdNum = typeof typeId === 'string' ? parseInt(typeId, 10) : typeId;
+    const typeIdNum = typeof typeId === 'string' ? Number.parseInt(typeId, 10) : typeId;
     const resourceType = resourceTypes.value.find(rt => rt.id === typeIdNum);
     return resourceType ? resourceType.name : typeId;
 });
@@ -271,8 +272,8 @@ const languageMap = {
 const formatFileSize = (bytes: number | string | undefined): string => {
     if (bytes === undefined || bytes === null) return '';
 
-    const sizeInBytes = typeof bytes === 'string' ? parseInt(bytes, 10) : bytes;
-    if (isNaN(sizeInBytes)) return '';
+    const sizeInBytes = typeof bytes === 'string' ? Number.parseInt(bytes, 10) : bytes;
+    if (Number.isNaN(sizeInBytes)) return '';
 
     const units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
 
@@ -547,7 +548,7 @@ const handleProjectChange = async () => {
     try {
         if (editProjectId.value) {
             await assignResourceToProject(props.resource.id, editProjectId.value);
-            const project = allProjects.value.find((p: any) => String(p.id) === editProjectId.value);
+            const project = allProjects.value.find((p: Project) => String(p.id) === editProjectId.value);
             props.resource.project = project ? { id: project.id, name: project.name } : null;
         } else {
             await updateResource(props.resource.id, { project: null });

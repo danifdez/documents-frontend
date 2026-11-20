@@ -15,7 +15,7 @@
         @dblclick="startEditTitle">
         {{ node.data.title || 'Title' }}
       </div>
-      <input v-else ref="titleRef" v-model="editTitle"
+      <input aria-label="Card title" v-else ref="titleRef" v-model="editTitle"
         class="font-semibold text-sm text-text-primary bg-transparent border-0 outline-none w-full nowheel nodrag"
         @blur="finishEditTitle" @keydown.enter="finishEditTitle" @keydown.escape="finishEditTitle" />
       <div v-if="!isEditingSubtitle"
@@ -23,7 +23,7 @@
         @dblclick="startEditSubtitle">
         {{ node.data.subtitle || 'Subtitle' }}
       </div>
-      <input v-else ref="subtitleRef" v-model="editSubtitle"
+      <input aria-label="Card subtitle" v-else ref="subtitleRef" v-model="editSubtitle"
         class="text-xs text-text-muted bg-transparent border-0 outline-none w-full nowheel nodrag"
         @blur="finishEditSubtitle" @keydown.enter="finishEditSubtitle" @keydown.escape="finishEditSubtitle" />
     </div>
@@ -31,15 +31,16 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
 import { ref, nextTick, watch } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
 import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 
-defineProps<{ id: string; data: Record<string, any>; selected: boolean }>();
+defineProps<{ id: string; data: CanvasNodeData; selected: boolean }>();
 
-const { node } = useNode();
+const { node } = useNode<CanvasNodeData>();
 
 const isEditingTitle = ref(false);
 const isEditingSubtitle = ref(false);
@@ -69,7 +70,7 @@ const startEditSubtitle = () => {
 };
 const finishEditSubtitle = () => { isEditingSubtitle.value = false; };
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

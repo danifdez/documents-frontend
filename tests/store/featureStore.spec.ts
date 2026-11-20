@@ -18,14 +18,14 @@ vi.mock('@/services/api', () => ({
   default: { patch: vi.fn() },
 }));
 
-function setElectronApi(api: Record<string, any>) {
-  (window as any).electronAPI = api;
+function setElectronApi(api: Record<string, unknown>) {
+  Object.defineProperty(window, 'electronAPI', { value: api, writable: true, configurable: true });
 }
 
 describe('featureStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    (window as any).electronAPI = undefined;
+    Object.defineProperty(window, 'electronAPI', { value: undefined, writable: true, configurable: true });
     vi.mocked(setServerReachable).mockClear();
     vi.mocked(reconnectSocket).mockClear();
     vi.mocked(apiClient.patch).mockReset();

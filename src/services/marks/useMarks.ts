@@ -1,12 +1,19 @@
+import type { MarkType } from '../../components/editor/extensions/markTypes';
 import { ref } from 'vue';
 import apiClient from '../api';
 
+export interface StoredMark {
+    id: string;
+    content: string;
+    type?: MarkType;
+}
+
 export const useMarks = () => {
-    const marks = ref<any[]>([]);
+    const marks = ref<StoredMark[]>([]);
     const isLoading = ref(false);
     const error = ref<Error | null>(null);
 
-    const loadMarks = async (entityId: string, entityType: 'doc' | 'resource' = 'doc'): Promise<any[]> => {
+    const loadMarks = async (entityId: string, entityType: 'doc' | 'resource' = 'doc'): Promise<StoredMark[]> => {
         if (!entityId) return [];
 
         isLoading.value = true;

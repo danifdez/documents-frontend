@@ -135,7 +135,7 @@
                         <button @click="openCreateModal"
                             class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                             title="New Entity">
-                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                             </svg>
                         </button>
@@ -144,7 +144,7 @@
 
                 <!-- Search -->
                 <div class="px-3 py-2 border-b border-border-light shrink-0">
-                    <input v-model="searchTerm" type="text" placeholder="Search entities..."
+                    <input aria-label="Search entities" v-model="searchTerm" type="text" placeholder="Search entities..."
                         class="w-full px-2.5 py-1.5 rounded border border-border bg-surface text-xs focus:outline-none focus:ring-1 focus:ring-accent/30 focus:border-accent" />
                 </div>
 
@@ -177,7 +177,7 @@
                             :class="activeEntityIds && !activeEntityIds.has(entity.id) ? 'opacity-20' : activeEntityIds?.has(entity.id) ? 'bg-accent-subtle/30' : ''"
                             @click="toggleExpand(entity)">
                             <div class="flex items-center gap-2">
-                                <input type="checkbox" :checked="checkedEntityIds.has(entity.id)"
+                                <input :aria-label="`Select ${entity.name}`" type="checkbox" :checked="checkedEntityIds.has(entity.id)"
                                     @click.stop="toggleChecked(entity.id)"
                                     class="h-3 w-3 rounded border-border text-accent shrink-0 cursor-pointer" />
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider shrink-0"
@@ -188,17 +188,17 @@
                                 <!-- Actions -->
                                 <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" @click.stop>
                                     <button @click="startEditing(entity)" class="p-1 rounded text-text-muted hover:text-accent transition-colors cursor-pointer" title="Edit">
-                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
                                     </button>
                                     <button @click="openMergeModal(entity)" class="p-1 rounded text-text-muted hover:text-amber-600 transition-colors cursor-pointer" title="Merge">
-                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                         </svg>
                                     </button>
                                     <button @click="confirmDelete(entity)" class="p-1 rounded text-text-muted hover:text-red-500 transition-colors cursor-pointer" title="Delete">
-                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                     </button>
@@ -273,14 +273,14 @@
                             <!-- Name & Type -->
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Name *</label>
-                                    <input v-model="editForm.name" type="text"
+                                    <label :for="`${formId}-name`" class="block text-xs font-medium text-text-secondary mb-1.5">Name *</label>
+                                    <input :id="`${formId}-name`" v-model="editForm.name" type="text"
                                         class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                                         placeholder="Entity name" />
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Type *</label>
-                                    <select v-model="editForm.entityTypeId"
+                                    <label :for="`${formId}-entity-type-id`" class="block text-xs font-medium text-text-secondary mb-1.5">Type *</label>
+                                    <select :id="`${formId}-entity-type-id`" v-model="editForm.entityTypeId"
                                         class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                         <option v-for="et in entityTypes" :key="et.id" :value="et.id">{{ et.name }}</option>
                                     </select>
@@ -288,8 +288,8 @@
                             </div>
                             <!-- Description -->
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Description</label>
-                                <textarea v-model="editForm.description" rows="2"
+                                <label :for="`${formId}-description`" class="block text-xs font-medium text-text-secondary mb-1.5">Description</label>
+                                <textarea :id="`${formId}-description`" v-model="editForm.description" rows="2"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
                                     placeholder="Optional description"></textarea>
                             </div>
@@ -301,16 +301,16 @@
                             <!-- Translations -->
                             <div>
                                 <div class="flex items-center justify-between mb-2">
-                                    <label class="text-xs font-medium text-text-secondary">Translations</label>
+                                    <span class="text-xs font-medium text-text-secondary">Translations</span>
                                     <button @click="addTranslation" class="text-xs text-accent hover:underline cursor-pointer">+ Add translation</button>
                                 </div>
                                 <div v-for="(t, i) in editForm.translations" :key="i" class="flex gap-2 mb-2">
-                                    <input v-model="t.locale" placeholder="locale (e.g. es)"
+                                    <input aria-label="Translation language" v-model="t.locale" placeholder="locale (e.g. es)"
                                         class="w-20 rounded-lg bg-surface border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
-                                    <input v-model="t.value" placeholder="translated name"
+                                    <input aria-label="Translated name" v-model="t.value" placeholder="translated name"
                                         class="flex-1 rounded-lg bg-surface border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                                     <button @click="removeTranslation(i)" class="p-1.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer" title="Remove">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
@@ -320,16 +320,16 @@
                             <!-- Aliases -->
                             <div>
                                 <div class="flex items-center justify-between mb-2">
-                                    <label class="text-xs font-medium text-text-secondary">Aliases</label>
+                                    <span class="text-xs font-medium text-text-secondary">Aliases</span>
                                     <button @click="addAlias" class="text-xs text-accent hover:underline cursor-pointer">+ Add alias</button>
                                 </div>
                                 <div v-for="(a, i) in editForm.aliases" :key="i" class="flex gap-2 mb-2">
-                                    <input v-model="a.locale" placeholder="locale (e.g. en)"
+                                    <input aria-label="Alias language" v-model="a.locale" placeholder="locale (e.g. en)"
                                         class="w-20 rounded-lg bg-surface border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
-                                    <input v-model="a.value" placeholder="alias name"
+                                    <input aria-label="Alias name" v-model="a.value" placeholder="alias name"
                                         class="flex-1 rounded-lg bg-surface border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                                     <button @click="removeAlias(i)" class="p-1.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer" title="Remove">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
@@ -360,14 +360,14 @@
                         </div>
                         <div class="px-6 py-5 space-y-4">
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Name *</label>
-                                <input v-model="createForm.name" type="text"
+                                <label :for="`${formId}-name-2`" class="block text-xs font-medium text-text-secondary mb-1.5">Name *</label>
+                                <input :id="`${formId}-name-2`" v-model="createForm.name" type="text"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                                     placeholder="Entity name" />
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Type *</label>
-                                <select v-model="createForm.entityTypeId"
+                                <label :for="`${formId}-entity-type-id-2`" class="block text-xs font-medium text-text-secondary mb-1.5">Type *</label>
+                                <select :id="`${formId}-entity-type-id-2`" v-model="createForm.entityTypeId"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                     <option :value="0" disabled>Select a type...</option>
                                     <option v-for="et in entityTypes" :key="et.id" :value="et.id">{{ et.name }}
@@ -375,9 +375,9 @@
                                 </select>
                             </div>
                             <div>
-                                <label
+                                <label :for="`${formId}-description-2`"
                                     class="block text-xs font-medium text-text-secondary mb-1.5">Description</label>
-                                <textarea v-model="createForm.description" rows="2"
+                                <textarea :id="`${formId}-description-2`" v-model="createForm.description" rows="2"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
                                     placeholder="Optional description"></textarea>
                             </div>
@@ -408,7 +408,7 @@
                             <p class="text-xs text-text-muted mt-1">Search for the target entity to merge into</p>
                         </div>
                         <div class="px-6 py-5">
-                            <input v-model="mergeSearchTerm" @input="debouncedMergeSearch" type="text"
+                            <input aria-label="Search for merge target" v-model="mergeSearchTerm" @input="debouncedMergeSearch" type="text"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent mb-3"
                                 placeholder="Type entity name..." />
 
@@ -476,7 +476,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { useId, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
 import PageHeader from '../components/ui/PageHeader.vue';
@@ -491,6 +491,8 @@ import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import { useKnowledgeBase } from '../services/knowledge/useKnowledgeBase';
 import { useFeatureStore } from '../store/featureStore';
+
+const formId = useId();
 
 const router = useRouter();
 const route = useRoute();
@@ -644,7 +646,7 @@ const startEditing = (entity: Entity) => {
         name: entity.name,
         description: entity.description || '',
         entityTypeId: entity.entityType?.id || 0,
-        global: (entity as any).global || false,
+        global: entity.global || false,
         translations: entity.translations
             ? Object.entries(entity.translations).map(([locale, value]) => ({ locale, value }))
             : [],
@@ -675,7 +677,7 @@ const saveEditing = async () => {
             .filter(a => a.value.trim())
             .map(a => ({ locale: a.locale.trim() || 'en', value: a.value.trim() }));
 
-        const data: any = {
+        const data = {
             name: editForm.value.name.trim(),
             description: editForm.value.description.trim() || undefined,
             entityTypeId: editForm.value.entityTypeId || undefined,

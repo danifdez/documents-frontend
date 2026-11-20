@@ -3,7 +3,7 @@ import { Plugin, PluginKey } from 'prosemirror-state';
 import { MARK_CONFIG, markStyle, isMarkType, type MarkType } from './markTypes';
 
 export interface MarkOptions {
-    HTMLAttributes: Record<string, any>;
+    HTMLAttributes: Record<string, unknown>;
     onMarkClick?: (markId: string, markType: MarkType) => void;
     onMarkShortcut?: (markType: MarkType) => boolean;
 }
@@ -18,7 +18,7 @@ declare module '@tiptap/core' {
 }
 
 function readType(element: HTMLElement): MarkType {
-    const attr = element.getAttribute('data-mark-type') || element.getAttribute('data-marker-type');
+    const attr = element.dataset.markType || (element.dataset.markerType ?? null);
     if (isMarkType(attr)) return attr;
     const classes = element.className || '';
     const found = (Object.keys(MARK_CONFIG) as MarkType[]).find(
@@ -28,7 +28,7 @@ function readType(element: HTMLElement): MarkType {
 }
 
 function readMarkId(element: HTMLElement): string | null {
-    return element.getAttribute('data-mark-id') || element.getAttribute('data-marker-id');
+    return element.dataset.markId || (element.dataset.markerId ?? null);
 }
 
 export const MarkExtension = Mark.create<MarkOptions>({

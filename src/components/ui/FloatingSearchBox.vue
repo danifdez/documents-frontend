@@ -4,26 +4,26 @@
             <div class="bg-surface-elevated rounded-lg shadow-2xl border border-border w-96 overflow-hidden animate-in slide-in-from-top-2 duration-200"
                 @click.stop>
                 <div class="flex items-center px-4 py-3 border-b border-border">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted mr-3" fill="none"
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted mr-3" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <input ref="searchInput" v-model="searchQuery" type="text" placeholder="Search..."
+                    <input aria-label="Search content" ref="searchInput" v-model="searchQuery" type="text" placeholder="Search..."
                         class="flex-1 outline-none text-lg text-text-primary placeholder-text-muted"
                         @keydown.escape="closeSearch" @keydown.enter="handleEnterKey" @input="handleSearchInput" />
                     <div v-if="hasResults" class="flex items-center ml-2">
                         <span class="text-xs text-text-muted mr-2">{{ currentResultIndex + 1 }}/{{ totalResults }}</span>
                         <Button @click="previousResult" :disabled="totalResults === 0"
                             title="Previous result (Shift+Enter)">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M5 15l7-7 7 7" />
                             </svg>
                         </Button>
                         <Button @click="nextResult" :disabled="totalResults === 0" title="Next result (Enter)">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M19 9l-7 7-7-7" />
@@ -31,8 +31,8 @@
                         </Button>
                     </div>
 
-                    <Button @click="closeSearch">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    <Button aria-label="Close search" @click="closeSearch">
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12" />

@@ -29,3 +29,6 @@ export interface CalendarEvent {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type CalendarEventInput = Pick<CalendarEvent, 'title' | 'description' | 'startDate' | 'endDate'
+  | 'color' | 'allDay' | 'recurrenceRule' | 'alarm' | 'trackCompletion'> & { projectId?: number | null };

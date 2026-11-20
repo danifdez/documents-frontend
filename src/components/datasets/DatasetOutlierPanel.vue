@@ -4,8 +4,8 @@
         <div v-if="showControls" class="bg-surface-elevated rounded-2xl border border-border p-4 space-y-3">
             <p class="text-xs text-text-muted leading-relaxed">Find unusual values in a numeric field using the IQR method (values beyond 1.5x the interquartile range) and Z-scores above 3.</p>
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1">Numeric field</label>
-                <select v-model="selectedField"
+                <label :for="`${formId}-selected-field`" class="block text-xs font-medium text-text-secondary mb-1">Numeric field</label>
+                <select :id="`${formId}-selected-field`" v-model="selectedField"
                     class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                     <option value="">Select...</option>
                     <option v-for="f in numericFields" :key="f.key" :value="f.key">{{ f.name }}</option>
@@ -13,7 +13,7 @@
             </div>
             <button @click="handleRun" :disabled="running || !selectedField"
                 class="inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                <svg v-if="running" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <svg aria-hidden="true" v-if="running" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -34,9 +34,9 @@
                         class="flex-1 min-w-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left truncate">
                         {{ sv.name }}
                     </button>
-                    <button @click="$emit('deleteSaved', sv.id)"
+                    <button aria-label="Delete saved view" @click="$emit('deleteSaved', sv.id)"
                         class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0">
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -55,8 +55,8 @@
             <div class="flex flex-wrap gap-3 shrink-0">
                 <div v-for="(val, key) in result.stats" :key="key"
                     class="px-3 py-2 rounded-lg border border-border"
-                    :class="key === 'outlierCount' && val > 0 ? 'bg-red-50 border-red-200' : 'bg-surface-elevated'">
-                    <div class="text-sm font-semibold" :class="key === 'outlierCount' && val > 0 ? 'text-red-700' : 'text-text-primary'">
+                    :class="key === 'outlierCount' && Number(val) > 0 ? 'bg-red-50 border-red-200' : 'bg-surface-elevated'">
+                    <div class="text-sm font-semibold" :class="key === 'outlierCount' && Number(val) > 0 ? 'text-red-700' : 'text-text-primary'">
                         {{ formatValue(val) }}
                     </div>
                     <div class="text-[10px] text-text-muted uppercase">{{ formatLabel(key as string) }}</div>
@@ -111,7 +111,7 @@
                             <tr v-for="(row, i) in result.tableData.rows" :key="i" class="hover:bg-surface-hover">
                                 <td v-for="(val, j) in row" :key="j"
                                     class="px-3 py-1.5 font-mono text-xs"
-                                    :class="j === 2 && val > 3 ? 'text-red-600 font-semibold' : 'text-text-secondary'">
+                                    :class="j === 2 && Number(val) > 3 ? 'text-red-600 font-semibold' : 'text-text-secondary'">
                                     {{ formatValue(val) }}
                                 </td>
                             </tr>
@@ -124,9 +124,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
+import type { StatsResult, DatasetChart, DatasetField } from '../../services/datasets/useDatasets';
+import { useId, ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { Chart, registerables } from 'chart.js';
-import type { DatasetField } from '../../services/datasets/useDatasets';
 import {
     formatDatasetValue as formatValue,
     formatDatasetLabel as formatLabel,
@@ -134,17 +134,19 @@ import {
 
 Chart.register(...registerables);
 
+const formId = useId();
+
 const props = defineProps<{
     schema: DatasetField[];
-    result: any | null;
+    result: StatsResult | null;
     running: boolean;
     mode?: 'full' | 'sidebar' | 'display';
-    savedViews?: { id: number; name: string; config: Record<string, any> }[];
+    savedViews?: DatasetChart[];
 }>();
 
 const emit = defineEmits<{
-    run: [operation: string, params: Record<string, any>];
-    loadSaved: [view: any];
+    run: [operation: string, params: Record<string, unknown>];
+    loadSaved: [view: DatasetChart];
     deleteSaved: [id: number];
 }>();
 
@@ -161,7 +163,7 @@ const handleRun = () => {
 };
 
 // Render strip + box chart
-const renderChart = async (newResult: any) => {
+const renderChart = async (newResult: StatsResult | null) => {
     if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
     if (!newResult || newResult.error || !newResult.chartData?.allPoints) return;
     if (!showResults.value) return;
@@ -172,8 +174,8 @@ const renderChart = async (newResult: any) => {
     if (!ctx) return;
 
     const allPoints = newResult.chartData.allPoints;
-    const normalPoints = allPoints.filter((p: any) => !p.isOutlier);
-    const outlierPoints = allPoints.filter((p: any) => p.isOutlier);
+    const normalPoints = allPoints.filter(p => !p.isOutlier);
+    const outlierPoints = allPoints.filter(p => p.isOutlier);
 
     const jitter = () => (Math.random() - 0.5) * 0.6;
 
@@ -183,13 +185,13 @@ const renderChart = async (newResult: any) => {
             datasets: [
                 {
                     label: 'Normal',
-                    data: normalPoints.map((p: any) => ({ x: p.value, y: 1 + jitter() })),
+                    data: normalPoints.map(p => ({ x: p.value, y: 1 + jitter() })),
                     backgroundColor: 'rgba(99, 102, 241, 0.4)',
                     pointRadius: 3,
                 },
                 {
                     label: 'Outlier',
-                    data: outlierPoints.map((p: any) => ({ x: p.value, y: 1 + jitter() })),
+                    data: outlierPoints.map(p => ({ x: p.value, y: 1 + jitter() })),
                     backgroundColor: 'rgba(239, 68, 68, 0.7)',
                     pointRadius: 5,
                     pointStyle: 'triangle',
@@ -232,7 +234,7 @@ const renderChart = async (newResult: any) => {
                 x: { title: { display: true, text: newResult.fieldName } },
             },
             plugins: {
-                legend: { position: 'bottom', labels: { filter: (item: any) => item.text !== 'IQR Box' && item.text !== 'Median' } },
+                legend: { position: 'bottom', labels: { filter: item => item.text !== 'IQR Box' && item.text !== 'Median' } },
             },
         },
     });
@@ -259,8 +261,8 @@ const exportCsv = () => {
     if (!props.result?.tableData) return;
     const td = props.result.tableData;
     let csv = td.columns.join(',') + '\n';
-    td.rows.forEach((row: any[]) => {
-        csv += row.map((v: any) => `"${v}"`).join(',') + '\n';
+    td.rows.forEach(row => {
+        csv += (Array.isArray(row) ? row : [row]).map(v => `"${v}"`).join(',') + '\n';
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

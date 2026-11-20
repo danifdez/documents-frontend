@@ -115,7 +115,7 @@ async function handleFirstRemoteWorkspace(data: { name: string; url: string }) {
 function setupSocket() {
   connectSocket();
   stopNotificationPublication?.();
-  stopNotificationPublication = subscribeExecutionPublication('notification', (data: any) => {
+  stopNotificationPublication = subscribeExecutionPublication('notification', (data: { resourceId?: string | number; message?: string }) => {
     if (data.resourceId) {
       notification.info(data.message || 'Resource extracted', {
         link: {

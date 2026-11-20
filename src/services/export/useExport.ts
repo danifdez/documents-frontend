@@ -1,3 +1,4 @@
+import { getResponseError } from '../../utils/errorDetails';
 import { ref } from 'vue';
 import apiClient from '../api';
 
@@ -50,8 +51,8 @@ export function useExport() {
             window.URL.revokeObjectURL(url);
 
             exportSuccess.value = true;
-        } catch (err: any) {
-            exportError.value = err?.response?.data?.message || 'Failed to export. Please try again.';
+        } catch (err: unknown) {
+            exportError.value = getResponseError(err) || 'Failed to export. Please try again.';
         } finally {
             exporting.value = false;
         }

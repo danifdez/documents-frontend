@@ -19,16 +19,18 @@ const TABLE_COMMANDS = [
 
 const createFakeEditor = ({ inTable }: { inTable: boolean }) => {
     const calls: string[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const chain: any = {};
+    type Command = typeof TABLE_COMMANDS[number];
+    type Chain = Partial<Record<Command, () => Chain>> & {
+        focus: () => Chain;
+        run: () => boolean;
+    };
+    const chain: Chain = { focus: () => chain, run: () => true };
     for (const name of TABLE_COMMANDS) {
         chain[name] = () => {
             calls.push(name);
             return chain;
         };
     }
-    chain.focus = () => chain;
-    chain.run = () => true;
 
     const editor = {
         isActive: (name: string) => name === 'table' && inTable,

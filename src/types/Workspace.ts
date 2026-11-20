@@ -4,3 +4,5 @@ export interface Workspace {
   url: string;
   type: 'local' | 'remote';
 }
+
+export type StoredWorkspace = Omit<Workspace, 'type'> & { type?: Workspace['type'] };

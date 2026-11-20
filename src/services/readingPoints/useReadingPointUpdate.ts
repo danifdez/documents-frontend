@@ -1,6 +1,6 @@
+import type { ReadingPoint, ReadingPointAnchor } from './useReadingPoints';
 import { ref } from 'vue';
 import apiClient from '../api';
-import type { ReadingPointAnchor } from './useReadingPoints';
 
 export const useReadingPointUpdate = () => {
     const isLoading = ref(false);
@@ -9,7 +9,7 @@ export const useReadingPointUpdate = () => {
     const updateReadingPoint = async (
         pointId: string | number,
         data: { label?: string } & ReadingPointAnchor,
-    ): Promise<any> => {
+    ): Promise<ReadingPoint> => {
         isLoading.value = true;
         error.value = null;
 

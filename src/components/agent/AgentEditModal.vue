@@ -9,31 +9,31 @@
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1">Name</label>
-                <input v-model="form.name" type="text" required maxlength="100"
+                <label :for="`${formId}-name`" class="block text-xs font-medium text-text-secondary mb-1">Name</label>
+                <input :id="`${formId}-name`" v-model="form.name" type="text" required maxlength="100"
                     placeholder="Vacation planner"
                     class="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent" />
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1">Short description <span
+                <label :for="`${formId}-sub`" class="block text-xs font-medium text-text-secondary mb-1">Short description <span
                         class="text-text-muted">(optional)</span></label>
-                <input v-model="form.sub" type="text" maxlength="300"
+                <input :id="`${formId}-sub`" v-model="form.sub" type="text" maxlength="300"
                     placeholder="Plan and write a trip itinerary"
                     class="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent" />
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1">Icon <span
+                <label :for="`${formId}-icon`" class="block text-xs font-medium text-text-secondary mb-1">Icon <span
                         class="text-text-muted">(optional)</span></label>
-                <input v-model="form.icon" type="text" maxlength="16"
+                <input :id="`${formId}-icon`" v-model="form.icon" type="text" maxlength="16"
                     placeholder="✈️"
                     class="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent" />
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1">Working folder <span
-                        class="text-text-muted">(optional)</span></label>
+                <div class="block text-xs font-medium text-text-secondary mb-1">Working folder <span
+                        class="text-text-muted">(optional)</span></div>
 
                 <div v-if="form.folderScope" class="flex items-center gap-2">
                     <span
@@ -66,9 +66,9 @@
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1">Instructions <span
+                <label :for="`${formId}-system-prompt`" class="block text-xs font-medium text-text-secondary mb-1">Instructions <span
                         class="text-text-muted">(optional)</span></label>
-                <textarea v-model="form.systemPrompt" rows="5"
+                <textarea :id="`${formId}-system-prompt`" v-model="form.systemPrompt" rows="5"
                     placeholder="You are an agent for a specific task. Be direct, no fluff."
                     class="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent"></textarea>
             </div>
@@ -104,7 +104,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { getErrorMessage, getResponseError } from '../../utils/errorDetails';
+import { useId, ref, computed, watch } from 'vue';
 import Modal from '../ui/Modal/Modal.vue';
 import { useAgentStore } from '../../store/agentStore';
 import { useFolderPicker } from '../../composables/useFolderPicker';
@@ -112,6 +113,8 @@ import { useAgents } from '../../services/agents/useAgents';
 import { expirationLabel } from './expirationLabel';
 import UnfavoriteWarning from './UnfavoriteWarning.vue';
 import type { Agent } from '../../types/Agent';
+
+const formId = useId();
 
 const props = defineProps<{
     modelValue: boolean;
@@ -170,10 +173,10 @@ async function loadFresh(id: number) {
     try {
         const fresh = await api.get(id);
         fillForm(fresh);
-    } catch (e: any) {
+    } catch (e: unknown) {
         // Falls back to the in-memory dataset if the fetch fails.
         fillForm(props.agent);
-        error.value = e?.message || 'Could not load the latest agent state';
+        error.value = getErrorMessage(e) || 'Could not load the latest agent state';
     }
 }
 
@@ -246,8 +249,8 @@ async function handleSave() {
             await store.createAgent(payload);
         }
         emit('update:modelValue', false);
-    } catch (e: any) {
-        error.value = e?.response?.data?.message || e?.message || 'Error saving';
+    } catch (e: unknown) {
+        error.value = getResponseError(e) || getErrorMessage(e) || 'Error saving';
     } finally {
         saving.value = false;
     }
@@ -260,8 +263,8 @@ async function handleDelete() {
     try {
         await store.deleteAgent(props.agent.id);
         emit('update:modelValue', false);
-    } catch (e: any) {
-        error.value = e?.message || 'Error deleting';
+    } catch (e: unknown) {
+        error.value = getErrorMessage(e) || 'Error deleting';
     } finally {
         saving.value = false;
     }

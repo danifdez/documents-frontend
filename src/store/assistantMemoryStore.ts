@@ -1,3 +1,4 @@
+import { getErrorMessage, getResponseError } from '../utils/errorDetails';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type {
@@ -27,8 +28,8 @@ export const useAssistantMemoryStore = defineStore('assistantMemory', () => {
             const entries = await api.list(assistantId);
             entriesByAssistant.value = { ...entriesByAssistant.value, [assistantId]: entries };
             loaded.value = { ...loaded.value, [assistantId]: true };
-        } catch (e: any) {
-            error.value = e?.response?.data?.message || e?.message || 'Error loading memory';
+        } catch (e: unknown) {
+            error.value = getResponseError(e) || getErrorMessage(e) || 'Error loading memory';
         } finally {
             loading.value = false;
         }

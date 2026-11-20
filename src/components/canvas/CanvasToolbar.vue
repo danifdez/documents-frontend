@@ -4,7 +4,7 @@
     <!-- Text -->
     <Button @click="selectTool('text')" title="Text" size="small" borderless
       :active="pendingTool === 'text'">
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h8m-8 6h16" />
       </svg>
     </Button>
@@ -27,21 +27,21 @@
     <div class="h-6 w-px bg-border mx-0.5"></div>
 
     <Button @click="$emit('pick-image')" title="Image" size="small" borderless>
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
           d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     </Button>
 
     <Button @click="$emit('pick-doc')" title="Document Reference" size="small" borderless>
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     </Button>
 
     <Button @click="$emit('pick-resource')" title="Resource Reference" size="small" borderless>
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
           d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
       </svg>
@@ -51,7 +51,7 @@
 
     <!-- Export -->
     <Button @click="$emit('export')" title="Export as image" size="small" borderless>
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
@@ -62,14 +62,14 @@
     <!-- Save status -->
     <div class="flex items-center gap-1.5 text-xs">
       <template v-if="isSaving">
-        <svg class="animate-spin h-3 w-3 text-text-muted" fill="none" viewBox="0 0 24 24">
+        <svg aria-hidden="true" class="animate-spin h-3 w-3 text-text-muted" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
         <span class="text-text-muted">Saving...</span>
       </template>
       <template v-else-if="savedSuccessfully">
-        <svg class="h-3 w-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" class="h-3 w-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
         </svg>
         <span class="text-green-600">Saved</span>
@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../types/canvas';
 import { computed } from 'vue';
 import Button from '../ui/Button.vue';
 import { useFeatureStore } from '../../store/featureStore';
@@ -92,7 +93,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  'select-tool': [tool: string, data: Record<string, any>];
+  'select-tool': [tool: string, data: CanvasNodeData];
   'clear-tool': [];
   'pick-doc': [];
   'pick-resource': [];
@@ -116,7 +117,7 @@ const flowShapes = [
   { shape: 'star', title: 'Star', icon: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"/></svg>' },
 ];
 
-const toolData: Record<string, Record<string, any>> = {
+const toolData: Record<string, CanvasNodeData> = {
   text: { text: '' },
 };
 

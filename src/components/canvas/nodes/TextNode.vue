@@ -16,7 +16,7 @@
         @dblclick="startEditing">
         {{ node.data.text || 'Double-click to edit...' }}
       </div>
-      <textarea v-else ref="textareaRef" v-model="editText"
+      <textarea aria-label="Text node content" v-else ref="textareaRef" v-model="editText"
         class="w-full h-full text-text-primary bg-transparent border-0 outline-none resize-none nowheel nodrag"
         :class="fontSizeClass"
         :style="{ textAlign: node.data.align || 'left' }"
@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
 import { ref, computed, nextTick, watch } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
@@ -34,11 +35,11 @@ import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 
 defineProps<{
   id: string;
-  data: Record<string, any>;
+  data: CanvasNodeData;
   selected: boolean;
 }>();
 
-const { node } = useNode();
+const { node } = useNode<CanvasNodeData>();
 
 const isEditing = ref(false);
 const editText = ref('');
@@ -76,7 +77,7 @@ const finishEditing = () => {
   isEditing.value = false;
 };
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

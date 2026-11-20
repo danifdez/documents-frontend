@@ -7,19 +7,19 @@
       <template v-if="nodeType === 'text'">
         <button @click="emit('update', { align: 'left' })" title="Align left"
           :class="[btnClass, (data.align === 'left' || !data.align) && activeClass]">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" d="M3 6h18M3 12h12M3 18h18" />
           </svg>
         </button>
         <button @click="emit('update', { align: 'center' })" title="Align center"
           :class="[btnClass, data.align === 'center' && activeClass]">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" d="M3 6h18M6 12h12M3 18h18" />
           </svg>
         </button>
         <button @click="emit('update', { align: 'right' })" title="Align right"
           :class="[btnClass, data.align === 'right' && activeClass]">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" d="M3 6h18M9 12h12M3 18h18" />
           </svg>
         </button>
@@ -28,19 +28,19 @@
         <!-- Vertical alignment -->
         <button @click="emit('update', { valign: 'top' })" title="Align top"
           :class="[btnClass, (data.valign === 'top' || !data.valign) && activeClass]">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" d="M4 4h16M4 10h16M4 16h10" />
           </svg>
         </button>
         <button @click="emit('update', { valign: 'middle' })" title="Align middle"
           :class="[btnClass, data.valign === 'middle' && activeClass]">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" d="M4 6h10M4 12h16M4 18h10" />
           </svg>
         </button>
         <button @click="emit('update', { valign: 'bottom' })" title="Align bottom"
           :class="[btnClass, data.valign === 'bottom' && activeClass]">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" d="M4 8h10M4 14h16M4 20h16" />
           </svg>
         </button>
@@ -91,7 +91,7 @@
         <!-- Border radius (rectangle only) -->
         <template v-if="data.shape === 'rectangle' || !data.shape">
           <button @click="cycleBorderRadius" :title="`Radius: ${data.borderRadius || 0}`" :class="btnClass">
-            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg aria-hidden="true" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path v-if="!data.borderRadius || data.borderRadius === 0" d="M4 4h6M4 4v6" stroke-linecap="round" />
               <path v-else-if="data.borderRadius <= 8" d="M4 10V8a4 4 0 014-4h2" stroke-linecap="round" />
               <path v-else-if="data.borderRadius <= 20" d="M4 12V10a8 8 0 018-8h2" stroke-linecap="round" />
@@ -110,7 +110,7 @@
 
         <!-- Border style -->
         <button @click="cycleBorderStyle" :title="`Border: ${data.borderStyle || 'solid'}`" :class="btnClass">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          <svg aria-hidden="true" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             :stroke-dasharray="borderStylePreview">
             <line x1="3" y1="12" x2="21" y2="12" />
           </svg>
@@ -145,7 +145,7 @@
       <template v-if="nodeType === 'entity'">
         <button @click="handleDrawRelationships" title="Draw relationships with other entities on canvas"
           :class="btnClass">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         </button>
@@ -154,7 +154,7 @@
 
       <!-- Duplicate -->
       <button @click="handleDuplicate" title="Duplicate" :class="btnClass">
-        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
@@ -163,7 +163,7 @@
       <!-- Delete -->
       <button @click="handleDelete" title="Delete"
         :class="btnClass" class="!text-red-500 hover:!bg-red-500/10">
-        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
         </svg>
@@ -173,6 +173,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../types/canvas';
 import { ref, inject, computed, nextTick } from 'vue';
 import { NodeToolbar } from '@vue-flow/node-toolbar';
 import { Position, useNode } from '@vue-flow/core';
@@ -183,14 +184,14 @@ const activeClass = 'bg-accent-subtle !text-accent';
 const props = defineProps<{
   selected: boolean;
   nodeType: string;
-  data: Record<string, any>;
+  data: CanvasNodeData;
 }>();
 
 const emit = defineEmits<{
-  update: [data: Record<string, any>];
+  update: [data: CanvasNodeData];
 }>();
 
-const { node } = useNode();
+const { node } = useNode<CanvasNodeData>();
 const canvasDeleteNode = inject<(id: string) => void>('canvasDeleteNode');
 const canvasDuplicateNode = inject<(id: string) => void>('canvasDuplicateNode');
 
@@ -278,7 +279,7 @@ const selectBorderColor = (color: string) => {
 const borderStyles = ['solid', 'dashed', 'dotted', 'none'] as const;
 const cycleBorderStyle = () => {
   const current = props.data.borderStyle || 'solid';
-  const idx = borderStyles.indexOf(current as any);
+  const idx = borderStyles.findIndex(style => style === current);
   emit('update', { borderStyle: borderStyles[(idx + 1) % borderStyles.length] });
 };
 

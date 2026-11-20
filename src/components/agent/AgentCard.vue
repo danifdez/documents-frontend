@@ -27,7 +27,7 @@
             <button
                 class="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-surface text-text-muted hover:text-red-600 cursor-pointer"
                 @click.stop="onDelete" title="Delete agent">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
@@ -43,6 +43,7 @@
 </template>
 
 <script setup lang="ts">
+import { getErrorMessage, getResponseError } from '../../utils/errorDetails';
 import { ref, computed } from 'vue';
 import type { Agent } from '../../types/Agent';
 import { useAgentStore } from '../../store/agentStore';
@@ -82,8 +83,8 @@ async function onDelete() {
     if (!confirm(`Delete the agent "${props.agent.name}"? Its conversation will also be deleted.`)) return;
     try {
         await store.deleteAgent(props.agent.id);
-    } catch (e: any) {
-        alert(e?.response?.data?.message || e?.message || 'Could not delete the agent');
+    } catch (e: unknown) {
+        alert(getResponseError(e) || getErrorMessage(e) || 'Could not delete the agent');
     }
 }
 </script>

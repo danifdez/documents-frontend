@@ -7,7 +7,7 @@ export interface TocItem {
 }
 
 // contentRef is a template ref to HtmlContent, which exposes `toc` and `scrollToHeading`
-export function useResourceToc(contentRef: Ref<any>) {
+export function useResourceToc(contentRef: Ref<{ toc?: TocItem[]; scrollToHeading?: (id: string) => void } | null>) {
     const tocItems = ref<TocItem[]>([]);
 
     const refreshToc = () => {

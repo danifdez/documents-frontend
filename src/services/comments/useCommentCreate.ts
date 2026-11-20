@@ -17,7 +17,7 @@ export function useCommentCreate() {
         error.value = null;
 
         try {
-            const payload: Record<string, any> = { content };
+            const payload: Record<string, unknown> = { content };
             if (anchor.quote !== undefined) payload.quote = anchor.quote;
             if (anchor.prefix !== undefined) payload.prefix = anchor.prefix;
             if (anchor.suffix !== undefined) payload.suffix = anchor.suffix;

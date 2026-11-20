@@ -28,7 +28,7 @@
                 <button @click="searchInWikipedia"
                     class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-text-secondary hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     :class="{ 'text-accent bg-accent-subtle': activeTab === 'wiki' }">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -76,7 +76,7 @@
                         <a :href="wikiResult.url" target="_blank" rel="noopener"
                             class="mt-3 inline-flex items-center gap-1 text-xs text-accent hover:underline">
                             View on Wikipedia
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
@@ -92,9 +92,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useKnowledgeBase } from '../../services/knowledge/useKnowledgeBase';
-import { useWikipedia } from '../../services/knowledge/useWikipedia';
-import type { KnowledgeEntry } from '../../services/knowledge/useKnowledgeBase';
+import { useKnowledgeBase, type KnowledgeEntry } from '../../services/knowledge/useKnowledgeBase';
+import { useWikipedia, type WikipediaResult } from '../../services/knowledge/useWikipedia';
 import { useFeatureStore } from '../../store/featureStore';
 
 const featureStore = useFeatureStore();
@@ -114,7 +113,7 @@ const popupRef = ref<HTMLElement | null>(null);
 const activeTab = ref<'kb' | 'wiki' | null>(null);
 const loading = ref(false);
 const kbResults = ref<KnowledgeEntry[]>([]);
-const wikiResult = ref<any>(null);
+const wikiResult = ref<WikipediaResult | null>(null);
 const wikiError = ref<string | null>(null);
 
 const hide = () => {

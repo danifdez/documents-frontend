@@ -4,7 +4,7 @@
             <h3 class="text-sm font-semibold text-text-primary">Table of Contents</h3>
             <button @click="refresh" title="Refresh"
                 class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -46,6 +46,8 @@
 </template>
 
 <script setup lang="ts">
+import type { ReadingPoint } from '../../services/readingPoints/useReadingPoints';
+import type { Editor } from '@tiptap/core';
 import { onBeforeUnmount, ref, watch, computed } from 'vue';
 import { useReadingPointsController } from '../readingPoints/useReadingPointsController';
 import { useTocWithReadingPoints, type TocEntry, type TocHeadingLike } from '../readingPoints/useTocWithReadingPoints';
@@ -59,7 +61,7 @@ interface Heading {
 }
 
 const props = defineProps<{
-    editor: any;
+    editor: Editor | null;
     controller?: ReturnType<typeof useReadingPointsController> | null;
     target?: HTMLElement | null;
 }>();
@@ -134,7 +136,7 @@ const extractHeadings = () => {
 
     try {
         // Use descendants method which is the standard way in ProseMirror
-        doc.descendants((node: any, pos: number) => {
+        doc.descendants((node, pos) => {
             if (node.type && node.type.name === 'heading') {
                 const text = node.textContent ? node.textContent.trim() : '';
 
@@ -208,7 +210,7 @@ const scrollToHeading = (heading: Heading) => {
     }, 300);
 };
 
-const goToPoint = (point: any) => {
+const goToPoint = (point: ReadingPoint) => {
     if (props.target) scrollToPoint(props.target, point);
 };
 

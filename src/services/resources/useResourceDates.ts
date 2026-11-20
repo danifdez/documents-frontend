@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../../utils/errorDetails';
 import { ref } from 'vue';
 import apiClient from '../api';
 import type { ResourceDate } from '../../types/ResourceDate';
@@ -13,8 +14,8 @@ export function useResourceDates() {
         try {
             const { data } = await apiClient.get<ResourceDate[]>(`/resources/${resourceId}/dates`);
             dates.value = data || [];
-        } catch (e: any) {
-            error.value = e?.message || 'Failed to load dates';
+        } catch (e: unknown) {
+            error.value = getErrorMessage(e) || 'Failed to load dates';
             dates.value = [];
         } finally {
             loading.value = false;

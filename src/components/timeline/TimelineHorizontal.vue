@@ -3,18 +3,18 @@
     <!-- Zoom controls -->
     <div class="flex items-center gap-2 mb-2 shrink-0">
       <Button size="small" variant="secondary" @click="zoomOut" :disabled="zoomLevel <= 0.25" title="Zoom out">
-        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
         </svg>
       </Button>
       <span class="text-xs text-text-muted w-12 text-center">{{ Math.round(zoomLevel * 100) }}%</span>
       <Button size="small" variant="secondary" @click="zoomIn" :disabled="zoomLevel >= 4" title="Zoom in">
-        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       </Button>
       <Button size="small" variant="secondary" @click="zoomLevel = 1" :disabled="zoomLevel === 1" title="Reset zoom">
-        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
       </Button>
@@ -33,10 +33,10 @@
         >
           <span class="cursor-pointer" @click="toggleEpochFocus(epoch.id)">{{ epoch.name }}</span>
           <button class="hidden group-hover:block p-0 text-text-muted hover:text-accent transition-colors" title="Edit" @click.stop="emit('edit-epoch', epoch)">
-            <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            <svg aria-hidden="true" class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
           </button>
           <button class="hidden group-hover:block p-0 text-text-muted hover:text-red-400 transition-colors" title="Delete" @click.stop="emit('delete-epoch', epoch)">
-            <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            <svg aria-hidden="true" class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
         <button
@@ -97,7 +97,7 @@
               class="absolute z-30 flex items-center justify-center"
               :style="{ left: (brk.px - 10) + 'px', top: (axisY - 12) + 'px', width: '20px', height: '24px' }"
             >
-              <svg width="20" height="24" viewBox="0 0 20 24">
+              <svg role="img" aria-label="Timeline axis break" width="20" height="24" viewBox="0 0 20 24">
                 <path d="M4 0 L8 8 L2 16 L6 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" />
                 <path d="M14 0 L18 8 L12 16 L16 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" />
               </svg>

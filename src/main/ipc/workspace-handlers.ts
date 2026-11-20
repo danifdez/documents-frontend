@@ -1,3 +1,4 @@
+import type { StoredWorkspace } from '../../types/Workspace';
 import type Store from 'electron-store';
 import { IpcChannels } from '../../ipc/channels';
 import type { IpcHandlerMap } from './registry';
@@ -8,16 +9,16 @@ export function createWorkspaceHandlers(store: Store): IpcHandlerMap {
       return store.get('workspaces', []);
     },
 
-    [IpcChannels.workspace.add]: (_, workspace: { id: string; name: string; url: string }) => {
-      const workspaces = store.get('workspaces', []) as any[];
+    [IpcChannels.workspace.add]: (_, workspace: StoredWorkspace) => {
+      const workspaces = store.get('workspaces', []) as StoredWorkspace[];
       workspaces.push(workspace);
       store.set('workspaces', workspaces);
       return workspace;
     },
 
-    [IpcChannels.workspace.update]: (_, workspace: { id: string; name: string; url: string }) => {
-      const workspaces = store.get('workspaces', []) as any[];
-      const index = workspaces.findIndex((w: any) => w.id === workspace.id);
+    [IpcChannels.workspace.update]: (_, workspace: StoredWorkspace) => {
+      const workspaces = store.get('workspaces', []) as StoredWorkspace[];
+      const index = workspaces.findIndex(w => w.id === workspace.id);
       if (index >= 0) {
         workspaces[index] = workspace;
         store.set('workspaces', workspaces);
@@ -26,8 +27,8 @@ export function createWorkspaceHandlers(store: Store): IpcHandlerMap {
     },
 
     [IpcChannels.workspace.remove]: (_, id: string) => {
-      let workspaces = store.get('workspaces', []) as any[];
-      workspaces = workspaces.filter((w: any) => w.id !== id);
+      let workspaces = store.get('workspaces', []) as StoredWorkspace[];
+      workspaces = workspaces.filter(w => w.id !== id);
       store.set('workspaces', workspaces);
       const activeId = store.get('activeWorkspaceId');
       if (activeId === id && workspaces.length > 0) {
@@ -38,14 +39,14 @@ export function createWorkspaceHandlers(store: Store): IpcHandlerMap {
 
     [IpcChannels.workspace.getActive]: () => {
       const activeId = store.get('activeWorkspaceId') as string;
-      const workspaces = store.get('workspaces', []) as any[];
-      return workspaces.find((w: any) => w.id === activeId) || workspaces[0] || null;
+      const workspaces = store.get('workspaces', []) as StoredWorkspace[];
+      return workspaces.find(w => w.id === activeId) || workspaces[0] || null;
     },
 
     [IpcChannels.workspace.setActive]: (_, id: string) => {
       store.set('activeWorkspaceId', id);
-      const workspaces = store.get('workspaces', []) as any[];
-      return workspaces.find((w: any) => w.id === id) || null;
+      const workspaces = store.get('workspaces', []) as StoredWorkspace[];
+      return workspaces.find(w => w.id === id) || null;
     },
 
     [IpcChannels.workspace.setDefault]: (_, id: string | null) => {

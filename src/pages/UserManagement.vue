@@ -121,8 +121,8 @@
           <FormField label="Display Name" v-model="form.displayName" />
 
           <div>
-            <label class="block text-sm font-medium text-text-secondary mb-2">Group</label>
-            <select v-model="form.groupId"
+            <label :for="`${formId}-group-id`" class="block text-sm font-medium text-text-secondary mb-2">Group</label>
+            <select :id="`${formId}-group-id`" v-model="form.groupId"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-accent">
               <option :value="null">No group (manual permissions)</option>
               <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
@@ -130,7 +130,7 @@
           </div>
 
           <div v-if="!form.groupId">
-            <label class="block text-sm font-medium text-text-secondary mb-2">Permissions</label>
+            <div class="block text-sm font-medium text-text-secondary mb-2">Permissions</div>
             <div class="grid grid-cols-2 gap-2">
               <label v-for="perm in allPermissions" :key="perm" class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
                 <input type="checkbox" v-model="form.permissions[perm]" class="rounded border-border accent-accent" />
@@ -173,7 +173,7 @@
           <FormField label="Description" v-model="groupForm.description" />
 
           <div>
-            <label class="block text-sm font-medium text-text-secondary mb-2">Permissions</label>
+            <div class="block text-sm font-medium text-text-secondary mb-2">Permissions</div>
             <div class="grid grid-cols-2 gap-2">
               <label v-for="perm in allPermissions" :key="perm" class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
                 <input type="checkbox" v-model="groupForm.permissions[perm]" class="rounded border-border accent-accent" />
@@ -207,10 +207,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue';
+import { getResponseError } from '../utils/errorDetails';
+import { useId, ref, onMounted, reactive } from 'vue';
 import FormField from '../components/ui/FormField.vue';
 import { useUsers, type User, type UserPayload } from '../services/users/useUsers';
 import { usePermissionGroups, type PermissionGroup } from '../services/permission-groups/usePermissionGroups';
+
+const formId = useId();
 
 const { fetchUsers, createUser, updateUser, deleteUser } = useUsers();
 const { fetchGroups, createGroup, updateGroup, deleteGroup } = usePermissionGroups();
@@ -320,7 +323,7 @@ async function loadUsers() {
   isLoading.value = true;
   try {
     users.value = await fetchUsers();
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to load users:', err);
   } finally {
     isLoading.value = false;
@@ -350,8 +353,8 @@ async function submitForm() {
     }
     closeModal();
     await loadUsers();
-  } catch (err: any) {
-    formError.value = err.response?.data?.message || 'Operation failed';
+  } catch (err: unknown) {
+    formError.value = getResponseError(err) || 'Operation failed';
   } finally {
     isSubmitting.value = false;
   }
@@ -395,7 +398,7 @@ async function loadGroups() {
   isLoadingGroups.value = true;
   try {
     groups.value = await fetchGroups();
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to load groups:', err);
   } finally {
     isLoadingGroups.value = false;
@@ -419,8 +422,8 @@ async function submitGroupForm() {
     }
     closeGroupModal();
     await Promise.all([loadGroups(), loadUsers()]);
-  } catch (err: any) {
-    groupFormError.value = err.response?.data?.message || 'Operation failed';
+  } catch (err: unknown) {
+    groupFormError.value = getResponseError(err) || 'Operation failed';
   } finally {
     isGroupSubmitting.value = false;
   }

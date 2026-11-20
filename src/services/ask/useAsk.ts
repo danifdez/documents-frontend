@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../../utils/errorDetails';
 import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import apiClient from '../api';
@@ -13,7 +14,7 @@ export function useAsk() {
         const requestId = uuidv4();
 
         return new Promise<void>((resolve) => {
-            const onResponse = (data: any) => {
+            const onResponse = (data: { requestId: string }) => {
                 if (data.requestId === requestId) {
                     unsubscribe();
                     isLoading.value = false;
@@ -24,9 +25,9 @@ export function useAsk() {
             unsubscribe = subscribeExecutionPublication('askResponse', onResponse);
 
             apiClient.post('/model/ask', { question, projectId, requestId, context })
-                .catch((err: any) => {
+                .catch((err: unknown) => {
                     unsubscribe();
-                    error.value = err.message || 'Failed to get response';
+                    error.value = getErrorMessage(err) || 'Failed to get response';
                     isLoading.value = false;
                     resolve();
                 });

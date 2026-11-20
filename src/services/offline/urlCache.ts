@@ -51,7 +51,7 @@ function evictUntilFits(meta: Meta, neededBytes: number): void {
     }
 }
 
-export function setUrlCache(wsId: string, method: string, url: string, data: any): void {
+export function setUrlCache(wsId: string, method: string, url: string, data: unknown): void {
     try {
         const key = makeKey(wsId, method, url);
         const value = JSON.stringify({ data, ts: Date.now() });
@@ -73,7 +73,7 @@ export function setUrlCache(wsId: string, method: string, url: string, data: any
     }
 }
 
-export function getUrlCache(wsId: string, method: string, url: string): any | undefined {
+export function getUrlCache(wsId: string, method: string, url: string): unknown {
     try {
         const key = makeKey(wsId, method, url);
         const raw = localStorage.getItem(key);

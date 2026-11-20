@@ -3,7 +3,7 @@
         <div class="bg-surface-elevated rounded-lg shadow-xl p-5 w-96 max-w-full">
             <h3 class="text-lg font-medium mb-3">Edit Comment</h3>
 
-            <textarea v-model="commentText"
+            <textarea aria-label="Edit comment" v-model="commentText"
                 class="w-full border border-border rounded-md px-3 py-2 mb-4 h-32 resize-none focus:outline-none focus:ring-accent focus:border-accent"
                 placeholder="Enter your comment here..." ref="commentTextarea"></textarea>
 

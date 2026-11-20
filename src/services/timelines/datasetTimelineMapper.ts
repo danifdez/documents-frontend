@@ -25,14 +25,13 @@ export function analyzeDatasetRecords(
   return records.map((record) => {
     const title = record.data?.[mapping.titleField];
     const date = normalizeDate(record.data?.[mapping.dateField]);
+    const description = mapping.descriptionField ? record.data?.[mapping.descriptionField] : undefined;
 
     return {
       valid: Boolean(title && date),
       event: {
         title: title ? String(title) : '',
-        description: mapping.descriptionField
-          ? record.data?.[mapping.descriptionField] || undefined
-          : undefined,
+        description: description ? String(description) : undefined,
         date,
         endDate: mapping.endDateField
           ? normalizeDate(record.data?.[mapping.endDateField]) || undefined

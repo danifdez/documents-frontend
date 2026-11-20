@@ -7,7 +7,7 @@
     <Handle id="left" type="source" :position="Position.Left" :connectable="true" />
     <NodeFloatingToolbar :selected="selected" node-type="shape" :data="node.data"
       @update="onToolbarUpdate" />
-    <svg width="100%" height="100%" :viewBox="`0 0 ${svgSize.w} ${svgSize.h}`" class="overflow-visible" preserveAspectRatio="none">
+    <svg aria-hidden="true" width="100%" height="100%" :viewBox="`0 0 ${svgSize.w} ${svgSize.h}`" class="overflow-visible" preserveAspectRatio="none">
       <rect v-if="shapeType === 'rectangle'" x="1" y="1" :width="svgSize.w - 2" :height="svgSize.h - 2"
         :rx="node.data.borderRadius === 999 ? Math.min(svgSize.w, svgSize.h) / 2 : (node.data.borderRadius ?? 4)"
         :fill="fillColor" :stroke="strokeColor" :stroke-width="strokeWidth" :stroke-dasharray="strokeDasharray" />
@@ -47,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
 import { computed } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
@@ -55,18 +56,18 @@ import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 
 defineProps<{
   id: string;
-  data: Record<string, any>;
+  data: CanvasNodeData;
   selected: boolean;
 }>();
 
-const { node } = useNode();
+const { node } = useNode<CanvasNodeData>();
 
 const shapeType = computed(() => node.data.shape || 'rectangle');
 
 const svgSize = computed(() => {
-  const style = node.style || {};
-  const w = typeof style.width === 'string' ? parseInt(style.width) : (style.width || 60);
-  const h = typeof style.height === 'string' ? parseInt(style.height) : (style.height || 60);
+  const style = typeof node.style === 'function' ? {} : node.style || {};
+  const w = typeof style.width === 'string' ? Number.parseInt(style.width) : (style.width || 60);
+  const h = typeof style.height === 'string' ? Number.parseInt(style.height) : (style.height || 60);
   return { w, h };
 });
 
@@ -99,7 +100,7 @@ const starPoints = computed(() => {
   }).join(' ');
 });
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

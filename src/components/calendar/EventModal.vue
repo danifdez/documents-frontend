@@ -14,30 +14,30 @@
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Start</label>
-                    <input v-model="form.startDate" :type="form.allDay ? 'date' : 'datetime-local'"
+                    <label :for="`${formId}-start-date`" class="block text-xs font-medium text-text-secondary mb-1.5">Start</label>
+                    <input :id="`${formId}-start-date`" v-model="form.startDate" :type="form.allDay ? 'date' : 'datetime-local'"
                         class="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                         required />
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">End</label>
-                    <input v-model="form.endDate" :type="form.allDay ? 'date' : 'datetime-local'"
+                    <label :for="`${formId}-end-date`" class="block text-xs font-medium text-text-secondary mb-1.5">End</label>
+                    <input :id="`${formId}-end-date`" v-model="form.endDate" :type="form.allDay ? 'date' : 'datetime-local'"
                         class="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Color</label>
+                    <label :for="`${formId}-color`" class="block text-xs font-medium text-text-secondary mb-1.5">Color</label>
                     <div class="flex items-center gap-2">
-                        <input v-model="form.color" type="color"
+                        <input :id="`${formId}-color`" v-model="form.color" type="color"
                             class="w-8 h-8 rounded-lg border border-border cursor-pointer" />
                         <span class="text-xs text-text-muted">{{ form.color }}</span>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Project</label>
-                    <select v-model="form.projectId"
+                    <label :for="`${formId}-project`" class="block text-xs font-medium text-text-secondary mb-1.5">Project</label>
+                    <select :id="`${formId}-project`" v-model="form.projectId"
                         class="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer">
                         <option :value="null">No project</option>
                         <option v-for="project in projects" :key="project.id" :value="project.id">
@@ -49,8 +49,8 @@
 
             <!-- Recurrence -->
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1.5">Repeats</label>
-                <select v-model="form.recurrencePreset" @change="onRecurrencePresetChange"
+                <label :for="`${formId}-recurrence-preset`" class="block text-xs font-medium text-text-secondary mb-1.5">Repeats</label>
+                <select :id="`${formId}-recurrence-preset`" v-model="form.recurrencePreset" @change="onRecurrencePresetChange"
                     class="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer">
                     <option value="none">Does not repeat</option>
                     <option value="daily">Daily</option>
@@ -62,15 +62,15 @@
                     class="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
                     This recurrence rule can't be edited visually. Edit it via the assistant or delete and recreate.
                 </p>
-                <textarea v-if="form.recurrencePreset === 'readonly'" :value="form.recurrenceRuleRaw" readonly
+                <textarea aria-label="Recurrence rule" v-if="form.recurrencePreset === 'readonly'" :value="form.recurrenceRuleRaw" readonly
                     class="mt-1.5 w-full px-3 py-2 bg-surface border border-border rounded-lg text-[11px] font-mono text-text-muted"
                     rows="2"></textarea>
 
                 <div v-if="form.recurrencePreset === 'custom'" class="mt-2 space-y-2 rounded-lg border border-border bg-surface/50 p-3">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-[11px] text-text-muted mb-1">Frequency</label>
-                            <select v-model="form.customFreq"
+                            <label :for="`${formId}-custom-freq`" class="block text-[11px] text-text-muted mb-1">Frequency</label>
+                            <select :id="`${formId}-custom-freq`" v-model="form.customFreq"
                                 class="w-full px-2 py-1.5 bg-surface border border-border rounded text-xs">
                                 <option value="DAILY">Daily</option>
                                 <option value="WEEKLY">Weekly</option>
@@ -79,13 +79,13 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[11px] text-text-muted mb-1">Interval</label>
-                            <input v-model.number="form.customInterval" type="number" min="1"
+                            <label :for="`${formId}-custom-interval`" class="block text-[11px] text-text-muted mb-1">Interval</label>
+                            <input :id="`${formId}-custom-interval`" v-model.number="form.customInterval" type="number" min="1"
                                 class="w-full px-2 py-1.5 bg-surface border border-border rounded text-xs" />
                         </div>
                     </div>
                     <div v-if="form.customFreq === 'WEEKLY'">
-                        <label class="block text-[11px] text-text-muted mb-1">Days</label>
+                        <div class="block text-[11px] text-text-muted mb-1">Days</div>
                         <div class="flex gap-1 flex-wrap">
                             <button v-for="d in WEEKDAYS" :key="d.code" type="button"
                                 @click="toggleWeekday(d.code)"
@@ -100,7 +100,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[11px] text-text-muted mb-1">Ends</label>
+                        <div class="block text-[11px] text-text-muted mb-1">Ends</div>
                         <div class="flex flex-col gap-1.5">
                             <label class="flex items-center gap-2 text-xs">
                                 <input type="radio" value="never" v-model="form.customEnds" />
@@ -129,7 +129,7 @@
 
             <!-- Alarm -->
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1.5">Alarm</label>
+                <div class="block text-xs font-medium text-text-secondary mb-1.5">Alarm</div>
                 <div class="flex gap-1.5 flex-wrap">
                     <button v-for="chip in ALARM_CHIPS" :key="chip.key" type="button"
                         @click="form.alarmPreset = chip.key"
@@ -143,7 +143,7 @@
                     </button>
                 </div>
                 <div v-if="form.alarmPreset === 'custom'" class="mt-2 flex items-center gap-2">
-                    <input v-model.number="form.alarmCustomMinutes" type="number" min="0" max="10080"
+                    <input aria-label="Reminder minutes before the event" v-model.number="form.alarmCustomMinutes" type="number" min="0" max="10080"
                         class="w-24 px-2 py-1 bg-surface border border-border rounded text-xs" />
                     <span class="text-[11px] text-text-muted">minutes before start</span>
                 </div>
@@ -192,11 +192,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, reactive, computed } from 'vue';
-import type { CalendarEvent, AlarmDescriptor } from '../../types/CalendarEvent';
+import type { CalendarEventInput, CalendarEvent, AlarmDescriptor } from '../../types/CalendarEvent';
+import { useId, ref, watch, reactive, computed } from 'vue';
 import Modal from '../ui/Modal/Modal.vue';
 import FormField from '../ui/FormField.vue';
 import Button from '../ui/Button.vue';
+
+const formId = useId();
 
 const props = defineProps<{
     modelValue: boolean;
@@ -356,7 +358,7 @@ function parseRRule(rule: string): boolean {
     const otherKeys = Object.keys(map).filter((k) => !supportedKeys.has(k));
     if (otherKeys.length === 0 && allowedFreqs.has(freq)) {
         form.recurrencePreset = 'custom';
-        form.customFreq = freq as any;
+        form.customFreq = freq as typeof form.customFreq;
         form.customInterval = map.INTERVAL ? Number(map.INTERVAL) : 1;
         form.customByDay = map.BYDAY ? map.BYDAY.split(',') : [];
         if (map.COUNT) {
@@ -453,7 +455,7 @@ function handleSubmit() {
     if (!form.title.trim()) return;
     isSubmitting.value = true;
 
-    const data: any = {
+    const data: CalendarEventInput & { id?: number } = {
         title: form.title.trim(),
         description: form.description.trim() || null,
         startDate: new Date(form.startDate).toISOString(),

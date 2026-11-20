@@ -12,7 +12,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between px-3 py-2 bg-surface border-b border-border shrink-0">
       <div class="flex items-center gap-1.5 min-w-0">
-        <svg class="h-3.5 w-3.5 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+        <svg aria-hidden="true" class="h-3.5 w-3.5 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span class="text-xs font-semibold text-text-primary truncate">{{ node.data.timelineName || 'Timeline' }}</span>
@@ -20,7 +20,7 @@
       <button @click="loadTimeline" :disabled="loading"
         class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer nodrag shrink-0"
         title="Refresh">
-        <svg class="h-3 w-3" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
+        <svg aria-hidden="true" class="h-3 w-3" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
           stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -48,6 +48,9 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
+import type { TimelineEvent, TimelineEpoch } from '../../../types/timeline';
+import { getErrorMessage } from '../../../utils/errorDetails';
 import { ref, computed, onMounted } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
@@ -55,14 +58,14 @@ import '@vue-flow/node-resizer/dist/style.css';
 import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 import { useTimelines } from '../../../services/timelines/useTimelines';
 
-defineProps<{ id: string; data: Record<string, any>; selected: boolean }>();
-const { node } = useNode();
+defineProps<{ id: string; data: CanvasNodeData; selected: boolean }>();
+const { node } = useNode<CanvasNodeData>();
 const { loadTimeline: fetchTimeline } = useTimelines();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
-const events = ref<any[]>([]);
-const epochs = ref<any[]>([]);
+const events = ref<(TimelineEvent & { label?: string })[]>([]);
+const epochs = ref<TimelineEpoch[]>([]);
 const timelineImage = ref<string | null>(null);
 const contentEl = ref<HTMLElement | null>(null);
 
@@ -71,7 +74,7 @@ const filteredEvents = computed(() => {
   const mode = node.data.filterMode;
 
   if (mode === 'epoch' && node.data.epochId) {
-    const epoch = epochs.value.find((e: any) => e.id === node.data.epochId);
+    const epoch = epochs.value.find(e => e.id === node.data.epochId);
     if (epoch) {
       const start = new Date(epoch.startDate).getTime();
       const end = new Date(epoch.endDate).getTime();
@@ -110,8 +113,8 @@ const loadTimeline = async () => {
     epochs.value = timeline.epochs || [];
     node.data.timelineName = timeline.name;
     renderImage();
-  } catch (err: any) {
-    error.value = err.message || 'Failed to load timeline';
+  } catch (err: unknown) {
+    error.value = getErrorMessage(err) || 'Failed to load timeline';
   } finally {
     loading.value = false;
   }
@@ -120,7 +123,7 @@ const loadTimeline = async () => {
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+  if (Number.isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
@@ -219,7 +222,7 @@ const renderImage = () => {
   }
 
   // Epoch bands
-  const visibleEpochs = epochs.value.filter((ep: any) => {
+  const visibleEpochs = epochs.value.filter(ep => {
     const epStart = new Date(ep.startDate).getTime();
     const epEnd = new Date(ep.endDate).getTime();
     return epEnd >= minDate && epStart <= maxDate;
@@ -443,7 +446,7 @@ onMounted(() => {
   if (node.data.timelineId) loadTimeline();
 });
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

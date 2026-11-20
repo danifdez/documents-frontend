@@ -16,7 +16,7 @@
                     <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Theme</h2>
                         <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-2">Appearance</label>
+                            <div class="block text-xs font-medium text-text-secondary mb-2">Appearance</div>
                             <div class="flex gap-2">
                                 <button v-for="opt in themeOptions" :key="opt.value"
                                     @click="theme = opt.value; saveSettings()"
@@ -38,8 +38,8 @@
                     <section class="bg-surface-elevated rounded-2xl border border-border p-5">
                         <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">Language</h2>
                         <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1">Display Language</label>
-                            <select v-model="language" @change="saveSettings"
+                            <label :for="`${formId}-language`" class="block text-xs font-medium text-text-secondary mb-1">Display Language</label>
+                            <select :id="`${formId}-language`" v-model="language" @change="saveSettings"
                                 class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
                                 <option v-for="lang in languages" :key="lang.code" :value="lang.code">{{ lang.label
                                     }}</option>
@@ -59,24 +59,24 @@
                             Appearance</h2>
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1">Font Size</label>
-                                <select v-model="fontSize" @change="saveSettings"
+                                <label :for="`${formId}-font-size`" class="block text-xs font-medium text-text-secondary mb-1">Font Size</label>
+                                <select :id="`${formId}-font-size`" v-model="fontSize" @change="saveSettings"
                                     class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
                                     <option v-for="size in fontSizes" :key="size" :value="size">{{ size }} px</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1">Font Family</label>
-                                <select v-model="fontFamily" @change="saveSettings"
+                                <label :for="`${formId}-font-family`" class="block text-xs font-medium text-text-secondary mb-1">Font Family</label>
+                                <select :id="`${formId}-font-family`" v-model="fontFamily" @change="saveSettings"
                                     class="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all">
                                     <option v-for="family in fontFamilies" :key="family.value" :value="family.value">{{
                                         family.label }}</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1">Paragraph Spacing
+                                <label :for="`${formId}-paragraph-spacing`" class="block text-xs font-medium text-text-secondary mb-1">Paragraph Spacing
                                     <span class="text-text-muted font-normal ml-1">{{ paragraphSpacing }}</span></label>
-                                <input type="range" min="1" max="3" step="0.1" v-model.number="paragraphSpacing"
+                                <input :id="`${formId}-paragraph-spacing`" type="range" min="1" max="3" step="0.1" v-model.number="paragraphSpacing"
                                     @change="saveSettings"
                                     class="w-full h-1.5 bg-border rounded-full appearance-none accent-accent" />
                             </div>
@@ -296,7 +296,7 @@
 
                     <button @click="showWorkspaceModal = true"
                         class="bg-surface-elevated rounded-2xl border border-dashed border-border p-4 flex items-center justify-center gap-2 text-sm text-text-muted hover:bg-surface-hover hover:border-text-muted transition-colors cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
@@ -441,7 +441,7 @@
                                     <p class="text-xs text-text-muted mt-1">Connection address for browsers and other
                                         apps.</p>
                                 </div>
-                                <svg xmlns="http://www.w3.org/2000/svg"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
                                     class="h-4 w-4 text-text-muted transition-transform duration-200 shrink-0"
                                     :class="{ 'rotate-180': showAdvanced }" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
@@ -449,10 +449,10 @@
                                 </svg>
                             </button>
                             <div v-if="showAdvanced" class="mt-4 pt-4 border-t border-border">
-                                <label class="block text-xs font-medium text-text-secondary mb-2">Local address</label>
+                                <label :for="`${formId}-local-port`" class="block text-xs font-medium text-text-secondary mb-2">Local address</label>
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm text-text-secondary shrink-0">127.0.0.1:</span>
-                                    <input v-model.number="standalonePort" type="number" min="1024" max="65535"
+                                    <input :id="`${formId}-local-port`" v-model.number="standalonePort" type="number" min="1024" max="65535"
                                         class="w-28 px-2 py-1.5 rounded-lg border border-border bg-surface text-sm text-text-primary" />
                                     <button @click="saveStandalonePort" :disabled="savingStandalonePort"
                                         class="px-3 py-1.5 rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-50">
@@ -584,14 +584,14 @@
                                 :class="exporting || (exportScope === 'selected' && selectedProjectIds.length === 0)
                                     ? 'bg-border text-text-muted cursor-not-allowed'
                                     : 'bg-accent text-white hover:bg-accent-dark active:scale-[0.98]'">
-                                <svg v-if="exporting" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg"
+                                <svg aria-hidden="true" v-if="exporting" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg"
                                     fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                         stroke-width="4" />
                                     <path class="opacity-75" fill="currentColor"
                                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                 </svg>
-                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                <svg aria-hidden="true" v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -612,7 +612,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { getErrorMessage } from '../utils/errorDetails';
+import { useId, ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import PageHeader from '../components/ui/PageHeader.vue';
 import SegmentedControl from '../components/ui/SegmentedControl.vue';
 import { useTheme, type ThemeMode } from '../composables/useTheme';
@@ -629,6 +630,8 @@ import WorkspaceModal from '../components/WorkspaceModal.vue';
 import VoiceSettings from '../components/settings/VoiceSettings.vue';
 import { isLocalEngineAvailable } from '../services/voice/availability';
 import type { Workspace } from '../types/Workspace';
+
+const formId = useId();
 
 const { setTheme } = useTheme();
 const { isElectron, getSettings, setSettings } = useElectronApi();
@@ -721,8 +724,8 @@ async function toggleFeature(key: string) {
             featuresError.value = result.error || 'Could not update the feature. Please try again.';
         }
         if (key === 'browser_federation' && result?.success) await loadBrowserStatus();
-    } catch (e: any) {
-        featuresError.value = e?.message || 'Could not update the feature. Please try again.';
+    } catch (e: unknown) {
+        featuresError.value = getErrorMessage(e) || 'Could not update the feature. Please try again.';
     } finally {
         featuresApplying.value = false;
         featuresApplyingKey.value = null;

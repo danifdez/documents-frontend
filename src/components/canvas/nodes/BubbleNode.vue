@@ -16,7 +16,7 @@
         @dblclick="startEditing">
         {{ node.data.text || 'Double-click...' }}
       </div>
-      <textarea v-else ref="textareaRef" v-model="editText"
+      <textarea aria-label="Speech bubble text" v-else ref="textareaRef" v-model="editText"
         class="w-full h-full bg-transparent border-0 outline-none resize-none text-center nowheel nodrag"
         :class="[fontSizeClass, node.data.bold ? 'font-semibold' : '']"
         :style="{ color: node.data.textColor || '#1E3A5F' }"
@@ -26,15 +26,16 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
 import { ref, computed, nextTick, watch } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
 import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 
-defineProps<{ id: string; data: Record<string, any>; selected: boolean }>();
+defineProps<{ id: string; data: CanvasNodeData; selected: boolean }>();
 
-const { node } = useNode();
+const { node } = useNode<CanvasNodeData>();
 const isEditing = ref(false);
 const editText = ref('');
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -59,7 +60,7 @@ const startEditing = () => {
 
 const finishEditing = () => { isEditing.value = false; };
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

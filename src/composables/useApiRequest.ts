@@ -1,3 +1,4 @@
+import { getResponseError } from '../utils/errorDetails';
 import { ref } from 'vue';
 
 export function useApiRequest() {
@@ -10,8 +11,8 @@ export function useApiRequest() {
 
         try {
             return await run();
-        } catch (err: any) {
-            error.value = err.response?.data?.message || failureMessage;
+        } catch (err: unknown) {
+            error.value = getResponseError(err) || failureMessage;
             throw err;
         } finally {
             isLoading.value = false;

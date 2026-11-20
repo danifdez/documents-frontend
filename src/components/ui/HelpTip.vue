@@ -1,6 +1,6 @@
 <template>
     <span class="relative inline-flex items-center group ml-1">
-        <svg class="h-3.5 w-3.5 text-text-muted/60 hover:text-text-muted cursor-help transition-colors" fill="none"
+        <svg role="img" aria-label="Help" class="h-3.5 w-3.5 text-text-muted/60 hover:text-text-muted cursor-help transition-colors" fill="none"
             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10" />
             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke-linecap="round" stroke-linejoin="round" />

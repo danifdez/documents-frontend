@@ -35,24 +35,24 @@
                         <!-- Step 2: Configure -->
                         <div v-if="step === 2 && selectedProvider" class="space-y-5">
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Name *</label>
-                                <input v-model="form.name" type="text"
+                                <label :for="`${formId}-name`" class="block text-xs font-medium text-text-secondary mb-1.5">Name *</label>
+                                <input :id="`${formId}-name`" v-model="form.name" type="text"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                                     :placeholder="`e.g. ${selectedProvider.displayName} data`" />
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-2">Configuration</label>
+                                <div class="block text-xs font-medium text-text-secondary mb-2">Configuration</div>
                                 <DynamicSchemaForm
                                     :schema="selectedProvider.configSchema"
                                     v-model="form.config" />
                             </div>
 
                             <div v-if="selectedProvider.credentialsSchema">
-                                <label class="block text-xs font-medium text-text-secondary mb-2">
+                                <div class="block text-xs font-medium text-text-secondary mb-2">
                                     Credentials
                                     <span class="text-[10px] text-text-muted font-normal ml-1">(encrypted at rest)</span>
-                                </label>
+                                </div>
                                 <DynamicSchemaForm
                                     :schema="selectedProvider.credentialsSchema"
                                     v-model="form.credentials"
@@ -64,7 +64,7 @@
                                 <button @click="handleTest"
                                     :disabled="testing"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-40">
-                                    <svg v-if="testing" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <svg aria-hidden="true" v-if="testing" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                     </svg>
@@ -77,7 +77,7 @@
 
                                 <!-- Sample data preview -->
                                 <div v-if="testResult?.sampleData?.length" class="mt-3">
-                                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Sample data</label>
+                                    <div class="block text-xs font-medium text-text-secondary mb-1.5">Sample data</div>
                                     <div class="overflow-x-auto border border-border rounded-lg max-h-32">
                                         <table class="w-full text-[10px]">
                                             <thead>
@@ -105,12 +105,12 @@
                         <!-- Step 3: Schedule -->
                         <div v-if="step === 3" class="space-y-5">
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-2">Sync Schedule</label>
+                                <div class="block text-xs font-medium text-text-secondary mb-2">Sync Schedule</div>
                                 <CronSchedulePicker v-model="form.syncSchedule" />
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-2">Sync Strategy</label>
+                                <div class="block text-xs font-medium text-text-secondary mb-2">Sync Strategy</div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <button @click="form.syncStrategy = 'full'"
                                         class="p-3 rounded-lg border text-left transition-all cursor-pointer"
@@ -132,9 +132,9 @@
                             </div>
 
                             <div v-if="form.syncStrategy === 'incremental'">
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Incremental key field</label>
+                                <label :for="`${formId}-incremental-key`" class="block text-xs font-medium text-text-secondary mb-1.5">Incremental key field</label>
                                 <!-- Select from detected fields if available -->
-                                <select v-if="availableFields.length > 0" v-model="form.incrementalKey"
+                                <select :id="`${formId}-incremental-key`" v-if="availableFields.length > 0" v-model="form.incrementalKey"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                     <option value="" disabled>Select a field...</option>
                                     <option v-for="field in availableFields" :key="field" :value="field">
@@ -142,7 +142,7 @@
                                     </option>
                                 </select>
                                 <!-- Fallback text input if no test has been done -->
-                                <input v-else v-model="form.incrementalKey" type="text"
+                                <input :id="`${formId}-incremental-key`" v-else v-model="form.incrementalKey" type="text"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                                     placeholder="e.g. date, id" />
                                 <p class="text-[10px] text-text-muted mt-1">
@@ -188,12 +188,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { useDataSources, type DataSourceProvider } from '../../services/data-sources/useDataSources';
+import { getErrorMessage, getResponseError } from '../../utils/errorDetails';
+import { useId, ref, computed, watch } from 'vue';
+import { useDataSources, type DataSourceProvider, type DataSource } from '../../services/data-sources/useDataSources';
 import Button from '../ui/Button.vue';
 import DataSourceProviderPicker from './DataSourceProviderPicker.vue';
 import DynamicSchemaForm from './DynamicSchemaForm.vue';
 import CronSchedulePicker from './CronSchedulePicker.vue';
+
+const formId = useId();
 
 const props = defineProps<{
     isOpen: boolean;
@@ -203,7 +206,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     close: [];
-    created: [dataSource: any];
+    created: [dataSource: DataSource];
 }>();
 
 const { createDataSource, testConnection, triggerSync } = useDataSources();
@@ -212,13 +215,13 @@ const stepLabels = ['Source', 'Configure', 'Schedule'];
 const step = ref(1);
 const selectedProvider = ref<DataSourceProvider | null>(null);
 const testing = ref(false);
-const testResult = ref<{ success: boolean; message: string; sampleData?: any[] } | null>(null);
+const testResult = ref<{ success: boolean; message: string; sampleData?: Record<string, unknown>[] } | null>(null);
 const creating = ref(false);
 
 const form = ref({
     name: '',
-    config: {} as Record<string, any>,
-    credentials: {} as Record<string, any>,
+    config: {} as Record<string, unknown>,
+    credentials: {} as Record<string, unknown>,
     syncSchedule: null as string | null,
     syncStrategy: 'full' as 'full' | 'incremental',
     incrementalKey: '',
@@ -271,8 +274,8 @@ const handleTest = async () => {
             config: form.value.config,
             credentials: creds,
         });
-    } catch (err: any) {
-        testResult.value = { success: false, message: err.response?.data?.message || err.message || 'Test failed' };
+    } catch (err: unknown) {
+        testResult.value = { success: false, message: getResponseError(err) || getErrorMessage(err) || 'Test failed' };
     } finally {
         testing.value = false;
     }
@@ -310,8 +313,8 @@ const handleCreate = async () => {
 
         emit('created', ds);
         emit('close');
-    } catch (err: any) {
-        testResult.value = { success: false, message: err.response?.data?.message || 'Failed to create data source' };
+    } catch (err: unknown) {
+        testResult.value = { success: false, message: getResponseError(err) || 'Failed to create data source' };
     } finally {
         creating.value = false;
     }

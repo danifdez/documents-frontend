@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CalendarEventInput, CalendarEvent } from '../types/CalendarEvent';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import LoadingSpinner from '../components/ui/LoadingSpinner.vue';
@@ -60,7 +61,6 @@ import WeekGrid from '../components/calendar/WeekGrid.vue';
 import DayDetailPanel from '../components/calendar/DayDetailPanel.vue';
 import EventModal from '../components/calendar/EventModal.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
-import type { CalendarEvent } from '../types/CalendarEvent';
 import { useCalendarOccurrences } from '../services/calendar/useCalendarOccurrences';
 import { useProjectDirectory } from '../services/projects/useProjectDirectory';
 
@@ -149,7 +149,7 @@ function handleEventClick(event: CalendarEvent) {
     showEventModal.value = true;
 }
 
-async function handleEventSubmit(data: Record<string, any>) {
+async function handleEventSubmit(data: CalendarEventInput & { id?: number }) {
     try {
         if (data.id) {
             const { id, ...updateData } = data;

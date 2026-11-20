@@ -9,7 +9,7 @@
     @contextmenu.prevent
   >
     <span class="flex items-center gap-1.5">
-      <svg
+      <svg aria-hidden="true"
         v-if="state === 'recording' || state === 'stopping'"
         xmlns="http://www.w3.org/2000/svg"
         class="h-4 w-4"
@@ -18,7 +18,7 @@
       >
         <rect x="6" y="6" width="12" height="12" rx="2" />
       </svg>
-      <svg
+      <svg aria-hidden="true"
         v-else-if="state === 'queued'"
         xmlns="http://www.w3.org/2000/svg"
         class="h-4 w-4 animate-spin"
@@ -38,7 +38,7 @@
         <path d="M4.93 19.07l2.83-2.83" />
         <path d="M16.24 7.76l2.83-2.83" />
       </svg>
-      <svg
+      <svg aria-hidden="true"
         v-else
         xmlns="http://www.w3.org/2000/svg"
         class="h-4 w-4"

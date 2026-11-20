@@ -130,10 +130,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { useReferences } from '../../services/references/useReferences';
+import { useReferences, type ReferenceDetail } from '../../services/references/useReferences';
 import router from '../../router';
-import type { BibliographyEntry } from '../../types/Bibliography';
-import { creatorDisplayName } from '../../types/Bibliography';
+import { creatorDisplayName, type BibliographyEntry } from '../../types/Bibliography';
 import { formatInlineCitation, formatFullCitation, type CitationStyle } from '../../services/citations/citationFormatter';
 
 const props = defineProps<{
@@ -143,7 +142,7 @@ const props = defineProps<{
     displayMode: string;
     citeStyle: string;
     getEntries: () => BibliographyEntry[];
-    onUpdateAttrs: (attrs: Record<string, any>) => void;
+    onUpdateAttrs: (attrs: Record<string, unknown>) => void;
 }>();
 
 const { fetchReferenceDetail } = useReferences();
@@ -152,7 +151,7 @@ const showPopover = ref(false);
 const popoverRef = ref<HTMLElement | null>(null);
 const badgeEl = ref<HTMLElement | null>(null);
 const popoverPosition = ref<Record<string, string>>({});
-const detail = ref<Record<string, any> | null>(null);
+const detail = ref<ReferenceDetail | null>(null);
 const bibEntry = ref<BibliographyEntry | null>(null);
 const isLoading = ref(false);
 
@@ -353,7 +352,7 @@ const changeDisplayMode = (mode: string) => {
 };
 
 const changeCiteStyle = (style: string) => {
-    const newAttrs: Record<string, any> = { 'data-cite-style': style };
+    const newAttrs: Record<string, string> = { 'data-cite-style': style };
     // Recompute label for bibliography
     if (props.refType === 'bibliography' && bibEntry.value) {
         newAttrs['data-label'] = formatInlineCitation(

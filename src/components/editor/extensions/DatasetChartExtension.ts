@@ -3,7 +3,7 @@ import { createApp } from 'vue';
 import DatasetChartNode from '../DatasetChartNode.vue';
 
 export interface DatasetChartOptions {
-    HTMLAttributes: Record<string, any>;
+    HTMLAttributes: Record<string, unknown>;
 }
 
 declare module '@tiptap/core' {
@@ -37,7 +37,7 @@ export const DatasetChartExtension = Node.create<DatasetChartOptions>({
             chartId: {
                 default: null,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-chart-id');
+                    const val = element.dataset.chartId;
                     return val ? Number(val) : null;
                 },
                 renderHTML: (attributes) => ({
@@ -46,7 +46,7 @@ export const DatasetChartExtension = Node.create<DatasetChartOptions>({
             },
             chartName: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-chart-name') || '',
+                parseHTML: (element) => element.dataset.chartName || '',
                 renderHTML: (attributes) => ({
                     'data-chart-name': attributes.chartName,
                 }),
@@ -54,7 +54,7 @@ export const DatasetChartExtension = Node.create<DatasetChartOptions>({
             datasetId: {
                 default: null,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-dataset-id');
+                    const val = element.dataset.datasetId;
                     return val ? Number(val) : null;
                 },
                 renderHTML: (attributes) => ({
@@ -63,7 +63,7 @@ export const DatasetChartExtension = Node.create<DatasetChartOptions>({
             },
             datasetName: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-dataset-name') || '',
+                parseHTML: (element) => element.dataset.datasetName || '',
                 renderHTML: (attributes) => ({
                     'data-dataset-name': attributes.datasetName,
                 }),

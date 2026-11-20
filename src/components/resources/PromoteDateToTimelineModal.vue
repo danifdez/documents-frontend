@@ -14,24 +14,24 @@
 
                     <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
                         <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Title</label>
-                            <input v-model="eventTitle" type="text"
+                            <label :for="`${formId}-event-title`" class="block text-xs font-medium text-text-secondary mb-1.5">Title</label>
+                            <input :id="`${formId}-event-title`" v-model="eventTitle" type="text"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Description</label>
-                            <textarea v-model="eventDescription" rows="2"
+                            <label :for="`${formId}-event-description`" class="block text-xs font-medium text-text-secondary mb-1.5">Description</label>
+                            <textarea :id="`${formId}-event-description`" v-model="eventDescription" rows="2"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                         </div>
                         <div class="flex items-center gap-3">
-                            <label class="text-xs font-medium text-text-secondary">Color</label>
-                            <input v-model="eventColor" type="color"
+                            <label :for="`${formId}-event-color`" class="text-xs font-medium text-text-secondary">Color</label>
+                            <input :id="`${formId}-event-color`" v-model="eventColor" type="color"
                                 class="h-7 w-10 rounded border border-border bg-surface cursor-pointer" />
                             <span class="text-xs text-text-muted">{{ eventColor }}</span>
                         </div>
 
                         <div class="border-t border-border-light pt-3">
-                            <label class="block text-xs font-medium text-text-secondary mb-2">Target timeline</label>
+                            <div class="block text-xs font-medium text-text-secondary mb-2">Target timeline</div>
                             <div v-if="loadingTimelines" class="flex justify-center py-4">
                                 <div class="animate-spin rounded-full h-5 w-5 border-2 border-accent border-t-transparent"></div>
                             </div>
@@ -56,7 +56,7 @@
                                     <span>Create new timeline…</span>
                                 </label>
                                 <div v-if="mode === 'new'" class="pl-6 pt-2">
-                                    <input v-model="newTimelineName" type="text" placeholder="Timeline name"
+                                    <input aria-label="New timeline name" v-model="newTimelineName" type="text" placeholder="Timeline name"
                                         class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                                 </div>
                             </div>
@@ -79,12 +79,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { getErrorMessage, getResponseError } from '../../utils/errorDetails';
+import { useId, computed, ref, watch } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import Button from '../ui/Button.vue';
 import { useTimelines } from '../../services/timelines/useTimelines';
 import type { ResourceDate } from '../../types/ResourceDate';
 import type { TimelineEvent, TimelineRecord } from '../../types/timeline';
+
+const formId = useId();
 
 const props = defineProps<{
     modelValue: boolean;
@@ -145,8 +148,8 @@ watch(
             if (timelines.value.length > 0) {
                 targetChoice.value = String(timelines.value[0].id);
             }
-        } catch (e: any) {
-            errorMessage.value = e?.message || 'Failed to load timelines';
+        } catch (e: unknown) {
+            errorMessage.value = getErrorMessage(e) || 'Failed to load timelines';
         } finally {
             loadingTimelines.value = false;
         }
@@ -197,8 +200,8 @@ async function handleConfirm() {
 
         emit('promoted', { timelineId, event });
         emit('update:modelValue', false);
-    } catch (e: any) {
-        errorMessage.value = e?.response?.data?.message || e?.message || 'Failed to add event to timeline';
+    } catch (e: unknown) {
+        errorMessage.value = getResponseError(e) || getErrorMessage(e) || 'Failed to add event to timeline';
     } finally {
         saving.value = false;
     }

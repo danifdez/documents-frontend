@@ -14,6 +14,7 @@ export interface Entity {
     id: number;
     name: string;
     description?: string | null;
+    global?: boolean;
     translations?: EntityTranslation | null;
     aliases?: EntityAlias[] | null;
     entityType: {

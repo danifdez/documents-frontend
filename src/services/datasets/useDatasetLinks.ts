@@ -1,3 +1,4 @@
+import type { DatasetLinkValues } from './useDatasets';
 import apiClient from '../api';
 import { useApiRequest } from '../../composables/useApiRequest';
 
@@ -11,7 +12,7 @@ export const useDatasetLinks = () => {
         datasetId: number | string,
         values: (string | number)[],
         lookupField?: string,
-    ): Promise<Record<string, any>> =>
+    ): Promise<DatasetLinkValues> =>
         request('Failed to resolve links', async () =>
             (await apiClient.post(`/datasets/${datasetId}/resolve-links`, {
                 values,

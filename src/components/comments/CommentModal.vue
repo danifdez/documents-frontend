@@ -8,7 +8,7 @@
                 <div class="italic bg-surface text-text-secondary p-2.5 rounded-lg text-sm leading-relaxed border border-border-light">"{{ selectedText }}"</div>
             </div>
 
-            <textarea v-model="commentText"
+            <textarea aria-label="Comment" v-model="commentText"
                 class="w-full bg-surface border border-border rounded-lg px-3.5 py-2.5 mb-4 h-28 resize-none text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                 placeholder="Write your comment..." ref="commentTextarea"></textarea>
 

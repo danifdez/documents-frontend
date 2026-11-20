@@ -1,3 +1,13 @@
+import type { CSSProperties } from 'vue';
+
+export interface CanvasRecord {
+  id: number;
+  name: string;
+  canvasData: CanvasData | null;
+  thread?: number | { id: number } | null;
+  updatedAt: string;
+}
+
 export interface CanvasData {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
@@ -8,7 +18,7 @@ export interface CanvasNode {
   id: string;
   type: CanvasNodeType;
   position: { x: number; y: number };
-  data: Record<string, any>;
+  data: CanvasNodeData;
   style?: { width?: number; height?: number; color?: string };
 }
 
@@ -23,5 +33,51 @@ export interface CanvasEdge {
   targetHandle?: string;
   type?: string;
   label?: string;
-  data?: Record<string, any>;
+  data?: CanvasEdgeData;
+}
+
+export interface CanvasNodeData {
+  text?: string;
+  title?: string;
+  subtitle?: string;
+  label?: string;
+  color?: string;
+  accent?: string;
+  textColor?: string;
+  borderColor?: string;
+  strokeColor?: string;
+  borderRadius?: number;
+  borderStyle?: string;
+  borderWidth?: number;
+  bold?: boolean;
+  fontSize?: string;
+  align?: CSSProperties['textAlign'];
+  valign?: string;
+  shape?: string;
+  src?: string;
+  alt?: string;
+  sourceName?: string;
+  docId?: number;
+  resourceId?: number;
+  chartId?: number;
+  chartName?: string;
+  datasetId?: number;
+  datasetName?: string;
+  timelineId?: number;
+  timelineName?: string;
+  filterMode?: string;
+  epochId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  entityId?: number;
+  entityName?: string;
+  entityType?: string;
+  projectId?: number;
+  [key: string]: unknown;
+}
+
+export interface CanvasEdgeData {
+  color?: string;
+  arrow?: boolean;
+  dashed?: boolean;
 }

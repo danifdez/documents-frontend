@@ -1,11 +1,20 @@
 import { ref } from "vue";
 import apiClient from "../api";
 
+export interface DocumentRecord {
+    id: number;
+    name: string;
+    content?: string | null;
+    citationFormat?: string;
+    project?: { id: number; name: string } | number | null;
+    thread?: { id: number; name: string } | number | null;
+}
+
 export function useDocument() {
     const error = ref(null);
     const isLoading = ref(false);
 
-    const loadDocument = async (id: string | number): Promise<object> => {
+    const loadDocument = async (id: string | number): Promise<DocumentRecord> => {
         isLoading.value = true;
         const response = await apiClient.get(`/docs/${id}`);
 

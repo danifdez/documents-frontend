@@ -1,13 +1,18 @@
 import apiClient from '../api';
 import { useApiRequest } from '../../composables/useApiRequest';
 
+export interface ProviderSchema {
+    properties?: Record<string, { type?: string; title?: string; description?: string; enum?: string[]; default?: unknown }>;
+    required?: string[];
+}
+
 export interface DataSourceProvider {
     type: string;
     displayName: string;
     description: string;
     category: string;
-    configSchema: Record<string, any>;
-    credentialsSchema: Record<string, any> | null;
+    configSchema: ProviderSchema;
+    credentialsSchema: ProviderSchema | null;
     defaultIncrementalKey: string | null;
 }
 
@@ -31,10 +36,10 @@ export interface DataSource {
     name: string;
     description: string | null;
     providerType: string;
-    config: Record<string, any>;
-    credentials: Record<string, any> | null;
+    config: Record<string, unknown>;
+    credentials: Record<string, unknown> | null;
     hasCredentials: boolean;
-    schemaMapping: any[] | null;
+    schemaMapping: unknown[] | null;
     syncSchedule: string | null;
     syncStrategy: 'full' | 'incremental';
     incrementalKey: string | null;
@@ -60,7 +65,7 @@ export function useDataSources() {
 
     const getAllDataSources = (projectId?: number): Promise<DataSource[]> =>
         request('Failed to load data sources', async () => {
-            const params: Record<string, any> = {};
+            const params: Record<string, unknown> = {};
             if (projectId) params.projectId = projectId;
             return (await apiClient.get('/data-sources', { params })).data;
         });
@@ -74,9 +79,9 @@ export function useDataSources() {
         name: string;
         description?: string;
         providerType: string;
-        config: Record<string, any>;
-        credentials?: Record<string, any>;
-        schemaMapping?: any[];
+        config: Record<string, unknown>;
+        credentials?: Record<string, unknown>;
+        schemaMapping?: unknown[];
         syncSchedule?: string;
         syncStrategy?: 'full' | 'incremental';
         incrementalKey?: string;
@@ -87,7 +92,7 @@ export function useDataSources() {
         request('Failed to create data source', async () =>
             (await apiClient.post('/data-sources', data)).data);
 
-    const updateDataSource = async (id: number, data: Record<string, any>): Promise<DataSource> => {
+    const updateDataSource = async (id: number, data: Record<string, unknown>): Promise<DataSource> => {
         const response = await apiClient.patch(`/data-sources/${id}`, data);
         return response.data;
     };
@@ -98,9 +103,9 @@ export function useDataSources() {
 
     const testConnection = async (data: {
         providerType: string;
-        config: Record<string, any>;
-        credentials?: Record<string, any>;
-    }): Promise<{ success: boolean; message: string; sampleData?: any[] }> => {
+        config: Record<string, unknown>;
+        credentials?: Record<string, unknown>;
+    }): Promise<{ success: boolean; message: string; sampleData?: Record<string, unknown>[] }> => {
         const response = await apiClient.post('/data-sources/test', data);
         return response.data;
     };
@@ -117,9 +122,9 @@ export function useDataSources() {
 
     const previewData = async (data: {
         providerType: string;
-        config: Record<string, any>;
-        credentials?: Record<string, any>;
-    }): Promise<{ records: any[]; schema?: any[]; totalRecords: number; hasMore: boolean }> => {
+        config: Record<string, unknown>;
+        credentials?: Record<string, unknown>;
+    }): Promise<{ records: unknown[]; schema?: unknown[]; totalRecords: number; hasMore: boolean }> => {
         const response = await apiClient.post('/data-sources/preview', data);
         return response.data;
     };

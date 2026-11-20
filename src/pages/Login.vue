@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { getResponseError } from '../utils/errorDetails';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/authStore';
@@ -48,8 +49,8 @@ async function handleLogin() {
   try {
     await authStore.login(username.value, password.value);
     router.push('/');
-  } catch (err: any) {
-    errorMessage.value = err.response?.data?.message || 'Invalid credentials';
+  } catch (err: unknown) {
+    errorMessage.value = getResponseError(err) || 'Invalid credentials';
   } finally {
     isLoading.value = false;
   }

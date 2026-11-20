@@ -1,3 +1,4 @@
+import type { ElectronSettings } from '../../types/electron';
 import { globalShortcut } from 'electron';
 import type Store from 'electron-store';
 import { IpcChannels } from '../../ipc/channels';
@@ -6,8 +7,8 @@ import type { IpcHandlerMap } from './registry';
 interface SettingsHandlerDeps {
   store: Store;
   applySettingsEffects: (
-    settings: Record<string, any>,
-    previous: Record<string, any> | null,
+    settings: ElectronSettings,
+    previous: ElectronSettings | null,
   ) => void;
   isTrayAvailable: () => boolean;
 }
@@ -43,8 +44,8 @@ export function createSettingsHandlers({
       });
     },
 
-    [IpcChannels.settings.set]: (_event, settings) => {
-      const previous = store.get('settings') as Record<string, any> | undefined;
+    [IpcChannels.settings.set]: (_event, settings: ElectronSettings) => {
+      const previous = store.get('settings') as ElectronSettings | undefined;
       store.set('settings', settings);
       applySettingsEffects(settings, previous ?? null);
       const shortcutOk = settings?.toggleShortcut
@@ -61,7 +62,7 @@ export function createSettingsHandlers({
     ...(process.env.NODE_ENV === 'development'
       ? {
         [IpcChannels.debug.resetTrayHint]: () => {
-          const flags = (store.get('flags') as Record<string, any> | undefined) ?? {};
+          const flags = (store.get('flags') as { hasSeenTrayHint?: boolean } | undefined) ?? {};
           delete flags.hasSeenTrayHint;
           store.set('flags', flags);
           return { ok: true };

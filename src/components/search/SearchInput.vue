@@ -8,12 +8,12 @@
                         <div
                             class="bg-surface-elevated rounded-xl shadow-2xl shadow-black/10 border border-border overflow-hidden">
                             <div class="flex items-center px-5 gap-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted shrink-0"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted shrink-0"
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
-                                <input ref="inputRef" type="text" v-model="searchValue" :placeholder="placeholder"
+                                <input :aria-label="placeholder || 'Search'" ref="inputRef" type="text" v-model="searchValue" :placeholder="placeholder"
                                     class="flex-1 py-4 text-base bg-transparent border-0 outline-none text-text-primary placeholder:text-text-muted"
                                     @keyup.enter.prevent="onEnter" @keyup.esc.prevent="onEscape" />
                             </div>

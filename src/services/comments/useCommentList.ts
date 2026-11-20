@@ -2,7 +2,7 @@ import { ref } from "vue";
 import apiClient from "../api";
 
 export function useCommentList() {
-    const comments = ref([]);
+    const comments = ref<{ id: string; quote?: string }[]>([]);
     const error = ref(null);
     const isLoading = ref(false);
 
@@ -14,6 +14,7 @@ export function useCommentList() {
                 : `/comments/resource/${entityId}`;
             const response = await apiClient.get(endpoint);
             comments.value = response.data;
+            return comments.value;
         } catch (err) {
             error.value = err;
         } finally {

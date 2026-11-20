@@ -32,14 +32,14 @@
                 <button @click="zoomOut"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     title="Zoom out">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
                     </svg>
                 </button>
                 <button @click="resetView"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     title="Fit to view">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
                     </svg>
@@ -50,7 +50,7 @@
                 <a :href="`#/timeline/${timelineId}`"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors"
                     title="Open timeline" @click.stop>
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
@@ -58,7 +58,7 @@
                 <button @click="loadTimeline" :disabled="loading"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     title="Refresh">
-                    <svg class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -84,7 +84,7 @@
         <div v-else ref="viewportRef" class="timeline-viewport overflow-hidden cursor-grab active:cursor-grabbing"
             style="height: 300px;" @wheel.prevent="onWheel" @mousedown.stop="startPan($event, handleDrag)"
             @dragstart.prevent.stop>
-            <img v-if="timelineImage" :src="timelineImage" draggable="false"
+            <img :alt="`Timeline of ${timelineName || 'events'}`" v-if="timelineImage" :src="timelineImage" draggable="false"
                 :style="imageTransformStyle"
                 class="origin-center select-none pointer-events-none h-full" />
         </div>
@@ -102,6 +102,8 @@
 </template>
 
 <script setup lang="ts">
+import type { TimelineEvent, TimelineEpoch } from '../../types/timeline';
+import { getResponseError } from '../../utils/errorDetails';
 import { ref, computed, onMounted } from 'vue';
 import { useTimelines } from '../../services/timelines/useTimelines';
 import { usePanZoom, type PanDrag } from '../../composables/usePanZoom';
@@ -124,8 +126,8 @@ const props = defineProps<{
 
 const loading = ref(false);
 const error = ref<string | null>(null);
-const events = ref<any[]>([]);
-const epochs = ref<any[]>([]);
+const events = ref<TimelineEvent[]>([]);
+const epochs = ref<TimelineEpoch[]>([]);
 const timelineImage = ref<string | null>(null);
 const viewportRef = ref<HTMLElement | null>(null);
 
@@ -151,7 +153,7 @@ const imageTransformStyle = computed(() => ({
 
 const filterLabel = computed(() => {
     if (props.filterMode === 'epoch' && props.epochId) {
-        const ep = epochs.value.find((e: any) => e.id === props.epochId);
+        const ep = epochs.value.find(e => e.id === props.epochId);
         return ep ? ep.name : 'Epoch';
     }
     if (props.filterMode === 'range' && (props.dateFrom || props.dateTo)) {
@@ -165,7 +167,7 @@ const filteredEvents = computed(() => {
     const mode = props.filterMode;
 
     if (mode === 'epoch' && props.epochId) {
-        const epoch = epochs.value.find((e: any) => e.id === props.epochId);
+        const epoch = epochs.value.find(e => e.id === props.epochId);
         if (epoch) {
             const start = new Date(epoch.startDate).getTime();
             const end = new Date(epoch.endDate).getTime();
@@ -195,7 +197,7 @@ const sortedEvents = computed(() =>
 const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
+    if (Number.isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
@@ -209,8 +211,8 @@ const loadTimeline = async () => {
         events.value = timeline.timelineData || [];
         epochs.value = timeline.epochs || [];
         renderImage();
-    } catch (err: any) {
-        error.value = err.response?.data?.message || 'Failed to load timeline';
+    } catch (err: unknown) {
+        error.value = getResponseError(err) || 'Failed to load timeline';
     } finally {
         loading.value = false;
     }
@@ -302,7 +304,7 @@ const renderImage = () => {
     }
 
     // Epoch bands
-    const visibleEpochs = epochs.value.filter((ep: any) => {
+    const visibleEpochs = epochs.value.filter(ep => {
         const epStart = new Date(ep.startDate).getTime();
         const epEnd = new Date(ep.endDate).getTime();
         return epEnd >= minDate && epStart <= maxDate;

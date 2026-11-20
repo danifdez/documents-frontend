@@ -6,12 +6,12 @@
         </div>
 
         <div class="px-4 py-3 border-b border-border-light">
-            <input v-model="filterTerm" type="text" placeholder="Search entities..."
+            <input aria-label="Search entities" v-model="filterTerm" type="text" placeholder="Search entities..."
                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
         </div>
 
         <div v-if="entities.length === 0" class="text-center py-10 px-4">
-            <svg class="mx-auto h-8 w-8 text-text-muted mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            <svg aria-hidden="true" class="mx-auto h-8 w-8 text-text-muted mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                 stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round"
                     d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
@@ -35,14 +35,14 @@
                 <!-- Edit Mode -->
                 <div v-if="editingEntityId === entity.id" class="p-4 space-y-3">
                     <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-1">Name</label>
-                        <input v-model="entity.name" type="text"
+                        <label :for="`${formId}-name-${entity.id}`" class="block text-xs font-medium text-text-secondary mb-1">Name</label>
+                        <input :id="`${formId}-name-${entity.id}`" v-model="entity.name" type="text"
                             class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                             placeholder="Entity name" />
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-text-secondary mb-1">Description</label>
-                        <textarea :value="entity.description || ''" @input="(e) => {
+                        <label :for="`${formId}-entity-description-${entity.id}`" class="block text-xs font-medium text-text-secondary mb-1">Description</label>
+                        <textarea :id="`${formId}-entity-description-${entity.id}`" :value="entity.description || ''" @input="(e) => {
                             entity.description = (e.target as HTMLTextAreaElement).value;
                         }" rows="2"
                             class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
@@ -87,7 +87,7 @@
                         <button @click="startEditing(entity)"
                             class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface transition-colors cursor-pointer"
                             title="Edit">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
@@ -95,7 +95,7 @@
                         <button @click="showMergeModal(entity)"
                             class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface transition-colors cursor-pointer"
                             title="Merge">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
@@ -103,7 +103,7 @@
                         <button @click="removeEntity(entity)"
                             class="p-1 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                             title="Remove">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -121,8 +121,8 @@
                 </h3>
 
                 <div class="mb-4">
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Search target entity</label>
-                    <input v-model="searchTerm" @input="debouncedSearch" type="text"
+                    <label :for="`${formId}-search-term`" class="block text-xs font-medium text-text-secondary mb-1.5">Search target entity</label>
+                    <input :id="`${formId}-search-term`" v-model="searchTerm" @input="debouncedSearch" type="text"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                         placeholder="Type entity name..." />
                 </div>
@@ -171,7 +171,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import type { ResourceListEntity } from '../../services/resources/useResourceDetails';
+import { useId, ref, computed } from 'vue';
 import LoadingSpinner from '../ui/LoadingSpinner.vue';
 import { useEntities, type Entity } from '../../services/entities/useEntities';
 import { useNotification } from '../../composables/useNotification';
@@ -179,9 +180,11 @@ import Button from '../ui/Button.vue';
 import ConfirmModal from '../ui/ConfirmModal.vue';
 import type { ResourceContentMode } from '../../types/ResourceDisplayMode';
 
+const formId = useId();
+
 interface Props {
     resourceId: string;
-    entities: Entity[];
+    entities: ResourceListEntity[];
     displayMode?: ResourceContentMode;
     resourceLanguage?: string;
     targetLanguage?: string;
@@ -196,7 +199,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
     'entity:removed': [entityId: number];
     'entity:merged': [sourceEntityId: number, targetEntity: Entity];
-    'entity:highlight': [entity: Entity];
+    'entity:highlight': [entity: ResourceListEntity];
 }>();
 
 /**
@@ -205,7 +208,7 @@ const emit = defineEmits<{
  * then normalized to English by the entity-translation step, while
  * translations contains the other languages.
  */
-const displayEntityName = (entity: Entity | null): string => {
+const displayEntityName = (entity: ResourceListEntity | null): string => {
     if (!entity) return '';
     try {
         if (props.displayMode === 'translated') {
@@ -230,17 +233,17 @@ const displayEntityName = (entity: Entity | null): string => {
     }
 };
 
-const displayEntityType = (entity: Entity | null): string => {
+const displayEntityType = (entity: ResourceListEntity | null): string => {
     if (!entity) return '';
     // entity may have an entityType relation or a flat 'type' property
-    return (entity.entityType && (entity.entityType.name as string)) || ((entity as any).type as string) || '';
+    return (entity.entityType && (entity.entityType.name as string)) || entity.type || '';
 };
 
-const selectedHighlightEntity = ref<Entity | null>(null);
+const selectedHighlightEntity = ref<ResourceListEntity | null>(null);
 
 // Confirm Modal state
 const showRemoveEntityModal = ref(false);
-const entityToRemove = ref<Entity | null>(null);
+const entityToRemove = ref<ResourceListEntity | null>(null);
 const showMergeEntityModal = ref(false);
 
 // Search/filter state
@@ -250,7 +253,7 @@ const displayedEntities = computed(() => {
     const q = filterTerm.value.trim().toLowerCase();
     if (!q) return props.entities || [];
 
-    return (props.entities || []).filter((entity: Entity) => {
+    return (props.entities || []).filter((entity: ResourceListEntity) => {
         // name
         const name = (entity.name || '').toString().toLowerCase();
         if (name.includes(q)) return true;
@@ -289,7 +292,7 @@ const editingEntityId = ref<number | null>(null);
 const editSnapshot = ref<{ name: string; description: string | undefined } | null>(null);
 const isSaving = ref<number | null>(null);
 const showMerge = ref(false);
-const selectedEntity = ref<Entity | null>(null);
+const selectedEntity = ref<ResourceListEntity | null>(null);
 const selectedTargetEntity = ref<Entity | null>(null);
 const searchTerm = ref('');
 const searchResults = ref<Entity[]>([]);
@@ -340,7 +343,7 @@ const getEntityTypeBadgeClass = (typeName: string) => {
     return typeColorMap[typeName] || 'bg-purple-100 text-purple-800';
 };
 
-const saveEntity = async (entity: Entity) => {
+const saveEntity = async (entity: ResourceListEntity) => {
     isSaving.value = entity.id;
     try {
         const updateData: { name: string; description?: string } = {
@@ -362,12 +365,12 @@ const saveEntity = async (entity: Entity) => {
     }
 };
 
-const startEditing = (entity: Entity) => {
+const startEditing = (entity: ResourceListEntity) => {
     editSnapshot.value = { name: entity.name, description: entity.description };
     editingEntityId.value = entity.id;
 };
 
-const cancelEditing = (entity: Entity) => {
+const cancelEditing = (entity: ResourceListEntity) => {
     if (editSnapshot.value) {
         entity.name = editSnapshot.value.name;
         entity.description = editSnapshot.value.description;
@@ -376,7 +379,7 @@ const cancelEditing = (entity: Entity) => {
     editingEntityId.value = null;
 };
 
-const saveAndStopEditing = async (entity: Entity) => {
+const saveAndStopEditing = async (entity: ResourceListEntity) => {
     try {
         await saveEntity(entity);
         editSnapshot.value = null;
@@ -386,7 +389,7 @@ const saveAndStopEditing = async (entity: Entity) => {
     }
 };
 
-const removeEntity = async (entity: Entity) => {
+const removeEntity = async (entity: ResourceListEntity) => {
     entityToRemove.value = entity;
     showRemoveEntityModal.value = true;
 };
@@ -413,7 +416,7 @@ const handleRemoveEntityCancel = () => {
     entityToRemove.value = null;
 };
 
-const showMergeModal = async (entity: Entity) => {
+const showMergeModal = async (entity: ResourceListEntity) => {
     selectedEntity.value = entity;
     selectedTargetEntity.value = null;
     searchTerm.value = '';
@@ -468,7 +471,7 @@ const handleMergeEntityCancel = () => {
     showMergeEntityModal.value = false;
 };
 
-const highlightEntityInContent = (entity: Entity) => {
+const highlightEntityInContent = (entity: ResourceListEntity) => {
     selectedHighlightEntity.value = entity;
     emit('entity:highlight', entity);
 };

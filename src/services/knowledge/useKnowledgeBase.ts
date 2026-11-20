@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../../utils/errorDetails';
 import { ref } from 'vue';
 import apiClient from '../api';
 
@@ -32,8 +33,8 @@ export function useKnowledgeBase() {
             const response = await apiClient.get('/knowledge-entries', { params });
             entries.value = response.data;
             return response.data;
-        } catch (err: any) {
-            error.value = err?.message || 'Failed to load entries';
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to load entries';
             entries.value = [];
             throw err;
         } finally {
@@ -48,8 +49,8 @@ export function useKnowledgeBase() {
             const response = await apiClient.get(`/knowledge-entries/${id}`);
             entry.value = response.data;
             return response.data;
-        } catch (err: any) {
-            error.value = err?.message || 'Failed to load entry';
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to load entry';
             entry.value = null;
             throw err;
         } finally {
@@ -61,8 +62,8 @@ export function useKnowledgeBase() {
         try {
             const response = await apiClient.post('/knowledge-entries', data);
             return response.data;
-        } catch (err: any) {
-            error.value = err?.message || 'Failed to create entry';
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to create entry';
             throw err;
         }
     };
@@ -71,8 +72,8 @@ export function useKnowledgeBase() {
         try {
             const response = await apiClient.patch(`/knowledge-entries/${id}`, data);
             return response.data;
-        } catch (err: any) {
-            error.value = err?.message || 'Failed to update entry';
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to update entry';
             throw err;
         }
     };
@@ -90,8 +91,8 @@ export function useKnowledgeBase() {
         try {
             const response = await apiClient.delete(`/knowledge-entries/${id}`);
             return response.data;
-        } catch (err: any) {
-            error.value = err?.message || 'Failed to delete entry';
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to delete entry';
             throw err;
         }
     };

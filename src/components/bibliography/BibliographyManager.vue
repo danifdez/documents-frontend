@@ -7,7 +7,7 @@
             <div class="w-[44rem] shrink-0 flex flex-col border-r border-border overflow-hidden">
                 <!-- Toolbar -->
                 <div class="px-4 py-3 border-b border-border flex items-center gap-2 shrink-0">
-                    <input v-model="searchQuery" type="text" placeholder="Buscar..."
+                    <input aria-label="Search bibliography" v-model="searchQuery" type="text" placeholder="Buscar..."
                         class="flex-1 px-3 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-accent" />
                     <button @click="openCreateForm"
                         class="px-3 py-1.5 text-sm bg-accent text-white rounded hover:opacity-90 shrink-0">
@@ -35,7 +35,7 @@
                     </div>
                     <div v-else-if="filteredEntries.length === 0"
                         class="flex flex-col items-center justify-center h-full text-text-muted py-12 px-4 text-center">
-                        <svg class="h-10 w-10 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <svg aria-hidden="true" class="h-10 w-10 mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                         <p class="text-sm">No hay entradas bibliográficas.</p>
@@ -57,7 +57,7 @@
                                     <span v-if="!entry.project" class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">global</span>
                                     <span v-if="entry.project && !projectId" class="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 truncate max-w-[12rem]">{{ entry.project.name }}</span>
                                     <span v-if="entry.sourceResource" class="text-[10px] px-1.5 py-0.5 rounded bg-surface-hover text-text-muted flex items-center gap-0.5">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
                                         </svg>
                                         recurso
@@ -112,7 +112,7 @@
                             <div class="flex gap-1.5 shrink-0 ml-4 items-center">
                                 <!-- Assign to project (shown when entry is global) -->
                                 <div v-if="!selectedEntry.project" class="flex items-center gap-1">
-                                    <select v-if="showAssignProject"
+                                    <select aria-label="Destination project" v-if="showAssignProject"
                                         v-model="assignProjectId"
                                         @change="handleAssignToProject(selectedEntry.id)"
                                         class="px-2 py-1 text-xs border border-border rounded bg-surface-elevated focus:outline-none focus:ring-1 focus:ring-accent">
@@ -155,7 +155,7 @@
                             <router-link
                                 :to="`/resource/${selectedEntry.sourceResource.id}`"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border rounded hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
                                 </svg>
                                 Ver recurso: {{ selectedEntry.sourceResource.name }}
@@ -192,9 +192,9 @@
                             <button @click="showResourceImport = false" class="text-text-muted hover:text-text-primary">✕</button>
                         </div>
                         <div class="flex gap-2">
-                            <input v-model="resourceSearchQuery" type="text" placeholder="Buscar por título..."
+                            <input aria-label="Search resources by title" v-model="resourceSearchQuery" type="text" placeholder="Buscar por título..."
                                 class="flex-1 px-3 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-accent" />
-                            <select v-if="!projectId" v-model="resourceProjectFilter"
+                            <select aria-label="Filter resources by project" v-if="!projectId" v-model="resourceProjectFilter"
                                 class="px-2 py-1.5 text-sm border border-border rounded bg-surface-elevated focus:outline-none focus:ring-1 focus:ring-accent">
                                 <option value="">Todos los proyectos</option>
                                 <option v-for="p in resourceProjects" :key="p.id" :value="p.id">{{ p.name }}</option>
@@ -259,7 +259,7 @@
                     class="px-2 py-1 rounded">Globales</button>
             </div>
 
-            <input v-model="searchQuery" type="text" placeholder="Buscar entradas..."
+            <input aria-label="Search bibliography entries" v-model="searchQuery" type="text" placeholder="Buscar entradas..."
                 class="w-full px-2 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-accent" />
 
             <div class="flex-1 overflow-y-auto space-y-1 min-h-0">
@@ -280,12 +280,12 @@
                     </div>
                     <div class="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button @click="openEditForm(entry)" class="p-1 hover:bg-surface-hover rounded text-text-muted hover:text-text-primary" title="Editar">
-                            <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+                            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none">
                                 <path d="M15 3L17 5L7 15H5V13L15 3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                         </button>
                         <button @click="handleDelete(entry.id)" class="p-1 hover:bg-surface-hover rounded text-text-muted hover:text-red-500" title="Eliminar">
-                            <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+                            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none">
                                 <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                             </svg>
                         </button>
@@ -316,7 +316,7 @@
                     <h3 class="font-semibold">Importar BibTeX</h3>
                     <button @click="showImportBibTeX = false" class="text-text-muted hover:text-text-primary">✕</button>
                 </div>
-                <input type="file" accept=".bib" @change="handleBibTeXFileSelect" class="w-full text-sm" />
+                <input aria-label="Import BibTeX file" type="file" accept=".bib" @change="handleBibTeXFileSelect" class="w-full text-sm" />
                 <div class="flex justify-end gap-2 mt-3">
                     <button @click="showImportBibTeX = false"
                         class="px-3 py-1.5 text-sm border border-border rounded hover:bg-surface-hover">
@@ -376,7 +376,18 @@ const selectedEntry = ref<BibliographyEntry | null>(null);
 const showImportBibTeX = ref(false);
 const showResourceImport = ref(false);
 const bibTeXFileContent = ref('');
-const projectResources = ref<any[]>([]);
+interface BibliographySource {
+    id: number;
+    name?: string;
+    title?: string;
+    type?: string;
+    url?: string;
+    originalName?: string;
+    publicationDate?: string;
+    authors?: string[] | string;
+    project?: { id: number; name: string } | null;
+}
+const projectResources = ref<BibliographySource[]>([]);
 const resourceSearchQuery = ref('');
 const resourceProjectFilter = ref<number | ''>('');
 const importingResourceId = ref<number | null>(null);
@@ -584,7 +595,7 @@ const handleAssignToProject = async (id: number) => {
 const loadProjects = async () => {
     try {
         const projects = await fetchProjects();
-        availableProjects.value = projects.map((p: any) => ({ id: p.id, name: p.name }));
+        availableProjects.value = projects.map(p => ({ id: p.id, name: p.name }));
     } catch {
         availableProjects.value = [];
     }

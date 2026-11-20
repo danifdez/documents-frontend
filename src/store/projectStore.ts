@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../utils/errorDetails';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import apiClient from '../services/api';
@@ -50,8 +51,8 @@ export const useProjectStore = defineStore('project', () => {
 
             currentProject.value = response.data;
 
-        } catch (err: any) {
-            error.value = err.message || 'Failed to load project';
+        } catch (err: unknown) {
+            error.value = getErrorMessage(err) || 'Failed to load project';
             currentProject.value = null;
         } finally {
             loading.value = false;

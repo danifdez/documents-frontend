@@ -52,9 +52,10 @@ app.config.errorHandler = (err, _instance, info) => {
 // rather than letting them bubble into "uncaught" warnings. Also marks the
 // backend as unreachable so the UI swaps to offline mode immediately.
 window.addEventListener('unhandledrejection', (event) => {
-  const reason: any = event.reason;
-  const isAxiosNetworkError =
-    reason && (reason.isAxiosError || reason.config) && !reason.response;
+  const reason: unknown = event.reason;
+  const isAxiosNetworkError = reason !== null && typeof reason === 'object'
+    && (('isAxiosError' in reason && reason.isAxiosError) || ('config' in reason && reason.config))
+    && !('response' in reason && reason.response);
   if (isAxiosNetworkError) {
     setServerReachable(false);
     event.preventDefault();

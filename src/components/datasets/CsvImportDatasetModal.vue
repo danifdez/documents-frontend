@@ -37,10 +37,10 @@
                                 <p class="text-xs text-text-muted">The schema will be inferred automatically from the
                                     file</p>
                             </div>
-                            <input ref="fileInputRef" type="file" accept=".csv" class="hidden"
+                            <input aria-label="Choose CSV file" ref="fileInputRef" type="file" accept=".csv" class="hidden"
                                 @change="handleFileSelect" />
                             <div v-if="selectedFile" class="flex items-center gap-2 text-sm text-text-primary">
-                                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
@@ -51,16 +51,16 @@
                         <!-- Step 2: Review -->
                         <div v-if="step === 2" class="space-y-4">
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Dataset name</label>
-                                <input v-model="datasetName" type="text"
+                                <label :for="`${formId}-dataset-name`" class="block text-xs font-medium text-text-secondary mb-1.5">Dataset name</label>
+                                <input :id="`${formId}-dataset-name`" v-model="datasetName" type="text"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                                     placeholder="e.g. Authors, Sensors..." />
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Inferred schema
+                                <div class="block text-xs font-medium text-text-secondary mb-1.5">Inferred schema
                                     <span class="text-text-muted font-normal">({{ inferredSchema.length }}
-                                        fields)</span></label>
+                                        fields)</span></div>
                                 <div class="border border-border rounded-lg overflow-hidden">
                                     <table class="w-full text-xs">
                                         <thead>
@@ -96,8 +96,8 @@
 
                             <!-- Preview rows -->
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Preview
-                                    <span class="text-text-muted font-normal">(first 5 rows)</span></label>
+                                <div class="block text-xs font-medium text-text-secondary mb-1.5">Preview
+                                    <span class="text-text-muted font-normal">(first 5 rows)</span></div>
                                 <div class="overflow-x-auto border border-border rounded-lg max-h-40">
                                     <table class="w-full text-xs">
                                         <thead>
@@ -126,7 +126,7 @@
                         <div v-if="step === 3" class="space-y-4">
                             <div v-if="result" class="space-y-3">
                                 <div class="flex items-center gap-2 text-sm">
-                                    <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24"
+                                    <svg aria-hidden="true" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24"
                                         stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -172,11 +172,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { useId, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDatasets, type DatasetField, type ImportFromFileResult } from '../../services/datasets/useDatasets';
 import { useNotification } from '../../composables/useNotification';
 import Button from '../ui/Button.vue';
+
+const formId = useId();
 
 const props = defineProps<{
     isOpen: boolean;
@@ -309,8 +311,8 @@ const toFieldKey = (header: string): string => {
 const detectType = (values: string[]): 'text' | 'number' | 'boolean' | 'date' => {
     if (values.length === 0) return 'text';
     if (values.every(v => v === 'true' || v === 'false')) return 'boolean';
-    if (values.every(v => !isNaN(Number(v)))) return 'number';
-    if (values.every(v => /^\d{4}-\d{2}-\d{2}/.test(v) && !isNaN(Date.parse(v)))) return 'date';
+    if (values.every(v => !Number.isNaN(Number(v)))) return 'number';
+    if (values.every(v => /^\d{4}-\d{2}-\d{2}/.test(v) && !Number.isNaN(Date.parse(v)))) return 'date';
     return 'text';
 };
 

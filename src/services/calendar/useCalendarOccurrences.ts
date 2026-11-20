@@ -6,7 +6,7 @@ import { useApiRequest } from '../../composables/useApiRequest';
 export const useCalendarOccurrences = () => {
     const { isLoading, error, request } = useApiRequest();
 
-    const unmarkOccurrenceComplete = (eventId: string | number, occurrenceStart: string): Promise<any> =>
+    const unmarkOccurrenceComplete = (eventId: string | number, occurrenceStart: string): Promise<unknown> =>
         request('Failed to unmark occurrence', async () => {
             const encoded = encodeURIComponent(occurrenceStart);
             return (await apiClient.delete(`/calendar-events/${eventId}/occurrences/${encoded}/complete`)).data;

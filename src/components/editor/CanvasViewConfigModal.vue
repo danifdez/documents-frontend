@@ -24,13 +24,13 @@
 
                         <!-- Canvas list -->
                         <div v-else class="space-y-1">
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Select a canvas</label>
+                            <div class="block text-xs font-medium text-text-secondary mb-1.5">Select a canvas</div>
                             <button v-for="canvas in canvases" :key="canvas.id" @click="selectedCanvasId = canvas.id"
                                 class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors cursor-pointer text-left"
                                 :class="selectedCanvasId === canvas.id
                                     ? 'border-accent bg-accent-subtle/50'
                                     : 'border-border hover:bg-surface-hover'">
-                                <svg class="h-5 w-5 shrink-0" :class="selectedCanvasId === canvas.id ? 'text-accent' : 'text-text-muted'"
+                                <svg aria-hidden="true" class="h-5 w-5 shrink-0" :class="selectedCanvasId === canvas.id ? 'text-accent' : 'text-text-muted'"
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                     <rect x="3" y="3" width="18" height="18" rx="2" />
                                     <circle cx="9" cy="9" r="1.5" />
@@ -63,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasRecord } from '../../types/canvas';
 import { ref, watch } from 'vue';
 import { useCanvas } from '../../services/canvas/useCanvas';
 import Button from '../ui/Button.vue';
@@ -77,14 +78,7 @@ const emit = defineEmits<{
     }];
 }>();
 
-interface CanvasInfo {
-    id: number;
-    name: string;
-    canvasData: { nodes: any[]; edges: any[] } | null;
-    updatedAt: string;
-}
-
-const canvases = ref<CanvasInfo[]>([]);
+const canvases = ref<CanvasRecord[]>([]);
 const selectedCanvasId = ref<number | null>(null);
 const loadingCanvases = ref(false);
 const projectStore = useProjectStore();
@@ -104,7 +98,7 @@ watch(modelValue, async (open) => {
     }
 });
 
-const getNodeCount = (canvas: CanvasInfo): number => {
+const getNodeCount = (canvas: CanvasRecord): number => {
     return canvas.canvasData?.nodes?.length || 0;
 };
 

@@ -13,7 +13,7 @@
 
             <!-- Search -->
             <div class="px-4">
-                <input type="text" v-model="searchQuery"
+                <input aria-label="Search references" type="text" v-model="searchQuery"
                     placeholder="Search..."
                     class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent text-sm"
                     autofocus />
@@ -55,19 +55,14 @@
 </template>
 
 <script setup lang="ts">
+import type { RefType } from '../editor/extensions/ReferenceExtension';
 import { ref, computed, watch } from 'vue';
 import Modal from '../ui/Modal/Modal.vue';
-import { useReferences } from '../../services/references/useReferences';
+import { useReferences, type ReferenceSearchResult } from '../../services/references/useReferences';
 import type { BibliographyEntry, ZoteroCreator } from '../../types/Bibliography';
 import { formatInlineCitation, type CitationStyle } from '../../services/citations/citationFormatter';
 
-interface SearchResult {
-    id: string;
-    type: 'bibliography' | 'resource' | 'doc' | 'mark' | 'knowledge';
-    name: string;
-    content?: string;
-    meta?: Record<string, any>;
-}
+type SearchResult = Omit<ReferenceSearchResult, 'type'> & { type: RefType };
 
 const props = defineProps<{
     modelValue: boolean;
@@ -80,7 +75,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     'update:modelValue': [value: boolean];
-    'select': [item: { refId: string; refType: string; label: string; displayMode: string }];
+    'select': [item: { refId: string; refType: RefType; label: string; displayMode: string }];
 }>();
 
 const isOpen = computed({

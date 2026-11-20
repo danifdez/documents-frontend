@@ -12,8 +12,8 @@
                     <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
                         <!-- Dataset selector -->
                         <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Dataset *</label>
-                            <select v-model="selectedDatasetId"
+                            <label :for="`${formId}-selected-dataset-id`" class="block text-xs font-medium text-text-secondary mb-1.5">Dataset *</label>
+                            <select :id="`${formId}-selected-dataset-id`" v-model="selectedDatasetId"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                 <option :value="0" disabled>Select a dataset...</option>
                                 <option v-for="ds in datasets" :key="ds.id" :value="ds.id">{{ ds.name }}</option>
@@ -22,7 +22,7 @@
 
                         <!-- Fields selector -->
                         <div v-if="selectedSchema.length > 0">
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Fields to display</label>
+                            <div class="block text-xs font-medium text-text-secondary mb-1.5">Fields to display</div>
                             <div class="space-y-1">
                                 <label v-for="field in selectedSchema" :key="field.key"
                                     class="flex items-center gap-2 text-sm text-text-primary cursor-pointer hover:bg-surface-hover rounded px-2 py-1 transition-colors">
@@ -40,16 +40,16 @@
 
                         <!-- Filters -->
                         <div v-if="selectedSchema.length > 0">
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Filters (optional)</label>
+                            <div class="block text-xs font-medium text-text-secondary mb-1.5">Filters (optional)</div>
                             <div class="space-y-2">
                                 <div v-for="(filter, index) in filters" :key="index"
                                     class="flex items-center gap-2">
-                                    <select v-model="filter.field"
+                                    <select aria-label="Filter field" v-model="filter.field"
                                         class="flex-1 rounded-lg bg-surface border border-border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                         <option value="">Field...</option>
                                         <option v-for="f in selectedSchema" :key="f.key" :value="f.key">{{ f.name }}</option>
                                     </select>
-                                    <select v-model="filter.operator"
+                                    <select aria-label="Filter operator" v-model="filter.operator"
                                         class="w-20 rounded-lg bg-surface border border-border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                         <option value="eq">=</option>
                                         <option value="contains">~</option>
@@ -58,11 +58,11 @@
                                         <option value="lt">&lt;</option>
                                         <option value="lte">&lt;=</option>
                                     </select>
-                                    <input v-model="filter.value" type="text" placeholder="Value"
+                                    <input aria-label="Filter value" v-model="filter.value" type="text" placeholder="Value"
                                         class="flex-1 rounded-lg bg-surface border border-border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
-                                    <button @click="filters.splice(index, 1)"
+                                    <button aria-label="Remove filter" @click="filters.splice(index, 1)"
                                         class="p-1 rounded text-text-muted hover:text-red-500 cursor-pointer">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
@@ -70,7 +70,7 @@
                             </div>
                             <button @click="filters.push({ field: '', operator: 'eq', value: '' })"
                                 class="mt-1 inline-flex items-center gap-1 text-xs text-accent hover:text-accent-dark cursor-pointer">
-                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                                 </svg>
                                 Add filter
@@ -92,9 +92,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { useId, ref, watch, computed } from 'vue';
 import { useDatasets } from '../../services/datasets/useDatasets';
 import Button from '../ui/Button.vue';
+
+const formId = useId();
 
 const modelValue = defineModel<boolean>({ required: true });
 const { getAllDatasets } = useDatasets();

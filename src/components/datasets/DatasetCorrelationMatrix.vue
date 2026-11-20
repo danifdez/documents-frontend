@@ -4,9 +4,9 @@
         <div v-if="showControls" class="bg-surface-elevated rounded-2xl border border-border p-4 space-y-3">
             <p class="text-xs text-text-muted leading-relaxed">Compute Pearson correlations between numeric fields. Values near +1 indicate a strong positive relationship, near -1 strong negative, and near 0 no linear relationship. Click any cell to see a scatter plot.</p>
             <div>
-                <label class="block text-xs font-medium text-text-secondary mb-1.5">Numeric fields to include
+                <div class="block text-xs font-medium text-text-secondary mb-1.5">Numeric fields to include
                     <HelpTip>Select which numeric fields to compare. The matrix shows the Pearson correlation (r) between each pair: values near +1 indicate strong positive relationship, near -1 strong negative, near 0 no linear relationship.</HelpTip>
-                </label>
+                </div>
                 <div class="flex flex-wrap gap-1.5">
                     <label v-for="f in numericFields" :key="f.key"
                         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs cursor-pointer transition-colors"
@@ -24,7 +24,7 @@
             </div>
             <button @click="handleRun" :disabled="running || selectedFields.length < 2"
                 class="inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                <svg v-if="running" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <svg aria-hidden="true" v-if="running" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -45,9 +45,9 @@
                         class="flex-1 min-w-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left truncate">
                         {{ sv.name }}
                     </button>
-                    <button @click="$emit('deleteSaved', sv.id)"
+                    <button aria-label="Delete saved view" @click="$emit('deleteSaved', sv.id)"
                         class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0">
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -148,9 +148,9 @@
                             p={{ scatterResult.stats?.pValue?.toFixed(4) }}
                         </span>
                     </span>
-                    <button @click="scatterResult = null"
+                    <button aria-label="Close scatter plot" @click="scatterResult = null"
                         class="p-1 rounded text-text-muted hover:text-text-primary cursor-pointer">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -164,24 +164,24 @@
 </template>
 
 <script setup lang="ts">
+import type { StatsResult, DatasetChart, DatasetField } from '../../services/datasets/useDatasets';
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { Chart, registerables } from 'chart.js';
-import type { DatasetField } from '../../services/datasets/useDatasets';
 import HelpTip from '../ui/HelpTip.vue';
 
 Chart.register(...registerables);
 
 const props = defineProps<{
     schema: DatasetField[];
-    result: any | null;
+    result: StatsResult | null;
     running: boolean;
     mode?: 'full' | 'sidebar' | 'display';
-    savedViews?: { id: number; name: string; config: Record<string, any> }[];
+    savedViews?: DatasetChart[];
 }>();
 
 const emit = defineEmits<{
-    run: [operation: string, params: Record<string, any>];
-    loadSaved: [view: any];
+    run: [operation: string, params: Record<string, unknown>];
+    loadSaved: [view: DatasetChart];
     deleteSaved: [id: number];
 }>();
 
@@ -190,7 +190,7 @@ const showResults = computed(() => !props.mode || props.mode === 'full' || props
 
 const numericFields = computed(() => props.schema.filter(f => f.type === 'number'));
 const selectedFields = ref<string[]>([]);
-const scatterResult = ref<any>(null);
+const scatterResult = ref<StatsResult | null>(null);
 const matrixRef = ref<HTMLElement | null>(null);
 const scatterCanvas = ref<HTMLCanvasElement | null>(null);
 let scatterChart: Chart | null = null;
@@ -227,7 +227,7 @@ const cellTextColor = (val: number | null): string => {
 };
 
 const cellTooltip = (i: number, j: number): string => {
-    if (!props.result?.chartData) return '';
+    if (!props.result?.chartData?.matrix) return '';
     const fields = props.result.chartData.fields;
     const r = props.result.chartData.matrix[i][j];
     const p = props.result.chartData.pValues[i][j];
@@ -236,7 +236,7 @@ const cellTooltip = (i: number, j: number): string => {
 };
 
 const handleCellClick = (i: number, j: number) => {
-    if (i === j || !props.result?.chartData) return;
+    if (i === j || !props.result?.chartData?.fields) return;
     const fields = props.result.chartData.fields;
     emit('run', 'correlation', { field1: fields[i].key, field2: fields[j].key });
 };
@@ -285,9 +285,9 @@ const exportCsv = () => {
     if (!props.result?.chartData) return;
     const fields = props.result.chartData.fields;
     const matrix = props.result.chartData.matrix;
-    let csv = ',' + fields.map((f: any) => `"${f.name}"`).join(',') + '\n';
-    matrix.forEach((row: any[], i: number) => {
-        csv += `"${fields[i].name}",` + row.map((v: any) => v !== null ? v.toFixed(4) : '').join(',') + '\n';
+    let csv = ',' + fields.map(f => `"${f.name}"`).join(',') + '\n';
+    matrix.forEach((row, i) => {
+        csv += `"${fields[i].name}",` + row.map(v => v !== null ? v.toFixed(4) : '').join(',') + '\n';
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -321,12 +321,12 @@ const exportPng = () => {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     // Column headers
-    fields.forEach((f: any, j: number) => {
+    fields.forEach((f, j) => {
         ctx.fillStyle = '#666';
         ctx.fillText(f.name.slice(0, 10), labelW + j * cellSize + cellSize / 2, labelW / 2);
     });
     // Rows
-    matrix.forEach((row: any[], i: number) => {
+    matrix.forEach((row, i) => {
         ctx.fillStyle = '#333';
         ctx.textAlign = 'right';
         ctx.fillText(fields[i].name.slice(0, 12), labelW - 6, labelW + i * cellSize + cellSize / 2);

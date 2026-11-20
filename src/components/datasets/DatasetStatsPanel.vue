@@ -18,8 +18,8 @@
 
             <!-- Distribution field (full width) -->
             <div v-if="selectedOp === 'distribution'">
-                <label class="block text-xs font-medium text-text-secondary mb-1">Field</label>
-                <select v-model="params.field"
+                <label :for="`${formId}-field`" class="block text-xs font-medium text-text-secondary mb-1">Field</label>
+                <select :id="`${formId}-field`" v-model="params.field"
                     class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                     <option value="">Select...</option>
                     <option v-for="f in schema" :key="f.key" :value="f.key">{{ f.name }} ({{ f.type }})</option>
@@ -29,24 +29,24 @@
             <!-- Time Series parameters (each field in its own row) -->
             <div v-if="selectedOp === 'time-series'" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Date field</label>
-                    <select v-model="params.dateField"
+                    <label :for="`${formId}-date-field`" class="block text-xs font-medium text-text-secondary mb-1">Date field</label>
+                    <select :id="`${formId}-date-field`" v-model="params.dateField"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Select...</option>
                         <option v-for="f in dateFields" :key="f.key" :value="f.key">{{ f.name }}</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Value field</label>
-                    <select v-model="params.valueField"
+                    <label :for="`${formId}-value-field`" class="block text-xs font-medium text-text-secondary mb-1">Value field</label>
+                    <select :id="`${formId}-value-field`" v-model="params.valueField"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Select...</option>
                         <option v-for="f in numericFields" :key="f.key" :value="f.key">{{ f.name }}</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Period</label>
-                    <select v-model="params.period"
+                    <label :for="`${formId}-period`" class="block text-xs font-medium text-text-secondary mb-1">Period</label>
+                    <select :id="`${formId}-period`" v-model="params.period"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="D">Day</option>
                         <option value="W">Week</option>
@@ -60,7 +60,7 @@
             <!-- Run button -->
             <button @click="handleRun" :disabled="running"
                 class="inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                <svg v-if="running" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <svg aria-hidden="true" v-if="running" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -84,7 +84,7 @@
                     <button @click="$emit('deleteSaved', sv.id)"
                         class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0"
                         title="Delete">
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -185,7 +185,7 @@
                             <tr v-for="(label, i) in result.tableData.labels" :key="i" class="hover:bg-surface-hover">
                                 <td class="px-3 py-1.5 text-text-primary">{{ label }}</td>
                                 <td class="px-3 py-1.5 text-right text-text-secondary font-mono">
-                                    {{ Array.isArray(result.tableData.values[i]) ? result.tableData.values[i].join(', ') : formatValue(result.tableData.values[i]) }}
+                                    {{ formatTableValue(result.tableData.values[i]) }}
                                 </td>
                             </tr>
                         </tbody>
@@ -212,9 +212,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
+import type {
+    DatasetAnalysisParameters,
+    StatsResult,
+    DatasetChart,
+    DatasetField,
+} from '../../services/datasets/useDatasets';
+import { useId, ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { Chart, registerables } from 'chart.js';
-import type { DatasetField } from '../../services/datasets/useDatasets';
 import {
     formatDatasetValue as formatValue,
     formatDatasetLabel as formatLabel,
@@ -222,21 +227,23 @@ import {
 
 Chart.register(...registerables);
 
+const formId = useId();
+
 const props = defineProps<{
     schema: DatasetField[];
-    result: Record<string, any> | null;
+    result: StatsResult | null;
     running: boolean;
     selectedOperation?: string;
     mode?: 'full' | 'sidebar' | 'display';
-    savedViews?: { id: number; name: string; config: Record<string, any> }[];
+    savedViews?: DatasetChart[];
 }>();
 
 const showControls = computed(() => !props.mode || props.mode === 'full' || props.mode === 'sidebar');
 const showResults = computed(() => !props.mode || props.mode === 'full' || props.mode === 'display');
 
 const emit = defineEmits<{
-    run: [operation: string, params: Record<string, any>];
-    loadSaved: [view: any];
+    run: [operation: string, params: Record<string, unknown>];
+    loadSaved: [view: DatasetChart];
     deleteSaved: [id: number];
 }>();
 
@@ -252,7 +259,7 @@ const selectedOp = ref(props.selectedOperation || 'summary');
 if (props.selectedOperation) {
     watch(() => props.selectedOperation, (op) => { if (op) selectedOp.value = op; });
 }
-const params = ref<Record<string, any>>({ fn: 'mean', period: 'ME', chartType: 'bar' });
+const params = ref<DatasetAnalysisParameters>({ fn: 'mean', period: 'ME', chartType: 'bar' });
 const chartCanvas = ref<HTMLCanvasElement | null>(null);
 let chartInstance: Chart | null = null;
 
@@ -263,7 +270,7 @@ const handleRun = () => {
     emit('run', selectedOp.value, { ...params.value });
 };
 
-const renderChart = async (newResult: Record<string, any>) => {
+const renderChart = async (newResult: StatsResult | null) => {
     if (chartInstance) {
         chartInstance.destroy();
         chartInstance = null;
@@ -329,7 +336,8 @@ const renderChart = async (newResult: Record<string, any>) => {
             },
             options: { responsive: true, maintainAspectRatio: false },
         });
-    } else if (data.labels && data.values) {
+    } else if (chartType && chartType !== 'box' && chartType !== 'heatmap'
+        && chartType !== 'stacked_bar' && data.labels && data.values) {
         const bgColor = chartType === 'pie'
             ? data.labels.map((_: string, i: number) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
             : 'rgba(99, 102, 241, 0.6)';
@@ -373,6 +381,9 @@ const exportPng = () => {
     a.href = url; a.download = `stats_${selectedOp.value}.png`; a.click();
 };
 
+const formatTableValue = (value: unknown) =>
+    Array.isArray(value) ? value.join(', ') : formatValue(value);
+
 const exportCsv = () => {
     if (!props.result?.tableData) return;
     const td = props.result.tableData;
@@ -385,8 +396,8 @@ const exportCsv = () => {
         });
     } else if (td.columns && td.rows) {
         csv = td.columns.join(',') + '\n';
-        td.rows.forEach((row: (string | number | null)[]) => {
-            csv += row.map((v: string | number | null) => `"${v}"`).join(',') + '\n';
+        td.rows.forEach(row => {
+            csv += (Array.isArray(row) ? row : [row]).map(v => `"${v}"`).join(',') + '\n';
         });
     }
 

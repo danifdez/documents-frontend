@@ -2,7 +2,7 @@ import { Mark } from '@tiptap/core';
 import { Plugin, PluginKey } from 'prosemirror-state';
 
 export interface CommentOptions {
-    HTMLAttributes: Record<string, any>;
+    HTMLAttributes: Record<string, unknown>;
     onCommentClick?: (commentId: string) => void;
 }
 
@@ -30,7 +30,7 @@ export const CommentExtension = Mark.create<CommentOptions>({
         return {
             commentId: {
                 default: null,
-                parseHTML: element => element.getAttribute('data-comment-id'),
+                parseHTML: element => element.dataset.commentId ?? null,
                 renderHTML: attributes => {
                     if (!attributes.commentId) {
                         return {};
@@ -52,7 +52,7 @@ export const CommentExtension = Mark.create<CommentOptions>({
                     if (typeof element === 'string') return {};
 
                     return {
-                        commentId: element.getAttribute('data-comment-id'),
+                        commentId: element.dataset.commentId ?? null,
                     };
                 },
             },

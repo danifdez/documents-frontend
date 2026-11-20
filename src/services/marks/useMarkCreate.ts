@@ -1,3 +1,4 @@
+import type { StoredMark } from './useMarks';
 import { ref } from 'vue';
 import apiClient from '../api';
 
@@ -18,12 +19,12 @@ export const useMarkCreate = () => {
         entityType: 'doc' | 'resource' = 'doc',
         type: string = 'highlight',
         anchor: AnnotationAnchor = {},
-    ): Promise<any> => {
+    ): Promise<StoredMark> => {
         isLoading.value = true;
         error.value = null;
 
         try {
-            const payload: Record<string, any> = { content, type };
+            const payload: Record<string, unknown> = { content, type };
             if (anchor.prefix !== undefined) payload.prefix = anchor.prefix;
             if (anchor.suffix !== undefined) payload.suffix = anchor.suffix;
             if (anchor.position !== undefined) payload.position = anchor.position;

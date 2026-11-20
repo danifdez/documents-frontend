@@ -4,21 +4,21 @@
             <template #actions>
                 <SearchBar v-model="searchTerm" placeholder="Search datasets..." class="w-56" />
                 <Button variant="secondary" size="small" @click="showImportModal = true">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                     Import File
                 </Button>
                 <Button variant="secondary" size="small" @click="openProviderModal">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                     </svg>
                     Sync Provider
                 </Button>
                 <Button size="small" @click="showCreateModal = true">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10 3v14m7-7H3" />
                     </svg>
                     New Dataset
@@ -63,7 +63,7 @@
                         <button @click="router.push(`/datasets/${dataset.id}`)"
                             class="p-1.5 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                             title="View">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                 stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -101,19 +101,19 @@
                         </div>
                         <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Name *</label>
-                                <input v-model="createForm.name" type="text"
+                                <label :for="`${formId}-name`" class="block text-xs font-medium text-text-secondary mb-1.5">Name *</label>
+                                <input :id="`${formId}-name`" v-model="createForm.name" type="text"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                                     placeholder="e.g. Casas, Coches..." />
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Description</label>
-                                <textarea v-model="createForm.description" rows="2"
+                                <label :for="`${formId}-description`" class="block text-xs font-medium text-text-secondary mb-1.5">Description</label>
+                                <textarea :id="`${formId}-description`" v-model="createForm.description" rows="2"
                                     class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
                                     placeholder="Optional description"></textarea>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Fields *</label>
+                                <div class="block text-xs font-medium text-text-secondary mb-1.5">Fields *</div>
                                 <DatasetSchemaEditor v-model="createForm.schema" />
                             </div>
                         </div>
@@ -145,7 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { useId, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDatasets, type Dataset, type DatasetField, type ImportFromFileResult } from '../services/datasets/useDatasets';
 import { useDataSources, type DataSourceProvider } from '../services/data-sources/useDataSources';
@@ -159,6 +159,8 @@ import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import DatasetSchemaEditor from '../components/datasets/DatasetSchemaEditor.vue';
 import CsvImportDatasetModal from '../components/datasets/CsvImportDatasetModal.vue';
 import DataSourceConfigModal from '../components/data-sources/DataSourceConfigModal.vue';
+
+const formId = useId();
 
 const router = useRouter();
 const { getAllDatasets, createDataset, deleteDataset } = useDatasets();

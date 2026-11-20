@@ -4,9 +4,9 @@
         <div v-if="showSidebar" :class="effectiveMode === 'full' ? 'w-72 shrink-0 space-y-3 overflow-y-auto' : 'space-y-3'">
             <!-- Chart type selector (only when not controlled externally) -->
             <div v-if="!preselectedChartType" class="bg-surface-elevated rounded-2xl border border-border p-3 space-y-3">
-                <label class="block text-xs font-medium text-text-secondary">Chart Type
+                <div class="block text-xs font-medium text-text-secondary">Chart Type
                     <HelpTip>Select how to visualize your data. Bar and Line work best for categories, Pie for proportions, Scatter for comparing two numeric fields.</HelpTip>
-                </label>
+                </div>
                 <div class="grid grid-cols-2 gap-1.5">
                     <button v-for="ct in chartTypes" :key="ct.id" @click="config.chartType = ct.id"
                         class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
@@ -20,11 +20,11 @@
             <!-- Field selectors -->
             <div class="bg-surface-elevated rounded-2xl border border-border p-3 space-y-3">
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">
+                    <label :for="`${formId}-x-field`" class="block text-xs font-medium text-text-secondary mb-1">
                         {{ config.chartType === 'scatter' ? 'X Axis' : 'Category / Labels' }}
                         <HelpTip>{{ config.chartType === 'scatter' ? 'Numeric field for the horizontal axis of the scatter plot.' : 'Field used to group data. Each unique value becomes a bar, slice, or point on the chart.' }}</HelpTip>
                     </label>
-                    <select v-model="config.xField"
+                    <select :id="`${formId}-x-field`" v-model="config.xField"
                         class="block w-full rounded-lg bg-surface border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Select field...</option>
                         <option v-for="f in availableXFields" :key="f.key" :value="f.key">{{ f.name }} ({{ f.type }})</option>
@@ -32,11 +32,11 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">
+                    <label :for="`${formId}-y-field`" class="block text-xs font-medium text-text-secondary mb-1">
                         {{ config.chartType === 'scatter' ? 'Y Axis' : 'Values (numeric)' }}
                         <HelpTip>{{ config.chartType === 'scatter' ? 'Numeric field for the vertical axis.' : 'Numeric field to aggregate. Leave empty to count occurrences of each category.' }}</HelpTip>
                     </label>
-                    <select v-model="config.yField"
+                    <select :id="`${formId}-y-field`" v-model="config.yField"
                         class="block w-full rounded-lg bg-surface border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">{{ config.chartType === 'scatter' ? 'Select field...' : 'Count (no field)' }}</option>
                         <option v-for="f in numericFields" :key="f.key" :value="f.key">{{ f.name }}</option>
@@ -45,10 +45,10 @@
 
                 <!-- Aggregation (only for non-scatter with yField) -->
                 <div v-if="config.chartType !== 'scatter' && config.yField">
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Aggregation
+                    <label :for="`${formId}-aggregation`" class="block text-xs font-medium text-text-secondary mb-1">Aggregation
                         <HelpTip>How to combine values within each category.</HelpTip>
                     </label>
-                    <select v-model="config.aggregation"
+                    <select :id="`${formId}-aggregation`" v-model="config.aggregation"
                         class="block w-full rounded-lg bg-surface border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="sum">Sum</option>
                         <option value="mean">Mean</option>
@@ -61,14 +61,14 @@
 
                 <!-- Sort -->
                 <div v-if="config.chartType !== 'scatter'">
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Sort by</label>
+                    <label :for="`${formId}-sort-by`" class="block text-xs font-medium text-text-secondary mb-1">Sort by</label>
                     <div class="flex gap-1">
-                        <select v-model="config.sortBy"
+                        <select :id="`${formId}-sort-by`" v-model="config.sortBy"
                             class="flex-1 rounded-lg bg-surface border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                             <option value="value">Value</option>
                             <option value="label">Label</option>
                         </select>
-                        <select v-model="config.sortOrder"
+                        <select aria-label="Sort order" v-model="config.sortOrder"
                             class="w-16 rounded-lg bg-surface border border-border px-1.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                             <option value="desc">Desc</option>
                             <option value="asc">Asc</option>
@@ -78,8 +78,8 @@
 
                 <!-- Limit -->
                 <div v-if="config.chartType !== 'scatter'">
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Max categories</label>
-                    <input v-model.number="config.limit" type="number" min="1" max="100"
+                    <label :for="`${formId}-limit`" class="block text-xs font-medium text-text-secondary mb-1">Max categories</label>
+                    <input :id="`${formId}-limit`" v-model.number="config.limit" type="number" min="1" max="100"
                         class="block w-full rounded-lg bg-surface border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                 </div>
 
@@ -115,7 +115,7 @@
                         class="flex items-center justify-between px-3 py-2 hover:bg-surface-hover transition-colors group">
                         <button @click="loadSavedChart(chart)"
                             class="flex items-center gap-1.5 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left min-w-0">
-                            <svg class="h-3 w-3 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3 w-3 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                             <span class="truncate">{{ chart.name }}</span>
@@ -123,7 +123,7 @@
                         <button @click="$emit('deleteSavedChart', chart.id)"
                             class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0"
                             title="Delete">
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
@@ -138,7 +138,7 @@
             <div v-if="!result && !running"
                 class="flex-1 flex items-center justify-center bg-surface-elevated rounded-2xl border border-border">
                 <div class="text-center">
-                    <svg class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <svg aria-hidden="true" class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16" />
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16V9" />
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4" />
@@ -175,7 +175,7 @@
                     <div class="flex gap-2">
                         <button @click="exportAsImage"
                             class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-text-secondary border border-border rounded-md hover:bg-surface-hover transition-colors cursor-pointer">
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
@@ -183,7 +183,7 @@
                         </button>
                         <button @click="exportCsv"
                             class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-text-secondary border border-border rounded-md hover:bg-surface-hover transition-colors cursor-pointer">
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
@@ -218,8 +218,8 @@
                             <h3 class="text-sm font-semibold text-text-primary">Save Chart</h3>
                         </div>
                         <div class="px-5 py-4">
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Chart name</label>
-                            <input v-model="saveChartName" type="text" placeholder="e.g. Sales by region"
+                            <label :for="`${formId}-save-chart-name`" class="block text-xs font-medium text-text-secondary mb-1.5">Chart name</label>
+                            <input :id="`${formId}-save-chart-name`" v-model="saveChartName" type="text" placeholder="e.g. Sales by region"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                                 @keyup.enter="handleSaveChart" />
                         </div>
@@ -241,9 +241,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onUnmounted, h } from 'vue';
+import type {
+    DatasetChartType,
+    DatasetChartConfig,
+    StatsResult,
+    DatasetChart,
+    DatasetField,
+} from '../../services/datasets/useDatasets';
+import { useId, ref, computed, watch, nextTick, onUnmounted, h } from 'vue';
 import { Chart, registerables } from 'chart.js';
-import type { DatasetField } from '../../services/datasets/useDatasets';
 import {
     formatDatasetValue as formatValue,
     formatDatasetLabel as formatLabel,
@@ -252,13 +258,15 @@ import HelpTip from '../ui/HelpTip.vue';
 
 Chart.register(...registerables);
 
+const formId = useId();
+
 const props = defineProps<{
     schema: DatasetField[];
-    result: any | null;
+    result: StatsResult | null;
     running: boolean;
     filters?: { field: string; operator: string; value: string }[];
     datasetId: number;
-    savedCharts?: { id: number; name: string; config: Record<string, any> }[];
+    savedCharts?: DatasetChart[];
     mode?: 'full' | 'sidebar' | 'display';
     preselectedChartType?: string;
 }>();
@@ -268,8 +276,8 @@ const showSidebar = computed(() => effectiveMode.value === 'full' || effectiveMo
 const showDisplay = computed(() => effectiveMode.value === 'full' || effectiveMode.value === 'display');
 
 const emit = defineEmits<{
-    run: [operation: string, params: Record<string, any>];
-    save: [name: string, config: Record<string, any>];
+    run: [operation: string, params: Record<string, unknown>];
+    save: [name: string, config: DatasetChartConfig];
     deleteSavedChart: [chartId: number];
 }>();
 
@@ -278,10 +286,10 @@ const chartTypes = [
     { id: 'line', label: 'Line', icon: { render: () => h('svg', { viewBox: '0 0 16 16', fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, [h('polyline', { points: '1,12 5,6 9,9 15,3' })]) } },
     { id: 'pie', label: 'Pie', icon: { render: () => h('svg', { viewBox: '0 0 16 16', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }, [h('circle', { cx: 8, cy: 8, r: 6 }), h('path', { d: 'M8 2v6h6', fill: 'currentColor', stroke: 'none', opacity: 0.3 })]) } },
     { id: 'scatter', label: 'Scatter', icon: { render: () => h('svg', { viewBox: '0 0 16 16', fill: 'currentColor' }, [h('circle', { cx: 3, cy: 11, r: 1.5 }), h('circle', { cx: 6, cy: 7, r: 1.5 }), h('circle', { cx: 10, cy: 5, r: 1.5 }), h('circle', { cx: 13, cy: 9, r: 1.5 })]) } },
-];
+] as const;
 
 const config = ref({
-    chartType: 'bar',
+    chartType: 'bar' as DatasetChartType,
     xField: '',
     yField: '',
     aggregation: 'sum',
@@ -293,7 +301,8 @@ const config = ref({
 // Sync chart type from parent
 watch(() => props.preselectedChartType, (type) => {
     if (type && ['bar', 'line', 'pie', 'scatter'].includes(type)) {
-        config.value.chartType = type;
+        const selected = chartTypes.find(chart => chart.id === type);
+        if (selected) config.value.chartType = selected.id;
     }
 }, { immediate: true });
 
@@ -311,7 +320,7 @@ const handleSaveChart = () => {
     saveChartName.value = '';
 };
 
-const loadSavedChart = (chart: { id: number; name: string; config: Record<string, any> }) => {
+const loadSavedChart = (chart: DatasetChart) => {
     const c = chart.config;
     if (c.chartType) config.value.chartType = c.chartType;
     if (c.xField) config.value.xField = c.xField;
@@ -349,7 +358,7 @@ const canGenerate = computed(() => {
 });
 
 const handleGenerate = () => {
-    const params: Record<string, any> = {
+    const params: Record<string, unknown> = {
         chartType: config.value.chartType,
         xField: config.value.xField,
     };
@@ -364,7 +373,7 @@ const handleGenerate = () => {
 };
 
 // Chart rendering
-const renderChart = async (newResult: any) => {
+const renderChart = async (newResult: StatsResult | null) => {
     if (chartInstance) {
         chartInstance.destroy();
         chartInstance = null;
@@ -402,9 +411,10 @@ const renderChart = async (newResult: any) => {
                 },
             },
         });
-    } else if (data.labels && data.values) {
+    } else if (chartType && chartType !== 'none' && chartType !== 'box' && chartType !== 'heatmap'
+        && chartType !== 'stacked_bar' && data.labels && data.values) {
         const bgColor = chartType === 'pie'
-            ? data.labels.map((_: any, i: number) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
+            ? data.labels.map((_, i) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
             : 'rgba(99, 102, 241, 0.6)';
 
         chartInstance = new Chart(ctx, {
@@ -466,8 +476,8 @@ const exportCsv = () => {
         });
     } else if (td.columns && td.rows) {
         csv = td.columns.join(',') + '\n';
-        td.rows.forEach((row: any[]) => {
-            csv += row.map((v: any) => `"${v}"`).join(',') + '\n';
+        td.rows.forEach(row => {
+            csv += (Array.isArray(row) ? row : [row]).map(v => `"${v}"`).join(',') + '\n';
         });
     }
 

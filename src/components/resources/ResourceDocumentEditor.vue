@@ -10,7 +10,7 @@
                 </div>
                 <div class="flex gap-2 ml-2">
                     <Button @click="emit('open-split')" size="small" title="Open in split view">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7h12M8 12h12m-7 5h7M3 7h.01M3 12h.01M3 17h.01" />
@@ -19,7 +19,7 @@
                 </div>
             </div>
             <div v-if="isSaving" class="flex items-center text-sm text-text-muted mb-2">
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-text-muted"
+                <svg aria-hidden="true" class="animate-spin -ml-1 mr-2 h-4 w-4 text-text-muted"
                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                         stroke-width="4"></circle>
@@ -30,7 +30,7 @@
                 Saving...
             </div>
             <div v-else-if="savedSuccessfully" class="flex items-center text-sm text-green-600 mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M5 13l4 4L19 7" />
@@ -47,12 +47,12 @@
         <template v-else>
             <div class="bg-surface-elevated rounded-2xl border border-border p-4 flex-shrink-0">
                 <div class="flex items-center justify-between mb-3">
-                    <input v-model="documentModel.name" @input="handleNameChange" type="text"
+                    <input aria-label="Document name" v-model="documentModel.name" @input="handleNameChange" type="text"
                         class="flex-1 px-3 py-1.5 bg-transparent border-0 border-b border-border text-base font-semibold text-text-primary focus:outline-none focus:border-accent transition-colors tracking-tight"
                         placeholder="Document name..." />
-                    <button @click="emit('close')"
+                    <button aria-label="Close document editor" @click="emit('close')"
                         class="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer ml-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -65,7 +65,7 @@
                         Saving...
                     </div>
                     <div v-else-if="savedSuccessfully" class="flex items-center gap-1 text-xs text-green-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>

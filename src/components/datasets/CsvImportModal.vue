@@ -26,7 +26,7 @@
                             <div @drop.prevent="handleDrop" @dragover.prevent
                                 class="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/40 transition-colors cursor-pointer"
                                 @click="triggerFileInput">
-                                <svg class="mx-auto h-10 w-10 text-text-muted mb-3" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" class="mx-auto h-10 w-10 text-text-muted mb-3" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="1.5">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -35,10 +35,10 @@
                                 </p>
                                 <p class="text-xs text-text-muted">Supports .csv files</p>
                             </div>
-                            <input ref="fileInputRef" type="file" accept=".csv" class="hidden"
+                            <input aria-label="Choose CSV file" ref="fileInputRef" type="file" accept=".csv" class="hidden"
                                 @change="handleFileSelect" />
                             <div v-if="selectedFile" class="flex items-center gap-2 text-sm text-text-primary">
-                                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
@@ -77,11 +77,11 @@
                                 <div v-for="header in preview?.headers" :key="header"
                                     class="flex items-center gap-3">
                                     <span class="text-sm text-text-secondary w-40 truncate shrink-0">{{ header }}</span>
-                                    <svg class="h-4 w-4 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24"
+                                    <svg aria-hidden="true" class="h-4 w-4 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24"
                                         stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                     </svg>
-                                    <select v-model="columnMappings[header]"
+                                    <select :aria-label="`Map column ${header}`" v-model="columnMappings[header]"
                                         class="flex-1 rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                         <option value="">-- Skip --</option>
                                         <option v-for="field in schema" :key="field.key" :value="field.key">

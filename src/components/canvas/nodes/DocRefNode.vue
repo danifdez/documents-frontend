@@ -11,13 +11,13 @@
     <div class="flex items-start gap-2 h-full">
       <div class="p-0.5 rounded bg-accent/10 cursor-pointer hover:bg-accent/20 transition-colors shrink-0 mt-0.5"
         @click="navigateToDoc" :title="node.data.sourceName || 'Open document'">
-        <svg class="h-3 w-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" class="h-3 w-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       </div>
       <div class="flex-1 min-w-0">
-        <textarea v-if="isEditing" ref="inputRef" v-model="editText"
+        <textarea aria-label="Document reference text" v-if="isEditing" ref="inputRef" v-model="editText"
           class="w-full h-full text-sm text-text-primary bg-transparent border-0 outline-none resize-none nowheel nodrag"
           @blur="finishEditing" @keydown.escape="finishEditing" />
         <div v-else class="text-sm text-text-primary cursor-text whitespace-pre-wrap" @dblclick="startEditing">
@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
 import { ref, nextTick } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
@@ -38,12 +39,12 @@ import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 
 defineProps<{
   id: string;
-  data: Record<string, any>;
+  data: CanvasNodeData;
   selected: boolean;
 }>();
 
 const router = useRouter();
-const { node } = useNode();
+const { node } = useNode<CanvasNodeData>();
 
 const isEditing = ref(false);
 const editText = ref('');
@@ -64,7 +65,7 @@ const finishEditing = () => {
   node.data = { ...node.data, title: editText.value };
 };
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

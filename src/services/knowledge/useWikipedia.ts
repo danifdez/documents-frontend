@@ -1,3 +1,4 @@
+import { getResponseStatus } from '../../utils/errorDetails';
 import { ref } from 'vue';
 import axios from 'axios';
 
@@ -34,8 +35,8 @@ export function useWikipedia() {
                 lang,
             };
             return result.value;
-        } catch (err: any) {
-            if (err?.response?.status === 404) {
+        } catch (err: unknown) {
+            if (getResponseStatus(err) === 404) {
                 error.value = 'No se encontró el artículo en Wikipedia';
             } else {
                 error.value = 'Error al consultar Wikipedia';

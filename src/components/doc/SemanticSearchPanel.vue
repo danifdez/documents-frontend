@@ -3,13 +3,13 @@
     <!-- Search input -->
     <div class="p-3 border-b border-border-light">
       <div class="relative">
-        <svg
+        <svg aria-hidden="true"
           class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted pointer-events-none"
           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input v-model="query" type="text" placeholder="Search related content..."
+        <input aria-label="Search related content" v-model="query" type="text" placeholder="Search related content..."
           class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
           @keydown.enter="search" />
       </div>
@@ -26,7 +26,7 @@
     <!-- Empty state -->
     <div v-else-if="!hasSearched" class="flex-1 flex items-center justify-center px-4">
       <div class="text-center">
-        <svg class="h-8 w-8 mx-auto text-text-muted/50 mb-2" fill="none" viewBox="0 0 24 24"
+        <svg aria-hidden="true" class="h-8 w-8 mx-auto text-text-muted/50 mb-2" fill="none" viewBox="0 0 24 24"
           stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -49,7 +49,7 @@
           <div class="flex-shrink-0 mt-0.5">
             <span class="inline-flex items-center justify-center w-5 h-5 rounded"
               :class="collectionStyle(result.collection).bg">
-              <svg class="h-3 w-3" :class="collectionStyle(result.collection).text" fill="none"
+              <svg aria-hidden="true" class="h-3 w-3" :class="collectionStyle(result.collection).text" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" :d="collectionStyle(result.collection).icon" />
               </svg>
@@ -78,7 +78,7 @@
           <button v-if="result.collection === 'docs'" @click.stop="$emit('insert-link', result)"
             class="opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-all cursor-pointer flex-shrink-0"
             title="Insert link to this document">
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round"
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>

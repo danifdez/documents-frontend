@@ -66,7 +66,7 @@ function matchUrl(url: string): { type: string; id: number; subfield?: string } 
   for (const pattern of urlPatterns) {
     const match = url.match(pattern.regex);
     if (match) {
-      return { type: pattern.type, id: parseInt(match[1], 10), subfield: pattern.subfield };
+      return { type: pattern.type, id: Number.parseInt(match[1], 10), subfield: pattern.subfield };
     }
   }
   return null;
@@ -76,7 +76,7 @@ function matchListUrl(url: string): { type: string; parentId?: number } | null {
   for (const pattern of listPatterns) {
     const match = url.match(pattern.regex);
     if (match) {
-      const parentId = pattern.filterByParent ? parseInt(match[pattern.filterByParent.paramIndex], 10) : undefined;
+      const parentId = pattern.filterByParent ? Number.parseInt(match[pattern.filterByParent.paramIndex], 10) : undefined;
       return { type: pattern.type, parentId };
     }
   }
@@ -85,7 +85,7 @@ function matchListUrl(url: string): { type: string; parentId?: number } | null {
 
 // ── Cache resolution ──
 
-async function resolveFromCache(url: string): Promise<any | undefined> {
+async function resolveFromCache(url: string): Promise<unknown> {
   const wsId = getActiveWorkspaceId();
 
   // List endpoints
@@ -130,7 +130,7 @@ async function resolveFromCache(url: string): Promise<any | undefined> {
   return getUrlCache(wsId, 'get', url);
 }
 
-function offlineResponse(data: any, config: any, statusText: string) {
+function offlineResponse(data: unknown, config: InternalAxiosRequestConfig, statusText: string) {
   return { data, status: 200, statusText, headers: {}, config };
 }
 
@@ -149,17 +149,18 @@ async function queueOfflineMutation(
 // ── Interceptors ──
 
 const OFFLINE_ABORT = '__offline_abort__';
+type OfflineRequestConfig = InternalAxiosRequestConfig & { [OFFLINE_ABORT]?: unknown };
 
 export function registerOfflineInterceptors(apiClient: AxiosInstance) {
 
   // Request interceptor: if server is unreachable, resolve from cache immediately
   apiClient.interceptors.request.use(
-    async (config: InternalAxiosRequestConfig) => {
+    async (config: OfflineRequestConfig) => {
       if (serverReachable) return config;
 
       if (config.method !== 'get') {
         // Mark for offline queueing in response interceptor
-        (config as any)[OFFLINE_ABORT] = true;
+        config[OFFLINE_ABORT] = true;
         const controller = new AbortController();
         controller.abort();
         config.signal = controller.signal;
@@ -171,10 +172,10 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
       const cached = await resolveFromCache(url);
 
       if (cached !== undefined) {
-        (config as any)[OFFLINE_ABORT] = cached;
+        config[OFFLINE_ABORT] = cached;
       } else {
         // No cache — return empty array for lists, empty object for unknown
-        (config as any)[OFFLINE_ABORT] = [];
+        config[OFFLINE_ABORT] = [];
       }
 
       // Abort the real request
@@ -211,12 +212,12 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
       return response;
     },
     async (error: AxiosError) => {
-      const config = error.config;
+      const config: OfflineRequestConfig | undefined = error.config;
       if (!config) return Promise.reject(error);
 
       // Handle requests we aborted ourselves for offline mode
-      if (OFFLINE_ABORT in (config as any)) {
-        const data = (config as any)[OFFLINE_ABORT];
+      if (OFFLINE_ABORT in config) {
+        const data = config[OFFLINE_ABORT];
 
         // GET: return cached data (or empty fallback)
         if (config.method === 'get') {

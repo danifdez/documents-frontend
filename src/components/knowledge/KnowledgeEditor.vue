@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
+import { shallowRef, ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import { Table } from '@tiptap/extension-table';
@@ -31,7 +31,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import { MathExtension } from '../editor/extensions/MathExtension';
 import { VideoExtension } from '../editor/extensions/VideoExtension';
-import { ReferenceNode } from '../editor/extensions/ReferenceExtension';
+import { ReferenceNode, type RefType } from '../editor/extensions/ReferenceExtension';
 import EditorToolbar from '../editor/EditorToolbar.vue';
 import InsertReferenceModal from '../references/InsertReferenceModal.vue';
 import { useBibliography } from '../../services/bibliography/useBibliography';
@@ -43,7 +43,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:modelValue']);
 
-const editor = ref<any>(null);
+const editor = shallowRef<Editor | null>(null);
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
 const showInsertReferenceModal = ref(false);
@@ -53,7 +53,7 @@ const citedBibIds = computed<string[]>(() => {
     if (!editor.value) return [];
     const ids: string[] = [];
     const seen = new Set<string>();
-    editor.value.state.doc.descendants((node: Record<string, any>) => {
+    editor.value.state.doc.descendants(node => {
         if (node.type.name === 'referenceNode' && node.attrs['data-ref-type'] === 'bibliography') {
             const id = node.attrs['data-ref-id'];
             if (id != null && !seen.has(id)) {
@@ -65,14 +65,14 @@ const citedBibIds = computed<string[]>(() => {
     return ids;
 });
 
-const handleReferenceInsert = (item: { refId: string; refType: string; label: string; displayMode: string }) => {
+const handleReferenceInsert = (item: { refId: string; refType: RefType; label: string; displayMode: string }) => {
     if (!editor.value) return;
     editor.value
         .chain()
         .focus()
         .insertReference({
             refId: item.refId,
-            refType: item.refType as any,
+            refType: item.refType,
             label: item.label,
             displayMode: item.displayMode,
         })

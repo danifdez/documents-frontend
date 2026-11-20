@@ -57,7 +57,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue';
+import type { Editor as CoreEditor } from '@tiptap/core';
+import type { DatasetField } from '../../services/datasets/useDatasets';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import type { ReadingPoint } from '../../services/readingPoints/useReadingPoints';
+import { shallowRef, ref, onMounted, onBeforeUnmount, watch, computed, nextTick, type PropType } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import { Decoration, DecorationSet } from 'prosemirror-view'
 import { Plugin } from 'prosemirror-state';
@@ -87,7 +91,7 @@ import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useEditorAnnotations } from './composables/useEditorAnnotations';
 import InsertReferenceModal from '../../components/references/InsertReferenceModal.vue';
 import Image from '@tiptap/extension-image';
-import { ReferenceNode } from './extensions/ReferenceExtension';
+import { ReferenceNode, type RefType } from './extensions/ReferenceExtension';
 import { DatasetViewExtension } from './extensions/DatasetViewExtension';
 import { DatasetChartExtension } from './extensions/DatasetChartExtension';
 import { CanvasViewExtension } from './extensions/CanvasViewExtension';
@@ -134,7 +138,7 @@ const props = defineProps({
         default: 'apa',
     },
     readingPointsController: {
-        type: Object,
+        type: Object as PropType<ReturnType<typeof useReadingPointsController>>,
         default: null,
     },
 });
@@ -148,7 +152,7 @@ const emit = defineEmits([
     'marker-applied',
 ]);
 
-const editor = ref(null);
+const editor = shallowRef<Editor | null>(null);
 const isMounted = ref(false);
 const route = useRoute();
 const { updateMark } = useMarkUpdate();
@@ -166,8 +170,8 @@ const {
     applyMark,
     loadDocumentMarks,
 } = useEditorAnnotations(editor, emit, props);
-const readingPointsLayerRef = ref<any>(null);
-const readingPointsController = (props as any).readingPointsController
+const readingPointsLayerRef = ref<InstanceType<typeof ReadingPointsLayer> | null>(null);
+const readingPointsController = props.readingPointsController
     ?? useReadingPointsController(
         () => String(route.params.id || ''),
         props.context === 'resource' ? 'resource' : 'doc',
@@ -213,16 +217,16 @@ const updateMarkerPositions = () => {
     if (!scrollEl) return;
 
     const containerRect = container.getBoundingClientRect();
-    const spans = container.querySelectorAll('[data-mark-id], [data-marker-id]');
+    const spans = container.querySelectorAll<HTMLElement>('[data-mark-id], [data-marker-id]');
     const seen = new Set<string>();
     const positions: typeof markerPositions.value = [];
 
     spans.forEach((span) => {
-        const id = span.getAttribute('data-mark-id') || span.getAttribute('data-marker-id');
+        const id = span.dataset.markId || span.dataset.markerId;
         if (!id || seen.has(id)) return;
         seen.add(id);
 
-        const type = (span.getAttribute('data-mark-type') || span.getAttribute('data-marker-type') || 'highlight') as MarkType;
+        const type = (span.dataset.markType || span.dataset.markerType || 'highlight') as MarkType;
         const config = MARK_CONFIG[type] || MARK_CONFIG.highlight;
         const rect = span.getBoundingClientRect();
         // Position relative to the flex container (which is the gutter's parent)
@@ -259,7 +263,8 @@ const handleMarkerGutterClick = (markerId: string) => {
     }
 };
 
-const settings = ref({ fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 });
+const initialSettings = { fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 };
+const settings = ref({ ...initialSettings });
 
 const cssVars = ref({
     '--font-size-p': settings.value.fontSize.toString(),
@@ -307,19 +312,19 @@ const onMarkShortcut = (type: MarkType) => {
     return true;
 };
 
-const checkForMarkChanges = (editor: Editor) => {
+const checkForMarkChanges = (editor: CoreEditor) => {
     if (markContentMap.value.size === 0) return;
 
     const doc = editor.state.doc;
     const markChanges = new Map<string, string>();
 
-    const processNode = (node: Record<string, any>) => {
-        const marks = node.marks.filter((mark: Record<string, any>) => mark.type.name === 'textMark');
+    const processNode = (node: ProseMirrorNode) => {
+        const marks = node.marks.filter((mark) => mark.type.name === 'textMark');
 
         if (marks.length > 0) {
             const content = node.text;
 
-            marks.forEach((mark: Record<string, any>) => {
+            marks.forEach((mark) => {
                 const markId = mark.attrs.markId;
                 const originalContent = markContentMap.value.get(markId);
 
@@ -330,9 +335,9 @@ const checkForMarkChanges = (editor: Editor) => {
         }
     };
 
-    doc.descendants((node: Record<string, any>, pos: number) => {
+    doc.descendants((node) => {
         if (node.isText) {
-            processNode(node, pos);
+            processNode(node);
         }
         return true;
     });
@@ -391,7 +396,7 @@ const handleConvertTableToDataset = () => {
     showTableToDatasetModal.value = true;
 };
 
-const handleTableDatasetCreated = (info: { datasetId: number; datasetName: string; schema: Record<string, any>[]; replaceTable: boolean }) => {
+const handleTableDatasetCreated = (info: { datasetId: number; datasetName: string; schema: DatasetField[]; replaceTable: boolean }) => {
     if (info.replaceTable && parsedTableData.value?.tablePos && editor.value) {
         const { from, to } = parsedTableData.value.tablePos;
         editor.value.chain().focus()
@@ -399,21 +404,21 @@ const handleTableDatasetCreated = (info: { datasetId: number; datasetName: strin
             .insertDatasetView({
                 datasetId: info.datasetId,
                 datasetName: info.datasetName,
-                fields: info.schema.map((f: Record<string, any>) => f.key),
+                fields: info.schema.map(f => f.key),
                 filters: [],
             })
             .run();
     }
 };
 
-const handleReferenceInsert = (item: { refId: string; refType: string; label: string; displayMode: string }) => {
+const handleReferenceInsert = (item: { refId: string; refType: RefType; label: string; displayMode: string }) => {
     if (!editor.value) return;
     editor.value
         .chain()
         .focus()
         .insertReference({
             refId: item.refId,
-            refType: item.refType as any,
+            refType: item.refType,
             label: item.label,
             displayMode: item.displayMode,
         })
@@ -430,7 +435,7 @@ const renumberCitations = () => {
     const doc = editor.value.state.doc;
     const order: string[] = [];
     const seen = new Set<string>();
-    doc.descendants((node: Record<string, any>) => {
+    doc.descendants((node: ProseMirrorNode) => {
         if (node.type.name === 'referenceNode' && node.attrs['data-ref-type'] === 'bibliography') {
             const id = node.attrs['data-ref-id'];
             if (id != null && !seen.has(id)) {
@@ -442,7 +447,7 @@ const renumberCitations = () => {
     const tr = editor.value.state.tr;
     let changed = false;
     const style = props.citationFormat as string;
-    doc.descendants((node: Record<string, any>, pos: number) => {
+    doc.descendants((node: ProseMirrorNode, pos: number) => {
         if (node.type.name === 'referenceNode' && node.attrs['data-ref-type'] === 'bibliography') {
             const id = node.attrs['data-ref-id'];
             const idx = order.indexOf(id) + 1;
@@ -462,7 +467,7 @@ const citedBibIds = computed<string[]>(() => {
     if (!editor.value) return [];
     const ids: string[] = [];
     const seen = new Set<string>();
-    editor.value.state.doc.descendants((node: Record<string, any>) => {
+    editor.value.state.doc.descendants((node: ProseMirrorNode) => {
         if (node.type.name === 'referenceNode' && node.attrs['data-ref-type'] === 'bibliography') {
             const id = node.attrs['data-ref-id'];
             if (id != null && !seen.has(id)) {
@@ -486,7 +491,11 @@ const loadAndApplySettings = async () => {
     if (window.electronAPI && window.electronAPI.getSettings) {
         const loaded = await window.electronAPI.getSettings();
         if (loaded) {
-            settings.value = loaded;
+            settings.value = {
+                fontSize: loaded.fontSize ?? initialSettings.fontSize,
+                fontFamily: loaded.fontFamily ?? initialSettings.fontFamily,
+                paragraphSpacing: loaded.paragraphSpacing ?? initialSettings.paragraphSpacing,
+            };
         }
     }
     applySettings();
@@ -689,9 +698,9 @@ const handleRemoveMark = async (markId: string) => {
 const findCommentMarkPosition = (commentId: string): { from: number; to: number } | null => {
     if (!editor.value) return null;
     let result: { from: number; to: number } | null = null;
-    editor.value.state.doc.descendants((node: Record<string, any>, pos: number) => {
+    editor.value.state.doc.descendants((node: ProseMirrorNode, pos: number) => {
         if (result) return false;
-        const marks = (node.marks as Record<string, any>[]).filter(
+        const marks = node.marks.filter(
             (mark) => mark.type.name === 'comment' && mark.attrs.commentId === commentId,
         );
         if (marks.length > 0) {
@@ -832,12 +841,7 @@ const scrollToPosition = (position: number) => {
     setTimeout(() => {
         try {
             const dom = editor.value.view.domAtPos(position);
-            let targetElement = dom.node;
-
-            // If it's a text node, get the parent element
-            if (targetElement.nodeType === 3) {
-                targetElement = targetElement.parentElement;
-            }
+            let targetElement = dom.node instanceof Element ? dom.node : dom.node.parentElement;
 
             // Find the actual heading element
             while (targetElement && !['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(targetElement.tagName)) {
@@ -880,7 +884,7 @@ const scrollToPosition = (position: number) => {
     editor,
     editorScrollRef,
     readingPointsController,
-    openReadingPoint(point: any) {
+    openReadingPoint(point: ReadingPoint) {
         readingPointsLayerRef.value?.openPoint(point);
     },
     setLink,

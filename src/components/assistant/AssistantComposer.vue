@@ -1,7 +1,7 @@
 <template>
     <div class="composer-bar px-4 pt-4 pb-3">
         <div class="flex items-end gap-2">
-            <textarea
+            <textarea aria-label="Message the assistant"
                 ref="textareaRef"
                 v-model="text"
                 :placeholder="placeholder || 'Message the assistant…'"

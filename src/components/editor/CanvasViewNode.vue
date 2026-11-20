@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-2.5 bg-surface border-b border-border">
             <div class="flex items-center gap-2">
-                <svg class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                <svg aria-hidden="true" class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                     stroke-width="1.75">
                     <rect x="3" y="3" width="18" height="18" rx="2" />
                     <circle cx="9" cy="9" r="1.5" />
@@ -20,7 +20,7 @@
                 <button @click="zoomIn"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     title="Zoom in">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                 </button>
@@ -28,14 +28,14 @@
                 <button @click="zoomOut"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     title="Zoom out">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
                     </svg>
                 </button>
                 <button @click="resetView"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     title="Fit to view">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
                     </svg>
@@ -54,7 +54,7 @@
                 <button @click="loadCanvas" :disabled="loading"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     title="Refresh">
-                    <svg class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -81,7 +81,7 @@
         <div v-else ref="viewportRef" class="canvas-viewport relative overflow-hidden cursor-grab active:cursor-grabbing"
             style="height: 280px;" @wheel.prevent="onWheel" @mousedown.stop="startPan($event, handleDrag)"
             @dragstart.prevent.stop>
-            <svg :viewBox="currentViewBox" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
+            <svg aria-hidden="true" :viewBox="currentViewBox" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
                 <!-- Edges -->
                 <line v-for="edge in canvasData.edges" :key="edge.id" :x1="getNodeCenter(edge.source).x"
                     :y1="getNodeCenter(edge.source).y" :x2="getNodeCenter(edge.target).x"
@@ -202,6 +202,7 @@
 </template>
 
 <script setup lang="ts">
+import { getResponseError } from '../../utils/errorDetails';
 import { ref, computed, onMounted } from 'vue';
 import { useCanvas } from '../../services/canvas/useCanvas';
 import type { CanvasData, CanvasNode, CanvasEdge } from '../../types/canvas';
@@ -348,10 +349,10 @@ const loadCanvas = async () => {
     loading.value = true;
     error.value = null;
     try {
-        const canvas: any = await fetchCanvas(String(props.canvasId));
+        const canvas = await fetchCanvas(String(props.canvasId));
         canvasData.value = canvas.canvasData || null;
-    } catch (err: any) {
-        error.value = err.response?.data?.message || 'Failed to load canvas';
+    } catch (err: unknown) {
+        error.value = getResponseError(err) || 'Failed to load canvas';
     } finally {
         loading.value = false;
     }

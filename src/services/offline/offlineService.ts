@@ -1,3 +1,4 @@
+import { getResponseError } from '../../utils/errorDetails';
 import { useOfflineStore } from '../../store/offlineStore';
 import { useNotification } from '../../composables/useNotification';
 
@@ -17,15 +18,15 @@ export async function downloadForOffline(type: 'resource' | 'thread' | 'project'
     const summary = parts.length > 0 ? parts.join(', ') : 'content';
 
     if (excludedFiles.length > 0) {
-      const names = excludedFiles.map((f: any) => f.name).join(', ');
+      const names = excludedFiles.map(f => f.name).join(', ');
       notification.warning(
         `Saved ${summary}. ${excludedFiles.length} file(s) excluded (too large): ${names}.`,
       );
     } else {
       notification.success(`Saved offline: ${summary}`);
     }
-  } catch (err: any) {
-    notification.error(err?.response?.data?.message || 'Failed to download for offline use');
+  } catch (err: unknown) {
+    notification.error(getResponseError(err) || 'Failed to download for offline use');
     throw err;
   }
 }

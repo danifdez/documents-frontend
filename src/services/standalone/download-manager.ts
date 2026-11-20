@@ -1,13 +1,13 @@
 import { app } from 'electron';
-import path from 'path';
-import fs from 'fs';
-import https from 'https';
-import http from 'http';
-import { execFile, execFileSync, spawn as spawnProcess } from 'child_process';
-import { createGunzip } from 'zlib';
-import { pipeline } from 'stream/promises';
+import path from 'node:path';
+import fs from 'node:fs';
+import https from 'node:https';
+import http from 'node:http';
+import { execFile, execFileSync, spawn as spawnProcess } from 'node:child_process';
+import { createGunzip } from 'node:zlib';
+import { pipeline } from 'node:stream/promises';
 import { Unpack as TarUnpack } from 'tar';
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import { getModelsBinaryPath } from './models-binary';
 import { assertSafeArchiveEntry } from './archive-safety';
 import {
@@ -606,9 +606,9 @@ export async function setupModels(
       if (match && onProgress) {
         onProgress({
           component: match[1],
-          downloaded: parseInt(match[2]),
+          downloaded: Number.parseInt(match[2]),
           total: 100,
-          percent: parseInt(match[2]),
+          percent: Number.parseInt(match[2]),
         });
       }
     });
@@ -666,7 +666,7 @@ function downloadFile(
           return;
         }
 
-        const declaredSize = parseInt(res.headers['content-length'] || '0', 10);
+        const declaredSize = Number.parseInt(res.headers['content-length'] || '0', 10);
         if (sizeLimit && declaredSize > sizeLimit) {
           res.destroy();
           reject(new Error(`Download exceeds expected size for ${url}`));

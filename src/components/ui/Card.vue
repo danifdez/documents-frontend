@@ -7,14 +7,14 @@
                     class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-150"
                     :class="iconBgClasses">
                     <slot name="icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="1.75">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                         </svg>
                     </slot>
                 </div>
-                <svg xmlns="http://www.w3.org/2000/svg"
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
                     class="h-3.5 w-3.5 text-text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100"
                     viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd"

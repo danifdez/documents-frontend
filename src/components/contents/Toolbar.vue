@@ -12,7 +12,7 @@
             </button>
             <button @click="handleContextMenuAction('comment')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
@@ -24,7 +24,7 @@
             </button>
             <button @click="handleContextMenuAction('reading')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
@@ -35,7 +35,7 @@
             </button>
             <button @click="handleContextMenuAction('section')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
                     <path d="M9 8h6" stroke="#49be8f" />
@@ -45,14 +45,14 @@
             </button>
             <button @click="handleContextMenuAction('send')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M2 10l8-6v4h6v4h-6v4l-8-6z" fill="currentColor" />
                 </svg>
                 <span>Send to workspace</span>
             </button>
             <button @click="handleContextMenuAction('send-to-doc')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M14 2H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2z" stroke="currentColor" stroke-width="1.5" fill="none" />
                     <path d="M8 7h4M8 10h4M8 13h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                 </svg>
@@ -60,7 +60,7 @@
             </button>
             <button v-if="hasWorkspace" @click="handleContextMenuAction('summarize')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M4 6h16v2H4zM4 11h10v2H4zM4 16h8v2H4z" fill="currentColor" />
                 </svg>
                 <span>Summarize selection</span>
@@ -69,7 +69,7 @@
             <div v-if="featureStore.isEnabled('knowledge_base')" class="border-t border-border my-1"></div>
             <button v-if="featureStore.isEnabled('knowledge_base')" @click="handleContextMenuAction('search-kb')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
@@ -77,7 +77,7 @@
             </button>
             <button @click="handleContextMenuAction('search-wiki')"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm">
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -125,7 +125,7 @@
                             <a :href="wikiResult.url" target="_blank" rel="noopener"
                                 class="mt-2 inline-flex items-center gap-1 text-xs text-accent hover:underline">
                                 View on Wikipedia
-                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
@@ -139,11 +139,12 @@
 </template>
 
 <script setup lang="ts">
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import type { Editor } from '@tiptap/core';
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useKnowledgeBase } from '../../services/knowledge/useKnowledgeBase';
-import { useWikipedia } from '../../services/knowledge/useWikipedia';
-import type { KnowledgeEntry } from '../../services/knowledge/useKnowledgeBase';
+import { useKnowledgeBase, type KnowledgeEntry } from '../../services/knowledge/useKnowledgeBase';
+import { useWikipedia, type WikipediaResult } from '../../services/knowledge/useWikipedia';
 import { useMarkCreate } from '../../services/marks/useMarkCreate';
 import { useMarkDelete } from '../../services/marks/useMarkDelete';
 import { useMarks } from '../../services/marks/useMarks';
@@ -181,7 +182,7 @@ const { search: searchWiki } = useWikipedia();
 const lookupTab = ref<'kb' | 'wiki' | null>(null);
 const lookupLoading = ref(false);
 const kbResults = ref<KnowledgeEntry[]>([]);
-const wikiResult = ref<any>(null);
+const wikiResult = ref<WikipediaResult | null>(null);
 const wikiError = ref<string | null>(null);
 const contextMenuSelectedText = ref('');
 const { createMark } = useMarkCreate();
@@ -468,12 +469,12 @@ const handleAddMark = async (type: MarkType = 'highlight') => {
             ? selectedElement.parentElement
             : selectedElement as Element;
 
-        const existingMark = parentElement?.closest('[data-mark-id]') ||
-            parentElement?.querySelector('[data-mark-id]');
+        const existingMark = parentElement?.closest<HTMLElement>('[data-mark-id]') ||
+            parentElement?.querySelector<HTMLElement>('[data-mark-id]');
 
         if (existingMark) {
-            const markId = existingMark.getAttribute('data-mark-id');
-            const existingType = existingMark.getAttribute('data-mark-type');
+            const markId = existingMark.dataset.markId;
+            const existingType = existingMark.dataset.markType;
             if (markId && existingType === type) {
                 emit('remove-mark', markId);
                 return;
@@ -546,19 +547,19 @@ const handleAddMark = async (type: MarkType = 'highlight') => {
     }
 };
 
-const checkForMarkChanges = (editor: Record<string, any>) => {
+const checkForMarkChanges = (editor: Editor) => {
     if (markContentMap.value.size === 0) return;
 
     const doc = editor.state.doc;
     const markChanges = new Map<string, string>();
 
-    const processNode = (node: Record<string, any>) => {
-        const marks = node.marks.filter((mark: Record<string, any>) => mark.type.name === 'textMark');
+    const processNode = (node: ProseMirrorNode) => {
+        const marks = node.marks.filter((mark) => mark.type.name === 'textMark');
 
         if (marks.length > 0) {
             const content = node.text;
 
-            marks.forEach((mark: Record<string, any>) => {
+            marks.forEach((mark) => {
                 const markId = mark.attrs.markId;
                 const originalContent = markContentMap.value.get(markId);
 
@@ -569,9 +570,9 @@ const checkForMarkChanges = (editor: Record<string, any>) => {
         }
     };
 
-    doc.descendants((node: Record<string, any>, pos: number) => {
+    doc.descendants(node => {
         if (node.isText) {
-            processNode(node, pos);
+            processNode(node);
         }
         return true;
     });
@@ -608,7 +609,7 @@ watch(() => props.editor, async (newEditor, oldEditor) => {
     }
 }, { immediate: false });
 
-const handleEditorUpdate = ({ editor }: { editor: Record<string, any> }) => {
+const handleEditorUpdate = ({ editor }: { editor: Editor }) => {
     checkForMarkChanges(editor);
 };
 

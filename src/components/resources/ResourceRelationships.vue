@@ -8,7 +8,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <button v-if="viewMode === 'graph'" @click="zoomToFit" class="px-2 py-1 rounded text-xs bg-surface-elevated text-text-secondary hover:text-text-primary" title="Fit to view">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                 </button>
                 <button @click="showAddModal = true" class="px-3 py-1 rounded text-xs font-medium bg-accent text-white hover:opacity-90">Add Relationship</button>
                 <button @click="refresh" :disabled="isLoading" class="px-3 py-1 rounded text-xs font-medium bg-surface-elevated text-text-secondary hover:text-text-primary">Refresh</button>
@@ -39,7 +39,7 @@
                 <button @click="zoomIn" class="w-7 h-7 rounded bg-surface-elevated border border-border flex items-center justify-center text-text-secondary hover:text-text-primary text-sm font-bold">+</button>
                 <button @click="zoomOut" class="w-7 h-7 rounded bg-surface-elevated border border-border flex items-center justify-center text-text-secondary hover:text-text-primary text-sm font-bold">-</button>
                 <button @click="zoomToFit" class="w-7 h-7 rounded bg-surface-elevated border border-border flex items-center justify-center text-text-secondary hover:text-text-primary" title="Fit">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                 </button>
             </div>
             <div class="absolute bottom-3 left-3 text-[10px] text-text-muted">{{ Math.round(zoom * 100) }}%</div>
@@ -74,9 +74,9 @@
             <div class="bg-surface rounded-lg shadow-xl p-6 w-96 max-w-[90vw]">
                 <h3 class="text-sm font-semibold mb-4">Add Relationship</h3>
                 <div class="space-y-3">
-                    <div><label class="block text-xs text-text-secondary mb-1">Subject</label><select v-model="newRel.subjectId" class="w-full px-3 py-1.5 rounded border border-border bg-surface text-sm"><option v-for="e in entities" :key="e.id" :value="e.id">{{ e.name }} ({{ e.type }})</option></select></div>
-                    <div><label class="block text-xs text-text-secondary mb-1">Predicate</label><input v-model="newRel.predicate" type="text" placeholder="e.g. works_for" class="w-full px-3 py-1.5 rounded border border-border bg-surface text-sm" /></div>
-                    <div><label class="block text-xs text-text-secondary mb-1">Object</label><select v-model="newRel.objectId" class="w-full px-3 py-1.5 rounded border border-border bg-surface text-sm"><option v-for="e in entities" :key="e.id" :value="e.id">{{ e.name }} ({{ e.type }})</option></select></div>
+                    <div><label :for="`${formId}-subject-id`" class="block text-xs text-text-secondary mb-1">Subject</label><select :id="`${formId}-subject-id`" v-model="newRel.subjectId" class="w-full px-3 py-1.5 rounded border border-border bg-surface text-sm"><option v-for="e in entities" :key="e.id" :value="e.id">{{ e.name }} ({{ e.type }})</option></select></div>
+                    <div><label :for="`${formId}-predicate`" class="block text-xs text-text-secondary mb-1">Predicate</label><input :id="`${formId}-predicate`" v-model="newRel.predicate" type="text" placeholder="e.g. works_for" class="w-full px-3 py-1.5 rounded border border-border bg-surface text-sm" /></div>
+                    <div><label :for="`${formId}-object-id`" class="block text-xs text-text-secondary mb-1">Object</label><select :id="`${formId}-object-id`" v-model="newRel.objectId" class="w-full px-3 py-1.5 rounded border border-border bg-surface text-sm"><option v-for="e in entities" :key="e.id" :value="e.id">{{ e.name }} ({{ e.type }})</option></select></div>
                 </div>
                 <div class="flex justify-end gap-2 mt-4">
                     <button @click="showAddModal = false" class="px-3 py-1.5 rounded text-xs bg-surface-elevated text-text-secondary">Cancel</button>
@@ -88,8 +88,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useId, ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useRelationships, type Relationship } from '../../services/relationships/useRelationships';
+
+const formId = useId();
 
 const props = defineProps<{ resourceId: number; projectId?: number }>();
 const { isLoading, data, fetchByResource, createRelationship, deleteRelationship, extractRelationships } = useRelationships();

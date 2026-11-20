@@ -1,3 +1,4 @@
+import type { OfflineEntity } from '../types/offline';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import apiClient from '../services/api';
@@ -17,6 +18,19 @@ import {
   getManifest,
   updateManifest,
 } from '../services/offline/offlineDb';
+
+interface OfflineBundle {
+  project?: OfflineEntity;
+  resources?: OfflineEntity[];
+  docs?: OfflineEntity[];
+  threads?: OfflineEntity[];
+  comments?: OfflineEntity[];
+  marks?: OfflineEntity[];
+  readingPoints?: OfflineEntity[];
+  notes?: OfflineEntity[];
+  files?: { resourceId: number; base64: string; mimeType: string }[];
+  excludedFiles?: { name: string }[];
+}
 
 const MIME_TO_EXT: Record<string, string> = {
   'application/pdf': '.pdf',
@@ -135,7 +149,7 @@ export const useOfflineStore = defineStore('offline', () => {
 
   async function makeAvailableOffline(type: 'resource' | 'thread' | 'project', id: number) {
     const wsId = getActiveWorkspaceId();
-    const { data: bundle } = await apiClient.get(`/offline/bundle/${type}/${id}`);
+    const { data: bundle } = await apiClient.get<OfflineBundle>(`/offline/bundle/${type}/${id}`);
     const now = new Date().toISOString();
 
     // Store project from bundle
@@ -173,7 +187,7 @@ export const useOfflineStore = defineStore('offline', () => {
 
     // Store files — pass base64 directly to filesystem
     await Promise.all(
-      (bundle.files || []).map((f: any) => {
+      (bundle.files || []).map(f => {
         const ext = extFromMime(f.mimeType || 'application/octet-stream');
         return putOfflineFile(wsId, f.resourceId, f.base64, f.mimeType, ext);
       }),
@@ -227,7 +241,7 @@ export const useOfflineStore = defineStore('offline', () => {
 
   async function addPendingChange(
     entityType: string, entityId: number,
-    method: 'PATCH' | 'POST' | 'DELETE', payload: Record<string, any>,
+    method: 'PATCH' | 'POST' | 'DELETE', payload: Record<string, unknown>,
   ) {
     const wsId = getActiveWorkspaceId();
     await dbAddPendingChange(wsId, entityType, entityId, method, payload);
@@ -252,7 +266,7 @@ export const useOfflineStore = defineStore('offline', () => {
       // Push local changes
       const pending = await getAllPendingChanges(wsId);
       if (pending.length > 0) {
-        const changes = pending.map((c: any) => ({
+        const changes = pending.map(c => ({
           entityType: c.entityType,
           entityId: c.entityId,
           method: c.method,
@@ -276,7 +290,7 @@ export const useOfflineStore = defineStore('offline', () => {
       if (lastSyncTimestamp.value) {
         const projectKeys = [...offlineItemKeys.value].filter((k) => k.startsWith('project:'));
         for (const pk of projectKeys) {
-          const projectId = parseInt(pk.split(':')[1], 10);
+          const projectId = Number.parseInt(pk.split(':')[1], 10);
           const { data: changes } = await apiClient.get('/offline/changes', {
             params: { since: lastSyncTimestamp.value, projectId },
           });

@@ -12,42 +12,42 @@
                     </div>
                     <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
                         <div v-for="field in schema" :key="field.key">
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">
+                            <label :for="`${formId}-record-field-${field.key}`" class="block text-xs font-medium text-text-secondary mb-1.5">
                                 {{ field.name }}
                                 <span v-if="field.required" class="text-red-400">*</span>
                             </label>
 
                             <!-- Text -->
-                            <input v-if="field.type === 'text'" v-model="formData[field.key]" type="text"
+                            <input :id="`${formId}-record-field-${field.key}`" v-if="field.type === 'text'" v-model="formData[field.key]" type="text"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
 
                             <!-- Number -->
-                            <input v-else-if="field.type === 'number'" v-model.number="formData[field.key]"
+                            <input :id="`${formId}-record-field-${field.key}`" v-else-if="field.type === 'number'" v-model.number="formData[field.key]"
                                 type="number"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
 
                             <!-- Boolean -->
                             <label v-else-if="field.type === 'boolean'"
                                 class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" v-model="formData[field.key]"
+                                <input :id="`${formId}-record-field-${field.key}`" type="checkbox" v-model="formData[field.key]"
                                     class="rounded border-border text-accent focus:ring-accent/20" />
                                 <span class="text-sm text-text-primary">{{ formData[field.key] ? 'Yes' : 'No' }}</span>
                             </label>
 
                             <!-- Date -->
-                            <input v-else-if="field.type === 'date'" v-model="formData[field.key]" type="date"
+                            <input :id="`${formId}-record-field-${field.key}`" v-else-if="field.type === 'date'" v-model="formData[field.key]" type="date"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
 
                             <!-- Datetime -->
-                            <input v-else-if="field.type === 'datetime'" v-model="formData[field.key]" type="datetime-local"
+                            <input :id="`${formId}-record-field-${field.key}`" v-else-if="field.type === 'datetime'" v-model="formData[field.key]" type="datetime-local"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
 
                             <!-- Time -->
-                            <input v-else-if="field.type === 'time'" v-model="formData[field.key]" type="time"
+                            <input :id="`${formId}-record-field-${field.key}`" v-else-if="field.type === 'time'" v-model="formData[field.key]" type="time"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
 
                             <!-- Select -->
-                            <select v-else-if="field.type === 'select'" v-model="formData[field.key]"
+                            <select :id="`${formId}-record-field-${field.key}`" v-else-if="field.type === 'select'" v-model="formData[field.key]"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                 <option value="">-- Select --</option>
                                 <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
@@ -67,9 +67,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { useId, ref, watch } from 'vue';
 import type { DatasetField, DatasetRecord } from '../../services/datasets/useDatasets';
 import Button from '../ui/Button.vue';
+
+const formId = useId();
 
 const props = defineProps<{
     isOpen: boolean;
@@ -79,10 +81,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     close: [];
-    save: [data: Record<string, any>];
+    save: [data: Record<string, unknown>];
 }>();
 
-const formData = ref<Record<string, any>>({});
+const formData = ref<Record<string, unknown>>({});
 const saving = ref(false);
 
 watch(() => props.isOpen, (open) => {

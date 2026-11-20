@@ -4,14 +4,14 @@
         <div class="shrink-0 px-6 py-4 border-b border-border bg-surface-elevated">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
-                    <button @click="router.push('/knowledge-base')"
+                    <button aria-label="Back to knowledge base" @click="router.push('/knowledge-base')"
                         class="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
-                    <input v-model="entryTitle" type="text" placeholder="Título de la entrada"
+                    <input aria-label="Entry title" v-model="entryTitle" type="text" placeholder="Título de la entrada"
                         class="flex-1 bg-transparent text-lg font-semibold text-text-primary placeholder:text-text-muted focus:outline-none tracking-tight"
                         @blur="saveTitle" @keydown.enter="saveTitle" />
                 </div>
@@ -34,27 +34,27 @@
 
             <!-- Summary and tags row -->
             <div class="mt-3 flex flex-col gap-2">
-                <input v-model="entrySummary" type="text" placeholder="Resumen breve (opcional)"
+                <input aria-label="Entry summary" v-model="entrySummary" type="text" placeholder="Resumen breve (opcional)"
                     class="w-full bg-transparent text-sm text-text-secondary placeholder:text-text-muted focus:outline-none"
                     @blur="saveSummary" @keydown.enter="saveSummary" />
 
                 <!-- Definition toggle + Entity link -->
                 <div class="flex items-center gap-4 mb-1">
-                    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-                        <button @click="toggleDefinition" type="button"
+                    <span class="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <button role="switch" :aria-checked="entryIsDefinition" aria-label="Definition" @click="toggleDefinition" type="button"
                             class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 cursor-pointer"
                             :class="entryIsDefinition ? 'bg-accent' : 'bg-gray-300'">
                             <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 shadow-sm"
                                 :class="entryIsDefinition ? 'translate-x-[18px]' : 'translate-x-[3px]'" />
                         </button>
                         <span class="text-xs text-text-secondary">Definición</span>
-                    </label>
+                    </span>
 
                     <!-- Linked entity -->
                     <div class="flex items-center gap-1.5">
                         <template v-if="linkedEntity">
                             <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                 </svg>
                                 {{ linkedEntity.name }}
@@ -66,7 +66,7 @@
                             <div class="relative">
                                 <button @click="showEntityMenu = !showEntityMenu"
                                     class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-text-muted hover:text-accent border border-dashed border-border hover:border-accent transition-colors cursor-pointer">
-                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                     </svg>
                                     Vincular entidad
@@ -76,7 +76,7 @@
                                 <div v-if="showEntityMenu"
                                     class="absolute left-0 top-full mt-1 z-50 bg-surface-elevated border border-border rounded-lg shadow-xl w-72 overflow-hidden">
                                     <div class="p-2 border-b border-border">
-                                        <input v-model="entitySearchQuery" ref="entitySearchRef" type="text" placeholder="Buscar entidad..."
+                                        <input aria-label="Search entities" v-model="entitySearchQuery" ref="entitySearchRef" type="text" placeholder="Buscar entidad..."
                                             class="w-full px-2 py-1.5 text-xs bg-surface border border-border rounded focus:outline-none focus:border-accent"
                                             @input="debouncedSearchEntities" />
                                     </div>
@@ -105,7 +105,7 @@
                                             </button>
                                         </div>
                                         <div v-else class="space-y-2">
-                                            <select v-model="newEntityTypeId"
+                                            <select aria-label="New entity type" v-model="newEntityTypeId"
                                                 class="w-full px-2 py-1.5 text-xs bg-surface border border-border rounded focus:outline-none focus:border-accent">
                                                 <option :value="0" disabled>Tipo de entidad...</option>
                                                 <option v-for="et in entityTypes" :key="et.id" :value="et.id">{{ et.name }}</option>
@@ -136,13 +136,13 @@
                         <button @click="removeTag(i)"
                             class="hover:text-red-500 transition-colors cursor-pointer leading-none">&times;</button>
                     </span>
-                    <input v-if="addingTag" v-model="newTagInput" ref="tagInputRef" type="text"
+                    <input aria-label="New tag" v-if="addingTag" v-model="newTagInput" ref="tagInputRef" type="text"
                         placeholder="Nueva etiqueta" @keydown.enter="commitTag" @keydown.escape="cancelTag"
                         @blur="commitTag"
                         class="px-2 py-0.5 rounded-full text-xs bg-surface border border-border focus:outline-none focus:border-accent w-32" />
                     <button v-else @click="startAddTag"
                         class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-text-muted hover:text-accent border border-dashed border-border hover:border-accent transition-colors cursor-pointer">
-                        <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <svg aria-hidden="true" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                                 clip-rule="evenodd" />
@@ -224,7 +224,7 @@ onMounted(async () => {
     }
 });
 
-const saveField = async (fields: Record<string, any>) => {
+const saveField = async (fields: Record<string, unknown>) => {
     const id = route.params.id;
     if (!id) return;
     saving.value = true;

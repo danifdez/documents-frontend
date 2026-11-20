@@ -6,7 +6,7 @@
           <!-- Header -->
           <div class="favorites-header">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 shrink-0" viewBox="0 0 20 20"
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 shrink-0" viewBox="0 0 20 20"
                 fill="currentColor">
                 <path
                   d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.176 0l-3.367 2.446c-.783.57-1.838-.196-1.539-1.118l1.286-3.958a1 1 0 00-.363-1.118L2.045 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.304-3.958z" />
@@ -16,9 +16,9 @@
                 {{ projectName }}
               </span>
             </div>
-            <button @click="close"
+            <button aria-label="Close favorites" @click="close"
               class="p-1.5 rounded-md text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="1.75">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -59,7 +59,7 @@
                   <div class="group flex items-center gap-2 px-4 py-2 transition-colors hover:bg-surface-hover"
                     :class="{ 'bg-amber-500/10': selection === category.id }">
                     <template v-if="editingCategoryId === category.id">
-                      <input v-model="editingCategoryName" type="text"
+                      <input aria-label="Category name" v-model="editingCategoryName" type="text"
                         class="flex-1 min-w-0 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
                         @keydown.enter="saveCategoryRename(category)" @keydown.esc="cancelCategoryRename"
                         @blur="saveCategoryRename(category)" />
@@ -103,7 +103,7 @@
                     <div class="group flex items-center gap-2 py-2 pl-8 pr-4 transition-colors hover:bg-surface-hover"
                       :class="{ 'bg-amber-500/10': selection === child.id }">
                       <template v-if="editingCategoryId === child.id">
-                        <input v-model="editingCategoryName" type="text"
+                        <input aria-label="Subcategory name" v-model="editingCategoryName" type="text"
                           class="flex-1 min-w-0 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
                           @keydown.enter="saveCategoryRename(child)" @keydown.esc="cancelCategoryRename"
                           @blur="saveCategoryRename(child)" />
@@ -116,7 +116,7 @@
                         <span class="shrink-0 text-[10px] text-text-muted">{{ directCount(child.id) }}</span>
                         <span class="hidden shrink-0 items-center gap-0.5 group-hover:flex">
                           <button class="fav-action text-text-muted" title="Rename" @click.stop="startCategoryRename(child)">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                               stroke="currentColor" stroke-width="1.75">
                               <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M16.5 3.75l3.75 3.75L8 19.75H4.25V16L16.5 3.75z" />
@@ -124,7 +124,7 @@
                           </button>
                           <button class="fav-action text-text-muted hover:text-red-500" title="Delete"
                             @click.stop="removeCategory(child)">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                               stroke="currentColor" stroke-width="1.75">
                               <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M6 7h12M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7m2 0v11a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 017 18V7" />
@@ -137,7 +137,7 @@
 
                   <!-- New subcategory inline form -->
                   <div v-if="addingChildParentId === category.id" class="flex items-center py-2 pl-8 pr-4">
-                    <input v-model="childName" type="text" placeholder="Subcategory name"
+                    <input aria-label="New subcategory name" v-model="childName" type="text" placeholder="Subcategory name"
                       class="flex-1 min-w-0 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text-primary outline-none placeholder:text-text-muted focus:border-accent"
                       @keydown.enter="saveChildCategory(category)" @keydown.esc="cancelAddChild"
                       @blur="saveChildCategory(category)" />
@@ -151,13 +151,13 @@
 
               <!-- New root category -->
               <div class="px-3 py-2 border-t border-border-light">
-                <input v-if="creatingRoot" v-model="rootName" type="text" placeholder="Category name"
+                <input aria-label="New category name" v-if="creatingRoot" v-model="rootName" type="text" placeholder="Category name"
                   class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted focus:border-accent"
                   @keydown.enter="saveRootCategory" @keydown.esc="cancelRootCategory" @blur="saveRootCategory" />
                 <button v-else
                   class="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-accent hover:bg-accent-subtle rounded-lg transition-colors cursor-pointer"
                   @click="startRootCategory">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd"
                       d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                       clip-rule="evenodd" />
@@ -172,17 +172,17 @@
               <!-- Add favorite -->
               <div class="shrink-0 px-5 py-3 border-b border-border-light space-y-2">
                 <div class="flex items-center gap-2">
-                  <input v-model="newUrl" type="text" placeholder="https://example.com"
+                  <input aria-label="Favorite URL" v-model="newUrl" type="text" placeholder="https://example.com"
                     class="flex-1 bg-surface border border-border rounded-lg text-sm text-text-primary outline-none px-3 py-2 placeholder:text-text-muted focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                     @keydown.enter="add" />
-                  <select v-model="newCategoryId"
+                  <select aria-label="Favorite category" v-model="newCategoryId"
                     class="w-40 shrink-0 bg-surface border border-border rounded-lg text-xs text-text-secondary px-2.5 py-2 outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer">
                     <option value="">Uncategorized</option>
                     <option v-for="option in categoryOptions" :key="option.id" :value="option.id">{{ option.label }}</option>
                   </select>
                 </div>
                 <div class="flex items-center gap-2">
-                  <input v-model="newTitle" type="text" placeholder="Title (optional)"
+                  <input aria-label="Favorite title (optional)" v-model="newTitle" type="text" placeholder="Title (optional)"
                     class="flex-1 bg-surface border border-border rounded-lg text-sm text-text-primary outline-none px-3 py-2 placeholder:text-text-muted focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                     @keydown.enter="add" />
                   <button :disabled="!newUrl.trim() || adding"
@@ -200,7 +200,7 @@
                 </div>
 
                 <div v-else-if="visibleFavorites.length === 0" class="flex flex-col items-center justify-center py-16 text-center px-8">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-text-muted mb-3" fill="none"
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-text-muted mb-3" fill="none"
                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M11.48 3.5l2.3 4.66 5.14.75-3.72 3.63.88 5.12-4.6-2.42-4.6 2.42.88-5.12-3.72-3.63 5.14-.75 2.3-4.66z" />
@@ -213,14 +213,14 @@
                   <div v-for="favorite in visibleFavorites" :key="favorite.id"
                     class="group border-b border-border-light transition-colors hover:bg-surface-hover">
                     <div v-if="editingId === favorite.id" class="px-5 py-3 space-y-2">
-                      <input v-model="editUrl" type="text" placeholder="https://example.com"
+                      <input aria-label="Favorite URL" v-model="editUrl" type="text" placeholder="https://example.com"
                         class="w-full bg-surface border border-border rounded-lg text-sm text-text-primary outline-none px-3 py-2 placeholder:text-text-muted focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                         @keydown.enter="saveEdit(favorite)" @keydown.esc="cancelEdit" />
-                      <input v-model="editTitle" type="text" placeholder="Title"
+                      <input aria-label="Favorite title" v-model="editTitle" type="text" placeholder="Title"
                         class="w-full bg-surface border border-border rounded-lg text-sm text-text-primary outline-none px-3 py-2 placeholder:text-text-muted focus:border-accent transition-all"
                         @keydown.enter="saveEdit(favorite)" @keydown.esc="cancelEdit" />
                       <div class="flex items-center gap-2">
-                        <select v-model="editCategoryId"
+                        <select aria-label="Favorite category" v-model="editCategoryId"
                           class="flex-1 bg-surface border border-border rounded-lg text-xs text-text-secondary px-2.5 py-2 outline-none cursor-pointer">
                           <option value="">Uncategorized</option>
                           <option v-for="option in categoryOptions" :key="option.id" :value="option.id">{{ option.label }}
@@ -237,7 +237,7 @@
 
                     <div v-else class="flex items-center gap-3 px-5 py-3">
                       <span class="w-8 h-8 rounded-md flex items-center justify-center bg-amber-500/10 text-amber-500 shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                           <path
                             d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.176 0l-3.367 2.446c-.783.57-1.838-.196-1.539-1.118l1.286-3.958a1 1 0 00-.363-1.118L2.045 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.304-3.958z" />
                         </svg>
@@ -250,14 +250,14 @@
                         </p>
                       </button>
                       <button class="fav-action text-text-muted" title="Edit" @click="startEdit(favorite)">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                           stroke="currentColor" stroke-width="1.75">
                           <path stroke-linecap="round" stroke-linejoin="round"
                             d="M16.5 3.75l3.75 3.75L8 19.75H4.25V16L16.5 3.75z" />
                         </svg>
                       </button>
                       <button class="fav-action text-text-muted hover:text-red-500" title="Remove" @click="remove(favorite)">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                           stroke="currentColor" stroke-width="1.75">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>

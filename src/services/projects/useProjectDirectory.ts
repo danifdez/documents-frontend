@@ -1,3 +1,4 @@
+import type { Project } from '../../types/Project';
 import apiClient from '../api';
 import { useApiRequest } from '../../composables/useApiRequest';
 
@@ -7,10 +8,10 @@ import { useApiRequest } from '../../composables/useApiRequest';
 export const useProjectDirectory = () => {
     const { isLoading, error, request } = useApiRequest();
 
-    const fetchProjects = (): Promise<any[]> =>
+    const fetchProjects = (): Promise<Project[]> =>
         request('Failed to fetch projects', async () => (await apiClient.get('/projects')).data);
 
-    const fetchProject = (id: string | number): Promise<any> =>
+    const fetchProject = (id: string | number): Promise<Project> =>
         request('Failed to fetch project', async () => (await apiClient.get(`/projects/${id}`)).data);
 
     return {

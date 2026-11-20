@@ -1,3 +1,4 @@
+import type { ElectronSettings } from '../types/electron';
 import { DEFAULT_LANGUAGE } from '../config/constants';
 
 /**
@@ -17,7 +18,7 @@ export function useElectronApi() {
     return settings?.language || DEFAULT_LANGUAGE;
   }
 
-  async function setSettings(settings: any) {
+  async function setSettings(settings: ElectronSettings) {
     if (!isElectron) return;
     return window.electronAPI.setSettings(settings);
   }
@@ -27,7 +28,7 @@ export function useElectronApi() {
     return window.electronAPI.openMultipleFileDialog();
   }
 
-  async function uploadDocument(projectId: string, filePath: string) {
+  async function uploadDocument(projectId: string | null, filePath: string) {
     if (!isElectron) return null;
     return window.electronAPI.uploadDocument(projectId, filePath);
   }

@@ -11,7 +11,7 @@
                             <div class="flex items-center gap-3">
                                 <div
                                     class="w-8 h-8 rounded-lg bg-accent-subtle flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-accent" fill="none"
+                                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-accent" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -22,9 +22,9 @@
                                     <p class="text-[11px] text-text-muted">{{ subtitle }}</p>
                                 </div>
                             </div>
-                            <button @click="$emit('close')"
+                            <button aria-label="Close chat" @click="$emit('close')"
                                 class="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -83,13 +83,13 @@
                         <div class="border-t border-border-light px-4 py-3">
                             <form @submit.prevent="sendMessage" class="flex items-end gap-2">
                                 <div class="flex-1 relative">
-                                    <input v-model="input" type="text" placeholder="Ask a question..."
+                                    <input aria-label="Ask a question" v-model="input" type="text" placeholder="Ask a question..."
                                         class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all pr-10"
                                         :disabled="isLoading" @keydown.escape="$emit('close')" ref="chatInput" />
                                 </div>
-                                <button type="submit" :disabled="isLoading || !input.trim()"
+                                <button aria-label="Send message" type="submit" :disabled="isLoading || !input.trim()"
                                     class="p-2.5 bg-accent hover:bg-accent-dark text-white rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0">
-                                    <svg v-if="!isLoading" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    <svg aria-hidden="true" v-if="!isLoading" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -180,7 +180,7 @@ watch(() => localMessages.value.length, () => {
     scrollToBottom();
 });
 
-const onAskResponse = (data: any) => {
+const onAskResponse = (data: { response?: string }) => {
     localMessages.value.push({
         role: 'assistant',
         text: data.response || 'No response from assistant.'

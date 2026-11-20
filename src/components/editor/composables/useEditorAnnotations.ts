@@ -1,3 +1,4 @@
+import type { Editor } from '@tiptap/core';
 import { ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCommentCreate } from '../../../services/comments/useCommentCreate';
@@ -15,13 +16,18 @@ interface MarkSelection extends Selection {
   type: MarkType;
 }
 
+interface AnnotationEvents {
+  'toggle-comments': [visible: boolean];
+  'comment-created': [];
+}
+
 const ANCHOR_CONTEXT = 120;
 
 /**
  * Cita y contexto del fragmento en el texto llano del editor. Lo usa el
  * navegador para volver a localizar la anotación fuera de documents.
  */
-function anchorFromEditor(editor: { value: any }, quote: string): AnnotationAnchor {
+function anchorFromEditor(editor: { value: Editor | null }, quote: string): AnnotationAnchor {
   const instance = editor.value;
   if (!instance || !quote) return { quote };
   const text: string = instance.state.doc.textContent;
@@ -40,8 +46,8 @@ function anchorFromEditor(editor: { value: any }, quote: string): AnnotationAnch
  * Extracts the comment/mark logic from EditorContent.vue.
  */
 export function useEditorAnnotations(
-  editor: { value: any },
-  emit: (event: any, ...args: any[]) => void,
+  editor: { value: Editor | null },
+  emit: <Event extends keyof AnnotationEvents>(event: Event, ...args: AnnotationEvents[Event]) => void,
   props: { context?: string },
 ) {
   const route = useRoute();
@@ -141,11 +147,11 @@ export function useEditorAnnotations(
         const loadedMarks = await loadMarks(route.params.id as string, entityType());
 
         if (editor.value && loadedMarks.length > 0) {
-          loadedMarks.forEach((mark: Record<string, any>) => {
+          loadedMarks.forEach((mark) => {
             markContentMap.value.set(mark.id, mark.content);
           });
           setTimeout(() => {
-            loadedMarks.forEach((mark: Record<string, any>) => {
+            loadedMarks.forEach((mark) => {
               try {
                 if (!mark.content || !mark.id) {
                   console.warn('Invalid mark data:', mark);

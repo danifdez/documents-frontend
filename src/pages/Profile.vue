@@ -18,7 +18,7 @@
               size="xl"
             />
             <div class="flex flex-col gap-2">
-              <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" @change="onFileSelected" />
+              <input aria-label="Choose profile photo" ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" @change="onFileSelected" />
               <button type="button" @click="fileInput?.click()" :disabled="isUploadingAvatar"
                 class="px-3 py-1.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 cursor-pointer">
                 {{ isUploadingAvatar ? 'Uploading...' : (user?.avatarPath ? 'Change photo' : 'Upload photo') }}
@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { getResponseError } from '../utils/errorDetails';
 import { ref, computed, onMounted } from 'vue';
 import { useProfile } from '../services/auth/useProfile';
 import { useGroupLookup } from '../services/permission-groups/useGroupLookup';
@@ -148,8 +149,8 @@ async function onFileSelected(e: Event) {
     avatarVersion.value++;
     avatarMessage.value = 'Photo updated';
     avatarError.value = false;
-  } catch (err: any) {
-    avatarMessage.value = err.response?.data?.message || 'Failed to upload photo';
+  } catch (err: unknown) {
+    avatarMessage.value = getResponseError(err) || 'Failed to upload photo';
     avatarError.value = true;
   } finally {
     isUploadingAvatar.value = false;
@@ -167,8 +168,8 @@ async function removeAvatar() {
     avatarVersion.value++;
     avatarMessage.value = 'Photo removed';
     avatarError.value = false;
-  } catch (err: any) {
-    avatarMessage.value = err.response?.data?.message || 'Failed to remove photo';
+  } catch (err: unknown) {
+    avatarMessage.value = getResponseError(err) || 'Failed to remove photo';
     avatarError.value = true;
   } finally {
     isUploadingAvatar.value = false;
@@ -207,8 +208,8 @@ async function saveProfile() {
     authStore.user = await updateMe({ displayName: displayName.value });
     profileMessage.value = 'Profile updated';
     profileError.value = false;
-  } catch (err: any) {
-    profileMessage.value = err.response?.data?.message || 'Failed to update profile';
+  } catch (err: unknown) {
+    profileMessage.value = getResponseError(err) || 'Failed to update profile';
     profileError.value = true;
   } finally {
     isSavingProfile.value = false;
@@ -242,8 +243,8 @@ async function changePassword() {
     confirmPassword.value = '';
     passwordMessage.value = 'Password changed successfully';
     passwordError.value = false;
-  } catch (err: any) {
-    passwordMessage.value = err.response?.data?.message || 'Failed to change password';
+  } catch (err: unknown) {
+    passwordMessage.value = getResponseError(err) || 'Failed to change password';
     passwordError.value = true;
   } finally {
     isSavingPassword.value = false;

@@ -20,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
@@ -27,13 +28,13 @@ import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 
 defineProps<{
   id: string;
-  data: Record<string, any>;
+  data: CanvasNodeData;
   selected: boolean;
 }>();
 
-const { node } = useNode();
+const { node } = useNode<CanvasNodeData>();
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

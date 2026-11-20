@@ -74,6 +74,7 @@
 </template>
 
 <script setup lang="ts">
+import { getErrorMessage, getResponseError } from '../../utils/errorDetails';
 import { computed, ref } from 'vue';
 import { useAgentStore } from '../../store/agentStore';
 import type { AgentMessage } from '../../types/Agent';
@@ -91,8 +92,8 @@ async function cancelExecution(): Promise<void> {
     cancelling.value = true;
     try {
         await store.cancelActiveExecution();
-    } catch (error: any) {
-        alert(error?.response?.data?.message || error?.message || 'Could not stop the execution');
+    } catch (error: unknown) {
+        alert(getResponseError(error) || getErrorMessage(error) || 'Could not stop the execution');
     } finally {
         cancelling.value = false;
     }
@@ -105,8 +106,8 @@ async function decideConfirmation(
     resolvingConfirmations.value.add(confirmationId);
     try {
         await store.decideConfirmation(confirmationId, decision);
-    } catch (error: any) {
-        alert(error?.response?.data?.message || error?.message || 'Could not save the decision');
+    } catch (error: unknown) {
+        alert(getResponseError(error) || getErrorMessage(error) || 'Could not save the decision');
     } finally {
         resolvingConfirmations.value.delete(confirmationId);
     }

@@ -15,7 +15,7 @@
                 because we don't know when this resource was written.
             </div>
             <div class="flex items-center gap-2">
-                <input type="date" v-model="anchorInput"
+                <input aria-label="Anchor date" type="date" v-model="anchorInput"
                     class="bg-surface border border-border rounded px-2 py-1 text-text-primary" />
                 <button @click="saveAnchor" :disabled="!anchorInput || savingAnchor"
                     class="px-2 py-1 rounded bg-accent text-white text-xs disabled:opacity-50">

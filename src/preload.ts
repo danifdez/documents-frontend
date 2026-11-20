@@ -1,6 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
+import type { OfflineEntity } from './types/offline';
 import { contextBridge, ipcRenderer } from 'electron';
 import { attachEvaluationRelay } from './evaluation-relay';
 import { IpcChannels, IpcEvents } from './ipc/channels';
@@ -83,10 +84,10 @@ const shellOps: ShellOpsBridge = {
 contextBridge.exposeInMainWorld('shellOps', shellOps);
 
 const electronAPI: ElectronAPI = {
-    uploadDocument: (idProject: string, filePath: string) => ipcRenderer.invoke(IpcChannels.document.upload, idProject, filePath),
+    uploadDocument: (idProject, filePath) => ipcRenderer.invoke(IpcChannels.document.upload, idProject, filePath),
     openMultipleFileDialog: () => ipcRenderer.invoke(IpcChannels.document.openMultipleFileDialog),
     getSettings: () => ipcRenderer.invoke(IpcChannels.settings.get),
-    setSettings: (settings: any) => ipcRenderer.invoke(IpcChannels.settings.set, settings),
+    setSettings: settings => ipcRenderer.invoke(IpcChannels.settings.set, settings),
     // Exposes the residente/tray runtime info that
     // the Settings UI needs to gate platform-specific controls.
     getTrayAvailable: (): Promise<boolean> => ipcRenderer.invoke(IpcChannels.app.trayAvailable),
@@ -94,8 +95,8 @@ const electronAPI: ElectronAPI = {
 
     // Workspace management
     getWorkspaces: () => ipcRenderer.invoke(IpcChannels.workspace.list),
-    addWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => ipcRenderer.invoke(IpcChannels.workspace.add, workspace),
-    updateWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => ipcRenderer.invoke(IpcChannels.workspace.update, workspace),
+    addWorkspace: workspace => ipcRenderer.invoke(IpcChannels.workspace.add, workspace),
+    updateWorkspace: workspace => ipcRenderer.invoke(IpcChannels.workspace.update, workspace),
     removeWorkspace: (id: string) => ipcRenderer.invoke(IpcChannels.workspace.remove, id),
     getActiveWorkspace: () => ipcRenderer.invoke(IpcChannels.workspace.getActive),
     setActiveWorkspace: (id: string) => ipcRenderer.invoke(IpcChannels.workspace.setActive, id),
@@ -125,11 +126,11 @@ const electronAPI: ElectronAPI = {
     standaloneGetFeatures: () => ipcRenderer.invoke(IpcChannels.standalone.getFeatures),
     standaloneSetFeatures: (features: Record<string, boolean>) =>
         ipcRenderer.invoke(IpcChannels.standalone.setFeatures, features),
-    onStandaloneDownloadProgress: (callback: (progress: any) => void) =>
+    onStandaloneDownloadProgress: callback =>
         ipcRenderer.on(IpcEvents.standalone.downloadProgress, (_event, progress) => callback(progress)),
 
     // Offline filesystem storage
-    offlinePutItem: (wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) =>
+    offlinePutItem: (wsId: string, type: string, id: number, data: OfflineEntity, syncedAt: string, parentType?: string, parentId?: number) =>
         ipcRenderer.invoke(IpcChannels.offline.putItem, wsId, type, id, data, syncedAt, parentType, parentId),
     offlineGetItem: (wsId: string, type: string, id: number) =>
         ipcRenderer.invoke(IpcChannels.offline.getItem, wsId, type, id),
@@ -143,7 +144,7 @@ const electronAPI: ElectronAPI = {
         ipcRenderer.invoke(IpcChannels.offline.getFilePath, wsId, resourceId),
     offlineDeleteFile: (wsId: string, resourceId: number) =>
         ipcRenderer.invoke(IpcChannels.offline.deleteFile, wsId, resourceId),
-    offlineAddPendingChange: (wsId: string, entityType: string, entityId: number, method: string, payload: any) =>
+    offlineAddPendingChange: (wsId: string, entityType: string, entityId: number, method: string, payload: unknown) =>
         ipcRenderer.invoke(IpcChannels.offline.addPendingChange, wsId, entityType, entityId, method, payload),
     offlineGetPendingChanges: (wsId: string) =>
         ipcRenderer.invoke(IpcChannels.offline.getPendingChanges, wsId),

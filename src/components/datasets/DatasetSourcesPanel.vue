@@ -2,7 +2,7 @@
     <div class="p-4 max-w-3xl space-y-4">
         <!-- Mode selector -->
         <div class="space-y-2">
-            <label class="block text-xs font-semibold text-text-secondary uppercase tracking-wider">Source mode</label>
+            <div class="block text-xs font-semibold text-text-secondary uppercase tracking-wider">Source mode</div>
             <div class="space-y-2">
                 <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors"
                     :class="sourceMode === 'manual' ? 'border-accent bg-accent-subtle' : 'border-border hover:bg-surface-hover'">
@@ -39,7 +39,7 @@
 
         <!-- Mode-specific config -->
         <div v-if="sourceMode === 'project_resources'" class="space-y-2 pl-2">
-            <label class="block text-xs font-medium text-text-secondary">Filter by type (optional)</label>
+            <div class="block text-xs font-medium text-text-secondary">Filter by type (optional)</div>
             <div class="flex flex-wrap gap-2">
                 <label v-for="t in mimeFilterChoices" :key="t.value"
                     class="inline-flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs cursor-pointer transition-colors"
@@ -54,13 +54,13 @@
         </div>
 
         <div v-if="sourceMode === 'resource_selection'" class="space-y-2 pl-2">
-            <label class="block text-xs font-medium text-text-secondary">Selected resources ({{ resourceIds.length }})</label>
+            <div class="block text-xs font-medium text-text-secondary">Selected resources ({{ resourceIds.length }})</div>
             <div class="flex flex-wrap gap-2">
                 <span v-for="id in resourceIds" :key="id"
                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-subtle text-accent text-xs">
                     {{ resourceTitle(id) }}
-                    <button type="button" @click="removeResource(id)" class="hover:text-red-600 cursor-pointer">
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <button aria-label="Remove source resource" type="button" @click="removeResource(id)" class="hover:text-red-600 cursor-pointer">
+                        <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -95,7 +95,7 @@
                             <h3 class="text-sm font-semibold text-text-primary">Select resources</h3>
                         </div>
                         <div class="px-5 py-3 border-b border-border-light">
-                            <input v-model="pickerSearch" type="text" placeholder="Search by title..."
+                            <input aria-label="Search source resources by title" v-model="pickerSearch" type="text" placeholder="Search by title..."
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                         </div>
                         <div class="flex-1 overflow-y-auto divide-y divide-border-light">

@@ -3,7 +3,7 @@ import { createApp } from 'vue';
 import TimelineViewNode from '../TimelineViewNode.vue';
 
 export interface TimelineViewOptions {
-    HTMLAttributes: Record<string, any>;
+    HTMLAttributes: Record<string, unknown>;
 }
 
 declare module '@tiptap/core' {
@@ -39,7 +39,7 @@ export const TimelineViewExtension = Node.create<TimelineViewOptions>({
             timelineId: {
                 default: null,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-timeline-id');
+                    const val = element.dataset.timelineId;
                     return val ? Number(val) : null;
                 },
                 renderHTML: (attributes) => ({
@@ -48,35 +48,35 @@ export const TimelineViewExtension = Node.create<TimelineViewOptions>({
             },
             timelineName: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-timeline-name') || '',
+                parseHTML: (element) => element.dataset.timelineName || '',
                 renderHTML: (attributes) => ({
                     'data-timeline-name': attributes.timelineName,
                 }),
             },
             filterMode: {
                 default: 'all',
-                parseHTML: (element) => element.getAttribute('data-filter-mode') || 'all',
+                parseHTML: (element) => element.dataset.filterMode || 'all',
                 renderHTML: (attributes) => ({
                     'data-filter-mode': attributes.filterMode,
                 }),
             },
             epochId: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-epoch-id') || '',
+                parseHTML: (element) => element.dataset.epochId || '',
                 renderHTML: (attributes) => ({
                     'data-epoch-id': attributes.epochId,
                 }),
             },
             dateFrom: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-date-from') || '',
+                parseHTML: (element) => element.dataset.dateFrom || '',
                 renderHTML: (attributes) => ({
                     'data-date-from': attributes.dateFrom,
                 }),
             },
             dateTo: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-date-to') || '',
+                parseHTML: (element) => element.dataset.dateTo || '',
                 renderHTML: (attributes) => ({
                     'data-date-to': attributes.dateTo,
                 }),
@@ -84,7 +84,7 @@ export const TimelineViewExtension = Node.create<TimelineViewOptions>({
             viewZoom: {
                 default: 1,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-view-zoom');
+                    const val = element.dataset.viewZoom;
                     return val ? Number(val) : 1;
                 },
                 renderHTML: (attributes) => ({
@@ -94,7 +94,7 @@ export const TimelineViewExtension = Node.create<TimelineViewOptions>({
             viewPanX: {
                 default: 0,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-view-pan-x');
+                    const val = element.dataset.viewPanX;
                     return val ? Number(val) : 0;
                 },
                 renderHTML: (attributes) => ({
@@ -104,7 +104,7 @@ export const TimelineViewExtension = Node.create<TimelineViewOptions>({
             viewPanY: {
                 default: 0,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-view-pan-y');
+                    const val = element.dataset.viewPanY;
                     return val ? Number(val) : 0;
                 },
                 renderHTML: (attributes) => ({
@@ -137,7 +137,7 @@ export const TimelineViewExtension = Node.create<TimelineViewOptions>({
             dom.classList.add('timeline-view-wrapper');
             dom.setAttribute('contenteditable', 'false');
 
-            const updateAttrs = (attrs: Record<string, any>) => {
+            const updateAttrs = (attrs: Record<string, unknown>) => {
                 const pos = getPos();
                 if (typeof pos !== 'number') return;
                 const currentNode = editor.view.state.doc.nodeAt(pos);

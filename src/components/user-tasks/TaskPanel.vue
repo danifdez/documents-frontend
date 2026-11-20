@@ -24,9 +24,9 @@
                             {{ pendingCount }}
                         </span>
                     </div>
-                    <button @click="close"
+                    <button aria-label="Close tasks" @click="close"
                         class="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -42,7 +42,7 @@
                             <button @click="toggleTask(task)"
                                 class="shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 cursor-pointer border-border-light hover:border-accent">
                             </button>
-                            <input :ref="el => setInputRef(el, index)" :value="task.title" type="text"
+                            <input aria-label="Task title" :ref="el => setInputRef(el, index)" :value="task.title" type="text"
                                 class="flex-1 bg-transparent text-[15px] text-text-primary outline-none placeholder:text-text-muted"
                                 @focus="expandedTask = task.id" @blur="saveTitle(task, $event)"
                                 @keydown.enter="handleEnter(index, $event)"
@@ -53,9 +53,9 @@
                                 class="shrink-0 text-[13px] cursor-default"
                                 :title="`Reminder · ${formatLocal(task.reminderAt)}`"
                                 @click.stop="expandedTask = task.id">🔔</span>
-                            <button @click="removeTask(task)"
+                            <button aria-label="Delete task" @click="removeTask(task)"
                                 class="shrink-0 p-1.5 rounded-lg text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -63,12 +63,12 @@
                         </div>
                         <!-- Description + reminder (expanded) -->
                         <div v-if="expandedTask === task.id" class="pl-[52px] pr-4 pb-3 space-y-2">
-                            <textarea :value="task.description || ''" rows="2" placeholder="Add a note..."
+                            <textarea aria-label="Task note" :value="task.description || ''" rows="2" placeholder="Add a note..."
                                 class="w-full bg-surface rounded-2xl border border-border text-sm text-text-secondary outline-none px-4 py-2.5 resize-none placeholder:text-text-muted focus:ring-1 focus:ring-accent/20 focus:border-accent transition-all"
                                 @blur="saveDescription(task, $event)" @keydown.esc="close"></textarea>
                             <div class="flex items-center gap-2">
-                                <label class="text-[11px] text-text-muted">Remind me at</label>
-                                <input :value="toLocalInput(task.reminderAt)" type="datetime-local"
+                                <label :for="`${formId}-task-reminder-${task.id}`" class="text-[11px] text-text-muted">Remind me at</label>
+                                <input :id="`${formId}-task-reminder-${task.id}`" :value="toLocalInput(task.reminderAt)" type="datetime-local"
                                     class="bg-surface rounded-md border border-border text-xs px-2 py-1"
                                     @change="saveReminder(task, $event)" />
                                 <button v-if="task.reminderAt" type="button"
@@ -86,15 +86,15 @@
                         <div
                             class="shrink-0 w-5 h-5 rounded-md border-2 border-dashed border-border-light">
                         </div>
-                        <input ref="newTaskInput" v-model="newTitle" type="text" placeholder="Add a task..."
+                        <input aria-label="New task title" ref="newTaskInput" v-model="newTitle" type="text" placeholder="Add a task..."
                             class="flex-1 bg-transparent text-[15px] text-text-primary outline-none placeholder:text-text-muted"
                             @keydown.enter="addTask" @keydown.up.prevent="focusInput(pendingTasks.length - 1)"
                             @keydown.esc="close" @focus="expandedTask = null" />
                     </div>
                     <!-- Optional reminder for the new task -->
                     <div class="flex items-center gap-2 pl-[52px] pr-4 pb-2">
-                        <label class="text-[11px] text-text-muted">Remind me at</label>
-                        <input v-model="newReminderAt" type="datetime-local"
+                        <label :for="`${formId}-new-reminder-at`" class="text-[11px] text-text-muted">Remind me at</label>
+                        <input :id="`${formId}-new-reminder-at`" v-model="newReminderAt" type="datetime-local"
                             class="bg-surface rounded-md border border-border text-xs px-2 py-1" />
                         <button v-if="newReminderAt" type="button"
                             class="text-[11px] text-text-muted hover:text-text-primary"
@@ -109,7 +109,7 @@
                         <div class="flex items-center justify-between">
                             <button @click="showCompleted = !showCompleted"
                                 class="flex items-center gap-2.5 px-4 py-2 text-sm text-text-muted hover:text-text-secondary transition-colors cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200"
                                     :class="{ 'rotate-90': showCompleted }" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd"
                                         d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
@@ -125,9 +125,9 @@
                         <template v-if="showCompleted">
                             <div v-for="task in completedTasks" :key="task.id"
                                 class="group flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-surface-hover transition-colors">
-                                <button @click="toggleTask(task)"
+                                <button aria-label="Mark task as incomplete" @click="toggleTask(task)"
                                     class="shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 cursor-pointer border-emerald-500 bg-emerald-500 text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20"
+                                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20"
                                         fill="currentColor">
                                         <path fill-rule="evenodd"
                                             d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -136,9 +136,9 @@
                                 </button>
                                 <span class="flex-1 text-[15px] text-text-muted line-through truncate">{{ task.title
                                     }}</span>
-                                <button @click="removeTask(task)"
+                                <button aria-label="Delete task" @click="removeTask(task)"
                                     class="shrink-0 p-1.5 rounded-lg text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M6 18L18 6M6 6l12 12" />
@@ -154,9 +154,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { useId, ref, computed, watch, nextTick, type ComponentPublicInstance } from 'vue';
 import { useUserTasks } from '../../services/user-tasks/useUserTasks';
 import type { UserTask } from '../../types/UserTask';
+
+const formId = useId();
 
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void }>();
@@ -185,7 +187,7 @@ function toLocalInput(iso: string | null | undefined): string {
     // `datetime-local` expects "YYYY-MM-DDTHH:MM" in local time.
     if (!iso) return '';
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
+    if (Number.isNaN(d.getTime())) return '';
     const offsetMs = d.getTimezoneOffset() * 60_000;
     return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
 }
@@ -206,8 +208,8 @@ watch(() => props.modelValue, async (open) => {
     }
 });
 
-const setInputRef = (el: any, index: number) => {
-    inputRefs.value[index] = el;
+const setInputRef = (el: Element | ComponentPublicInstance | null, index: number) => {
+    inputRefs.value[index] = el instanceof HTMLInputElement ? el : null;
 };
 
 const focusInput = (index: number) => {
@@ -250,7 +252,7 @@ const saveReminder = async (task: UserTask, event: Event) => {
         return;
     }
     const parsed = new Date(raw);
-    if (isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
+    if (Number.isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
         reminderError.value = task.id;
         return;
     }

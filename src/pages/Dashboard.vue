@@ -6,7 +6,7 @@
           <template #actions>
             <FilterBadge v-if="filterActive" :term="searchTerm" @clear="clearFilter" />
             <Button variant="secondary" @click="showImportModal = true">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="1.75">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -14,7 +14,7 @@
               <span>Import Resource</span>
             </Button>
             <Button @click="openProjectModal">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd"
                   d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                   clip-rule="evenodd" />
@@ -29,7 +29,7 @@
       <div v-if="pendingResources.length > 0" class="mb-8">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-sm font-semibold text-amber-600 uppercase tracking-wider flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Pending Resources
@@ -46,7 +46,7 @@
               </router-link>
 
               <!-- Assign to project -->
-              <select @click.stop
+              <select :aria-label="`Assign project to ${resource.title || resource.name}`" @click.stop
                 @change="handleAssignResource(resource.id, $event.target.value); $event.target.value = ''"
                 class="text-xs bg-surface border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer shrink-0 max-w-[10rem]">
                 <option value="">Assign to project...</option>
@@ -59,7 +59,7 @@
               <button @click.stop="confirmDeleteResource(resource)"
                 class="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100 shrink-0 cursor-pointer"
                 title="Delete resource">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>

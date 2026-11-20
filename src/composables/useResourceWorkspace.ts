@@ -1,12 +1,6 @@
 import { ref, type Ref } from 'vue';
-import { useDocument } from '../services/documents/useDocument';
+import { useDocument, type DocumentRecord } from '../services/documents/useDocument';
 import { useResourceDocs } from '../services/documents/useResourceDocs';
-
-interface ResourceWorkspaceDocument {
-    id?: number;
-    content?: string;
-    [key: string]: unknown;
-}
 
 interface WorkspaceSourceResource {
     name?: string;
@@ -15,7 +9,7 @@ interface WorkspaceSourceResource {
 }
 
 interface EnsureWorkspaceResult {
-    document: ResourceWorkspaceDocument;
+    document: DocumentRecord;
     created: boolean;
 }
 
@@ -23,7 +17,7 @@ export function useResourceWorkspace(
     resourceId: Ref<string>,
     resource: Ref<WorkspaceSourceResource>,
 ) {
-    const workspaceDocument = ref<ResourceWorkspaceDocument | null>(null);
+    const workspaceDocument = ref<DocumentRecord | null>(null);
     const isLoadingWorkspace = ref(false);
     const { saveDocument } = useDocument();
     const { fetchWorkspaceDocument, createDocument } = useResourceDocs();

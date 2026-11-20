@@ -4,13 +4,13 @@
     @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop">
     <div class="space-y-4">
       <div class="flex flex-col">
-        <label class="block text-sm font-medium text-text-secondary mb-1">Select Documents</label>
+        <label :for="`${formId}-document-files`" class="block text-sm font-medium text-text-secondary mb-1">Select Documents</label>
         <div ref="dropZoneRef"
           class="border-2 border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-surface-hover w-full min-h-28"
           :class="{ 'border-blue-500 bg-blue-50': dragging }" @click="selectDocuments"
           @dragenter.prevent="handleDragEnter" @dragover.prevent="handleDragOver" @dragleave.prevent="handleDragLeave"
           @drop.prevent="handleDrop">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-text-muted" fill="none" viewBox="0 0 24 24"
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-text-muted" fill="none" viewBox="0 0 24 24"
             stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -19,7 +19,7 @@
           <p class="text-xs text-text-muted">You can select multiple files</p>
         </div>
         <!-- Hidden file input fallback for non-electron browsers -->
-        <input ref="fileInputRef" type="file" class="hidden" multiple @change="onFileInputChange" />
+        <input :id="`${formId}-document-files`" ref="fileInputRef" type="file" class="hidden" multiple @change="onFileInputChange" />
       </div>
 
       <div v-if="selectedFiles.length > 0" class="mt-4">
@@ -28,7 +28,7 @@
           <div v-for="(file, index) in selectedFiles" :key="index"
             class="flex justify-between items-center py-2 border-b last:border-b-0">
             <div class="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted mr-2" fill="none" viewBox="0 0 24 24"
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted mr-2" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -36,7 +36,7 @@
               <span class="text-sm truncate max-w-xs">{{ file.name }}</span>
             </div>
             <Button @click="removeFile(index)" title="Remove file">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -65,12 +65,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import type { DocumentUploadResult } from '../../types/electron';
+import { useId, ref } from 'vue';
 import Modal from '../ui/Modal/Modal.vue';
 import Button from '../ui/Button.vue';
 import { useNotification } from '../../composables/useNotification';
 import { getApiBaseUrl } from '../../services/apiBase';
 import { getAccessToken } from '../../services/workspaceScope';
+
+const formId = useId();
 
 const props = defineProps({
   modelValue: {
@@ -89,25 +92,27 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'documents:imported']);
 
-const selectedFiles = ref<File[]>([]);
+type ImportFile = (File & { path?: string }) | { path: string; name: string };
+
+const selectedFiles = ref<ImportFile[]>([]);
 const dragging = ref(false);
 const dragCounter = ref(0);
 const isImporting = ref(false);
 const processedCount = ref(0);
 const notification = useNotification();
 
-const uploadFile = async (file: any) => {
+const uploadFile = async (file: ImportFile): Promise<DocumentUploadResult> => {
   // If Electron API is available and we have a path, use it
-  if ((window as any).electronAPI?.uploadDocument && (file as any).path) {
-    return (window as any).electronAPI.uploadDocument(props.projectId || null, (file as any).path);
+  if (window.electronAPI?.uploadDocument && file.path) {
+    return window.electronAPI.uploadDocument(props.projectId || null, file.path);
   }
 
   // Fallback: browser File -> FormData to API
-  if (file instanceof File || (file?.arrayBuffer && typeof file.arrayBuffer === 'function')) {
+  if (file instanceof File || ('arrayBuffer' in file && typeof file.arrayBuffer === 'function')) {
     try {
       const fd = new FormData();
-      fd.append('file', file as File, (file as any).name || 'file');
-      fd.append('name', (file as any).name || 'file');
+      fd.append('file', file as File, file.name || 'file');
+      fd.append('name', file.name || 'file');
       if (props.projectId) {
         fd.append('projectId', props.projectId);
       }
@@ -140,8 +145,8 @@ const dropZoneRef = ref<HTMLElement | null>(null);
 const selectDocuments = async () => {
   try {
     // Prefer Electron dialog if available, otherwise fallback to native input
-    if ((window as any).electronAPI?.openMultipleFileDialog) {
-      const files = await (window as any).electronAPI.openMultipleFileDialog();
+    if (window.electronAPI?.openMultipleFileDialog) {
+      const files = await window.electronAPI.openMultipleFileDialog();
       if (files && files.length > 0) addFiles(files);
     } else if (fileInputRef.value) {
       fileInputRef.value.value = '';
@@ -164,11 +169,11 @@ const removeFile = (index: number) => {
   selectedFiles.value.splice(index, 1);
 };
 
-const addFiles = (files: FileList | File[]) => {
-  const arr = Array.from(files as any) as File[];
+const addFiles = (files: FileList | ImportFile[]) => {
+  const arr = Array.from<ImportFile>(files);
   for (const file of arr) {
-    const path = (file as any).path ?? (file as any).webkitRelativePath ?? (file as File).name;
-    const already = selectedFiles.value.some(f => ((f as any).path ?? f.name) === path);
+    const path = file.path ?? ('webkitRelativePath' in file ? file.webkitRelativePath : undefined) ?? file.name;
+    const already = selectedFiles.value.some(f => (f.path ?? f.name) === path);
     if (!already) {
       selectedFiles.value.push(file as File);
     }
@@ -238,11 +243,11 @@ const importDocuments = async () => {
         try {
           const r = await uploadFile(file);
           processedCount.value++;
-          return { status: 'fulfilled', value: r };
+          return { status: 'fulfilled' as const, value: r };
         } catch (err) {
           processedCount.value++;
           notification.error(`Error importing document: ${file.name}`, { title: (err as Error).message || 'Failed to import document' });
-          return { status: 'rejected', reason: err };
+          return { status: 'rejected' as const, reason: err };
         }
       })();
     });
@@ -253,7 +258,7 @@ const importDocuments = async () => {
     let successCount = 0;
     let failureCount = 0;
     for (let i = 0; i < results.length; i++) {
-      const res = results[i] as any;
+      const res = results[i];
       // If the result is the status wrapper we returned above
       if (res && res.status === 'fulfilled') {
         const value = res.value;
@@ -266,14 +271,6 @@ const importDocuments = async () => {
       } else if (res && res.status === 'rejected') {
         failureCount++;
         notification.error(`Failed to import: ${selectedFiles.value[i]?.name ?? 'unknown'}`, { title: (res.reason as Error)?.message ?? 'Upload failed' });
-      } else {
-        // Other shape — check for error payload directly
-        if (res && res.error) {
-          failureCount++;
-          notification.error(`Failed to import: ${selectedFiles.value[i]?.name ?? 'unknown'}`, { title: res.error });
-        } else {
-          successCount++;
-        }
       }
     }
 

@@ -9,7 +9,7 @@ export interface Assistant {
     updatedAt: string;
 }
 
-export type AssistantMessageEvent = { kind: string; [k: string]: any };
+export type AssistantMessageEvent = { kind: string; [k: string]: unknown };
 
 export interface AssistantMessage {
     id: number;

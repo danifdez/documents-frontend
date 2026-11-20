@@ -87,7 +87,7 @@
       <div class="h-6 w-px bg-border mx-0.5"></div>
       <Button @click="editor?.chain().focus().setTextAlign('left').run()" title="Align Left (Ctrl+Shift+L)"
         size="small" :active="editor?.isActive({ textAlign: 'left' })" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
           <rect x="3" y="4" width="12" height="2.5" rx="1" fill="currentColor" />
           <rect x="3" y="9" width="8" height="2.5" rx="1" fill="currentColor" />
           <rect x="3" y="14" width="12" height="2.5" rx="1" fill="currentColor" />
@@ -95,7 +95,7 @@
       </Button>
       <Button @click="editor?.chain().focus().setTextAlign('center').run()" title="Align Center (Ctrl+Shift+E)"
         size="small" :active="editor?.isActive({ textAlign: 'center' })" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
           <rect x="2" y="4" width="16" height="2.5" rx="1" fill="currentColor" />
           <rect x="5" y="9" width="10" height="2.5" rx="1" fill="currentColor" />
           <rect x="2" y="14" width="16" height="2.5" rx="1" fill="currentColor" />
@@ -103,7 +103,7 @@
       </Button>
       <Button @click="editor?.chain().focus().setTextAlign('right').run()" title="Align Right (Ctrl+Shift+R)"
         size="small" :active="editor?.isActive({ textAlign: 'right' })" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
           <rect x="5" y="4" width="12" height="2.5" rx="1" fill="currentColor" />
           <rect x="9" y="9" width="8" height="2.5" rx="1" fill="currentColor" />
           <rect x="5" y="14" width="12" height="2.5" rx="1" fill="currentColor" />
@@ -111,7 +111,7 @@
       </Button>
       <Button @click="editor?.chain().focus().setTextAlign('justify').run()" title="Justify (Ctrl+Shift+J)"
         size="small" :active="editor?.isActive({ textAlign: 'justify' })" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
           <rect x="2" y="4" width="16" height="2.5" rx="1" fill="currentColor" />
           <rect x="2" y="9" width="16" height="2.5" rx="1" fill="currentColor" />
           <rect x="2" y="14" width="16" height="2.5" rx="1" fill="currentColor" />
@@ -124,7 +124,7 @@
     <!-- Lists & Quote -->
     <Button @click="editor?.chain().focus().toggleOrderedList().run()" title="Numbered List (Ctrl+Shift+7)"
       size="small" :active="editor?.isActive('orderedList')" borderless>
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
         <rect x="2" y="3" width="3" height="3.5" rx="0.5" fill="currentColor" />
         <rect x="8" y="3.5" width="10" height="2.5" rx="1" fill="currentColor" />
         <rect x="2" y="8.5" width="3" height="3.5" rx="0.5" fill="currentColor" />
@@ -135,7 +135,7 @@
     </Button>
     <Button @click="editor?.chain().focus().toggleBulletList().run()" title="Bullet List (Ctrl+Shift+8)" size="small"
       :active="editor?.isActive('bulletList')" borderless>
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
         <circle cx="4" cy="4.5" r="2.5" fill="currentColor" />
         <rect x="8" y="3.5" width="10" height="2.5" rx="1" fill="currentColor" />
         <circle cx="4" cy="10" r="2.5" fill="currentColor" />
@@ -146,7 +146,7 @@
     </Button>
     <Button @click="editor?.chain().focus().toggleBlockquote().run()" title="Quote (Ctrl+Shift+B)" size="small"
       :active="editor?.isActive('blockquote')" borderless>
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
         <path
           d="M3 6L3 14L3.5 14C4.05228 14 4.5 13.5523 4.5 13L4.5 11C4.5 10.4477 4.94772 10 5.5 10L7.5 10C8.05228 10 8.5 9.55228 8.5 9L8.5 7C8.5 6.44772 8.05228 6 7.5 6L3 6Z"
           fill="currentColor" />
@@ -162,7 +162,7 @@
       <div class="relative">
         <Button @click="handleCodeBlock" title="Code Block (Ctrl+Alt+C)" size="small"
           :active="editor?.isActive('codeBlock')" borderless>
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
             <rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5" fill="none" />
             <path d="M7 7L4 10L7 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
               stroke-linejoin="round" />
@@ -198,10 +198,10 @@
         <div v-if="activeDropdown === 'link'"
           class="absolute top-9 left-0 w-72 border border-border rounded-lg shadow-lg p-3 z-30 bg-surface-elevated">
           <div class="text-sm font-medium mb-2">Insert / Edit Link</div>
-          <input v-model="linkUrl" type="text" placeholder="https://example.com"
+          <input aria-label="Link URL" v-model="linkUrl" type="text" placeholder="https://example.com"
             class="w-full border border-border rounded px-2 py-1.5 text-sm mb-1" ref="linkUrlInput"
             @keydown.enter.prevent="insertLink" @keydown.esc="closeDropdown" />
-          <input v-model="linkText" type="text" placeholder="Link text (optional)"
+          <input aria-label="Link text" v-model="linkText" type="text" placeholder="Link text (optional)"
             class="w-full border border-border rounded px-2 py-1.5 text-sm mb-2" @keydown.enter.prevent="insertLink"
             @keydown.esc="closeDropdown" />
           <div class="flex justify-between">
@@ -223,7 +223,7 @@
         <div v-if="activeDropdown === 'math'"
           class="absolute top-9 left-0 w-72 border border-border rounded-lg shadow-lg p-3 z-30 bg-surface-elevated">
           <div class="text-sm font-medium mb-2">Math Formula (LaTeX)</div>
-          <input v-model="mathFormula" type="text" placeholder="E = mc^2"
+          <input aria-label="Math formula" v-model="mathFormula" type="text" placeholder="E = mc^2"
             class="w-full border border-border rounded px-2 py-1.5 text-sm font-mono mb-2" ref="mathInput"
             @keydown.enter.prevent="confirmInsertMath" @keydown.esc="closeDropdown" />
           <div class="text-xs text-text-muted mb-2">e.g. \frac{a}{b}, \sqrt{x}, \sum_{i=0}^n</div>
@@ -236,7 +236,7 @@
 
       <!-- Image -->
       <Button @click="insertImage" title="Insert Image (Ctrl+Shift+I)" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
           <rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5" fill="none" />
           <circle cx="7" cy="7.5" r="1.5" fill="currentColor" />
           <path d="M2 14L6 10L9 13L13 8L18 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
@@ -247,7 +247,7 @@
       <!-- Video -->
       <div class="relative">
         <Button @click="toggleDropdown('video')" title="Insert Video (Ctrl+Shift+V)" size="small" borderless>
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
             <rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.5" fill="none" />
             <path d="M8 7.5V12.5L13 10L8 7.5Z" fill="currentColor" />
           </svg>
@@ -255,7 +255,7 @@
         <div v-if="activeDropdown === 'video'"
           class="absolute top-9 right-0 w-72 border border-border rounded-lg shadow-lg p-3 z-30 bg-surface-elevated">
           <div class="text-sm font-medium mb-2">Insert Video</div>
-          <input v-model="videoUrl" type="text" placeholder="YouTube, Vimeo or video URL"
+          <input aria-label="Video URL" v-model="videoUrl" type="text" placeholder="YouTube, Vimeo or video URL"
             class="w-full border border-border rounded px-2 py-1.5 text-sm mb-2" ref="videoUrlInput"
             @keydown.enter.prevent="confirmInsertVideo" @keydown.esc="closeDropdown" />
           <div class="flex justify-end gap-2">
@@ -268,7 +268,7 @@
       <!-- Table -->
       <div class="relative">
         <Button @click="handleTableButton" title="Table" size="small" :active="editor?.isActive('table')" borderless>
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
             <rect x="3" y="4" width="14" height="12" rx="1" stroke="currentColor" stroke-width="2" />
             <rect x="3" y="7.5" width="14" height="1.5" fill="currentColor" />
             <rect x="3" y="11" width="14" height="1.5" fill="currentColor" />
@@ -305,7 +305,7 @@
       <!-- Convert Table to Dataset -->
       <Button v-if="featureStore.isEnabled('datasets') && editor?.isActive('table')" @click="emit('convert-table-to-dataset')"
         title="Convert Table to Dataset" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <ellipse cx="12" cy="5" rx="9" ry="3" />
           <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
@@ -328,7 +328,7 @@
     <template v-if="context === 'document' || context === 'resource'">
       <div class="h-6 w-px bg-border mx-0.5"></div>
       <Button @click="handleAddComment" title="Add Comment (Ctrl+Alt+C)" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
           <path
             d="M17 4H3C2.44772 4 2 4.44772 2 5V15C2 15.5523 2.44772 16 3 16H6V18.5L10 16H17C17.5523 16 18 15.5523 18 15V5C18 4.44772 17.5523 4 17 4Z"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -337,7 +337,7 @@
         </svg>
       </Button>
       <Button @click="emit('add-reading-point')" title="Save reading mark (Ctrl+Shift+M)" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
@@ -345,7 +345,7 @@
         </svg>
       </Button>
       <Button @click="emit('add-section-point')" title="Save bookmark (Ctrl+Shift+K)" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
           <path d="M9 8h6" stroke="#49be8f" />
@@ -357,7 +357,7 @@
     <template v-if="context === 'document' || context === 'knowledge'">
       <div v-if="context === 'knowledge'" class="h-6 w-px bg-border mx-0.5"></div>
       <Button v-if="featureStore.isEnabled('bibliography')" @click="emit('add-reference')" title="Insert Reference" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
           <path d="M4 4H16C16.5523 4 17 4.44772 17 5V15C17 15.5523 16.5523 16 16 16H4C3.44772 16 3 15.5523 3 15V5C3 4.44772 3.44772 4 4 4Z" stroke="currentColor" stroke-width="1.5" fill="none" />
           <path d="M6 8L8 7V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
           <path d="M12 8C12 8 14 8.5 14 10C14 11.5 12 12 12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
@@ -369,7 +369,7 @@
     <!-- Dataset view (document-only) -->
     <template v-if="context === 'document'">
       <Button v-if="featureStore.isEnabled('datasets')" @click="emit('add-dataset-view')" title="Insert Dataset View" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7" />
           <path d="M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4" />
@@ -378,7 +378,7 @@
         </svg>
       </Button>
       <Button v-if="featureStore.isEnabled('datasets')" @click="emit('add-dataset-chart')" title="Insert Dataset Chart" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4v16h16" />
           <path d="M8 16V9" />
@@ -387,7 +387,7 @@
         </svg>
       </Button>
       <Button v-if="featureStore.isEnabled('canvas')" @click="emit('add-canvas-view')" title="Insert Canvas" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <circle cx="9" cy="9" r="1.5" />
@@ -396,7 +396,7 @@
         </svg>
       </Button>
       <Button v-if="featureStore.isEnabled('timelines')" @click="emit('add-timeline-view')" title="Insert Timeline" size="small" borderless>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -415,7 +415,7 @@
       </svg>
     </Button>
     <Button @click="editor?.chain().focus().redo().run()" title="Redo (Ctrl+Shift+Z)" size="small" borderless>
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none">
         <path d="M13 7L17 10L13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
           stroke-linejoin="round" />
         <path d="M17 10H7C4.79086 10 3 11.7909 3 14C3 16.2091 4.79086 18 7 18H9" stroke="currentColor"

@@ -8,7 +8,7 @@ import {
     isExecutionPublicationKnown,
 } from './executionPublication';
 
-type SocketEventListener = (...args: any[]) => void;
+type SocketEventListener = (...args: unknown[]) => void;
 
 let connectErrorLogged = false;
 

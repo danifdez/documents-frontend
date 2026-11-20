@@ -1,12 +1,13 @@
+import type { DocumentRecord } from './useDocument';
 import apiClient from '../api';
 
 export function useResourceDocs() {
-    const fetchWorkspaceDocument = async (resourceId: string): Promise<Record<string, any>> => {
+    const fetchWorkspaceDocument = async (resourceId: string): Promise<DocumentRecord> => {
         const response = await apiClient.get(`/docs/resource/${resourceId}`);
         return response.data;
     };
 
-    const createDocument = async (payload: Record<string, any>): Promise<Record<string, any>> => {
+    const createDocument = async (payload: Record<string, unknown>): Promise<DocumentRecord> => {
         const response = await apiClient.post('/docs', payload);
         return response.data;
     };

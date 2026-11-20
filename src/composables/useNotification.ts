@@ -36,7 +36,7 @@ export function useNotification() {
             ...options,
         };
 
-        let content: any = message;
+        let content: Parameters<typeof toast>[0] = message;
 
         if (options?.title || options?.link || options?.action) {
             content = h('div', { class: 'flex flex-col' }, [

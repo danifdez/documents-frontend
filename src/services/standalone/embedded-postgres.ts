@@ -1,9 +1,9 @@
 import { app } from 'electron';
-import path from 'path';
-import fs from 'fs';
-import net from 'net';
-import crypto from 'crypto';
-import { ChildProcess, spawn, execFile } from 'child_process';
+import path from 'node:path';
+import fs from 'node:fs';
+import net from 'node:net';
+import crypto from 'node:crypto';
+import { ChildProcess, spawn, execFile } from 'node:child_process';
 import Store from 'electron-store';
 import { getActiveComponentRoot, legacyComponentRoot } from './installed-components';
 import { getPersistentLocalDataDir } from './local-data';
@@ -59,8 +59,8 @@ export class EmbeddedPostgresService {
   private readPostmasterPid(): { pid: number; port: number } | null {
     try {
       const lines = fs.readFileSync(this.getPidFilePath(), 'utf-8').split('\n');
-      const pid = parseInt(lines[0], 10);
-      const port = parseInt(lines[3], 10);
+      const pid = Number.parseInt(lines[0], 10);
+      const port = Number.parseInt(lines[3], 10);
       if (!Number.isInteger(pid) || !Number.isInteger(port)) return null;
       return { pid, port };
     } catch {

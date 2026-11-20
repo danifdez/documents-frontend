@@ -1,3 +1,4 @@
+import type { Entity } from './useEntities';
 import apiClient from '../api';
 import { useApiRequest } from '../../composables/useApiRequest';
 import type { EntityScope, PendingEntity } from './usePendingEntities';
@@ -20,33 +21,33 @@ export interface MergePendingEntityDto {
 export const usePendingEntityValidation = () => {
     const { isLoading, error, request } = useApiRequest();
 
-    const fetchEntity = (id: number): Promise<any> =>
+    const fetchEntity = (id: number): Promise<Entity> =>
         request('Failed to fetch entity', async () => (await apiClient.get(`/entities/${id}`)).data);
 
     const fetchPendingEntity = (id: number): Promise<PendingEntity> =>
         request('Failed to fetch pending entity', async () => (await apiClient.get(`/pending-entities/${id}`)).data);
 
-    const findEntityByExactName = (name: string): Promise<any> =>
+    const findEntityByExactName = (name: string): Promise<Entity | null> =>
         request('Failed to search entity', async () =>
             (await apiClient.get('/entities/search/exact', { params: { name } })).data);
 
-    const retranslatePendingEntity = (id: number, dto: RetranslatePendingEntityDto): Promise<any> =>
+    const retranslatePendingEntity = (id: number, dto: RetranslatePendingEntityDto): Promise<unknown> =>
         request('Failed to retranslate pending entity', async () =>
             (await apiClient.post(`/pending-entities/${id}/retranslate`, dto)).data);
 
-    const confirmPendingEntity = (id: number): Promise<any> =>
+    const confirmPendingEntity = (id: number): Promise<{ success: boolean; message?: string }> =>
         request('Failed to confirm pending entity', async () =>
             (await apiClient.post(`/pending-entities/${id}/confirm`)).data);
 
-    const mergePendingEntity = (id: number, dto: MergePendingEntityDto): Promise<any> =>
+    const mergePendingEntity = (id: number, dto: MergePendingEntityDto): Promise<{ pending?: PendingEntity }> =>
         request('Failed to merge pending entity', async () =>
             (await apiClient.post(`/pending-entities/${id}/merge`, dto)).data);
 
-    const cancelMergePendingEntity = (id: number): Promise<any> =>
+    const cancelMergePendingEntity = (id: number): Promise<{ success: boolean; message: string }> =>
         request('Failed to cancel merge', async () =>
             (await apiClient.post(`/pending-entities/${id}/cancel-merge`)).data);
 
-    const fetchConfirmedEntitiesByResource = (resourceId: number | string, term?: string): Promise<any> =>
+    const fetchConfirmedEntitiesByResource = (resourceId: number | string, term?: string): Promise<Record<EntityScope, Entity[]>> =>
         request('Failed to fetch confirmed entities', async () => {
             const url = `/entities/by-resource/${resourceId}${term ? `?term=${encodeURIComponent(term)}` : ''}`;
             return (await apiClient.get(url)).data;

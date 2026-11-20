@@ -11,7 +11,7 @@
 
                     <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
                         <!-- Search -->
-                        <input v-model="searchTerm" type="text" placeholder="Search entities..."
+                        <input aria-label="Search entities" v-model="searchTerm" type="text" placeholder="Search entities..."
                             class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
 
                         <div v-if="loading" class="flex justify-center py-4">
@@ -49,7 +49,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import Button from '../ui/Button.vue';
-import { useEntities } from '../../services/entities/useEntities';
+import { useEntities, type Entity } from '../../services/entities/useEntities';
 
 const modelValue = defineModel<boolean>({ required: true });
 const { getAllEntities } = useEntities();
@@ -58,7 +58,7 @@ const emit = defineEmits<{
     insert: [config: { entityId: number; entityName: string; entityType: string }];
 }>();
 
-const entities = ref<any[]>([]);
+const entities = ref<Entity[]>([]);
 const selectedId = ref(0);
 const loading = ref(false);
 const searchTerm = ref('');

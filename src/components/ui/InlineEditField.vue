@@ -5,7 +5,7 @@
       <span class="text-sm" :class="value ? 'text-text-primary' : 'text-text-muted italic'">
         {{ displayValue || placeholder }}
       </span>
-      <svg v-if="!isEditing" xmlns="http://www.w3.org/2000/svg"
+      <svg aria-hidden="true" v-if="!isEditing" xmlns="http://www.w3.org/2000/svg"
         class="inline h-3 w-3 ml-1 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -14,12 +14,12 @@
 
     <!-- Edit mode -->
     <template v-else>
-      <select v-if="type === 'select'" ref="inputRef" :value="editValue" @change="onSelectChange"
+      <select :aria-label="placeholder || 'Edit value'" v-if="type === 'select'" ref="inputRef" :value="editValue" @change="onSelectChange"
         @blur="save" @keydown.enter="save" @keydown.escape="cancel"
         class="input-field text-sm">
         <option v-for="opt in normalizedOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
       </select>
-      <input v-else ref="inputRef" :type="type" :value="editValue" @input="onInput"
+      <input :aria-label="placeholder || 'Edit value'" v-else ref="inputRef" :type="type" :value="editValue" @input="onInput"
         @blur="save" @keydown.enter="save" @keydown.escape="cancel"
         class="input-field text-sm" />
     </template>

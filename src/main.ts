@@ -1,10 +1,13 @@
+import type { ElectronSettings } from './types/electron';
+import type { StoredWorkspace } from './types/Workspace';
+import { getErrorMessage } from './utils/errorDetails';
 import { app, BrowserWindow, Notification, screen, Menu, globalShortcut, session, Tray, nativeImage, dialog } from 'electron';
 import { localEngine } from './main/voice/localEngine';
 import { evaluationProfile } from './main/evaluation/profile';
 import { startEvaluation } from './main/evaluation/control';
-import path from 'path';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import fs from 'fs';
+import fs from 'node:fs';
 import axios from 'axios';
 import Store from 'electron-store';
 import squirrelStartup from 'electron-squirrel-startup';
@@ -100,8 +103,8 @@ function getApiUrl(): string {
   if (localUrl) return localUrl;
 
   const activeId = store.get('activeWorkspaceId') as string;
-  const workspaces = store.get('workspaces', []) as any[];
-  const active = workspaces.find((w: any) => w.id === activeId);
+  const workspaces = store.get('workspaces', []) as StoredWorkspace[];
+  const active = workspaces.find(w => w.id === activeId);
   return active?.url || import.meta.env.VITE_API_URL || 'http://localhost:3000';
 }
 
@@ -149,7 +152,7 @@ function focusMainWindow() {
 // Bring the main window to the front and send an IPC to its renderer.
 // Used by notification click handlers — the recreated path waits for the
 // renderer to finish loading before delivering the message.
-function focusMainWindowAndSend(channel: string, ...args: any[]) {
+function focusMainWindowAndSend(channel: string, ...args: unknown[]) {
   const wasDestroyed = !mainWindow || mainWindow.isDestroyed();
   focusMainWindow();
   if (!mainWindow) return;
@@ -182,7 +185,7 @@ function toggleMainWindow() {
 // Resolve the quick-assistant global shortcut. An explicit `null` means the
 // user cleared it; `undefined` (older settings) falls back to the default.
 function resolveQuickAssistantShortcut(
-  settings: Record<string, any> | null | undefined,
+  settings: ElectronSettings | null | undefined,
 ): string | null {
   if (!settings || settings.quickAssistantShortcut === undefined) {
     return DEFAULT_QUICK_ASSISTANT_SHORTCUT;
@@ -314,7 +317,7 @@ function shouldStartHidden(): boolean {
 // opts in via `settings.preloadVoiceModel`. Fire-and-forget: the helper
 // swallows its own errors so a missing binding never blocks startup.
 async function maybePreloadVoiceModel() {
-  const settings = store.get('settings') as Record<string, any> | undefined;
+  const settings = store.get('settings') as ElectronSettings | undefined;
   if (!settings?.preloadVoiceModel) return;
   if (!localEngine.isAvailable()) {
     console.log('[voice] preload skipped: local engine not available');
@@ -328,23 +331,23 @@ async function maybePreloadVoiceModel() {
     console.log('[voice] eager preload starting');
     await localEngine.preload();
     console.log('[voice] eager preload done');
-  } catch (err: any) {
-    console.warn('[voice] eager preload failed:', err?.message ?? err);
+  } catch (err: unknown) {
+    console.warn('[voice] eager preload failed:', getErrorMessage(err) ?? err);
   }
 }
 
 // Read the user's close-behaviour preference at runtime.
 // the classic "X quits" model explicitly.
 function getCloseBehavior(): 'tray' | 'quit' {
-  const settings = store.get('settings') as Record<string, any> | undefined;
+  const settings = store.get('settings') as ElectronSettings | undefined;
   return settings?.closeBehavior === 'quit' ? 'quit' : 'tray';
 }
 
 // Apply the side effects of the residente/tray preferences.
 // Called from `settings:set` and at boot to reapply persisted settings.
 function applySettingsEffects(
-  settings: Record<string, any>,
-  previous: Record<string, any> | null,
+  settings: ElectronSettings,
+  previous: ElectronSettings | null,
 ) {
   // launchAtLogin — macOS + Windows supported natively. Linux requires
   // writing a `.desktop` file manually, out of scope here.
@@ -433,8 +436,8 @@ function createTray() {
       tray.on('click', () => toggleMainWindow());
     }
     // macOS: left click already opens the context menu, no extra handler.
-  } catch (err: any) {
-    console.warn('[tray] failed to initialize:', err?.message ?? err);
+  } catch (err: unknown) {
+    console.warn('[tray] failed to initialize:', getErrorMessage(err) ?? err);
     trayUnavailable = true;
     tray = null;
   }
@@ -444,11 +447,11 @@ async function markEventOccurrenceDone(eventId: number, occurrenceStart: string)
   try {
     const encoded = encodeURIComponent(occurrenceStart);
     await axios.post(`${getApiUrl()}/calendar-events/${eventId}/occurrences/${encoded}/complete`);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[calendar] markEventOccurrenceDone failed', {
       eventId,
       occurrenceStart,
-      message: err?.message,
+      message: getErrorMessage(err),
     });
   }
 }
@@ -457,7 +460,7 @@ async function markEventOccurrenceDone(eventId: number, occurrenceStart: string)
 // window to the tray. Without it, the first close confuses the user (they
 // think they quit the app and reopen it expecting cold-start cost).
 function maybeShowFirstCloseToast() {
-  const flags = (store.get('flags') as Record<string, any> | undefined) ?? {};
+  const flags = (store.get('flags') as { hasSeenTrayHint?: boolean } | undefined) ?? {};
   if (flags.hasSeenTrayHint) return;
   if (!Notification.isSupported()) {
     // Without notification support, skip marking the flag — the user can
@@ -535,8 +538,8 @@ function showAlarmNotification(payload: {
 async function completeTask(taskId: number) {
   try {
     await axios.patch(`${getApiUrl()}/user-tasks/${taskId}`, { status: 'completed' });
-  } catch (err: any) {
-    console.error('[tasks] completeTask failed', { taskId, message: err?.message });
+  } catch (err: unknown) {
+    console.error('[tasks] completeTask failed', { taskId, message: getErrorMessage(err) });
   }
 }
 
@@ -873,7 +876,7 @@ app.whenReady().then(async () => {
   // user's global shortcut (Electron drops it between sessions) and refresh
   // the macOS dock visibility. `launchAtLogin` is already honoured by the
   // OS, but reapplying is harmless and keeps the call site uniform.
-  const initialSettings = store.get('settings') as Record<string, any> | undefined;
+  const initialSettings = store.get('settings') as ElectronSettings | undefined;
   // Apply even when no settings were persisted yet so the quick-assistant
   // default shortcut is registered on a fresh install.
   applySettingsEffects(initialSettings ?? {}, null);

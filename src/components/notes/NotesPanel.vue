@@ -6,7 +6,7 @@
           <!-- Header -->
           <div class="notes-header">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500 shrink-0" fill="none"
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500 shrink-0" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -18,9 +18,9 @@
             </div>
             <div class="flex items-center gap-2">
               <span class="text-[10px] text-text-muted hidden sm:block">Ctrl+Shift+N</span>
-              <button @click="closePanel"
+              <button aria-label="Close notes" @click="closePanel"
                 class="p-1.5 rounded-md text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" stroke-width="1.75">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -35,13 +35,13 @@
               <!-- Search -->
               <div class="px-3 pb-3 border-b border-border-light">
                 <div class="relative">
-                  <svg xmlns="http://www.w3.org/2000/svg"
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
                     class="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" fill="none"
                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  <input ref="searchInput" v-model="searchTerm" type="text" placeholder="Search notes..."
+                  <input aria-label="Search notes" ref="searchInput" v-model="searchTerm" type="text" placeholder="Search notes..."
                     class="w-full pl-8 pr-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                 </div>
               </div>
@@ -50,7 +50,7 @@
               <div class="px-3 py-2 border-b border-border-light">
                 <button @click="createNewNote"
                   class="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-accent hover:bg-accent-subtle rounded-lg transition-colors cursor-pointer">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd"
                       d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                       clip-rule="evenodd" />
@@ -67,7 +67,7 @@
                 </div>
 
                 <div v-else-if="filteredNotes.length === 0" class="text-center py-8 px-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mx-auto text-text-muted mb-2" fill="none"
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mx-auto text-text-muted mb-2" fill="none"
                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -80,7 +80,7 @@
                     class="flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-hover transition-colors duration-150 cursor-pointer border-b border-border-light"
                     :class="{ 'bg-accent-subtle': selectedNote?.id === note.id }">
                     <div class="w-6 h-6 rounded-md flex items-center justify-center bg-emerald-50 text-emerald-500 shrink-0 mt-0.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                      <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="1.75">
                         <path stroke-linecap="round" stroke-linejoin="round"
                           d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -104,11 +104,11 @@
               <div v-if="selectedNote" class="flex flex-col h-full">
                 <!-- Editor header -->
                 <div class="shrink-0 px-5 py-3 border-b border-border-light flex items-center gap-3">
-                  <input v-model="editTitle" type="text" placeholder="Note title"
+                  <input aria-label="Note title" v-model="editTitle" type="text" placeholder="Note title"
                     class="flex-1 bg-transparent text-lg font-semibold text-text-primary placeholder:text-text-muted focus:outline-none tracking-tight min-w-0"
                     @blur="saveTitle" @keydown.enter="saveTitle" />
 
-                  <select v-model="editProjectId" @change="saveProject"
+                  <select aria-label="Note project" v-model="editProjectId" @change="saveProject"
                     class="px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer shrink-0">
                     <option :value="null">No project</option>
                     <option v-for="project in projectsList" :key="project.id" :value="project.id">
@@ -122,7 +122,7 @@
                   <button @click="confirmDeleteNote"
                     class="p-1.5 rounded-md text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer shrink-0"
                     title="Delete note">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round"
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -138,7 +138,7 @@
 
               <!-- Empty state -->
               <div v-else class="flex flex-col items-center justify-center h-full text-center px-8">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-text-muted mb-3" fill="none"
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-text-muted mb-3" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
                   <path stroke-linecap="round" stroke-linejoin="round"
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -298,7 +298,7 @@ async function selectNote(note: Pick<Note, 'id'>) {
 }
 
 async function createNewNote() {
-  const data: any = { title: 'Untitled Note' };
+  const data: Partial<Note> & { projectId?: number | null } = { title: 'Untitled Note' };
   if (contextProject.value) {
     data.projectId = contextProject.value.id;
   }
@@ -344,7 +344,7 @@ async function saveProject() {
   if (!selectedNote.value) return;
   saving.value = true;
   try {
-    const data: any = editProjectId.value
+    const data: Partial<Note> & { projectId?: number | null } = editProjectId.value
       ? { projectId: editProjectId.value }
       : { projectId: null };
     await updateNote(selectedNote.value.id, data);

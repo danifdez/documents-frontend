@@ -18,15 +18,14 @@ vi.mock('@/components/editor/EditorToolbar.vue', () => ({
 }));
 
 describe('EditorContent.vue', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let wrapper: any;
+    let wrapper: ReturnType<typeof createComponent>;
 
     // Helper function to get the editor content element
     const getEditorElement = () => wrapper.find('.editor-content');
 
     // Helper function to create and mount component with given props
     const createComponent = (props = {}) => {
-        wrapper = mount(EditorContent, {
+        const component = mount(EditorContent, {
             props: {
                 content: '',
                 isSaving: false,
@@ -35,7 +34,8 @@ describe('EditorContent.vue', () => {
             },
             attachTo: document.body // Needed for selection/focus tests
         });
-        return wrapper;
+        wrapper = component;
+        return component;
     };
 
     beforeEach(() => {

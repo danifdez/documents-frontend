@@ -1,6 +1,7 @@
+import type { OfflineEntity, OfflineItem, OfflinePendingChange } from '../../types/offline';
 import { app } from 'electron';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { IpcChannels } from '../../ipc/channels';
 import type { IpcHandlerMap } from './registry';
 
@@ -37,20 +38,20 @@ async function readJsonSafe<T>(filePath: string, fallback: T): Promise<T> {
   }
 }
 
-async function writeJson(filePath: string, data: any): Promise<void> {
+async function writeJson(filePath: string, data: unknown): Promise<void> {
   await ensureDir(path.dirname(filePath));
   await fs.writeFile(filePath, JSON.stringify(data), 'utf-8');
 }
 
 export function createOfflineHandlers(): IpcHandlerMap {
   return {
-    [IpcChannels.offline.putItem]: async (_, wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) => {
+    [IpcChannels.offline.putItem]: async (_, wsId: string, type: string, id: number, data: OfflineEntity, syncedAt: string, parentType?: string, parentId?: number) => {
       const p = itemPath(wsId, type, id);
       await writeJson(p, { workspaceId: wsId, entityType: type, entityId: id, data, syncedAt, parentType, parentId });
     },
 
     [IpcChannels.offline.getItem]: async (_, wsId: string, type: string, id: number) => {
-      return readJsonSafe(itemPath(wsId, type, id), null);
+      return readJsonSafe<OfflineItem | null>(itemPath(wsId, type, id), null);
     },
 
     [IpcChannels.offline.deleteItem]: async (_, wsId: string, type: string, id: number) => {
@@ -63,7 +64,7 @@ export function createOfflineHandlers(): IpcHandlerMap {
 
     [IpcChannels.offline.getAllItemsByWorkspace]: async (_, wsId: string) => {
       const itemsDir = path.join(getBasePath(wsId), 'items');
-      const results: any[] = [];
+      const results: OfflineItem[] = [];
 
       try {
         const types = await fs.readdir(itemsDir);
@@ -75,7 +76,7 @@ export function createOfflineHandlers(): IpcHandlerMap {
           const files = await fs.readdir(typeDir);
           for (const file of files) {
             if (!file.endsWith('.json')) continue;
-            const item = await readJsonSafe(path.join(typeDir, file), null);
+            const item = await readJsonSafe<OfflineItem | null>(path.join(typeDir, file), null);
             if (item) results.push(item);
           }
         }
@@ -114,19 +115,19 @@ export function createOfflineHandlers(): IpcHandlerMap {
       }
     },
 
-    [IpcChannels.offline.addPendingChange]: async (_, wsId: string, entityType: string, entityId: number, method: string, payload: any) => {
+    [IpcChannels.offline.addPendingChange]: async (_, wsId: string, entityType: string, entityId: number, method: string, payload: unknown) => {
       const p = pendingPath(wsId);
-      const changes = await readJsonSafe<any[]>(p, []);
+      const changes = await readJsonSafe<OfflinePendingChange[]>(p, []);
       changes.push({ workspaceId: wsId, entityType, entityId, method, payload, timestamp: new Date().toISOString() });
       await writeJson(p, changes);
     },
 
     [IpcChannels.offline.getPendingChanges]: async (_, wsId: string) => {
-      return readJsonSafe(pendingPath(wsId), []);
+      return readJsonSafe<OfflinePendingChange[]>(pendingPath(wsId), []);
     },
 
     [IpcChannels.offline.countPendingChanges]: async (_, wsId: string) => {
-      const changes = await readJsonSafe<any[]>(pendingPath(wsId), []);
+      const changes = await readJsonSafe<OfflinePendingChange[]>(pendingPath(wsId), []);
       return changes.length;
     },
 

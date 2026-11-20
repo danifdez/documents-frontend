@@ -26,7 +26,7 @@
                 <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600 mr-2"
+                            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600 mr-2"
                                 viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd"
                                     d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -37,7 +37,7 @@
                         </div>
                         <Button @click="confirmResourceExtraction" :disabled="isConfirming" variant="primary"
                             class="ml-4">
-                            <svg v-if="isConfirming" class="animate-spin h-4 w-4 mr-2 inline-block"
+                            <svg aria-hidden="true" v-if="isConfirming" class="animate-spin h-4 w-4 mr-2 inline-block"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                     stroke-width="4"></circle>
@@ -57,7 +57,7 @@
                 <div class="h-full flex flex-col">
                     <div class="flex justify-end mb-2 gap-2">
                         <Button @click="saveEdit" :disabled="isSaving" variant="primary">
-                            <svg v-if="isSaving" class="animate-spin h-4 w-4 mr-2 inline-block"
+                            <svg aria-hidden="true" v-if="isSaving" class="animate-spin h-4 w-4 mr-2 inline-block"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                     stroke-width="4"></circle>
@@ -121,7 +121,7 @@
                     <div class="flex items-center mb-4">
                         <IconType :mimeType="resource.mimeType" />
                         <div class="flex items-center flex-grow">
-                            <input v-if="isEditingName" v-model="editResourceName" @input="handleResourceNameChange"
+                            <input aria-label="Resource name" v-if="isEditingName" v-model="editResourceName" @input="handleResourceNameChange"
                                 @keyup.enter="saveResourceName" @keyup.escape="cancelNameEdit" @blur="handleBlur"
                                 type="text"
                                 class="text-2xl font-bold bg-transparent border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent mr-3 flex-grow text-text-primary"
@@ -140,7 +140,7 @@
                         </Button>
                     </div>
                     <!-- Toolbar (not shown for images or during extraction) -->
-                    <Toolbar v-if="!isImageFile && !isExtracting" :has-summary="resource.summary"
+                    <Toolbar v-if="!isImageFile && !isExtracting" :has-summary="!!resource.summary"
                         :has-key-points="resource.keyPoints && resource.keyPoints.length > 0"
                         :has-keywords="resource.keywords && resource.keywords.length > 0" :display-mode="displayMode"
                         @download="downloadResource" @startEdit="startEdit" @saveEdit="saveEdit"
@@ -160,7 +160,7 @@
                     <div v-else-if="isExtracting && !isImageFile"
                         class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
                         <div class="flex items-center">
-                            <svg class="animate-spin h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" xmlns="http://www.w3.org/2000/svg"
+                            <svg aria-hidden="true" class="animate-spin h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" xmlns="http://www.w3.org/2000/svg"
                                 fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                     stroke-width="4"></circle>
@@ -199,7 +199,7 @@
                             <div class="flex items-center justify-between mb-3">
                                 <h3 class="font-semibold text-lg text-text-primary">Key Points</h3>
                                 <Button size="small" @click="addKeyPoint">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M12 4v16m8-8H4" />
@@ -218,20 +218,20 @@
                                                 d="M5 15l7-7 7 7" />
                                         </svg>
                                     </button>
-                                    <button @click="moveKeyPointDown(idx)" :disabled="idx === editKeyPoints.length - 1"
+                                    <button aria-label="Move key point down" @click="moveKeyPointDown(idx)" :disabled="idx === editKeyPoints.length - 1"
                                         class="p-1 hover:bg-surface-hover rounded disabled:opacity-30 disabled:cursor-not-allowed">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </button>
-                                    <input v-model="editKeyPoints[idx]" type="text"
+                                    <input :aria-label="`Key point ${idx + 1}`" v-model="editKeyPoints[idx]" type="text"
                                         class="flex-1 px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-accent bg-surface text-text-primary"
                                         placeholder="Enter key point..." />
-                                    <button @click="removeKeyPoint(idx)"
+                                    <button aria-label="Remove key point" @click="removeKeyPoint(idx)"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M6 18L18 6M6 6l12 12" />
@@ -251,14 +251,14 @@
                                 <!-- Existing keywords as editable chips -->
                                 <div v-for="(kw, idx) in editKeywords" :key="idx"
                                     class="flex items-center gap-1 bg-accent-subtle text-accent-dark px-2 py-1 rounded-full text-sm group">
-                                    <input v-model="editKeywords[idx]" type="text"
+                                    <input :aria-label="`Keyword ${idx + 1}`" v-model="editKeywords[idx]" type="text"
                                         class="keyword-input bg-transparent border-none outline-none w-auto min-w-[60px] max-w-[200px] focus:bg-accent-subtle rounded px-1"
                                         :style="{ width: (editKeywords[idx].length * 8 + 20) + 'px' }"
                                         placeholder="keyword..." @keydown.enter="addKeyword"
                                         @keydown.backspace="handleKeywordBackspace(idx, $event)" />
-                                    <button @click="removeKeyword(idx)"
+                                    <button aria-label="Remove keyword" @click="removeKeyword(idx)"
                                         class="text-accent hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M6 18L18 6M6 6l12 12" />
@@ -356,15 +356,15 @@
                             <router-link :to="`/resource/${splitResource.id}`"
                                 class="p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors"
                                 title="Open resource">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
                             </router-link>
-                            <button @click="closeSplitView"
+                            <button aria-label="Close split view" @click="closeSplitView"
                                 class="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -425,7 +425,7 @@
                             <span class="text-sm font-semibold text-text-primary">Table of Contents</span>
                             <button @click="refreshTocFromChild" title="Refresh"
                                 class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -505,12 +505,13 @@
 </template>
 
 <script setup lang="ts">
+import type { ReadingPoint } from '../services/readingPoints/useReadingPoints';
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { useRouter } from 'vue-router';
-import { useResource } from '../services/resources/useResource';
+import { useResource, type Resource } from '../services/resources/useResource';
 import { useResourceIcon } from '../composables/useResourceIcon';
-import { useDocument } from '../services/documents/useDocument';
+import { useDocument, type DocumentRecord } from '../services/documents/useDocument';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import OfflineToggle from '../components/OfflineToggle.vue';
 import EditorContent from '../components/editor/EditorContent.vue';
@@ -524,7 +525,7 @@ import { useResourceToc } from '../composables/useResourceToc';
 import { useResourceWorkspace } from '../composables/useResourceWorkspace';
 import { useResourceDocs } from '../services/documents/useResourceDocs';
 import { useResourcePendingEntities } from '../services/entities/useResourcePendingEntities';
-import { useResourceDetails } from '../services/resources/useResourceDetails';
+import { useResourceDetails, type ResourceListEntity } from '../services/resources/useResourceDetails';
 import Properties from '../components/resources/Properties.vue';
 import Toolbar from '../components/resources/Toolbar.vue';
 import IconType from '../components/resources/IconType.vue';
@@ -572,7 +573,7 @@ const { loadDocument } = useDocument();
 const { fetchTranslatedContent, fetchEntities, fetchRawFileText, confirmExtraction, deleteResource } = useResourceDetails();
 const { createDocument, appendToDocument } = useResourceDocs();
 const { fetchPendingEntities } = useResourcePendingEntities();
-const resource = ref<Record<string, any>>({});
+const resource = ref<Resource>({});
 const projectStore = useProjectStore();
 const featureStore = useFeatureStore();
 const notification = useNotification();
@@ -580,10 +581,10 @@ const { getLanguage } = useElectronApi();
 const rawHtmlContent = ref<string>('');
 const displayMode = ref<ResourceDisplayMode>('extracted');
 const splitViewActive = ref(false);
-const splitDocument = ref<Record<string, any> | null>(null);
-const splitResource = ref<Record<string, any> | null>(null);
+const splitDocument = ref<DocumentRecord | null>(null);
+const splitResource = ref<Resource | null>(null);
 const apiBaseUrl = apiClient.defaults.baseURL;
-const editorContentRef = ref();
+const editorContentRef = ref<InstanceType<typeof EditorContent> | null>(null);
 const splitEditor = ref();
 const workspaceEditor = ref();
 const viewSideBar = ref<'properties' | 'comments' | 'index' | 'entities' | 'dates'>('properties');
@@ -595,7 +596,7 @@ const { dates: resourceDates, loading: datesLoading, fetchDates: loadResourceDat
 
 const refreshDates = async () => {
     const id = Number(resourceId.value);
-    if (!isNaN(id)) await loadResourceDates(id);
+    if (!Number.isNaN(id)) await loadResourceDates(id);
 };
 
 const handleDatesAnchor = async (dateStr: string) => {
@@ -679,8 +680,8 @@ const nameSaveTimeout = ref<NodeJS.Timeout | null>(null);
 const nameInput = ref<HTMLInputElement | null>(null);
 const isCancelingNameEdit = ref(false);
 const showChat = ref(false);
-const extractedContent = ref<string | null>(null);
-const translatedContent = ref<string | null>(null);
+const extractedContent = ref<InstanceType<typeof HtmlContent> | null>(null);
+const translatedContent = ref<InstanceType<typeof HtmlContent> | null>(null);
 const defaultLanguage = ref<string>('en');
 const isConfirming = ref(false);
 const hasPendingEntities = ref(false);
@@ -708,24 +709,24 @@ const showSidebar = computed(() => !isWorkspaceSplitView.value);
 const displayModeForEntities = computed(() => toResourceContentMode(displayMode.value));
 
 const findAndHighlightResourceComment = (commentId: string) => {
-    const html = (extractedContent.value || translatedContent.value) as any;
+    const html = extractedContent.value || translatedContent.value;
     if (html && typeof html.highlightComment === 'function') {
         html.highlightComment(commentId);
         return;
     }
-    const editorRef = editorContentRef.value as any;
+    const editorRef = editorContentRef.value;
     if (editorRef && typeof editorRef.findAndHighlightCommentMark === 'function') {
         editorRef.findAndHighlightCommentMark(commentId);
     }
 };
 
 const removeResourceCommentMark = async (commentId: string) => {
-    const html = (extractedContent.value || translatedContent.value) as any;
+    const html = extractedContent.value || translatedContent.value;
     if (html && typeof html.removeCommentMark === 'function') {
         await html.removeCommentMark(commentId);
         return;
     }
-    const editorRef = editorContentRef.value as any;
+    const editorRef = editorContentRef.value;
     if (editorRef && typeof editorRef.removeCommentMark === 'function') {
         editorRef.removeCommentMark(commentId);
     }
@@ -745,12 +746,12 @@ const { entries: tocEntries } = useTocWithReadingPoints(
     computed(() => true),
 );
 
-const goToReadingPoint = (point: any) => {
-    if (translatedContent.value && (translatedContent.value as any).openReadingPoint) {
-        (translatedContent.value as any).openReadingPoint(point);
+const goToReadingPoint = (point: ReadingPoint) => {
+    if (translatedContent.value && translatedContent.value.openReadingPoint) {
+        translatedContent.value.openReadingPoint(point);
     }
-    if (extractedContent.value && (extractedContent.value as any).openReadingPoint) {
-        (extractedContent.value as any).openReadingPoint(point);
+    if (extractedContent.value && extractedContent.value.openReadingPoint) {
+        extractedContent.value.openReadingPoint(point);
     }
 };
 
@@ -888,7 +889,7 @@ const focusEvidenceFromRoute = async () => {
         displayMode.value = 'extracted';
     }
     await nextTick();
-    (extractedContent.value as any)?.focusEvidence?.(evidence);
+    extractedContent.value?.focusEvidence?.(evidence);
 };
 
 const loadResourceDetails = async () => {
@@ -1228,26 +1229,26 @@ const handleExtractEntities = async () => {
 const handleEntityRemoved = (entityId: number) => {
     // Remove the entity from the local resource object
     if (resource.value.entities) {
-        resource.value.entities = resource.value.entities.filter((entity: Record<string, any>) => entity.id !== entityId);
+        resource.value.entities = resource.value.entities.filter(entity => entity.id !== entityId);
     }
 };
 
-const handleEntityMerged = (sourceEntityId: number, targetEntity: Record<string, any>) => {
+const handleEntityMerged = (sourceEntityId: number, targetEntity: ResourceListEntity) => {
     // Remove the source entity and update the target entity in the local resource object
     if (resource.value.entities) {
-        const sourceIndex = resource.value.entities.findIndex((entity: Record<string, any>) => entity.id === sourceEntityId);
+        const sourceIndex = resource.value.entities.findIndex(entity => entity.id === sourceEntityId);
         if (sourceIndex !== -1) {
             resource.value.entities.splice(sourceIndex, 1);
         }
 
-        const targetIndex = resource.value.entities.findIndex((entity: Record<string, any>) => entity.id === targetEntity.id);
+        const targetIndex = resource.value.entities.findIndex(entity => entity.id === targetEntity.id);
         if (targetIndex !== -1) {
             resource.value.entities[targetIndex] = targetEntity;
         }
     }
 };
 
-const handleEntityHighlight = async (entity: Record<string, any>) => {
+const handleEntityHighlight = async (entity: ResourceListEntity) => {
     const translations = entity.translations || {};
     const aliases = entity.aliases || [];
     const resLang = resource.value.language || 'en';
@@ -1328,7 +1329,7 @@ const confirmResourceExtraction = async () => {
 const checkPendingEntities = async () => {
     try {
         const data = await fetchPendingEntities(resourceId.value);
-        hasPendingEntities.value = resource.value.status === 'entities' || (data && data.count > 0);
+        hasPendingEntities.value = resource.value.status === 'entities' || (data?.length > 0);
     } catch (error) {
         console.warn('Failed to check pending entities:', error);
         hasPendingEntities.value = false;

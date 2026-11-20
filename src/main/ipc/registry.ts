@@ -1,7 +1,7 @@
 import { ipcMain, type IpcMainInvokeEvent } from 'electron';
 import type { IpcChannel } from '../../ipc/channels';
 
-export type IpcInvokeHandler = (event: IpcMainInvokeEvent, ...args: any[]) => unknown;
+export type IpcInvokeHandler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
 
 /** Declarative channel → handler map. Keys are constrained to known channels. */
 export type IpcHandlerMap = Partial<Record<IpcChannel, IpcInvokeHandler>>;

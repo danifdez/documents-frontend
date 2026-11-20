@@ -31,14 +31,15 @@
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
 import { computed } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
 import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
 
-defineProps<{ id: string; data: Record<string, any>; selected: boolean }>();
-const { node } = useNode();
+defineProps<{ id: string; data: CanvasNodeData; selected: boolean }>();
+const { node } = useNode<CanvasNodeData>();
 
 const typeColors: Record<string, { bg: string; accent: string }> = {
   PERSON: { bg: '#EEF2FF', accent: '#6366f1' },
@@ -61,7 +62,7 @@ const colors = computed(() => {
 const bgColor = computed(() => colors.value.bg);
 const accentColor = computed(() => colors.value.accent);
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

@@ -1,3 +1,4 @@
+import type { OfflineEntity } from '../../types/offline';
 // Offline storage via Electron filesystem (IPC to main process)
 // Same exported API as before — consumers don't need to change.
 
@@ -8,7 +9,7 @@ export async function getOfflineItem(wsId: string, type: string, id: number) {
 }
 
 export async function putOfflineItem(
-  wsId: string, type: string, id: number, data: any,
+  wsId: string, type: string, id: number, data: OfflineEntity,
   syncedAt: string, parentType?: string, parentId?: number,
 ) {
   await window.electronAPI.offlinePutItem(wsId, type, id, data, syncedAt, parentType, parentId);
@@ -40,7 +41,7 @@ export async function deleteOfflineFile(wsId: string, resourceId: number) {
 
 export async function addPendingChange(
   wsId: string, entityType: string, entityId: number,
-  method: 'PATCH' | 'POST' | 'DELETE', payload: Record<string, any>,
+  method: 'PATCH' | 'POST' | 'DELETE', payload: Record<string, unknown>,
 ) {
   await window.electronAPI.offlineAddPendingChange(wsId, entityType, entityId, method, payload);
 }

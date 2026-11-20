@@ -17,7 +17,7 @@
                         <template v-else-if="timelines.length > 0">
                             <!-- Timeline selector -->
                             <div>
-                                <label class="block text-xs font-medium text-text-secondary mb-1.5">Timeline *</label>
+                                <div class="block text-xs font-medium text-text-secondary mb-1.5">Timeline *</div>
                                 <div class="space-y-1">
                                     <label v-for="tl in timelines" :key="tl.id"
                                         class="flex items-center gap-2 text-sm text-text-primary cursor-pointer hover:bg-surface-hover rounded px-2 py-1.5 transition-colors"
@@ -33,8 +33,8 @@
                             <!-- Filter options (only if a timeline is selected) -->
                             <template v-if="selectedId">
                                 <div>
-                                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Filter</label>
-                                    <select v-model="filterMode"
+                                    <label :for="`${formId}-filter-mode`" class="block text-xs font-medium text-text-secondary mb-1.5">Filter</label>
+                                    <select :id="`${formId}-filter-mode`" v-model="filterMode"
                                         class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                         <option value="all">All events</option>
                                         <option v-if="selectedEpochs.length" value="epoch">By epoch</option>
@@ -44,7 +44,7 @@
 
                                 <!-- Epoch selector -->
                                 <div v-if="filterMode === 'epoch' && selectedEpochs.length">
-                                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Epoch</label>
+                                    <div class="block text-xs font-medium text-text-secondary mb-1.5">Epoch</div>
                                     <div class="space-y-1">
                                         <label v-for="ep in selectedEpochs" :key="ep.id"
                                             class="flex items-center gap-2 text-sm text-text-primary cursor-pointer hover:bg-surface-hover rounded px-2 py-1.5 transition-colors"
@@ -60,13 +60,13 @@
                                 <!-- Date range -->
                                 <div v-if="filterMode === 'range'" class="flex gap-3">
                                     <div class="flex-1">
-                                        <label class="block text-xs font-medium text-text-secondary mb-1">From</label>
-                                        <input v-model="dateFrom" type="date"
+                                        <label :for="`${formId}-date-from`" class="block text-xs font-medium text-text-secondary mb-1">From</label>
+                                        <input :id="`${formId}-date-from`" v-model="dateFrom" type="date"
                                             class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                                     </div>
                                     <div class="flex-1">
-                                        <label class="block text-xs font-medium text-text-secondary mb-1">To</label>
-                                        <input v-model="dateTo" type="date"
+                                        <label :for="`${formId}-date-to`" class="block text-xs font-medium text-text-secondary mb-1">To</label>
+                                        <input :id="`${formId}-date-to`" v-model="dateTo" type="date"
                                             class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                                     </div>
                                 </div>
@@ -90,10 +90,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import type { TimelineRecord } from '../../types/timeline';
+import { useId, ref, computed, watch } from 'vue';
 import Button from '../ui/Button.vue';
 import { useTimelines } from '../../services/timelines/useTimelines';
 import { useProjectStore } from '../../store/projectStore';
+
+const formId = useId();
 
 const modelValue = defineModel<boolean>({ required: true });
 
@@ -111,7 +114,7 @@ const emit = defineEmits<{
 const projectStore = useProjectStore();
 const { loadTimelinesByProject } = useTimelines();
 
-const timelines = ref<any[]>([]);
+const timelines = ref<TimelineRecord[]>([]);
 const selectedId = ref(0);
 const loadingTimelines = ref(false);
 const filterMode = ref<'all' | 'epoch' | 'range'>('all');

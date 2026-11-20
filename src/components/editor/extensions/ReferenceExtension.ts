@@ -86,7 +86,7 @@ export const ReferenceNode = Node.create<ReferenceNodeOptions>({
             const dom = document.createElement('span');
             dom.style.display = 'inline';
 
-            const updateAttrs = (newAttrs: Record<string, any>) => {
+            const updateAttrs = (newAttrs: Record<string, unknown>) => {
                 const pos = typeof getPos === 'function' ? getPos() : undefined;
                 if (pos == null) return;
                 editor.view.dispatch(

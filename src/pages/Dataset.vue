@@ -9,9 +9,9 @@
             <!-- Header bar -->
             <div class="shrink-0 px-4 py-3 border-b border-border bg-surface-elevated flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3 min-w-0">
-                    <button @click="router.push('/datasets')"
+                    <button aria-label="Back to datasets" @click="router.push('/datasets')"
                         class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors cursor-pointer shrink-0">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
@@ -35,7 +35,7 @@
                         @click="handleSync"
                         :disabled="syncing"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                        <svg class="h-3.5 w-3.5" :class="{ 'animate-spin': syncing }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-3.5 w-3.5" :class="{ 'animate-spin': syncing }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
@@ -43,7 +43,7 @@
                     </button>
                     <button @click="showImportModal = true"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
@@ -52,12 +52,12 @@
                     <div class="relative">
                         <button @click="exportMenuOpen = !exportMenuOpen"
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             Export
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
@@ -75,7 +75,7 @@
                     </div>
                     <button @click="activeTab = activeTab === 'schema' ? 'data' : 'schema'"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -108,7 +108,7 @@
                         </button>
                         <button @click="confirmBulkDelete([...recordTableRef.selectedIds])"
                             class="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 transition-colors cursor-pointer">
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                             Delete
@@ -137,13 +137,13 @@
                     <!-- Left: dataset info -->
                     <div class="w-64 shrink-0 space-y-4">
                         <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1">Dataset name</label>
-                            <input v-model="editableName" type="text"
+                            <label :for="`${formId}-editable-name`" class="block text-xs font-medium text-text-secondary mb-1">Dataset name</label>
+                            <input :id="`${formId}-editable-name`" v-model="editableName" type="text"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1">Description</label>
-                            <input v-model="editableDescription" type="text" placeholder="Optional description"
+                            <label :for="`${formId}-editable-description`" class="block text-xs font-medium text-text-secondary mb-1">Description</label>
+                            <input :id="`${formId}-editable-description`" v-model="editableDescription" type="text" placeholder="Optional description"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                         </div>
                         <Button @click="saveSchema" variant="info" :disabled="savingSchema || analyzingSchema">
@@ -152,7 +152,7 @@
                     </div>
                     <!-- Right: fields -->
                     <div class="flex-1 min-w-0 overflow-y-auto">
-                        <label class="block text-xs font-medium text-text-secondary mb-1.5">Fields</label>
+                        <div class="block text-xs font-medium text-text-secondary mb-1.5">Fields</div>
                         <DatasetSchemaEditor v-model="editableSchema"
                             :source-mode="dataset.sourceMode"
                             :source-config="dataset.sourceConfig"
@@ -173,7 +173,7 @@
                         <button v-if="dataset.sourceMode !== 'manual'"
                             @click="handleExtractAll" :disabled="extractAllCooldown"
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-dark text-white text-xs font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                             {{ extractAllLabel }}
@@ -218,7 +218,7 @@
                                     <button v-for="op in analysisModes" :key="op.id" @click="visualMode = op.id"
                                         class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
                                         :class="visualMode === op.id ? 'bg-accent text-white' : 'bg-surface border border-border text-text-secondary hover:bg-surface-hover'">
-                                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <svg aria-hidden="true" class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path v-for="(d, i) in op.paths" :key="i" :d="d" />
                                         </svg>
                                         {{ op.label }}
@@ -257,7 +257,7 @@
                             <!-- Save current view button -->
                             <button v-if="activeResult && !activeResult.error" @click="showSaveViewDialog = true"
                                 class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-surface-hover transition-colors cursor-pointer">
-                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                                 </svg>
                                 Save View
@@ -276,9 +276,9 @@
                                             class="flex-1 min-w-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left truncate">
                                             {{ sv.name }}
                                         </button>
-                                        <button @click="handleDeleteSavedChart(sv.id)"
+                                        <button aria-label="Delete saved chart" @click="handleDeleteSavedChart(sv.id)"
                                             class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0">
-                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                             </svg>
                                         </button>
@@ -347,7 +347,7 @@
                     <!-- Empty state -->
                     <div v-if="savedCharts.length === 0" class="flex-1 flex items-center justify-center">
                         <div class="text-center">
-                            <svg class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <svg aria-hidden="true" class="mx-auto h-12 w-12 text-text-muted/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                             </svg>
                             <p class="text-sm text-text-muted">No saved views yet</p>
@@ -360,15 +360,15 @@
                         <div class="shrink-0 px-4 py-2.5 border-b border-border-light bg-surface/50 flex items-center gap-3">
                             <!-- Search by name -->
                             <div class="relative flex-1">
-                                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted pointer-events-none"
+                                <svg aria-hidden="true" class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted pointer-events-none"
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
-                                <input v-model="savedSearch" type="text" placeholder="Search by name..."
+                                <input aria-label="Search saved views by name" v-model="savedSearch" type="text" placeholder="Search by name..."
                                     class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-surface border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                             </div>
                             <!-- Filter by type -->
-                            <select v-model="savedTypeFilter"
+                            <select aria-label="Filter saved views by type" v-model="savedTypeFilter"
                                 class="rounded-lg bg-surface border border-border px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                 <option value="">All types</option>
                                 <optgroup label="Charts">
@@ -391,7 +391,7 @@
                                 <div v-for="sv in filteredSavedViews" :key="sv.id"
                                     class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover transition-colors group/item">
                                     <!-- Type icon -->
-                                    <svg class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <svg aria-hidden="true" class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path v-for="(d, pi) in (allModes.find(m => m.id === inferVisualMode(sv.config))?.paths || ['M4 4v16h16'])" :key="pi" :d="d" />
                                     </svg>
                                     <!-- Name + config summary + date -->
@@ -408,7 +408,7 @@
                                     <button @click="handleDeleteSavedChart(sv.id)"
                                         class="shrink-0 p-1 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover/item:opacity-100"
                                         title="Delete">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
@@ -454,7 +454,7 @@
                     class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                     <div class="bg-surface-elevated rounded-xl shadow-2xl shadow-black/10 border border-border max-w-lg w-full mx-4 overflow-hidden">
                         <div class="px-6 py-4 border-b border-border-light flex items-center gap-2">
-                            <svg class="h-5 w-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-5 w-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                             </svg>
                             <h3 class="text-base font-semibold text-text-primary tracking-tight">Schema change impacts</h3>
@@ -489,7 +489,7 @@
                                                 <span class="text-sm font-medium text-amber-800">{{ change.name }}</span>
                                                 <span class="text-xs text-amber-600">
                                                     {{ change.oldType }}
-                                                    <svg class="inline h-3 w-3 mx-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <svg aria-hidden="true" class="inline h-3 w-3 mx-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                                     </svg>
                                                     {{ change.newType }}
@@ -530,8 +530,8 @@
                             <h3 class="text-sm font-semibold text-text-primary">Save View</h3>
                         </div>
                         <div class="px-5 py-4">
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Name</label>
-                            <input v-model="saveViewName" type="text" placeholder="e.g. Price distribution, Sales correlation..."
+                            <label :for="`${formId}-save-view-name`" class="block text-xs font-medium text-text-secondary mb-1.5">Name</label>
+                            <input :id="`${formId}-save-view-name`" v-model="saveViewName" type="text" placeholder="e.g. Price distribution, Sales correlation..."
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                                 @keyup.enter="handleSaveView" />
                         </div>
@@ -553,9 +553,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, h } from 'vue';
+import { useId, ref, computed, onMounted, onBeforeUnmount, h } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useDatasets, type Dataset, type DatasetRecord, type DatasetField, type DatasetChart, type CsvPreview, type ImportResult, type SchemaAnalysis } from '../services/datasets/useDatasets';
+import {
+    useDatasets,
+    type Dataset,
+    type DatasetRecord,
+    type DatasetField,
+    type DatasetChart,
+    type CsvPreview,
+    type ImportResult,
+    type SchemaAnalysis,
+    type StatsResult,
+    type DatasetChartConfig,
+} from '../services/datasets/useDatasets';
 import { connectSocket } from '../services/notifications/notification';
 import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
 import { useNotification } from '../composables/useNotification';
@@ -573,6 +584,8 @@ import DatasetPivotTable from '../components/datasets/DatasetPivotTable.vue';
 import CsvImportModal from '../components/datasets/CsvImportModal.vue';
 import DatasetSourcesPanel from '../components/datasets/DatasetSourcesPanel.vue';
 import { useDataSources } from '../services/data-sources/useDataSources';
+
+const formId = useId();
 
 const chartModes = [
     { id: 'chart-bar', label: 'Bar', paths: ['M4 4v16h16', 'M8 16V9', 'M12 16V4', 'M16 16v-5'] },
@@ -661,7 +674,7 @@ const analyzingSchema = ref(false);
 const showSchemaWarning = ref(false);
 
 // Record table ref
-const recordTableRef = ref<any>(null);
+const recordTableRef = ref<InstanceType<typeof DatasetRecordTable> | null>(null);
 
 // Record form
 const showRecordForm = ref(false);
@@ -695,7 +708,7 @@ const datasetId = Number(route.params.id);
 
 const loadRecords = async () => {
     if (!dataset.value) return;
-    const params: Record<string, any> = {
+    const params: Record<string, unknown> = {
         page: page.value,
         limit: limit.value,
     };
@@ -763,7 +776,7 @@ const handleReExtractCell = async (recordId: number, fieldKey: string, force = f
     if (!dataset.value) return;
     try {
         const res = await reExtractCellApi(dataset.value.id, recordId, fieldKey, force);
-        if ((res as any).requiresConfirmation) {
+        if ('requiresConfirmation' in res && res.requiresConfirmation) {
             pendingCellReExtract.value = { recordId, fieldKey };
             showReExtractCellConfirm.value = true;
             return;
@@ -788,7 +801,7 @@ let stopDatasetPublications: (() => void) | null = null;
 const installSocketHandler = () => {
     connectSocket();
     stopDatasetPublications?.();
-    stopDatasetPublications = subscribeExecutionPublication('notification', (data: any) => {
+    stopDatasetPublications = subscribeExecutionPublication('notification', (data: { type?: string; datasetId?: number }) => {
         if (!data || data.type !== 'dataset.extract-row') return;
         if (data.datasetId !== datasetId) return;
         // Refresh the affected row from server to pick data + cellMetadata.
@@ -891,7 +904,7 @@ const cancelSchemaChange = () => {
 };
 
 // Record CRUD
-const handleSaveRecord = async (data: Record<string, any>) => {
+const handleSaveRecord = async (data: Record<string, unknown>) => {
     try {
         await createRecord(datasetId, data);
         notification.success('Record created');
@@ -903,7 +916,7 @@ const handleSaveRecord = async (data: Record<string, any>) => {
 };
 
 // Inline update
-const handleInlineUpdate = async (recordId: number, data: Record<string, any>) => {
+const handleInlineUpdate = async (recordId: number, data: Record<string, unknown>) => {
     try {
         await updateRecord(datasetId, recordId, data);
         notification.success('Record updated');
@@ -969,13 +982,13 @@ const handleImported = () => {
 
 // Generic asynchronous execution runner.
 const createExecutionRunner = (errorMsg: string) => {
-    const result = ref<Record<string, any> | null>(null);
+    const result = ref<StatsResult | null>(null);
     const running = ref(false);
     const lastOperation = ref('');
-    const lastParams = ref<Record<string, any>>({});
+    const lastParams = ref<Record<string, unknown>>({});
     let timer: ReturnType<typeof setInterval> | null = null;
 
-    const run = async (operation: string, params: Record<string, any>) => {
+    const run = async (operation: string, params: Record<string, unknown>) => {
         running.value = true;
         result.value = null;
         lastOperation.value = operation;
@@ -1015,7 +1028,7 @@ const activeChartFilters = computed(() => {
         .map(f => ({ field: f.field, operator: f.operator, value: f.value }));
 });
 
-const runChartWithFilters = (operation: string, params: Record<string, any>) => {
+const runChartWithFilters = (operation: string, params: Record<string, unknown>) => {
     const filtersPayload = activeChartFilters.value;
     if (filtersPayload.length > 0) {
         params.filters = filtersPayload;
@@ -1036,7 +1049,7 @@ const loadSavedCharts = async () => {
     } catch { /* ignore */ }
 };
 
-const handleSaveChart = async (name: string, config: Record<string, any>) => {
+const handleSaveChart = async (name: string, config: DatasetChartConfig) => {
     config.visualMode = visualMode.value;
     try {
         const chart = await saveChart(datasetId, name, config);
@@ -1049,7 +1062,7 @@ const handleSaveChart = async (name: string, config: Record<string, any>) => {
 
 const handleSaveView = async () => {
     if (!saveViewName.value.trim() || !activeResult.value) return;
-    const config: Record<string, any> = {};
+    const config: DatasetChartConfig = {};
     if (isChartMode.value) {
         Object.assign(config, lastChartParams.value);
     } else {
@@ -1089,7 +1102,7 @@ const loadAndNavigate = (sv: DatasetChart) => {
     loadSavedView(sv);
 };
 
-const inferVisualMode = (config: Record<string, any>): string => {
+const inferVisualMode = (config: DatasetChartConfig): string => {
     if (config.visualMode) return config.visualMode;
     return 'chart-bar';
 };

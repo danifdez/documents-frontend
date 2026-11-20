@@ -1,10 +1,9 @@
-import { ref, computed } from 'vue';
-import type { Ref } from 'vue';
+import { getErrorMessage } from '../utils/errorDetails';
+import { ref, computed, type Ref } from 'vue';
 import { subscribeExecutionPublication } from '../services/notifications/executionPublication';
 import { useExecutionConfirmations } from '../services/executions/useExecutionConfirmations';
 import { useExecutionCancellation } from '../services/executions/useExecutionCancellation';
-import type { ExecutionProgress } from '../services/executions/useExecutionProgress';
-import { useExecutionProgress } from '../services/executions/useExecutionProgress';
+import { useExecutionProgress, type ExecutionProgress } from '../services/executions/useExecutionProgress';
 import type { AssistantMessageEvent } from '../types/Assistant';
 import type {
     ExecutionConfirmation,
@@ -210,10 +209,10 @@ export function createChatStore<
 
     function _attachSocket() {
         if (socketAttached) return;
-        subscribeExecutionPublication(responseEvent, (event: Record<string, any>) => {
-            const ownerId: number | undefined = event?.[socketIdKey];
+        subscribeExecutionPublication(responseEvent, (event: Record<string, unknown>) => {
+            const ownerId = event?.[socketIdKey];
             const message = event?.message as TMsg | undefined;
-            if (!ownerId || !message) return;
+            if (typeof ownerId !== 'number' || !ownerId || !message) return;
             const arr = messagesByOwner.value[ownerId] ?? [];
 
             if (!arr.some((m) => m.id === message.id)) {
@@ -234,14 +233,14 @@ export function createChatStore<
         });
         subscribeExecutionPublication(
             'executionConfirmationRequested',
-            (event: Record<string, any>) => {
-                upsertConfirmation(event as ExecutionConfirmationEnvelope);
+            (event: ExecutionConfirmationEnvelope & Record<string, unknown>) => {
+                upsertConfirmation(event);
             },
         );
         subscribeExecutionPublication(
             'executionConfirmationDecided',
-            (event: Record<string, any>) => {
-                upsertConfirmation(event as ExecutionConfirmationEnvelope);
+            (event: ExecutionConfirmationEnvelope & Record<string, unknown>) => {
+                upsertConfirmation(event);
             },
         );
         subscribeExecutionPublication(
@@ -272,8 +271,8 @@ export function createChatStore<
             loaded.value = true;
             _attachSocket();
             hooks.afterLoad?.(ctx);
-        } catch (e: any) {
-            error.value = e?.message || loadErrorMessage;
+        } catch (e: unknown) {
+            error.value = getErrorMessage(e) || loadErrorMessage;
         } finally {
             loading.value = false;
         }
@@ -286,8 +285,8 @@ export function createChatStore<
                 const { messages, hasMore } = await api.getMessages(id, { limit: MESSAGE_PAGE_SIZE });
                 messagesByOwner.value = { ...messagesByOwner.value, [id]: messages };
                 hasMoreByOwner.value = { ...hasMoreByOwner.value, [id]: hasMore };
-            } catch (e: any) {
-                error.value = e?.message || 'Failed to load messages';
+            } catch (e: unknown) {
+                error.value = getErrorMessage(e) || 'Failed to load messages';
             }
         }
     }
@@ -311,8 +310,8 @@ export function createChatStore<
                 [id]: [...fresh, ...current],
             };
             hasMoreByOwner.value = { ...hasMoreByOwner.value, [id]: hasMore };
-        } catch (e: any) {
-            error.value = e?.message || 'Failed to load older messages';
+        } catch (e: unknown) {
+            error.value = getErrorMessage(e) || 'Failed to load older messages';
         } finally {
             loadingOlderByOwner.value = { ...loadingOlderByOwner.value, [id]: false };
         }
@@ -334,8 +333,8 @@ export function createChatStore<
                 [id]: executionId,
             };
             void pollExecutionProgress(id, executionId);
-        } catch (e: any) {
-            error.value = e?.message || 'Failed to send message';
+        } catch (e: unknown) {
+            error.value = getErrorMessage(e) || 'Failed to send message';
         }
     }
 

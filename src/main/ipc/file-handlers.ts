@@ -1,6 +1,7 @@
+import { getErrorMessage } from '../../utils/errorDetails';
 import { BrowserWindow, dialog, shell } from 'electron';
-import path from 'path';
-import fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 import axios from 'axios';
 import FormData from 'form-data';
 import { IpcChannels } from '../../ipc/channels';
@@ -43,7 +44,7 @@ interface FileHandlerDeps {
 
 export function createFileHandlers({ getApiUrl, getMainWindow }: FileHandlerDeps): IpcHandlerMap {
   return {
-    [IpcChannels.document.upload]: async (_, idProject, filePath) => {
+    [IpcChannels.document.upload]: async (_, idProject: string | null, filePath: string) => {
       try {
         if (!filePath) {
           return { error: "No file path provided" };
@@ -83,8 +84,8 @@ export function createFileHandlers({ getApiUrl, getMainWindow }: FileHandlerDeps
         const err = await shell.openPath(targetPath);
         if (err) return { ok: false, error: err };
         return { ok: true };
-      } catch (e: any) {
-        return { ok: false, error: e?.message ?? 'open_path_failed' };
+      } catch (e: unknown) {
+        return { ok: false, error: getErrorMessage(e) ?? 'open_path_failed' };
       }
     },
 

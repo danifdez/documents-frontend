@@ -37,8 +37,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, type PropType } from 'vue';
-import { onBeforeUnmount } from 'vue';
+import type { ReadingPoint } from '../../services/readingPoints/useReadingPoints';
+import { ref, onMounted, watch, type PropType, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import Toolbar from './Toolbar.vue';
 import { useMarkCreate } from '../../services/marks/useMarkCreate';
@@ -60,7 +60,7 @@ const matches = ref([]);
 const toc = ref<{ id: string; text: string; level: number }[]>([]);
 const savedSuccessfully = ref(false);
 const selectedCommentText = ref('');
-const currentSelection = ref(null);
+const currentSelection = ref<ReturnType<typeof storeSelectionPosition>>(null);
 const showCommentModal = ref(false);
 const showContextMenu = ref(false);
 const contextMenuPosition = ref({ x: 0, y: 0 });
@@ -99,15 +99,15 @@ const props = defineProps({
         default: 'extracted',
     },
     readingPointsController: {
-        type: Object,
+        type: Object as PropType<ReturnType<typeof useReadingPointsController>>,
         default: null,
     },
 });
 
 const emit = defineEmits(['content-updated', 'highlight-comment', 'send-selection-to-workspace', 'send-selection-to-doc', 'summarize-selection']);
 
-const readingPointsLayerRef = ref<any>(null);
-const readingPointsController = (props as any).readingPointsController
+const readingPointsLayerRef = ref<InstanceType<typeof ReadingPointsLayer> | null>(null);
+const readingPointsController = props.readingPointsController
     ?? useReadingPointsController(() => props.resourceId || '', 'resource');
 
 const handleAddReadingPoint = (coords?: { x: number; y: number }) =>
@@ -157,7 +157,8 @@ const onToolbarSummarizeSelection = (text: string) => {
     }
 };
 
-const settings = ref({ fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 });
+const initialSettings = { fontSize: 16, fontFamily: 'sans-serif', paragraphSpacing: 1.5 };
+const settings = ref({ ...initialSettings });
 
 const cssVars = ref({
     '--font-size-p': settings.value.fontSize + 'px',
@@ -181,7 +182,11 @@ const loadAndApplySettings = async () => {
     if (window.electronAPI && window.electronAPI.getSettings) {
         const loaded = await window.electronAPI.getSettings();
         if (loaded) {
-            settings.value = loaded;
+            settings.value = {
+                fontSize: loaded.fontSize ?? initialSettings.fontSize,
+                fontFamily: loaded.fontFamily ?? initialSettings.fontFamily,
+                paragraphSpacing: loaded.paragraphSpacing ?? initialSettings.paragraphSpacing,
+            };
         }
     }
     applySettings();
@@ -238,7 +243,7 @@ const saveComment = async (commentText: string) => {
         if (currentSelection.value) {
             const span = document.createElement('span');
             span.className = 'comment-mark';
-            span.setAttribute('data-comment-id', newComment.id);
+            span.dataset.commentId = String(newComment.id);
 
             const success = wrapStoredSelection(currentSelection.value, span);
 
@@ -571,8 +576,8 @@ const wrapTextWithMark = (text: string, markId: string, type: string = 'highligh
 
                 const span = document.createElement('span');
                 span.className = `marker-highlight marker-type-${type}`;
-                span.setAttribute('data-mark-id', markId);
-                span.setAttribute('data-mark-type', type);
+                span.dataset.markId = markId;
+                span.dataset.markType = type;
                 span.textContent = text;
                 span.style.cursor = 'pointer';
 
@@ -616,7 +621,7 @@ const wrapTextWithComment = (text: string, commentId: string) => {
 
                 const span = document.createElement('span');
                 span.className = 'comment-mark';
-                span.setAttribute('data-comment-id', commentId);
+                span.dataset.commentId = commentId;
                 span.textContent = text;
                 span.style.cursor = 'pointer';
 
@@ -673,7 +678,7 @@ const loadExistingComments = async () => {
         const resourceId = props.resourceId || route.params.id;
         if (!resourceId || resourceId === 'new') return;
 
-        const list: any[] = await loadComments(String(resourceId), 'resource');
+        const list = await loadComments(String(resourceId), 'resource');
         (list || []).forEach((comment) => {
             if (!comment.id || !comment.quote) return;
             const existing = extractedContent.value?.querySelector(`[data-comment-id="${comment.id}"]`);
@@ -734,7 +739,7 @@ const buildToc = () => {
     const headings = extractedContent.value.querySelectorAll('h1,h2,h3,h4,h5,h6');
     const used = new Set<string>();
     headings.forEach((h: Element) => {
-        const level = parseInt(h.tagName.substring(1), 10);
+        const level = Number.parseInt(h.tagName.substring(1), 10);
         const text = (h.textContent || '').trim();
         if (!text) return;
         let id = h.getAttribute('id') || slugify(text);
@@ -792,7 +797,7 @@ const getNodePath = (node: Node, container: Element): number[] => {
     return path;
 };
 
-const wrapStoredSelection = (storedPosition: any, wrapperElement: HTMLElement) => {
+const wrapStoredSelection = (storedPosition: ReturnType<typeof storeSelectionPosition>, wrapperElement: HTMLElement) => {
     if (!storedPosition || !extractedContent.value) return false;
 
     try {
@@ -856,7 +861,7 @@ const handleImageContextMenu = (event) => {
             x: event.clientX,
             y: event.clientY,
             kind: markEl ? 'mark' : 'comment',
-            id: markEl ? markEl.getAttribute('data-mark-id') : commentEl!.getAttribute('data-comment-id'),
+            id: (markEl ? markEl.dataset.markId : commentEl!.dataset.commentId) ?? null,
         };
         return;
     }
@@ -976,7 +981,7 @@ defineExpose({
     clearEntityHighlights,
     highlightComment,
     removeCommentMark,
-    openReadingPoint(point: any) {
+    openReadingPoint(point: ReadingPoint) {
         readingPointsLayerRef.value?.openPoint(point);
     },
 });

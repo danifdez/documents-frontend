@@ -8,7 +8,7 @@
                     <button @click="showAddEntityForm = !showAddEntityForm"
                         class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                         title="Add entity">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
                     </button>
@@ -38,11 +38,11 @@
         <!-- Add Entity Form (collapsible) -->
         <div v-if="showAddEntityForm" class="px-4 py-3 border-b border-border-light bg-surface">
             <div class="space-y-2.5">
-                <input v-model="newEntity.name" type="text"
+                <input aria-label="New entity name" v-model="newEntity.name" type="text"
                     class="block w-full rounded-lg bg-surface-elevated border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                     placeholder="Entity name..." />
                 <div class="flex gap-2">
-                    <select v-model="newEntity.entityTypeId"
+                    <select aria-label="New entity type" v-model="newEntity.entityTypeId"
                         class="flex-1 rounded-lg bg-surface-elevated border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option :value="undefined">Type...</option>
                         <option v-for="type in entityTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
@@ -61,7 +61,7 @@
 
         <!-- Empty state -->
         <div v-if="pendingEntities.length === 0" class="px-4 py-10 text-center">
-            <svg class="mx-auto h-8 w-8 text-text-muted mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            <svg aria-hidden="true" class="mx-auto h-8 w-8 text-text-muted mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                 stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round"
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -82,7 +82,7 @@
                     <!-- Merged info banner -->
                     <div v-if="entity.status === 'merged'"
                         class="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 flex items-center gap-2">
-                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
                         Merged into <span class="font-medium">{{ entity.mergedTargetName || entity.mergedTargetId }}</span>
@@ -91,13 +91,13 @@
                     <!-- Compact grid: Name + Translation side by side -->
                     <div class="grid gap-2" :class="showTranslationField ? 'grid-cols-2' : 'grid-cols-1'">
                         <div>
-                            <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">Name (EN)</label>
-                            <input v-model="entity.name" type="text" @input="scheduleSave(entity)"
+                            <label :for="`${formId}-name-${entity.id}`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">Name (EN)</label>
+                            <input :id="`${formId}-name-${entity.id}`" v-model="entity.name" type="text" @input="scheduleSave(entity)"
                                 class="block w-full rounded-md bg-surface-elevated border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                         </div>
                         <div v-if="showTranslationField">
-                            <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">{{ translationLocale.toUpperCase() }}</label>
-                            <input v-model="(entity as PendingEntityWithEdit)._editedTranslation" type="text" @input="scheduleSave(entity, true)"
+                            <label :for="`${formId}-entity-translation-${entity.id}`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">{{ translationLocale.toUpperCase() }}</label>
+                            <input :id="`${formId}-entity-translation-${entity.id}`" v-model="(entity as PendingEntityWithEdit)._editedTranslation" type="text" @input="scheduleSave(entity, true)"
                                 class="block w-full rounded-md bg-surface-elevated border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                         </div>
                     </div>
@@ -105,8 +105,8 @@
                     <!-- Type + Scope row -->
                     <div class="grid grid-cols-2 gap-2 mt-2">
                         <div>
-                            <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">Type</label>
-                            <select v-if="entity.status !== 'merged'" v-model="entity.entityType" @change="handleEntityTypeChange(entity)"
+                            <label :for="`${formId}-entity-type-${entity.id}`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">Type</label>
+                            <select :id="`${formId}-entity-type-${entity.id}`" v-if="entity.status !== 'merged'" v-model="entity.entityType" @change="handleEntityTypeChange(entity)"
                                 class="w-full rounded-md bg-surface-elevated border border-border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                 <option :value="null">Select...</option>
                                 <option v-for="type in entityTypes" :key="type.id" :value="type">{{ type.name }}</option>
@@ -116,8 +116,8 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">Scope</label>
-                            <select v-model="entity.scope" @change="scheduleSave(entity)"
+                            <label :for="`${formId}-scope-${entity.id}`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">Scope</label>
+                            <select :id="`${formId}-scope-${entity.id}`" v-model="entity.scope" @change="scheduleSave(entity)"
                                 class="w-full rounded-md bg-surface-elevated border border-border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                 <option value="global">Global</option>
                                 <option value="project">Project</option>
@@ -128,8 +128,8 @@
 
                     <!-- Description (full width row) -->
                     <div v-if="entity.status !== 'merged'" class="mt-2">
-                        <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">Description</label>
-                        <textarea v-model="entity.description" @input="scheduleSave(entity)" rows="2"
+                        <label :for="`${formId}-description-${entity.id}`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-0.5">Description</label>
+                        <textarea :id="`${formId}-description-${entity.id}`" v-model="entity.description" @input="scheduleSave(entity)" rows="2"
                             class="w-full rounded-md bg-surface-elevated border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
                             placeholder="Optional description..."></textarea>
                     </div>
@@ -175,7 +175,7 @@
                     </div>
                     <div v-else-if="entity.status === 'merged'"
                         class="shrink-0 w-[18px] h-[18px] rounded bg-amber-400 flex items-center justify-center" title="Merged">
-                        <svg class="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <svg role="img" aria-label="Merged" class="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                     </div>
@@ -197,19 +197,19 @@
                     <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button v-if="entity.status === 'merged'" @click.stop="cancelMerge(entity)"
                             class="p-1 rounded text-amber-500 hover:bg-amber-50 transition-colors cursor-pointer" title="Undo merge">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                             </svg>
                         </button>
                         <button v-if="!entity.isConfirmed && entity.status !== 'merged'" @click.stop="openMergeModal(entity)"
                             class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface transition-colors cursor-pointer" title="Merge">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
                         </button>
                         <button @click.stop="highlightEntity(entity)"
                             class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer" title="Highlight">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
@@ -217,7 +217,7 @@
                         <button @click.stop="deleteEntity(entity.id, entity.isConfirmed)"
                             class="p-1 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                             :title="entity.isConfirmed ? 'Remove' : 'Delete'">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
@@ -244,7 +244,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue';
+import { useId, ref, onMounted, watch, computed } from 'vue';
 import MergeEntityModal from './MergeEntityModal.vue';
 import ConfirmModal from '../ui/ConfirmModal.vue';
 import { usePendingEntities, type PendingEntity, type EntityScope } from '../../services/entities/usePendingEntities';
@@ -258,6 +258,8 @@ export interface EntityType {
     name: string;
     description?: string;
 }
+const formId = useId();
+
 type PendingEntityWithEdit = PendingEntity & { _editedTranslation?: string };
 
 interface Props {
@@ -290,12 +292,12 @@ const newEntity = ref({ name: '', description: '', entityTypeId: undefined as nu
 const showMergeModal = ref(false);
 const entityToMerge = ref<PendingEntity | null>(null);
 const originalEntityNames = new Map<number, string>();
-const editSnapshot = ref<Record<string, any> | null>(null);
+const editSnapshot = ref<Pick<PendingEntityWithEdit, 'id' | 'name' | 'description' | 'entityType' | 'scope' | 'translations' | '_editedTranslation'> | null>(null);
 
 const duplicateWarningModal = ref({
     isOpen: false,
     currentEntity: null as PendingEntity | null,
-    duplicateEntity: null as PendingEntity | null,
+    duplicateEntity: null as DuplicateEntity | null,
     newName: ''
 });
 
@@ -416,7 +418,9 @@ const scheduleSave = (entity: PendingEntity, isTranslation = false) => {
 
 const handleEntityTypeChange = (entity: PendingEntity) => scheduleSave(entity);
 
-const checkForDuplicates = async (entity: PendingEntity, newName: string): Promise<PendingEntity | null> => {
+type DuplicateEntity = Pick<PendingEntity, 'id' | 'name' | 'isConfirmed'>;
+
+const checkForDuplicates = async (entity: PendingEntity, newName: string): Promise<DuplicateEntity | null> => {
     const dup = pendingEntities.value.find(e => e.id !== entity.id && e.name.toLowerCase() === newName.toLowerCase() && e.status !== 'merged');
     if (dup) return dup;
     try {
@@ -435,7 +439,7 @@ const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
             const locale = translationLocale.value;
             const translations = entity.translations ? { ...entity.translations } : {};
             translations[locale] = (entity as PendingEntityWithEdit)._editedTranslation || '';
-            await updatePendingEntity(entity.id, { translations } as any);
+            await updatePendingEntity(entity.id, { translations });
             entity.translations = translations;
         } else {
             const originalName = originalEntityNames.get(entity.id);
@@ -564,7 +568,7 @@ const deleteEntity = async (id: number, isConfirmed?: boolean) => {
 const addNewEntity = async () => {
     try {
         const entity = await createPendingEntity({
-            resourceId: parseInt(props.resourceId), name: newEntity.value.name,
+            resourceId: Number.parseInt(props.resourceId), name: newEntity.value.name,
             entityTypeId: newEntity.value.entityTypeId, scope: newEntity.value.scope
         });
         pendingEntities.value.push({ ...entity, scope: entity.scope || 'document', aliases: entity.aliases || [] });
@@ -597,7 +601,7 @@ const handleMerge = async (payload: { targetType: 'pending' | 'confirmed', targe
         if (updatedPending) {
             const idx = pendingEntities.value.findIndex(e => e.id === updatedPending.id);
             if (idx !== -1) {
-                pendingEntities.value[idx] = { ...pendingEntities.value[idx], ...updatedPending } as any;
+                pendingEntities.value[idx] = { ...pendingEntities.value[idx], ...updatedPending };
                 await resolveMergedInfo(pendingEntities.value[idx]);
             }
         }

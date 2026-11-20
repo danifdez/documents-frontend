@@ -6,7 +6,7 @@
                 <thead>
                     <tr class="border-b border-border bg-surface">
                         <th class="px-2 py-2.5 text-center w-10">
-                            <input type="checkbox" :checked="allSelected" @change="toggleSelectAll"
+                            <input aria-label="Select all records" type="checkbox" :checked="allSelected" @change="toggleSelectAll"
                                 class="rounded border-border text-accent focus:ring-accent/20 cursor-pointer" />
                         </th>
                         <th v-if="showStatusColumn" class="px-2 py-2.5 text-center text-[11px] font-semibold text-text-muted uppercase tracking-wider w-20">
@@ -19,7 +19,7 @@
                             class="px-4 py-2.5 text-left text-[11px] font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-secondary transition-colors overflow-hidden truncate"
                             @click="$emit('sort', field.key)">
                             {{ field.name }}
-                            <svg v-if="field.linkedDatasetId" class="inline h-3 w-3 text-accent ml-0.5" fill="none"
+                            <svg aria-hidden="true" v-if="field.linkedDatasetId" class="inline h-3 w-3 text-accent ml-0.5" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -38,14 +38,14 @@
                         class="hover:bg-surface-hover transition-colors group"
                         :class="{ 'bg-accent-subtle/30': selectedIds.has(record.id) }">
                         <td class="px-2 py-2.5 text-center">
-                            <input type="checkbox" :checked="selectedIds.has(record.id)"
+                            <input :aria-label="`Select record ${record.id}`" type="checkbox" :checked="selectedIds.has(record.id)"
                                 @change="toggleSelect(record.id)"
                                 class="rounded border-border text-accent focus:ring-accent/20 cursor-pointer" />
                         </td>
                         <td v-if="showStatusColumn" class="px-2 py-2.5 text-center">
                             <span v-if="record.extractionStatus === 'extracted'"
                                 class="inline-block h-4 w-4 text-green-600" title="Extracted">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <svg role="img" aria-label="Extracted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
                             </span>
@@ -55,7 +55,7 @@
                             <span v-else-if="record.extractionStatus === 'failed'"
                                 class="inline-block h-4 w-4 text-red-600 cursor-help"
                                 :title="record.extractionError || 'Extraction failed'">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg role="img" :aria-label="record.extractionError || 'Extraction failed'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                 </svg>
                             </span>
@@ -68,7 +68,7 @@
                                     type="button" @click.stop="onReExtractRow(record.id)"
                                     class="p-0.5 rounded opacity-0 group-hover/idcell:opacity-100 text-text-muted hover:text-accent hover:bg-accent-subtle transition-opacity cursor-pointer"
                                     title="Re-extract this row">
-                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                     </svg>
                                 </button>
@@ -80,7 +80,7 @@
                             <!-- Inline editing -->
                             <template v-if="isEditing(record.id, field.key)">
                                 <!-- Boolean edit -->
-                                <select v-if="field.type === 'boolean'"
+                                <select :aria-label="`Edit ${field.name} for record ${record.id}`" v-if="field.type === 'boolean'"
                                     :value="getEditValue(record.id, field.key)"
                                     @input="setEditValue(record.id, field.key, ($event.target as HTMLSelectElement).value === 'true')"
                                     @blur="blurEdit(record.id, field.key)"
@@ -89,7 +89,7 @@
                                     <option :value="false">No</option>
                                 </select>
                                 <!-- Select edit -->
-                                <select v-else-if="field.type === 'select'"
+                                <select :aria-label="`Edit ${field.name} for record ${record.id}`" v-else-if="field.type === 'select'"
                                     :value="getEditValue(record.id, field.key)"
                                     @input="setEditValue(record.id, field.key, ($event.target as HTMLSelectElement).value)"
                                     @blur="blurEdit(record.id, field.key)"
@@ -97,31 +97,31 @@
                                     <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
                                 </select>
                                 <!-- Number edit -->
-                                <input v-else-if="field.type === 'number'" type="number"
+                                <input :aria-label="`Edit ${field.name} for record ${record.id}`" v-else-if="field.type === 'number'" type="number"
                                     :value="getEditValue(record.id, field.key)"
                                     @input="setEditValue(record.id, field.key, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field.key)"
                                     class="w-full bg-transparent outline outline-1 outline-accent/50 rounded-sm px-0 py-0 text-sm focus:outline-accent" />
                                 <!-- Date edit -->
-                                <input v-else-if="field.type === 'date'" type="date"
+                                <input :aria-label="`Edit ${field.name} for record ${record.id}`" v-else-if="field.type === 'date'" type="date"
                                     :value="getEditValue(record.id, field.key)"
                                     @input="setEditValue(record.id, field.key, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field.key)"
                                     class="w-full bg-transparent outline outline-1 outline-accent/50 rounded-sm px-0 py-0 text-sm focus:outline-accent" />
                                 <!-- Datetime edit -->
-                                <input v-else-if="field.type === 'datetime'" type="datetime-local"
+                                <input :aria-label="`Edit ${field.name} for record ${record.id}`" v-else-if="field.type === 'datetime'" type="datetime-local"
                                     :value="getEditValue(record.id, field.key)"
                                     @input="setEditValue(record.id, field.key, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field.key)"
                                     class="w-full bg-transparent outline outline-1 outline-accent/50 rounded-sm px-0 py-0 text-sm focus:outline-accent" />
                                 <!-- Time edit -->
-                                <input v-else-if="field.type === 'time'" type="time"
+                                <input :aria-label="`Edit ${field.name} for record ${record.id}`" v-else-if="field.type === 'time'" type="time"
                                     :value="getEditValue(record.id, field.key)"
                                     @input="setEditValue(record.id, field.key, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field.key)"
                                     class="w-full bg-transparent outline outline-1 outline-accent/50 rounded-sm px-0 py-0 text-sm focus:outline-accent" />
                                 <!-- Text edit -->
-                                <input v-else type="text"
+                                <input :aria-label="`Edit ${field.name} for record ${record.id}`" v-else type="text"
                                     :value="getEditValue(record.id, field.key)"
                                     @input="setEditValue(record.id, field.key, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field.key)"
@@ -147,7 +147,7 @@
                                                 @click.stop="openLinkedPopup(field, record)"
                                                 class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors cursor-pointer">
                                                 {{ getLinkedDisplay(field, record) }}
-                                                <svg class="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <svg aria-hidden="true" class="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
@@ -175,7 +175,7 @@
                                         <button type="button" @click.stop="openAnchor(record, field, $event)"
                                             class="p-0.5 rounded text-text-muted opacity-15 group-hover/cell:opacity-100 hover:text-accent hover:bg-accent-subtle transition-opacity cursor-pointer"
                                             title="Show extraction source">
-                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round"
                                                     d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                             </svg>
@@ -241,7 +241,7 @@
                     <div class="bg-surface-elevated rounded-xl shadow-2xl border border-border max-w-lg w-full mx-4 overflow-hidden">
                         <div class="px-5 py-3.5 border-b border-border-light flex items-center justify-between">
                             <div class="flex items-center gap-2 min-w-0">
-                                <svg class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -250,9 +250,9 @@
                                     {{ popup.datasetName }} — Record #{{ popup.recordId }}
                                 </h3>
                             </div>
-                            <button @click="popup.show = false"
+                            <button aria-label="Close cell details" @click="popup.show = false"
                                 class="p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface-hover cursor-pointer transition-colors">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
@@ -286,8 +286,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed, nextTick } from 'vue';
-import type { DatasetField, DatasetRecord, CellAnchor } from '../../services/datasets/useDatasets';
-import { useDatasets } from '../../services/datasets/useDatasets';
+import { useDatasets, type DatasetField, type DatasetRecord, type CellAnchor } from '../../services/datasets/useDatasets';
 import { useDatasetLinks } from '../../services/datasets/useDatasetLinks';
 import CellAnchorPopover from './CellAnchorPopover.vue';
 
@@ -309,7 +308,7 @@ const emit = defineEmits<{
     page: [page: number];
     sort: [field: string];
     bulkDelete: [ids: number[]];
-    inlineUpdate: [recordId: number, data: Record<string, any>];
+    inlineUpdate: [recordId: number, data: Record<string, unknown>];
     reExtractCell: [recordId: number, fieldKey: string];
     reExtractRow: [recordId: number];
 }>();
@@ -321,7 +320,7 @@ const anchorPopover = reactive<{
     show: boolean;
     anchor: CellAnchor | null;
     fieldName: string;
-    value: any;
+    value: unknown;
     rect: DOMRect | null;
     recordId: number;
     fieldKey: string;
@@ -360,7 +359,7 @@ const emitReExtract = () => {
 };
 
 // Inline editing
-const editingCells = ref<Map<string, any>>(new Map()); // key: "recordId:fieldKey" -> edited value
+const editingCells = ref<Map<string, unknown>>(new Map()); // key: "recordId:fieldKey" -> edited value
 
 const cellKey = (recordId: number, fieldKey: string) => `${recordId}:${fieldKey}`;
 
@@ -384,7 +383,7 @@ const getEditValue = (recordId: number, fieldKey: string) => {
     return editingCells.value.get(cellKey(recordId, fieldKey));
 };
 
-const setEditValue = (recordId: number, fieldKey: string, value: any) => {
+const setEditValue = (recordId: number, fieldKey: string, value: unknown) => {
     editingCells.value.set(cellKey(recordId, fieldKey), value);
 };
 
@@ -403,7 +402,7 @@ const cancelEdits = () => {
 
 const applyEdits = () => {
     // Group changes by record
-    const changes = new Map<number, Record<string, any>>();
+    const changes = new Map<number, Record<string, unknown>>();
     for (const [key, value] of editingCells.value) {
         const [ridStr, fieldKey] = key.split(':');
         const rid = Number(ridStr);
@@ -453,7 +452,7 @@ const columnSum = (key: string): number => {
     let sum = 0;
     for (const r of props.records) {
         const v = Number(r.data[key]);
-        if (!isNaN(v)) sum += v;
+        if (!Number.isNaN(v)) sum += v;
     }
     return sum;
 };
@@ -463,7 +462,7 @@ const columnAvg = (key: string): number => {
     let count = 0;
     for (const r of props.records) {
         const v = Number(r.data[key]);
-        if (!isNaN(v)) { sum += v; count++; }
+        if (!Number.isNaN(v)) { sum += v; count++; }
     }
     return count > 0 ? sum / count : 0;
 };
@@ -476,7 +475,7 @@ const formatSummary = (val: number): string => {
 defineExpose({ selectedIds, hasChanges, editingCells, cancelEdits, applyEdits });
 
 // Linked data resolution
-const linkedData = ref<Record<string, Record<string, Record<string, any>>>>({});
+const linkedData = ref<Record<string, Record<string, Record<string, unknown>>>>({});
 const linkedDataLoading = ref(false);
 
 const linkedFields = () => props.schema.filter(f => f.linkedDatasetId != null && f.linkedDatasetId !== 0);
@@ -547,8 +546,8 @@ watch(() => props.records, () => {
 const popup = reactive<{
     show: boolean;
     datasetName: string;
-    recordId: number;
-    data: Record<string, any>;
+    recordId: string | number;
+    data: Record<string, unknown>;
     schema: DatasetField[];
 }>({
     show: false,
@@ -584,7 +583,7 @@ const openLinkedPopup = async (field: DatasetField, record: DatasetRecord) => {
     }
 
     popup.schema = linkedSchemas.value[dsId] || [];
-    popup.recordId = val;
+    popup.recordId = typeof val === 'number' ? val : String(val);
     popup.data = data;
     popup.show = true;
 };

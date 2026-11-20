@@ -5,32 +5,32 @@
             <p class="text-xs text-text-muted leading-relaxed">Cross-tabulate two categorical fields and aggregate a numeric value in each cell. Useful for comparing totals, averages or counts across two dimensions.</p>
             <div class="space-y-3">
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Row field *</label>
-                    <select v-model="config.rowField"
+                    <label :for="`${formId}-row-field`" class="block text-xs font-medium text-text-secondary mb-1">Row field *</label>
+                    <select :id="`${formId}-row-field`" v-model="config.rowField"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Select...</option>
                         <option v-for="f in schema" :key="f.key" :value="f.key">{{ f.name }} ({{ f.type }})</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Column field *</label>
-                    <select v-model="config.colField"
+                    <label :for="`${formId}-col-field`" class="block text-xs font-medium text-text-secondary mb-1">Column field *</label>
+                    <select :id="`${formId}-col-field`" v-model="config.colField"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Select...</option>
                         <option v-for="f in schema" :key="f.key" :value="f.key">{{ f.name }} ({{ f.type }})</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Value field</label>
-                    <select v-model="config.valueField"
+                    <label :for="`${formId}-value-field`" class="block text-xs font-medium text-text-secondary mb-1">Value field</label>
+                    <select :id="`${formId}-value-field`" v-model="config.valueField"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="">Count (no field)</option>
                         <option v-for="f in numericFields" :key="f.key" :value="f.key">{{ f.name }}</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1">Function</label>
-                    <select v-model="config.fn"
+                    <label :for="`${formId}-fn`" class="block text-xs font-medium text-text-secondary mb-1">Function</label>
+                    <select :id="`${formId}-fn`" v-model="config.fn"
                         class="block w-full rounded-lg bg-surface border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option value="count">Count</option>
                         <option value="sum">Sum</option>
@@ -45,7 +45,7 @@
             <div class="flex items-center gap-3">
                 <button @click="handleRun" :disabled="running || !canRun"
                     class="inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg v-if="running" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" v-if="running" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
@@ -67,9 +67,9 @@
                         class="flex-1 min-w-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer text-left truncate">
                         {{ sv.name }}
                     </button>
-                    <button @click="$emit('deleteSaved', sv.id)"
+                    <button aria-label="Delete saved view" @click="$emit('deleteSaved', sv.id)"
                         class="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 shrink-0">
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -83,7 +83,7 @@
         </div>
 
         <!-- Results -->
-        <template v-if="showResults && result && !result.error && result.tableData">
+        <template v-if="showResults && result && !result.error && pivotTable">
             <!-- Stats -->
             <div class="flex flex-wrap gap-3 shrink-0">
                 <div v-for="(val, key) in result.stats" :key="key"
@@ -133,7 +133,7 @@
                                 <th class="px-3 py-2 text-left font-semibold text-text-primary bg-surface sticky left-0 top-0 z-20 border-b border-r border-border">
                                     {{ result.rowFieldName }} \ {{ result.colFieldName }}
                                 </th>
-                                <th v-for="col in result.tableData.cols" :key="col"
+                                <th v-for="col in pivotTable.cols" :key="col"
                                     class="px-3 py-2 text-center font-medium text-text-muted bg-surface sticky top-0 z-10 border-b border-border whitespace-nowrap">
                                     {{ col }}
                                 </th>
@@ -143,9 +143,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(row, i) in result.tableData.values" :key="i" class="hover:bg-surface-hover/50">
+                            <tr v-for="(row, i) in pivotTable.values" :key="i" class="hover:bg-surface-hover/50">
                                 <td class="px-3 py-2 font-medium text-text-primary bg-surface sticky left-0 z-10 border-r border-border whitespace-nowrap">
-                                    {{ result.tableData.rows[i] }}
+                                    {{ pivotTable.rows[i] }}
                                 </td>
                                 <td v-for="(val, j) in row" :key="j"
                                     class="px-3 py-2 text-center font-mono"
@@ -153,7 +153,7 @@
                                     {{ formatValue(val) }}
                                 </td>
                                 <td class="px-3 py-2 text-center font-mono font-semibold text-text-primary bg-surface-hover/50 border-l border-border">
-                                    {{ formatValue(result.tableData.rowTotals[i]) }}
+                                    {{ formatValue(pivotTable.rowTotals[i]) }}
                                 </td>
                             </tr>
                             <!-- Column totals row -->
@@ -161,12 +161,12 @@
                                 <td class="px-3 py-2 font-semibold text-text-primary bg-surface-hover sticky left-0 z-10 border-r border-border">
                                     Total
                                 </td>
-                                <td v-for="(val, j) in result.tableData.colTotals" :key="j"
+                                <td v-for="(val, j) in pivotTable.colTotals" :key="j"
                                     class="px-3 py-2 text-center font-mono font-semibold text-text-primary bg-surface-hover/50">
                                     {{ formatValue(val) }}
                                 </td>
                                 <td class="px-3 py-2 text-center font-mono font-bold text-accent bg-surface-hover/50 border-l border-border">
-                                    {{ formatValue(result.tableData.grandTotal) }}
+                                    {{ formatValue(pivotTable.grandTotal) }}
                                 </td>
                             </tr>
                         </tbody>
@@ -183,9 +183,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
+import type { PivotTableData, StatsResult, DatasetChart, DatasetField } from '../../services/datasets/useDatasets';
+import { useId, ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { Chart, registerables } from 'chart.js';
-import type { DatasetField } from '../../services/datasets/useDatasets';
 import {
     formatDatasetValue,
     formatDatasetLabel as formatLabel,
@@ -193,17 +193,19 @@ import {
 
 Chart.register(...registerables);
 
+const formId = useId();
+
 const props = defineProps<{
     schema: DatasetField[];
-    result: Record<string, any> | null;
+    result: StatsResult | null;
     running: boolean;
     mode?: 'full' | 'sidebar' | 'display';
-    savedViews?: { id: number; name: string; config: Record<string, any> }[];
+    savedViews?: DatasetChart[];
 }>();
 
 const emit = defineEmits<{
-    run: [operation: string, params: Record<string, any>];
-    loadSaved: [view: any];
+    run: [operation: string, params: Record<string, unknown>];
+    loadSaved: [view: DatasetChart];
     deleteSaved: [id: number];
 }>();
 
@@ -220,7 +222,7 @@ let chartInstance: Chart | null = null;
 const canRun = computed(() => config.value.rowField && config.value.colField);
 
 const handleRun = () => {
-    const p: Record<string, any> = {
+    const p: Record<string, unknown> = {
         rowField: config.value.rowField,
         colField: config.value.colField,
         fn: config.value.fn,
@@ -229,11 +231,13 @@ const handleRun = () => {
     emit('run', 'pivot-table', p);
 };
 
+const pivotTable = computed(() => props.result?.tableData as PivotTableData | undefined);
+
 // Max value for color scaling
 const maxVal = computed(() => {
-    if (!props.result?.tableData?.values) return 1;
+    if (!pivotTable.value?.values) return 1;
     let max = 0;
-    for (const row of props.result.tableData.values) {
+    for (const row of pivotTable.value.values) {
         for (const v of row) {
             if (v !== null && Math.abs(v) > max) max = Math.abs(v);
         }
@@ -286,8 +290,8 @@ onUnmounted(() => { if (chartInstance) chartInstance.destroy(); });
 const formatValue = (val: unknown): string => formatDatasetValue(val, 2);
 
 const exportCsv = () => {
-    if (!props.result?.tableData) return;
-    const td = props.result.tableData;
+    if (!pivotTable.value) return;
+    const td = pivotTable.value;
     let csv = `"",${td.cols.map((c: string) => `"${c}"`).join(',')},Total\n`;
     td.values.forEach((row: (number | null)[], i: number) => {
         csv += `"${td.rows[i]}",${row.map((v: number | null) => v ?? '').join(',')},${td.rowTotals[i] ?? ''}\n`;

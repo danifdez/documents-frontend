@@ -72,7 +72,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/project/:id/relationships',
     name: 'ProjectRelationships',
-    redirect: (to: any) => ({ path: '/relationships', query: { tab: 'relationships', project: to.params.id } }),
+    redirect: to => ({ path: '/relationships', query: { tab: 'relationships', project: to.params.id } }),
     meta: { feature: 'relationships' },
   },
   {

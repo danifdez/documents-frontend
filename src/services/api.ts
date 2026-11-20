@@ -34,9 +34,9 @@ apiClient.interceptors.request.use((config) => {
 
 // Response interceptor: handle 401 with token refresh
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
 
-function processQueue(error: any, token: string | null) {
+function processQueue(error: unknown, token: string | null) {
     failedQueue.forEach((prom) => {
         if (token) {
             prom.resolve(token);

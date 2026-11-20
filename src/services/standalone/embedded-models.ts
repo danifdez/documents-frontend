@@ -1,7 +1,7 @@
 import { app } from 'electron';
-import path from 'path';
-import fs from 'fs';
-import { ChildProcess, spawn } from 'child_process';
+import path from 'node:path';
+import fs from 'node:fs';
+import { ChildProcess, spawn } from 'node:child_process';
 import { getModelsBinaryPath } from './models-binary';
 import { getActiveComponentRoot, legacyComponentRoot } from './installed-components';
 

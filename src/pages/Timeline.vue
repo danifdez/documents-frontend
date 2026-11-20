@@ -4,7 +4,7 @@
     <div class="flex-shrink-0 pb-3">
       <Breadcrumb :items="breadcrumbItems" />
       <div class="flex items-center gap-3 mt-1">
-        <input
+        <input aria-label="Timeline name"
           v-model="timelineData.name"
           type="text"
           placeholder="Timeline name..."
@@ -17,7 +17,7 @@
         <!-- Export dropdown -->
         <div v-if="!isNewTimeline && sortedEvents.length > 0" class="relative" ref="exportDropdownRef">
           <Button size="small" variant="secondary" @click="showExportMenu = !showExportMenu">
-            <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg aria-hidden="true" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             Export
@@ -25,7 +25,7 @@
           <div v-if="showExportMenu" class="absolute right-0 top-full mt-1 w-48 bg-surface-elevated border border-border rounded-lg shadow-lg z-50 py-1">
             <button class="w-full text-left px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors" @click="exportAsImage('download')">
               <span class="flex items-center gap-2">
-                <svg class="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Download as PNG
@@ -33,7 +33,7 @@
             </button>
             <button class="w-full text-left px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors" @click="exportAsImage('resource')">
               <span class="flex items-center gap-2">
-                <svg class="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
                 Save as resource
@@ -43,7 +43,7 @@
         </div>
 
         <Button v-if="!isNewTimeline" variant="danger" size="small" @click="showRemoveModal = true">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -90,7 +90,7 @@
                   : 'text-text-muted hover:text-text-secondary border-border hover:bg-surface-hover'"
                 @click="showCards = !showCards"
               >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path v-if="showCards" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h8m-8 6h16" />
                   <path v-else stroke-linecap="round" stroke-linejoin="round" d="M3 10h11M3 14h7m4-8v12m4-12v12" />
                 </svg>
@@ -105,7 +105,7 @@
                   : 'text-text-muted hover:text-text-secondary border-border hover:bg-surface-hover'"
                 @click="showRuler = !showRuler"
               >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span class="text-xs">Ruler</span>
@@ -119,7 +119,7 @@
                   : 'text-text-muted hover:text-text-secondary border-border hover:bg-surface-hover'"
                 @click="showInlineMarks = !showInlineMarks"
               >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 12h1m4 0h1m4 0h1m4 0h1M4 6h16M4 18h16" />
                 </svg>
                 <span class="text-xs">Marks</span>
@@ -134,7 +134,7 @@
                   : 'text-text-muted hover:text-text-secondary border-border hover:bg-surface-hover'"
                 @click="toggleAxisBreaks"
               >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span class="text-xs">Breaks</span>
@@ -146,18 +146,18 @@
             <!-- Sync indicator -->
             <template v-if="isSynced">
               <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Synced
               </div>
               <Button size="small" variant="secondary" @click="syncFromDataset" title="Refresh from dataset">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </Button>
               <Button size="small" variant="danger" @click="unsyncDataset" title="Unsync from dataset">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                 </svg>
               </Button>
@@ -165,7 +165,7 @@
 
             <template v-else>
               <Button size="small" variant="secondary" @click="openImportModal" :disabled="isNewTimeline && !timelineData.name">
-                <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
                 Import
@@ -173,7 +173,7 @@
             </template>
 
             <Button size="small" variant="secondary" @click="openAddEpoch" :disabled="isNewTimeline && !timelineData.name">
-              <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg aria-hidden="true" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v14H4V5zm4 0v14m8-14v14" />
               </svg>
               Epoch
@@ -241,33 +241,33 @@
             <div v-if="selectedEvent" class="p-3 flex flex-col gap-3">
               <p v-if="isSynced" class="text-[10px] text-emerald-400 bg-emerald-500/10 rounded px-2 py-1">Synced — read only</p>
               <div>
-                <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Title</label>
-                <input v-model="selectedEvent.title" type="text" :disabled="isSynced"
+                <label :for="`${formId}-title`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Title</label>
+                <input :id="`${formId}-title`" v-model="selectedEvent.title" type="text" :disabled="isSynced"
                   class="w-full px-2 py-1.5 rounded border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
                   @blur="saveEvents" />
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Date</label>
-                  <input v-model="selectedEvent.date" type="date" :disabled="isSynced"
+                  <label :for="`${formId}-date`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Date</label>
+                  <input :id="`${formId}-date`" v-model="selectedEvent.date" type="date" :disabled="isSynced"
                     class="w-full px-2 py-1.5 rounded border border-border bg-surface-base text-xs text-text-primary focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
                     @change="saveEvents" />
                 </div>
                 <div>
-                  <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">End date</label>
-                  <input v-model="selectedEvent.endDate" type="date" :disabled="isSynced"
+                  <label :for="`${formId}-end-date`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">End date</label>
+                  <input :id="`${formId}-end-date`" v-model="selectedEvent.endDate" type="date" :disabled="isSynced"
                     class="w-full px-2 py-1.5 rounded border border-border bg-surface-base text-xs text-text-primary focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
                     @change="saveEvents" />
                 </div>
               </div>
               <div>
-                <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Description</label>
-                <textarea v-model="selectedEvent.description" rows="3" :disabled="isSynced"
+                <label :for="`${formId}-description`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Description</label>
+                <textarea :id="`${formId}-description`" v-model="selectedEvent.description" rows="3" :disabled="isSynced"
                   class="w-full px-2 py-1.5 rounded border border-border bg-surface-base text-xs text-text-primary focus:outline-none focus:border-accent transition-colors resize-none disabled:opacity-50"
                   @blur="saveEvents"></textarea>
               </div>
               <div v-if="!isSynced">
-                <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Color</label>
+                <div class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Color</div>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   <button v-for="c in colorPresets" :key="c"
                     class="w-5 h-5 rounded-full border-2 transition-all cursor-pointer"
@@ -277,15 +277,15 @@
                 </div>
               </div>
               <div v-if="projectDocs.length > 0 && !isSynced">
-                <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Document</label>
-                <select v-model="selectedEvent.docId" class="w-full px-2 py-1.5 rounded border border-border bg-surface-base text-xs text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer" @change="saveEvents">
+                <label :for="`${formId}-doc-id`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Document</label>
+                <select :id="`${formId}-doc-id`" v-model="selectedEvent.docId" class="w-full px-2 py-1.5 rounded border border-border bg-surface-base text-xs text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer" @change="saveEvents">
                   <option :value="undefined">— None —</option>
                   <option v-for="doc in projectDocs" :key="doc.id" :value="doc.id">{{ doc.name }}</option>
                 </select>
               </div>
               <div v-if="projectResources.length > 0 && !isSynced">
-                <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Resource</label>
-                <select v-model="selectedEvent.resourceId" class="w-full px-2 py-1.5 rounded border border-border bg-surface-base text-xs text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer" @change="saveEvents">
+                <label :for="`${formId}-resource-id`" class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1">Resource</label>
+                <select :id="`${formId}-resource-id`" v-model="selectedEvent.resourceId" class="w-full px-2 py-1.5 rounded border border-border bg-surface-base text-xs text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer" @change="saveEvents">
                   <option :value="undefined">— None —</option>
                   <option v-for="res in projectResources" :key="res.id" :value="res.id">{{ res.title || res.name }}</option>
                 </select>
@@ -300,7 +300,7 @@
           <!-- Events list tab -->
           <div v-if="activeSidebarTab === 'list'" class="flex-1 flex flex-col overflow-hidden">
             <div class="px-2 pt-2 pb-1 shrink-0">
-              <input v-model="eventSearch" type="text" placeholder="Search events..."
+              <input aria-label="Search events" v-model="eventSearch" type="text" placeholder="Search events..."
                 class="w-full px-2 py-1 rounded border border-border bg-surface-base text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors" />
             </div>
             <div class="flex-1 overflow-y-auto">
@@ -315,10 +315,10 @@
               </div>
               <div class="hidden group-hover:flex items-center gap-1 shrink-0">
                 <button class="p-0.5 rounded hover:bg-surface-elevated text-text-muted hover:text-accent transition-colors" title="Edit" @click.stop="selectEvent(event)">
-                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
                 <button class="p-0.5 rounded hover:bg-surface-elevated text-text-muted hover:text-red-400 transition-colors" v-if="!isSynced" title="Delete" @click.stop="deleteEventById(event.id)">
-                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>
             </div>
@@ -327,7 +327,7 @@
 
           <!-- Notes tab -->
           <div v-if="activeSidebarTab === 'notes'" class="flex-1 flex flex-col p-3">
-            <textarea v-model="timelineData.notes" placeholder="Write notes about this timeline..."
+            <textarea aria-label="Timeline notes" v-model="timelineData.notes" placeholder="Write notes about this timeline..."
               class="flex-1 w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors resize-none leading-relaxed"
               @blur="saveNotes"></textarea>
           </div>
@@ -339,7 +339,7 @@
             <!-- Events list column -->
             <div class="w-[480px] shrink-0 border-r border-border flex flex-col">
               <div class="px-2 py-1 border-b border-border">
-                <input v-model="eventSearch" type="text" placeholder="Search..."
+                <input aria-label="Search events" v-model="eventSearch" type="text" placeholder="Search..."
                   class="w-full px-1.5 py-0.5 rounded border border-border bg-surface-base text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors" />
               </div>
               <div class="flex-1 overflow-y-auto">
@@ -354,10 +354,10 @@
                   </div>
                   <div class="hidden group-hover:flex items-center gap-1 shrink-0">
                     <button class="p-1 rounded hover:bg-surface-elevated text-text-muted hover:text-accent transition-colors" title="Edit" @click.stop="selectEvent(event)">
-                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
                     <button class="p-1 rounded hover:bg-surface-elevated text-text-muted hover:text-red-400 transition-colors" v-if="!isSynced" title="Delete" @click.stop="deleteEventById(event.id)">
-                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
                 </div>
@@ -369,18 +369,18 @@
               <div class="px-2 py-1.5 border-b border-border text-[10px] font-medium text-text-muted uppercase tracking-wider">Detail</div>
               <div class="flex-1 overflow-y-auto">
                 <div v-if="selectedEvent" class="p-2 flex flex-col gap-2">
-                  <input v-model="selectedEvent.title" type="text"
+                  <input aria-label="Event title" v-model="selectedEvent.title" type="text"
                     class="w-full px-2 py-1 rounded border border-border bg-surface-base text-xs text-text-primary focus:outline-none focus:border-accent transition-colors"
                     @blur="saveEvents" />
                   <div class="flex gap-2">
-                    <input v-model="selectedEvent.date" type="date"
+                    <input aria-label="Event start date" v-model="selectedEvent.date" type="date"
                       class="flex-1 px-2 py-1 rounded border border-border bg-surface-base text-[10px] text-text-primary focus:outline-none focus:border-accent transition-colors"
                       @change="saveEvents" />
-                    <input v-model="selectedEvent.endDate" type="date"
+                    <input aria-label="Event end date" v-model="selectedEvent.endDate" type="date"
                       class="flex-1 px-2 py-1 rounded border border-border bg-surface-base text-[10px] text-text-primary focus:outline-none focus:border-accent transition-colors"
                       @change="saveEvents" />
                   </div>
-                  <textarea v-model="selectedEvent.description" rows="2" placeholder="Description..."
+                  <textarea aria-label="Event description" v-model="selectedEvent.description" rows="2" placeholder="Description..."
                     class="w-full px-2 py-1 rounded border border-border bg-surface-base text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors resize-none"
                     @blur="saveEvents"></textarea>
                   <div class="flex items-center gap-1.5 flex-wrap">
@@ -402,7 +402,7 @@
             <div class="flex-1 min-w-0 flex flex-col">
               <div class="px-2 py-1.5 border-b border-border text-[10px] font-medium text-text-muted uppercase tracking-wider">Notes</div>
               <div class="flex-1 p-2">
-                <textarea v-model="timelineData.notes" placeholder="Write notes..."
+                <textarea aria-label="Timeline notes" v-model="timelineData.notes" placeholder="Write notes..."
                   class="w-full h-full px-2 py-1.5 rounded border border-border bg-surface-base text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors resize-none leading-relaxed"
                   @blur="saveNotes"></textarea>
               </div>
@@ -428,8 +428,8 @@
     <Modal v-model="showImportModal" title="Import from Dataset">
       <div class="flex flex-col gap-4">
         <div>
-          <label class="block text-xs font-medium text-text-secondary mb-1">Dataset</label>
-          <select v-model="importDatasetId"
+          <label :for="`${formId}-import-dataset-id`" class="block text-xs font-medium text-text-secondary mb-1">Dataset</label>
+          <select :id="`${formId}-import-dataset-id`" v-model="importDatasetId"
             class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer"
             @change="onDatasetSelected">
             <option :value="null">— Select a dataset —</option>
@@ -444,32 +444,32 @@
             <p class="text-xs font-medium text-text-secondary mb-2">Map dataset columns to event fields</p>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs text-text-muted mb-1">Title <span class="text-red-400">*</span></label>
-                <select v-model="importMapping.titleField"
+                <label :for="`${formId}-title-field`" class="block text-xs text-text-muted mb-1">Title <span class="text-red-400">*</span></label>
+                <select :id="`${formId}-title-field`" v-model="importMapping.titleField"
                   class="w-full px-3 py-1.5 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer">
                   <option value="">— Select —</option>
                   <option v-for="f in importSchema" :key="f.key" :value="f.key">{{ f.name }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs text-text-muted mb-1">Date <span class="text-red-400">*</span></label>
-                <select v-model="importMapping.dateField"
+                <label :for="`${formId}-date-field`" class="block text-xs text-text-muted mb-1">Date <span class="text-red-400">*</span></label>
+                <select :id="`${formId}-date-field`" v-model="importMapping.dateField"
                   class="w-full px-3 py-1.5 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer">
                   <option value="">— Select —</option>
                   <option v-for="f in importDateFields" :key="f.key" :value="f.key">{{ f.name }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs text-text-muted mb-1">End Date <span class="text-text-muted font-normal">(opt)</span></label>
-                <select v-model="importMapping.endDateField"
+                <label :for="`${formId}-end-date-field`" class="block text-xs text-text-muted mb-1">End Date <span class="text-text-muted font-normal">(opt)</span></label>
+                <select :id="`${formId}-end-date-field`" v-model="importMapping.endDateField"
                   class="w-full px-3 py-1.5 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer">
                   <option value="">— None —</option>
                   <option v-for="f in importDateFields" :key="f.key" :value="f.key">{{ f.name }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs text-text-muted mb-1">Description <span class="text-text-muted font-normal">(opt)</span></label>
-                <select v-model="importMapping.descriptionField"
+                <label :for="`${formId}-description-field`" class="block text-xs text-text-muted mb-1">Description <span class="text-text-muted font-normal">(opt)</span></label>
+                <select :id="`${formId}-description-field`" v-model="importMapping.descriptionField"
                   class="w-full px-3 py-1.5 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors cursor-pointer">
                   <option value="">— None —</option>
                   <option v-for="f in importTextFields" :key="f.key" :value="f.key">{{ f.name }}</option>
@@ -479,7 +479,7 @@
           </div>
 
           <div>
-            <label class="block text-xs text-text-muted mb-1">Color for imported events</label>
+            <div class="block text-xs text-text-muted mb-1">Color for imported events</div>
             <div class="flex items-center gap-2 flex-wrap">
               <button
                 v-for="c in colorPresets"
@@ -545,24 +545,24 @@
     <Modal v-model="showEventModal" :title="'Add Event'">
       <div class="flex flex-col gap-3">
         <div>
-          <label class="block text-xs font-medium text-text-secondary mb-1">Title <span class="text-red-400">*</span></label>
-          <input v-model="eventForm.title" type="text" placeholder="Event title"
+          <label :for="`${formId}-title-2`" class="block text-xs font-medium text-text-secondary mb-1">Title <span class="text-red-400">*</span></label>
+          <input :id="`${formId}-title-2`" v-model="eventForm.title" type="text" placeholder="Event title"
             class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">Date <span class="text-red-400">*</span></label>
-            <input v-model="eventForm.date" type="date"
+            <label :for="`${formId}-date-2`" class="block text-xs font-medium text-text-secondary mb-1">Date <span class="text-red-400">*</span></label>
+            <input :id="`${formId}-date-2`" v-model="eventForm.date" type="date"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">End Date <span class="text-text-muted font-normal">(opt)</span></label>
-            <input v-model="eventForm.endDate" type="date"
+            <label :for="`${formId}-end-date-2`" class="block text-xs font-medium text-text-secondary mb-1">End Date <span class="text-text-muted font-normal">(opt)</span></label>
+            <input :id="`${formId}-end-date-2`" v-model="eventForm.endDate" type="date"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors" />
           </div>
         </div>
         <div>
-          <label class="block text-xs font-medium text-text-secondary mb-1.5">Color</label>
+          <div class="block text-xs font-medium text-text-secondary mb-1.5">Color</div>
           <div class="flex items-center gap-2 flex-wrap">
             <button
               v-for="c in colorPresets"
@@ -587,24 +587,24 @@
     <Modal v-model="showEpochModal" :title="editingEpoch ? 'Edit Epoch' : 'Add Epoch'">
       <div class="flex flex-col gap-3">
         <div>
-          <label class="block text-xs font-medium text-text-secondary mb-1">Name <span class="text-red-400">*</span></label>
-          <input v-model="epochForm.name" type="text" placeholder="e.g. Renaissance, World War II..."
+          <label :for="`${formId}-name`" class="block text-xs font-medium text-text-secondary mb-1">Name <span class="text-red-400">*</span></label>
+          <input :id="`${formId}-name`" v-model="epochForm.name" type="text" placeholder="e.g. Renaissance, World War II..."
             class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">Start Date <span class="text-red-400">*</span></label>
-            <input v-model="epochForm.startDate" type="date"
+            <label :for="`${formId}-start-date`" class="block text-xs font-medium text-text-secondary mb-1">Start Date <span class="text-red-400">*</span></label>
+            <input :id="`${formId}-start-date`" v-model="epochForm.startDate" type="date"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-text-secondary mb-1">End Date <span class="text-red-400">*</span></label>
-            <input v-model="epochForm.endDate" type="date"
+            <label :for="`${formId}-end-date-3`" class="block text-xs font-medium text-text-secondary mb-1">End Date <span class="text-red-400">*</span></label>
+            <input :id="`${formId}-end-date-3`" v-model="epochForm.endDate" type="date"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent transition-colors" />
           </div>
         </div>
         <div>
-          <label class="block text-xs font-medium text-text-secondary mb-1.5">Color</label>
+          <div class="block text-xs font-medium text-text-secondary mb-1.5">Color</div>
           <div class="flex items-center gap-2 flex-wrap">
             <button
               v-for="c in epochColorPresets"
@@ -634,13 +634,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, type Component } from 'vue';
+import type {
+    TimelineRecord,
+    TimelineDatasetMapping,
+    TimelineEvent,
+    TimelineEpoch,
+    TimelineLayoutType,
+} from '../types/timeline';
+import type { DocumentRecord } from '../services/documents/useDocument';
+import { getErrorMessage } from '../utils/errorDetails';
+import { useId, ref, computed, onMounted, watch, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { v4 as uuidv4 } from 'uuid';
 import { useTimelines } from '../services/timelines/useTimelines';
 import { useDocumentProjectList } from '../services/documents/useDocumentProjectList';
 import { useResourceList } from '../services/resources/useResourceList';
-import { useDatasets, type DatasetField, type Dataset } from '../services/datasets/useDatasets';
+import { useDatasets, type DatasetField, type Dataset, type DatasetRecord } from '../services/datasets/useDatasets';
 import { analyzeDatasetRecords, buildTimelineEvents } from '../services/timelines/datasetTimelineMapper';
 import { useProjectStore } from '../store/projectStore';
 import Breadcrumb from '../components/ui/Breadcrumb.vue';
@@ -649,7 +658,8 @@ import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import Modal from '../components/ui/Modal/Modal.vue';
 import TimelineHorizontal from '../components/timeline/TimelineHorizontal.vue';
 import TimelineVertical from '../components/timeline/TimelineVertical.vue';
-import type { TimelineDatasetMapping, TimelineEvent, TimelineEpoch, TimelineLayoutType } from '../types/timeline';
+
+const formId = useId();
 
 const route = useRoute();
 const router = useRouter();
@@ -659,13 +669,13 @@ const { loadDocumentsByProject } = useDocumentProjectList();
 const { loadResourcesByProject } = useResourceList();
 const { getAllDatasets, getDataset, getRecords } = useDatasets();
 
-const timelineData = ref<Record<string, any>>({ name: '', timelineData: [], epochs: [], notes: '', layoutType: 'horizontal', axisBreaks: false });
+const timelineData = ref<Partial<Omit<TimelineRecord, 'project'>> & { name: string; project?: { id: number; name?: string } | null }>({ name: '', timelineData: [], epochs: [], notes: '', layoutType: 'horizontal', axisBreaks: false });
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
 const showRemoveModal = ref(false);
 const showEventModal = ref(false);
-const projectDocs = ref<Record<string, any>[]>([]);
-const projectResources = ref<Record<string, any>[]>([]);
+const projectDocs = ref<DocumentRecord[]>([]);
+const projectResources = ref<{ id: number; name: string; title?: string }[]>([]);
 const showCards = ref(true);
 const showExportMenu = ref(false);
 const exportDropdownRef = ref<HTMLElement | null>(null);
@@ -850,7 +860,7 @@ const toggleAxisBreaks = async () => {
   if (!isNewTimeline.value && timelineData.value.id) await saveField('axisBreaks', timelineData.value.axisBreaks);
 };
 
-const saveField = async (field: string, value: any) => {
+const saveField = async <Field extends keyof TimelineRecord>(field: Field, value: TimelineRecord[Field]) => {
   isSaving.value = true;
   savedSuccessfully.value = false;
   try {
@@ -878,7 +888,7 @@ const sortedEvents = computed(() => {
 });
 
 const breadcrumbItems = computed(() => {
-  const items: Record<string, any>[] = [];
+  const items: { name: string; path?: string }[] = [];
   if (projectStore.currentProject) {
     items.push({ name: projectStore.currentProject.name, path: `/project/${projectStore.currentProject.id}` });
   }
@@ -910,8 +920,8 @@ onMounted(async () => {
 
   const resolvedProjectId = timelineData.value.project?.id || (projectId ? Number(projectId) : projectStore.currentProject?.id);
   if (resolvedProjectId) {
-    try { projectDocs.value = await loadDocumentsByProject(resolvedProjectId); } catch { projectDocs.value = []; }
-    try { projectResources.value = await loadResourcesByProject(resolvedProjectId); } catch { projectResources.value = []; }
+    try { projectDocs.value = await loadDocumentsByProject(String(resolvedProjectId)); } catch { projectDocs.value = []; }
+    try { projectResources.value = await loadResourcesByProject(String(resolvedProjectId)); } catch { projectResources.value = []; }
   }
 
   // Auto-sync from dataset if synced
@@ -1006,7 +1016,7 @@ const showImportModal = ref(false);
 const availableDatasets = ref<Dataset[]>([]);
 const importDatasetId = ref<number | null>(null);
 const importSchema = ref<DatasetField[]>([]);
-const importAllRecords = ref<Record<string, any>[]>([]);
+const importAllRecords = ref<DatasetRecord[]>([]);
 const importTotalRecords = ref(0);
 const importError = ref('');
 const isImporting = ref(false);
@@ -1067,8 +1077,8 @@ const onDatasetSelected = async () => {
     if (firstText) importMapping.value.titleField = firstText.key;
     if (dateFields.length >= 1) importMapping.value.dateField = dateFields[0].key;
     if (dateFields.length >= 2) importMapping.value.endDateField = dateFields[1].key;
-  } catch (err: any) {
-    importError.value = err.message || 'Failed to load dataset';
+  } catch (err: unknown) {
+    importError.value = getErrorMessage(err) || 'Failed to load dataset';
   } finally {
     isImporting.value = false;
   }

@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-2.5 bg-surface border-b border-border">
             <div class="flex items-center gap-2">
-                <svg class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                <svg aria-hidden="true" class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                     stroke-width="1.75">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
@@ -22,7 +22,7 @@
                 <button @click="showFilters = !showFilters"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     :class="{ 'text-accent bg-accent-subtle': showFilters }" title="Toggle filters">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                     </svg>
@@ -31,7 +31,7 @@
                 <button v-if="editable" @click="toggleEditMode"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     :class="{ 'text-accent bg-accent-subtle': editMode }" title="Toggle edit mode">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
@@ -52,13 +52,13 @@
         <!-- Filter bar -->
         <div v-if="showFilters" class="px-4 py-3 bg-surface-hover/30 border-b border-border-light space-y-2">
             <div v-for="(f, i) in editableFilters" :key="i" class="flex items-center gap-2">
-                <select v-model="f.field"
+                <select aria-label="Filter field" v-model="f.field"
                     class="rounded-lg bg-surface-elevated border border-border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent w-32">
                     <option value="">Field...</option>
                     <option v-for="field in schemaFields" :key="field.key" :value="field.key">{{ field.name }}
                     </option>
                 </select>
-                <select v-model="f.operator"
+                <select aria-label="Filter operator" v-model="f.operator"
                     class="rounded-lg bg-surface-elevated border border-border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent w-24">
                     <option value="eq">=</option>
                     <option value="contains">contains</option>
@@ -67,12 +67,12 @@
                     <option v-if="getFieldType(f.field) === 'number'" value="lt">&lt;</option>
                     <option v-if="getFieldType(f.field) === 'number'" value="lte">&lt;=</option>
                 </select>
-                <input v-model="f.value" type="text" placeholder="Value..."
+                <input aria-label="Filter value" v-model="f.value" type="text" placeholder="Value..."
                     class="flex-1 rounded-lg bg-surface-elevated border border-border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                     @keydown.enter="applyFilters" />
-                <button @click="editableFilters.splice(i, 1)"
+                <button aria-label="Remove filter" @click="editableFilters.splice(i, 1)"
                     class="p-1 rounded text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -80,7 +80,7 @@
             <div class="flex items-center gap-2">
                 <button @click="editableFilters.push({ field: '', operator: 'eq', value: '' })"
                     class="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-accent hover:text-accent-dark hover:bg-accent-subtle rounded-lg transition-colors cursor-pointer">
-                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                     Add filter
@@ -154,7 +154,7 @@
                             @dblclick="editMode && startEdit(record, field, $event)">
                             <!-- Inline editing -->
                             <template v-if="isEditing(record.id, field)">
-                                <select v-if="getFieldType(field) === 'boolean'"
+                                <select :aria-label="`Edit ${field} for record ${record.id}`" v-if="getFieldType(field) === 'boolean'"
                                     :value="getEditValue(record.id, field)"
                                     @input="setEditValue(record.id, field, ($event.target as HTMLSelectElement).value === 'true')"
                                     @blur="blurEdit(record.id, field)"
@@ -163,7 +163,7 @@
                                     <option :value="true">Yes</option>
                                     <option :value="false">No</option>
                                 </select>
-                                <select v-else-if="getFieldType(field) === 'select'"
+                                <select :aria-label="`Edit ${field} for record ${record.id}`" v-else-if="getFieldType(field) === 'select'"
                                     :value="getEditValue(record.id, field)"
                                     @input="setEditValue(record.id, field, ($event.target as HTMLSelectElement).value)"
                                     @blur="blurEdit(record.id, field)"
@@ -172,31 +172,31 @@
                                     <option v-for="opt in getFieldOptions(field)" :key="opt" :value="opt">{{ opt }}
                                     </option>
                                 </select>
-                                <input v-else-if="getFieldType(field) === 'number'" type="number"
+                                <input :aria-label="`Edit ${field} for record ${record.id}`" v-else-if="getFieldType(field) === 'number'" type="number"
                                     :value="getEditValue(record.id, field)"
                                     @input="setEditValue(record.id, field, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field)"
                                     @keydown.escape="cancelCellEdit(record.id, field)"
                                     class="w-full bg-transparent outline outline-1 outline-accent/50 rounded-sm px-0 py-0 text-sm focus:outline-accent" />
-                                <input v-else-if="getFieldType(field) === 'date'" type="date"
+                                <input :aria-label="`Edit ${field} for record ${record.id}`" v-else-if="getFieldType(field) === 'date'" type="date"
                                     :value="getEditValue(record.id, field)"
                                     @input="setEditValue(record.id, field, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field)"
                                     @keydown.escape="cancelCellEdit(record.id, field)"
                                     class="w-full bg-transparent outline outline-1 outline-accent/50 rounded-sm px-0 py-0 text-sm focus:outline-accent" />
-                                <input v-else-if="getFieldType(field) === 'datetime'" type="datetime-local"
+                                <input :aria-label="`Edit ${field} for record ${record.id}`" v-else-if="getFieldType(field) === 'datetime'" type="datetime-local"
                                     :value="getEditValue(record.id, field)"
                                     @input="setEditValue(record.id, field, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field)"
                                     @keydown.escape="cancelCellEdit(record.id, field)"
                                     class="w-full bg-transparent outline outline-1 outline-accent/50 rounded-sm px-0 py-0 text-sm focus:outline-accent" />
-                                <input v-else-if="getFieldType(field) === 'time'" type="time"
+                                <input :aria-label="`Edit ${field} for record ${record.id}`" v-else-if="getFieldType(field) === 'time'" type="time"
                                     :value="getEditValue(record.id, field)"
                                     @input="setEditValue(record.id, field, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field)"
                                     @keydown.escape="cancelCellEdit(record.id, field)"
                                     class="w-full bg-transparent outline outline-1 outline-accent/50 rounded-sm px-0 py-0 text-sm focus:outline-accent" />
-                                <input v-else type="text" :value="getEditValue(record.id, field)"
+                                <input :aria-label="`Edit ${field} for record ${record.id}`" v-else type="text" :value="getEditValue(record.id, field)"
                                     @input="setEditValue(record.id, field, ($event.target as HTMLInputElement).value)"
                                     @blur="blurEdit(record.id, field)"
                                     @keydown.escape="cancelCellEdit(record.id, field)"
@@ -228,8 +228,9 @@
 </template>
 
 <script setup lang="ts">
+import { getResponseError } from '../../utils/errorDetails';
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { useDatasets, type DatasetField } from '../../services/datasets/useDatasets';
+import { useDatasets, type DatasetField, type DatasetRecord } from '../../services/datasets/useDatasets';
 
 const props = defineProps<{
     datasetId: number;
@@ -241,7 +242,7 @@ const props = defineProps<{
 
 const { getDataset, getRecords, updateRecord } = useDatasets();
 
-const records = ref<any[]>([]);
+const records = ref<DatasetRecord[]>([]);
 const total = ref(0);
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -262,9 +263,9 @@ const activeFilters = ref<{ field: string; operator: string; value: string }[]>(
 // Initialize active filters from props
 const initFilters = () => {
     try {
-        const parsed = JSON.parse(props.filters);
+        const parsed: typeof activeFilters.value = JSON.parse(props.filters);
         activeFilters.value = [...parsed];
-        editableFilters.value = parsed.map((f: any) => ({ ...f }));
+        editableFilters.value = parsed.map(f => ({ ...f }));
     } catch {
         activeFilters.value = [];
         editableFilters.value = [];
@@ -276,7 +277,7 @@ const operatorLabel = (op: string) => {
     return map[op] || op;
 };
 
-const formatValue = (val: any) => {
+const formatValue = (val: unknown) => {
     if (val === null || val === undefined) return '—';
     if (typeof val === 'boolean') return val ? 'Yes' : 'No';
     return String(val);
@@ -313,17 +314,22 @@ const loadData = async () => {
     loading.value = true;
     error.value = null;
     try {
-        const params: Record<string, any> = { limit: 100 };
+        const params: Record<string, unknown> = { limit: 100 };
         for (const f of activeFilters.value) {
             if (f.field && f.value) {
                 params[`filter[${f.field}_${f.operator}]`] = f.value;
             }
         }
-        const data: any = await getRecords(props.datasetId, params);
-        records.value = data.records || data;
-        total.value = data.total || records.value.length;
-    } catch (err: any) {
-        error.value = err.response?.data?.message || 'Failed to load data';
+        const data: Awaited<ReturnType<typeof getRecords>> | DatasetRecord[] = await getRecords(props.datasetId, params);
+        if (Array.isArray(data)) {
+            records.value = data;
+            total.value = data.length;
+        } else {
+            records.value = data.records;
+            total.value = data.total || records.value.length;
+        }
+    } catch (err: unknown) {
+        error.value = getResponseError(err) || 'Failed to load data';
     } finally {
         loading.value = false;
     }
@@ -348,7 +354,7 @@ const toggleEditMode = () => {
 };
 
 // Inline editing state
-const editingCells = ref<Map<string, any>>(new Map());
+const editingCells = ref<Map<string, unknown>>(new Map());
 
 const cellKey = (recordId: number, fieldKey: string) => `${recordId}:${fieldKey}`;
 
@@ -356,7 +362,7 @@ const isEditing = (recordId: number, fieldKey: string) => editingCells.value.has
 
 const hasChanges = computed(() => editingCells.value.size > 0);
 
-const startEdit = async (record: any, fieldKey: string, event: MouseEvent) => {
+const startEdit = async (record: DatasetRecord, fieldKey: string, event: MouseEvent) => {
     const key = cellKey(record.id, fieldKey);
     if (!editingCells.value.has(key)) {
         editingCells.value.set(key, record.data[fieldKey] ?? '');
@@ -371,7 +377,7 @@ const getEditValue = (recordId: number, fieldKey: string) => {
     return editingCells.value.get(cellKey(recordId, fieldKey));
 };
 
-const setEditValue = (recordId: number, fieldKey: string, value: any) => {
+const setEditValue = (recordId: number, fieldKey: string, value: unknown) => {
     editingCells.value.set(cellKey(recordId, fieldKey), value);
 };
 
@@ -394,7 +400,7 @@ const cancelEdits = () => {
 
 const applyEdits = async () => {
     // Group changes by record
-    const changes = new Map<number, Record<string, any>>();
+    const changes = new Map<number, Record<string, unknown>>();
     for (const [key, value] of editingCells.value) {
         const [ridStr, fieldKey] = key.split(':');
         const rid = Number(ridStr);
@@ -410,7 +416,7 @@ const applyEdits = async () => {
     for (const [recordId, data] of changes) {
         try {
             await updateRecord(props.datasetId, recordId, data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(`Failed to update record ${recordId}:`, err);
             hasError = true;
         }

@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { getErrorMessage } from '../utils/errorDetails';
 import { ref, computed, onMounted } from 'vue';
 import { useWorkspaceStore } from '../store/workspaceStore';
 
@@ -129,8 +130,8 @@ onMounted(async () => {
   try {
     report.value = await window.electronAPI.standaloneHardwareReport();
     phase.value = report.value.canInstall ? 'confirm' : 'blocked';
-  } catch (e: any) {
-    error.value = e.message || 'Hardware check failed';
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e) || 'Hardware check failed';
     phase.value = 'error';
   }
 });
@@ -162,9 +163,9 @@ async function startInstall() {
       return;
     }
     emit('done');
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Don't leave the UI stuck on "Preparing…" — surface the failure.
-    error.value = e?.message || 'Installation failed';
+    error.value = getErrorMessage(e) || 'Installation failed';
     phase.value = 'error';
   }
 }

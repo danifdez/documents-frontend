@@ -10,8 +10,8 @@
             </button>
         </div>
         <div v-if="showCustom" class="space-y-1.5">
-            <label class="block text-xs font-medium text-text-secondary">Cron expression</label>
-            <input v-model="customCron" type="text" placeholder="0 */6 * * *"
+            <label :for="`${formId}-custom-cron`" class="block text-xs font-medium text-text-secondary">Cron expression</label>
+            <input :id="`${formId}-custom-cron`" v-model="customCron" type="text" placeholder="0 */6 * * *"
                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 @input="emitCustom" />
             <p class="text-[10px] text-text-muted">Format: minute hour day-of-month month day-of-week</p>
@@ -20,7 +20,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { useId, ref, watch } from 'vue';
+
+const formId = useId();
 
 const props = defineProps<{
     modelValue: string | null;

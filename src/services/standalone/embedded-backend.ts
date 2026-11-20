@@ -1,8 +1,8 @@
 import { app } from 'electron';
-import path from 'path';
-import fs from 'fs';
-import { ChildProcess, fork, spawn, spawnSync } from 'child_process';
-import http from 'http';
+import path from 'node:path';
+import fs from 'node:fs';
+import { ChildProcess, fork, spawn, spawnSync } from 'node:child_process';
+import http from 'node:http';
 import { findFreePort, isPortAvailable } from './embedded-postgres';
 import { getBundledNodePath } from './download-manager';
 import { getActiveComponentRoot, legacyComponentRoot } from './installed-components';

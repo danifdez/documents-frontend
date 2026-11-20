@@ -1,14 +1,15 @@
+import type { DocumentRecord } from '../services/documents/useDocument';
 import type { Ref } from 'vue';
 import { useDragDrop } from './useDragDrop';
 import { useNotification } from './useNotification';
-import { useResource } from '../services/resources/useResource';
+import { useResource, type Resource } from '../services/resources/useResource';
 
 interface ResourceSplitDropOptions {
     resourceId: Ref<string>;
-    splitDocument: Ref<Record<string, any> | null>;
-    splitResource: Ref<Record<string, any> | null>;
+    splitDocument: Ref<DocumentRecord | null>;
+    splitResource: Ref<Resource | null>;
     splitViewActive: Ref<boolean>;
-    loadDocument: (id: string) => Promise<object>;
+    loadDocument: (id: string) => Promise<DocumentRecord>;
 }
 
 // Drop handling for opening a dragged document or resource in the split view
@@ -49,7 +50,7 @@ export function useResourceSplitDrop({
         } else if (droppedData && droppedData.type === 'resource') {
             try {
                 // DragData only types `document`; other payloads come through its index signature
-                const droppedResource = droppedData.resource as Record<string, any> | undefined;
+                const droppedResource = droppedData.resource as { id?: string | number } | undefined;
                 if (droppedResource && droppedResource.id && String(droppedResource.id) !== String(resourceId.value)) {
                     const { loadResource: loadSplitResource } = useResource();
                     const fullResource = await loadSplitResource(String(droppedResource.id));

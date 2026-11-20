@@ -3,7 +3,7 @@ import { createApp } from 'vue';
 import CanvasViewNode from '../CanvasViewNode.vue';
 
 export interface CanvasViewOptions {
-    HTMLAttributes: Record<string, any>;
+    HTMLAttributes: Record<string, unknown>;
 }
 
 declare module '@tiptap/core' {
@@ -35,7 +35,7 @@ export const CanvasViewExtension = Node.create<CanvasViewOptions>({
             canvasId: {
                 default: null,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-canvas-id');
+                    const val = element.dataset.canvasId;
                     return val ? Number(val) : null;
                 },
                 renderHTML: (attributes) => ({
@@ -44,7 +44,7 @@ export const CanvasViewExtension = Node.create<CanvasViewOptions>({
             },
             canvasName: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-canvas-name') || '',
+                parseHTML: (element) => element.dataset.canvasName || '',
                 renderHTML: (attributes) => ({
                     'data-canvas-name': attributes.canvasName,
                 }),
@@ -52,7 +52,7 @@ export const CanvasViewExtension = Node.create<CanvasViewOptions>({
             viewZoom: {
                 default: 1,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-view-zoom');
+                    const val = element.dataset.viewZoom;
                     return val ? Number(val) : 1;
                 },
                 renderHTML: (attributes) => ({
@@ -62,7 +62,7 @@ export const CanvasViewExtension = Node.create<CanvasViewOptions>({
             viewPanX: {
                 default: 0,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-view-pan-x');
+                    const val = element.dataset.viewPanX;
                     return val ? Number(val) : 0;
                 },
                 renderHTML: (attributes) => ({
@@ -72,7 +72,7 @@ export const CanvasViewExtension = Node.create<CanvasViewOptions>({
             viewPanY: {
                 default: 0,
                 parseHTML: (element) => {
-                    const val = element.getAttribute('data-view-pan-y');
+                    const val = element.dataset.viewPanY;
                     return val ? Number(val) : 0;
                 },
                 renderHTML: (attributes) => ({
@@ -105,7 +105,7 @@ export const CanvasViewExtension = Node.create<CanvasViewOptions>({
             dom.classList.add('canvas-view-wrapper');
             dom.setAttribute('contenteditable', 'false');
 
-            const updateAttrs = (attrs: Record<string, any>) => {
+            const updateAttrs = (attrs: Record<string, unknown>) => {
                 const pos = getPos();
                 if (typeof pos !== 'number') return;
                 // Read current attrs from the document state (not the stale closure)

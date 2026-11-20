@@ -12,7 +12,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between px-3 py-2 bg-surface border-b border-border shrink-0">
       <div class="flex items-center gap-1.5 min-w-0">
-        <svg class="h-3.5 w-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+        <svg aria-hidden="true" class="h-3.5 w-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16" />
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 16V9" />
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4" />
@@ -24,7 +24,7 @@
       <button @click="loadChart" :disabled="loading"
         class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer nodrag shrink-0"
         title="Refresh">
-        <svg class="h-3 w-3" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
+        <svg aria-hidden="true" class="h-3 w-3" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
           stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -43,24 +43,26 @@
       <div v-else-if="!node.data.chartId && !chartReady" class="flex items-center justify-center h-full text-xs text-text-muted">
         No chart linked
       </div>
-      <img v-else-if="chartImage" :src="chartImage" class="w-full h-full object-contain" />
+      <img :alt="node.data.chartName ? `Chart: ${node.data.chartName}` : 'Dataset chart'" v-else-if="chartImage" :src="chartImage" class="w-full h-full object-contain" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { CanvasNodeData } from '../../../types/canvas';
+import { getErrorMessage } from '../../../utils/errorDetails';
 import { ref, onMounted } from 'vue';
 import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
 import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
-import { Chart, registerables } from 'chart.js';
-import { useDatasets } from '../../../services/datasets/useDatasets';
+import { Chart, registerables, type ChartConfiguration } from 'chart.js';
+import { useDatasets, type StatsResult } from '../../../services/datasets/useDatasets';
 
 Chart.register(...registerables);
 
-defineProps<{ id: string; data: Record<string, any>; selected: boolean }>();
-const { node } = useNode();
+defineProps<{ id: string; data: CanvasNodeData; selected: boolean }>();
+const { node } = useNode<CanvasNodeData>();
 const { getSavedCharts, requestStats, getStatsResult } = useDatasets();
 
 const loading = ref(false);
@@ -77,7 +79,7 @@ const loadChart = async () => {
 
   try {
     const charts = await getSavedCharts(node.data.datasetId);
-    const savedChart = charts.find((c: any) => c.id === node.data.chartId);
+    const savedChart = charts.find(c => c.id === node.data.chartId);
 
     if (!savedChart) {
       error.value = 'Chart not found';
@@ -87,7 +89,7 @@ const loadChart = async () => {
 
     const { executionId } = await requestStats(node.data.datasetId, 'chart', savedChart.config);
 
-    const result = await new Promise<any>((resolve, reject) => {
+    const result = await new Promise<StatsResult | null>((resolve, reject) => {
       const timer = setInterval(async () => {
         try {
           const res = await getStatsResult(node.data.datasetId, executionId);
@@ -106,13 +108,13 @@ const loadChart = async () => {
     renderChart(result);
     chartReady.value = true;
     loading.value = false;
-  } catch (err: any) {
-    error.value = err.message || 'Failed to load chart';
+  } catch (err: unknown) {
+    error.value = getErrorMessage(err) || 'Failed to load chart';
     loading.value = false;
   }
 };
 
-const renderChart = (result: any) => {
+const renderChart = (result: StatsResult | null) => {
   if (!result?.chartData) return;
 
   const w = 800;
@@ -124,7 +126,7 @@ const renderChart = (result: any) => {
   if (!ctx) return;
 
   const { chartType, chartData: data, title, yLabel } = result;
-  let config: any = null;
+  let config: ChartConfiguration | null = null;
 
   if (chartType === 'scatter' && data.points) {
     config = {
@@ -138,14 +140,15 @@ const renderChart = (result: any) => {
         }],
       },
     };
-  } else if (data.labels && data.values) {
+  } else if (chartType && chartType !== 'none' && chartType !== 'box' && chartType !== 'heatmap'
+        && chartType !== 'stacked_bar' && data.labels && data.values) {
     const isPie = chartType === 'pie' || chartType === 'doughnut';
     const bgColor = isPie
-      ? data.labels.map((_: any, i: number) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
+      ? data.labels.map((_, i) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
       : 'rgba(99, 102, 241, 0.6)';
 
     config = {
-      type: (chartType === 'histogram' ? 'bar' : chartType) as any,
+      type: chartType === 'histogram' ? 'bar' : chartType,
       data: {
         labels: data.labels,
         datasets: [{
@@ -182,7 +185,7 @@ onMounted(() => {
   if (node.data.chartId) loadChart();
 });
 
-const onToolbarUpdate = (updates: Record<string, any>) => {
+const onToolbarUpdate = (updates: CanvasNodeData) => {
   node.data = { ...node.data, ...updates };
 };
 </script>

@@ -1,38 +1,44 @@
+import type { OfflineEntity, OfflineItem, OfflinePendingChange } from './offline';
+import type { StoredWorkspace } from './Workspace';
 import type { CalendarAlarmPayload, CalendarMissedPayload } from '../services/calendar/useCalendarAlarms';
 import type { TaskReminderPayload, TaskMissedPayload } from '../services/user-tasks/useTaskReminders';
 
+export interface ElectronSettings {
+    language?: string;
+    fontSize?: number;
+    fontFamily?: string;
+    paragraphSpacing?: number;
+    theme?: 'light' | 'dark' | 'system';
+    disabledFeatures?: string[];
+    closeBehavior?: 'tray' | 'quit';
+    launchAtLogin?: boolean;
+    toggleShortcut?: string | null;
+    quickAssistantShortcut?: string | null;
+    hideDockIcon?: boolean;
+    preloadVoiceModel?: boolean;
+}
+
+export type DocumentUploadResult = { resourceId: number | string; error?: never } | { error: string; resourceId?: never };
+
 export interface ElectronAPI {
-    getSettings: () => Promise<{
-        language?: string;
-        fontSize?: number;
-        fontFamily?: string;
-        paragraphSpacing?: number;
-        theme?: 'light' | 'dark' | 'system';
-        disabledFeatures?: string[];
-        closeBehavior?: 'tray' | 'quit';
-        launchAtLogin?: boolean;
-        toggleShortcut?: string | null;
-        quickAssistantShortcut?: string | null;
-        hideDockIcon?: boolean;
-        preloadVoiceModel?: boolean;
-    }>;
+    getSettings: () => Promise<ElectronSettings>;
     // Returns `{ ok, shortcutOk, quickShortcutOk }`. Older callers that
     // ignore the return value keep working since the IPC channel itself is
     // unchanged.
-    setSettings: (settings: any) => Promise<{ ok: boolean; shortcutOk: boolean; quickShortcutOk: boolean } | void>;
+    setSettings: (settings: ElectronSettings) => Promise<{ ok: boolean; shortcutOk: boolean; quickShortcutOk: boolean } | void>;
     // Runtime info about residente/tray support.
     getTrayAvailable?: () => Promise<boolean>;
     getPlatform?: () => Promise<NodeJS.Platform>;
-    uploadDocument: (idProject: string, filePath: string) => Promise<any>;
+    uploadDocument: (idProject: string | null, filePath: string) => Promise<DocumentUploadResult>;
     openMultipleFileDialog: () => Promise<{ path: string; name: string }[]>;
 
     // Workspace management
-    getWorkspaces: () => Promise<{ id: string; name: string; url: string; type?: string }[]>;
-    addWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => Promise<any>;
-    updateWorkspace: (workspace: { id: string; name: string; url: string; type?: string }) => Promise<any>;
+    getWorkspaces: () => Promise<StoredWorkspace[]>;
+    addWorkspace: (workspace: StoredWorkspace) => Promise<StoredWorkspace>;
+    updateWorkspace: (workspace: StoredWorkspace) => Promise<StoredWorkspace>;
     removeWorkspace: (id: string) => Promise<boolean>;
-    getActiveWorkspace: () => Promise<{ id: string; name: string; url: string; type?: string } | null>;
-    setActiveWorkspace: (id: string) => Promise<any>;
+    getActiveWorkspace: () => Promise<StoredWorkspace | null>;
+    setActiveWorkspace: (id: string) => Promise<StoredWorkspace | null>;
     setDefaultWorkspace: (id: string | null) => Promise<boolean>;
     getDefaultWorkspace: () => Promise<string | null>;
 
@@ -82,15 +88,15 @@ export interface ElectronAPI {
     onStandaloneDownloadProgress: (callback: (progress: { component: string; downloaded: number; total: number; percent: number; step?: number; totalSteps?: number; overallPercent?: number }) => void) => void;
 
     // Offline filesystem storage
-    offlinePutItem: (wsId: string, type: string, id: number, data: any, syncedAt: string, parentType?: string, parentId?: number) => Promise<void>;
-    offlineGetItem: (wsId: string, type: string, id: number) => Promise<any | null>;
+    offlinePutItem: (wsId: string, type: string, id: number, data: OfflineEntity, syncedAt: string, parentType?: string, parentId?: number) => Promise<void>;
+    offlineGetItem: (wsId: string, type: string, id: number) => Promise<OfflineItem | null>;
     offlineDeleteItem: (wsId: string, type: string, id: number) => Promise<void>;
-    offlineGetAllItemsByWorkspace: (wsId: string) => Promise<any[]>;
+    offlineGetAllItemsByWorkspace: (wsId: string) => Promise<OfflineItem[]>;
     offlinePutFile: (wsId: string, resourceId: number, base64Data: string, mimeType: string, ext: string) => Promise<void>;
     offlineGetFilePath: (wsId: string, resourceId: number) => Promise<string | null>;
     offlineDeleteFile: (wsId: string, resourceId: number) => Promise<void>;
-    offlineAddPendingChange: (wsId: string, entityType: string, entityId: number, method: string, payload: any) => Promise<void>;
-    offlineGetPendingChanges: (wsId: string) => Promise<any[]>;
+    offlineAddPendingChange: (wsId: string, entityType: string, entityId: number, method: string, payload: unknown) => Promise<void>;
+    offlineGetPendingChanges: (wsId: string) => Promise<OfflinePendingChange[]>;
     offlineCountPendingChanges: (wsId: string) => Promise<number>;
     offlineClearPendingChanges: (wsId: string) => Promise<void>;
     offlineGetManifest: (wsId: string) => Promise<{ keys: string[]; lastSync: string | null }>;

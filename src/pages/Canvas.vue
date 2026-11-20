@@ -4,11 +4,11 @@
     <div class="flex-shrink-0 pb-3">
       <Breadcrumb :items="breadcrumbItems" />
       <div class="flex items-center gap-3 mt-1">
-        <input id="canvasName" v-model="canvasData.name" type="text" required placeholder="Canvas name..."
+        <input aria-label="Canvas name" id="canvasName" v-model="canvasData.name" type="text" required placeholder="Canvas name..."
           class="flex-1 px-4 py-2 bg-transparent border-0 border-b border-border text-lg font-semibold text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors tracking-tight"
           @blur="handleNameChange" />
         <Button v-if="!isNewCanvas" variant="danger" size="small" @click="removeCanvasConfirm">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -59,7 +59,7 @@
         </div>
         <button v-for="doc in projectDocs" :key="doc.id" @click="loadDocContent(doc)"
           class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-surface-hover transition-colors text-left cursor-pointer w-full">
-          <svg class="h-4 w-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <svg aria-hidden="true" class="h-4 w-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -69,13 +69,13 @@
       <!-- Step 2: Content viewer with TOC sidebar -->
       <div v-else class="flex flex-col gap-2 h-full min-h-0">
         <div class="flex items-center gap-2 shrink-0">
-          <button @click="pickerSelectedItem = null" class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover cursor-pointer transition-colors">
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <button aria-label="Clear selection" @click="pickerSelectedItem = null" class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover cursor-pointer transition-colors">
+            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div class="flex-1 relative">
-            <input v-model="pickerSearch" type="text" placeholder="Search in content..."
+            <input aria-label="Search documents" v-model="pickerSearch" type="text" placeholder="Search in content..."
               class="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-surface-base text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
               @keydown.enter.prevent="navigateSearchResult" />
             <span v-if="pickerSearch.trim() && pickerSearchCount > 0"
@@ -120,7 +120,7 @@
         </div>
         <button v-for="res in projectResources" :key="res.id" @click="loadResourceContent(res)"
           class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-surface-hover transition-colors text-left cursor-pointer w-full">
-          <svg class="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <svg aria-hidden="true" class="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
@@ -133,13 +133,13 @@
       <!-- Step 2: Content viewer with TOC sidebar -->
       <div v-else class="flex flex-col gap-2 h-full min-h-0">
         <div class="flex items-center gap-2 shrink-0">
-          <button @click="pickerSelectedItem = null" class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover cursor-pointer transition-colors">
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <button aria-label="Clear selection" @click="pickerSelectedItem = null" class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover cursor-pointer transition-colors">
+            <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div class="flex-1 relative">
-            <input v-model="pickerSearch" type="text" placeholder="Search in content..."
+            <input aria-label="Search resources" v-model="pickerSearch" type="text" placeholder="Search in content..."
               class="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-surface-base text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
               @keydown.enter.prevent="navigateSearchResult" />
             <span v-if="pickerSearch.trim() && pickerSearchCount > 0"
@@ -190,7 +190,7 @@
 
         <!-- URL tab -->
         <div v-if="imageTab === 'url'">
-          <input v-model="imageUrl" type="text" placeholder="https://example.com/image.png"
+          <input aria-label="Image URL" v-model="imageUrl" type="text" placeholder="https://example.com/image.png"
             class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
             @keydown.enter="confirmImage" />
         </div>
@@ -199,7 +199,7 @@
         <div v-if="imageTab === 'file'">
           <label
             class="flex flex-col items-center justify-center w-full py-6 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-accent hover:bg-accent-subtle/30 transition-colors">
-            <svg class="h-8 w-8 text-text-muted mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <svg aria-hidden="true" class="h-8 w-8 text-text-muted mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round"
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
@@ -240,8 +240,8 @@
         <template v-if="infographicType === 'statCard'">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
-              <select v-model="infographicConfig.statMetric"
+              <label :for="`${formId}-stat-metric`" class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+              <select :id="`${formId}-stat-metric`" v-model="infographicConfig.statMetric"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
                 <option value="resourceCount">Resource Count</option>
                 <option value="docCount">Document Count</option>
@@ -253,20 +253,20 @@
               </select>
             </div>
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Label</label>
-              <input v-model="infographicConfig.label" type="text" placeholder="e.g. Resources"
+              <label :for="`${formId}-label`" class="text-xs font-medium text-text-secondary mb-1 block">Label</label>
+              <input :id="`${formId}-label`" v-model="infographicConfig.label" type="text" placeholder="e.g. Resources"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
             </div>
           </div>
           <div v-if="infographicConfig.statMetric === 'custom'" class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Value</label>
-              <input v-model="infographicConfig.customValue" type="text" placeholder="42"
+              <label :for="`${formId}-custom-value`" class="text-xs font-medium text-text-secondary mb-1 block">Value</label>
+              <input :id="`${formId}-custom-value`" v-model="infographicConfig.customValue" type="text" placeholder="42"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
             </div>
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Icon (emoji)</label>
-              <input v-model="infographicConfig.icon" type="text" placeholder="📄"
+              <label :for="`${formId}-icon`" class="text-xs font-medium text-text-secondary mb-1 block">Icon (emoji)</label>
+              <input :id="`${formId}-icon`" v-model="infographicConfig.icon" type="text" placeholder="📄"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
             </div>
           </div>
@@ -276,8 +276,8 @@
         <template v-if="infographicType === 'chart'">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
-              <select v-model="infographicConfig.chartSource"
+              <label :for="`${formId}-chart-source`" class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+              <select :id="`${formId}-chart-source`" v-model="infographicConfig.chartSource"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
                 <option v-if="featureStore.isEnabled('bibliography')" value="bibliographyByYear">Bibliography by Year</option>
                 <option v-if="featureStore.isEnabled('bibliography')" value="bibliographyByType">Bibliography by Type</option>
@@ -287,8 +287,8 @@
               </select>
             </div>
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Chart Type</label>
-              <select v-model="infographicConfig.chartType"
+              <label :for="`${formId}-chart-type`" class="text-xs font-medium text-text-secondary mb-1 block">Chart Type</label>
+              <select :id="`${formId}-chart-type`" v-model="infographicConfig.chartType"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
                 <option value="bar">Bar</option>
                 <option value="line">Line</option>
@@ -298,8 +298,8 @@
             </div>
           </div>
           <div>
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
-            <input v-model="infographicConfig.title" type="text" placeholder="Chart title"
+            <label :for="`${formId}-title`" class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input :id="`${formId}-title`" v-model="infographicConfig.title" type="text" placeholder="Chart title"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
           </div>
         </template>
@@ -308,8 +308,8 @@
         <template v-if="infographicType === 'list'">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
-              <select v-model="infographicConfig.listSource"
+              <label :for="`${formId}-list-source`" class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+              <select :id="`${formId}-list-source`" v-model="infographicConfig.listSource"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
                 <option value="topKeywords">Top Keywords</option>
                 <option v-if="featureStore.isEnabled('relationships')" value="topEntities">Top Entities</option>
@@ -317,8 +317,8 @@
               </select>
             </div>
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Max Items</label>
-              <input v-model.number="infographicConfig.maxItems" type="number" min="3" max="20"
+              <label :for="`${formId}-max-items`" class="text-xs font-medium text-text-secondary mb-1 block">Max Items</label>
+              <input :id="`${formId}-max-items`" v-model.number="infographicConfig.maxItems" type="number" min="3" max="20"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
             </div>
           </div>
@@ -327,8 +327,8 @@
             <label for="showBars" class="text-xs text-text-secondary">Show progress bars</label>
           </div>
           <div>
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
-            <input v-model="infographicConfig.title" type="text" placeholder="List title"
+            <label :for="`${formId}-title-2`" class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input :id="`${formId}-title-2`" v-model="infographicConfig.title" type="text" placeholder="List title"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
           </div>
         </template>
@@ -337,16 +337,16 @@
         <template v-if="infographicType === 'wordCloud'">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
-              <select v-model="infographicConfig.wordSource"
+              <label :for="`${formId}-word-source`" class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+              <select :id="`${formId}-word-source`" v-model="infographicConfig.wordSource"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
                 <option value="topKeywords">Keywords</option>
                 <option value="topEntities">Entities</option>
               </select>
             </div>
             <div>
-              <label class="text-xs font-medium text-text-secondary mb-1 block">Color Scheme</label>
-              <select v-model="infographicConfig.colorScheme"
+              <label :for="`${formId}-color-scheme`" class="text-xs font-medium text-text-secondary mb-1 block">Color Scheme</label>
+              <select :id="`${formId}-color-scheme`" v-model="infographicConfig.colorScheme"
                 class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
                 <option value="default">Default</option>
                 <option value="warm">Warm</option>
@@ -360,16 +360,16 @@
         <!-- Timeline config -->
         <template v-if="infographicType === 'timeline'">
           <div>
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
-            <select v-model="infographicConfig.timelineSource"
+            <label :for="`${formId}-timeline-source`" class="text-xs font-medium text-text-secondary mb-1 block">Data Source</label>
+            <select :id="`${formId}-timeline-source`" v-model="infographicConfig.timelineSource"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
               <option value="timelineEvents">Project Timelines</option>
               <option value="bibliographyByYear">Bibliography by Year</option>
             </select>
           </div>
           <div>
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
-            <input v-model="infographicConfig.title" type="text" placeholder="Timeline title"
+            <label :for="`${formId}-title-3`" class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input :id="`${formId}-title-3`" v-model="infographicConfig.title" type="text" placeholder="Timeline title"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
           </div>
         </template>
@@ -377,8 +377,8 @@
         <!-- EntityGraph config -->
         <template v-if="infographicType === 'entityGraph'">
           <div>
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
-            <input v-model="infographicConfig.title" type="text" placeholder="Entity Graph"
+            <label :for="`${formId}-title-4`" class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input :id="`${formId}-title-4`" v-model="infographicConfig.title" type="text" placeholder="Entity Graph"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
           </div>
           <p class="text-xs text-text-muted">
@@ -389,8 +389,8 @@
         <!-- RelationshipGraph config -->
         <template v-if="infographicType === 'relationshipGraph'">
           <div>
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
-            <input v-model="infographicConfig.title" type="text" placeholder="Relationship Graph"
+            <label :for="`${formId}-title-5`" class="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+            <input :id="`${formId}-title-5`" v-model="infographicConfig.title" type="text" placeholder="Relationship Graph"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
           </div>
           <p class="text-xs text-text-muted">
@@ -401,15 +401,15 @@
         <!-- QuoteCard config -->
         <template v-if="infographicType === 'quoteCard'">
           <div>
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Source</label>
-            <select v-model="infographicConfig.quoteSource"
+            <label :for="`${formId}-quote-source`" class="text-xs font-medium text-text-secondary mb-1 block">Source</label>
+            <select :id="`${formId}-quote-source`" v-model="infographicConfig.quoteSource"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent">
               <option value="keyPoints">Key Point from Resources</option>
               <option value="custom">Custom Text</option>
             </select>
           </div>
           <div v-if="infographicConfig.quoteSource === 'keyPoints' && projectStats?.keyPoints?.length">
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Select Key Point</label>
+            <div class="text-xs font-medium text-text-secondary mb-1 block">Select Key Point</div>
             <div class="max-h-40 overflow-y-auto space-y-1">
               <button v-for="(kp, i) in projectStats.keyPoints" :key="i"
                 @click="infographicConfig.selectedKeyPoint = i"
@@ -421,19 +421,19 @@
             </div>
           </div>
           <div v-if="infographicConfig.quoteSource === 'custom'">
-            <label class="text-xs font-medium text-text-secondary mb-1 block">Quote Text</label>
-            <textarea v-model="infographicConfig.customText" rows="3"
+            <label :for="`${formId}-custom-text`" class="text-xs font-medium text-text-secondary mb-1 block">Quote Text</label>
+            <textarea :id="`${formId}-custom-text`" v-model="infographicConfig.customText" rows="3"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent resize-none"
               placeholder="Enter your quote..." />
-            <label class="text-xs font-medium text-text-secondary mb-1 block mt-2">Attribution</label>
-            <input v-model="infographicConfig.customSource" type="text" placeholder="Source name"
+            <label :for="`${formId}-custom-source`" class="text-xs font-medium text-text-secondary mb-1 block mt-2">Attribution</label>
+            <input :id="`${formId}-custom-source`" v-model="infographicConfig.customSource" type="text" placeholder="Source name"
               class="w-full px-3 py-2 rounded-lg border border-border bg-surface-base text-sm text-text-primary focus:outline-none focus:border-accent" />
           </div>
         </template>
 
         <!-- Loading / stats status -->
         <div v-if="loadingStats" class="flex items-center gap-2 text-xs text-text-muted">
-          <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+          <svg aria-hidden="true" class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
@@ -449,7 +449,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { useId, ref, onMounted, computed, watch, type CSSProperties } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCanvas } from '../services/canvas/useCanvas';
 import { useThread } from '../services/threads/useThread';
@@ -465,13 +465,15 @@ import Breadcrumb from '../components/ui/Breadcrumb.vue';
 import Button from '../components/ui/Button.vue';
 import ConfirmModal from '../components/ui/ConfirmModal.vue';
 import Modal from '../components/ui/Modal/Modal.vue';
-import type { CanvasData } from '../types/canvas';
+import type { CanvasData, CanvasNodeData, CanvasRecord } from '../types/canvas';
 import DatasetChartConfigModal from '../components/editor/DatasetChartConfigModal.vue';
 import TimelinePickerModal from '../components/canvas/TimelinePickerModal.vue';
 import EntityPickerModal from '../components/canvas/EntityPickerModal.vue';
 import { useAutoSave } from '../composables/useAutoSave';
 import apiClient from '../services/api';
 import { getApiBaseUrl } from '../services/apiBase';
+
+const formId = useId();
 
 const route = useRoute();
 const router = useRouter();
@@ -485,7 +487,7 @@ const { loadResourcesByProject } = useResourceList();
 const { loadResource } = useResource();
 
 const canvasEditorRef = ref(null);
-const canvasData = ref<Record<string, any>>({
+const canvasData = ref<Partial<CanvasRecord> & { name: string; canvasData: CanvasData | null; threadId?: number | null; projectId?: number | null }>({
   name: '',
   canvasData: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
 });
@@ -493,14 +495,41 @@ const thread = ref(null);
 const isSaving = ref(false);
 const savedSuccessfully = ref(false);
 const showRemoveModal = ref(false);
-const pendingTool = ref<{ type: string; data: Record<string, any> } | null>(null);
+const pendingTool = ref<{ type: string; data: CanvasNodeData } | null>(null);
 
 // Infographic state
 const showInfographicModal = ref(false);
 const infographicType = ref('');
 const loadingStats = ref(false);
-const projectStats = ref<Record<string, any> | null>(null);
-const infographicConfig = ref<Record<string, any>>({});
+type ProjectCount = 'resourceCount' | 'docCount' | 'entityCount' | 'bibliographyCount' | 'noteCount' | 'datasetCount';
+type ProjectRanking = 'topKeywords' | 'topEntities' | 'topAuthors';
+type RankedItem = { name?: string; word?: string; count: number };
+type ProjectStats = Partial<Record<ProjectCount, number> & Record<ProjectRanking, RankedItem[]>> & {
+  keyPoints?: { text: string; source: string }[];
+};
+
+const projectStats = ref<ProjectStats | null>(null);
+interface InfographicConfig {
+  statMetric?: ProjectCount | 'custom';
+  label?: string;
+  customValue?: string;
+  icon?: string;
+  chartSource?: string;
+  chartType?: string;
+  title?: string;
+  listSource?: ProjectRanking;
+  maxItems?: number;
+  showBars?: boolean;
+  wordSource?: ProjectRanking;
+  colorScheme?: string;
+  timelineSource?: string;
+  quoteSource?: string;
+  selectedKeyPoint?: number;
+  customText?: string;
+  customSource?: string;
+}
+
+const infographicConfig = ref<InfographicConfig>({});
 
 const infographicModalTitle = computed(() => {
   const titles: Record<string, string> = {
@@ -521,7 +550,7 @@ const fetchProjectStats = async () => {
   if (!projectId || projectStats.value) return;
   loadingStats.value = true;
   try {
-    const { data } = await apiClient.get(`/projects/${projectId}/stats`);
+    const { data } = await apiClient.get<ProjectStats>(`/projects/${projectId}/stats`);
     projectStats.value = data;
   } catch (e) {
     console.error('Failed to load project stats:', e);
@@ -568,7 +597,7 @@ const openInfographicModal = async (type: string) => {
   await fetchProjectStats();
 };
 
-const buildNodeData = (type: string): Record<string, any> => {
+const buildNodeData = (type: string): CanvasNodeData => {
   const stats = projectStats.value || {};
   const cfg = infographicConfig.value;
 
@@ -589,7 +618,7 @@ const buildNodeData = (type: string): Record<string, any> => {
 
     case 'list': {
       const sourceData = stats[cfg.listSource] || [];
-      const items = sourceData.slice(0, cfg.maxItems).map((d: any) => ({
+      const items = sourceData.slice(0, cfg.maxItems).map(d => ({
         label: d.word || d.name,
         value: d.count,
       }));
@@ -603,7 +632,7 @@ const buildNodeData = (type: string): Record<string, any> => {
 
     case 'wordCloud': {
       const sourceData = stats[cfg.wordSource] || [];
-      const words = sourceData.map((d: any) => ({
+      const words = sourceData.map(d => ({
         text: d.word || d.name,
         weight: d.count || 1,
       }));
@@ -679,11 +708,14 @@ const showImageModal = ref(false);
 const imageUrl = ref('');
 const imagePreviewError = ref(false);
 const imageTab = ref<'url' | 'file' | 'project'>('url');
-const imageResources = ref<Record<string, any>[]>([]);
+interface PickerDocument { id: number; name: string }
+interface PickerResource extends PickerDocument { title?: string; mimeType?: string; originalName?: string }
+
+const imageResources = ref<PickerResource[]>([]);
 const editingImageNodeId = ref<string | null>(null);
 
-const projectDocs = ref<Record<string, any>[]>([]);
-const projectResources = ref<Record<string, any>[]>([]);
+const projectDocs = ref<PickerDocument[]>([]);
+const projectResources = ref<PickerResource[]>([]);
 const pickerSelectedItem = ref<{ id: number; name: string; htmlContent: string; type: 'doc' | 'resource' } | null>(null);
 const fragmentContentRef = ref<HTMLElement | null>(null);
 const pickerSearch = ref('');
@@ -783,12 +815,13 @@ onMounted(async () => {
     canvasData.value = await loadCanvas(String(id));
   }
 
-  let threadId: string | number | undefined = route.query.threadId || canvasData.value?.thread;
-  let projectId: string | number | undefined = route.query.projectId || projectStore.currentProject.id;
+  const storedThread = canvasData.value.thread;
+  const threadId = route.query.threadId || (typeof storedThread === 'object' ? storedThread?.id : storedThread);
+  let projectId = route.query.projectId || projectStore.currentProject.id;
 
   try {
     if (threadId) {
-      thread.value = await loadThread(threadId);
+      thread.value = await loadThread(String(threadId));
       if (thread.value && thread.value.project) {
         projectId = thread.value.project;
       }
@@ -850,11 +883,11 @@ const handleNameChange = () => {
   saveCanvas(canvasData.value.id, { name: canvasData.value.name });
 };
 
-const onSelectTool = (tool: string, data: Record<string, any>) => {
+const onSelectTool = (tool: string, data: CanvasNodeData) => {
   pendingTool.value = { type: tool, data };
 };
 
-const handleAddNode = (type: string, data: Record<string, any>) => {
+const handleAddNode = (type: string, data: CanvasNodeData) => {
   if (canvasEditorRef.value) {
     canvasEditorRef.value.addNode(type, data);
   }
@@ -870,7 +903,7 @@ const openDocPicker = async () => {
   const projectId = projectStore.currentProject?.id;
   if (projectId) {
     try {
-      projectDocs.value = await loadDocumentsByProject(projectId);
+      projectDocs.value = await loadDocumentsByProject(String(projectId));
     } catch {
       projectDocs.value = [];
     }
@@ -878,14 +911,14 @@ const openDocPicker = async () => {
   showDocPicker.value = true;
 };
 
-const loadDocContent = async (doc: Record<string, any>) => {
+const loadDocContent = async (doc: PickerDocument) => {
   pickerSearch.value = '';
   try {
     const full = await loadDocument(String(doc.id));
     pickerSelectedItem.value = {
       id: doc.id,
       name: doc.name,
-      htmlContent: (full as any).content || '<p>No content</p>',
+      htmlContent: full.content || '<p>No content</p>',
       type: 'doc',
     };
   } catch {
@@ -898,7 +931,7 @@ const loadDocContent = async (doc: Record<string, any>) => {
   }
 };
 
-const loadResourceContent = async (res: Record<string, any>) => {
+const loadResourceContent = async (res: PickerResource) => {
   pickerSearch.value = '';
   try {
     const full = await loadResource(String(res.id));
@@ -931,7 +964,7 @@ const confirmFragment = (nodeType: 'docRef' | 'resourceRef') => {
   const selected = getSelectedText();
   const title = selected || pickerSelectedItem.value.name;
 
-  const data: Record<string, any> = {
+  const data: CanvasNodeData = {
     title,
     ...(nodeType === 'docRef'
       ? { docId: pickerSelectedItem.value.id }
@@ -939,7 +972,7 @@ const confirmFragment = (nodeType: 'docRef' | 'resourceRef') => {
     sourceName: pickerSelectedItem.value.name,
   };
 
-  let style: Record<string, any> | undefined;
+  let style: CSSProperties | undefined;
   if (selected) {
     const len = selected.length;
     const width = Math.max(160, Math.min(320, len * 3 + 50));
@@ -966,8 +999,8 @@ const openImageModal = async () => {
   const projectId = projectStore.currentProject?.id;
   if (projectId) {
     try {
-      const all = await loadResourcesByProject(projectId);
-      imageResources.value = all.filter((r: Record<string, any>) =>
+      const all = await loadResourcesByProject(String(projectId));
+      imageResources.value = all.filter((r: PickerResource) =>
         r.mimeType && r.mimeType.startsWith('image/')
       );
     } catch {
@@ -997,8 +1030,8 @@ const handleEditImage = async (nodeId: string, currentSrc: string) => {
   const projectId = projectStore.currentProject?.id;
   if (projectId) {
     try {
-      const all = await loadResourcesByProject(projectId);
-      imageResources.value = all.filter((r: Record<string, any>) =>
+      const all = await loadResourcesByProject(String(projectId));
+      imageResources.value = all.filter((r: PickerResource) =>
         r.mimeType && r.mimeType.startsWith('image/')
       );
     } catch {
@@ -1019,7 +1052,7 @@ const handleFileSelect = (e: Event) => {
   reader.readAsDataURL(file);
 };
 
-const selectImageResource = (res: Record<string, any>) => {
+const selectImageResource = (res: PickerResource) => {
   imageUrl.value = getResourceViewUrl(res.id);
 };
 
@@ -1029,7 +1062,7 @@ const openResourcePicker = async () => {
   const projectId = projectStore.currentProject?.id;
   if (projectId) {
     try {
-      projectResources.value = await loadResourcesByProject(projectId);
+      projectResources.value = await loadResourcesByProject(String(projectId));
     } catch {
       projectResources.value = [];
     }

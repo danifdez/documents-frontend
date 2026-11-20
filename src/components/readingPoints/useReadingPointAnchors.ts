@@ -221,7 +221,7 @@ function anchorFromIndex(root: HTMLElement, index: number): ReadingPointAnchor {
 }
 
 function nodeIndexAtPoint(root: HTMLElement, x: number, y: number): number | null {
-  const doc = document as any;
+  const doc = document;
   let range: Range | null = null;
   if (typeof doc.caretRangeFromPoint === 'function') {
     range = doc.caretRangeFromPoint(x, y) as Range | null;

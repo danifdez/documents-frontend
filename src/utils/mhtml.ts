@@ -39,7 +39,7 @@ function quotedPrintableBytes(source: string): Uint8Array {
     const bytes: number[] = [];
     for (let index = 0; index < compact.length; index += 1) {
         if (compact[index] === '=' && /^[0-9a-f]{2}$/i.test(compact.slice(index + 1, index + 3))) {
-            bytes.push(parseInt(compact.slice(index + 1, index + 3), 16));
+            bytes.push(Number.parseInt(compact.slice(index + 1, index + 3), 16));
             index += 2;
         } else bytes.push(compact.codePointAt(index) ?? 0);
     }

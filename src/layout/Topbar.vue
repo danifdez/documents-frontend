@@ -23,7 +23,7 @@
         <button type="button" class="topbar-nav-link" :class="{ 'topbar-nav-link--active': knowledgeActive }"
           :aria-expanded="knowledgeOpen" aria-haspopup="menu" @click="toggleKnowledge">
           Knowledge
-          <svg class="h-3 w-3 transition-transform" :class="{ 'rotate-180': knowledgeOpen }" fill="none"
+          <svg aria-hidden="true" class="h-3 w-3 transition-transform" :class="{ 'rotate-180': knowledgeOpen }" fill="none"
             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6" />
           </svg>
@@ -49,7 +49,7 @@
       <SyncIndicator :collapsed="true" />
 
       <button class="topbar-action" title="New note (Ctrl+Alt+N)" @click="createQuickNote">
-        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <svg aria-hidden="true" class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M12 6.75v10.5M6.75 12h10.5M5.25 3.75h13.5a1.5 1.5 0 011.5 1.5v13.5a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V5.25a1.5 1.5 0 011.5-1.5z" />
         </svg>
@@ -57,7 +57,7 @@
       </button>
 
       <button class="topbar-action" title="Tasks (Ctrl+Shift+T)" @click="toggleTaskPanel">
-        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <svg aria-hidden="true" class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M9 6.75h10.5M9 12h10.5M9 17.25h10.5M4.5 6.75l.75.75 1.5-1.5M4.5 12l.75.75 1.5-1.5M4.5 17.25l.75.75 1.5-1.5" />
         </svg>
@@ -65,7 +65,7 @@
       </button>
 
       <button v-if="showFavorites" class="topbar-action" title="Favorites" @click="toggleFavoritesPanel">
-        <svg class="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="currentColor">
+        <svg aria-hidden="true" class="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="currentColor">
           <path
             d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.363 1.118l1.286 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.176 0l-3.367 2.446c-.783.57-1.838-.196-1.539-1.118l1.286-3.958a1 1 0 00-.363-1.118L2.045 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.304-3.958z" />
         </svg>
@@ -74,7 +74,7 @@
 
       <button class="topbar-action topbar-action--accent" title="Assistant (Ctrl+J)"
         @click="showAssistant = !showAssistant">
-        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <svg aria-hidden="true" class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M12 3l1.25 4.25L17.5 8.5l-4.25 1.25L12 14l-1.25-4.25L6.5 8.5l4.25-1.25L12 3zM18.5 14l.7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3z" />
         </svg>
@@ -83,7 +83,7 @@
 
       <router-link to="/settings" class="topbar-icon-action" active-class="topbar-icon-action--active"
         title="Settings">
-        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <svg aria-hidden="true" class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <circle cx="12" cy="12" r="3" />
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M19.4 15a1.7 1.7 0 00.34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0015 19.4a1.7 1.7 0 00-1 .6 1.7 1.7 0 00-.4 1.1V21h-3.2v-.1A1.7 1.7 0 0010 19.8a1.7 1.7 0 00-1-.6 1.7 1.7 0 00-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-.6-1 1.7 1.7 0 00-1.1-.4H3v-3.2h.1A1.7 1.7 0 004.2 10a1.7 1.7 0 00.6-1 1.7 1.7 0 00-.34-1.88l-.06-.06L7.26 4.2l.06.06A1.7 1.7 0 009.2 4.6a1.7 1.7 0 001-.6 1.7 1.7 0 00.4-1.1V3h3.2v.1a1.7 1.7 0 00.4 1.1 1.7 1.7 0 001 .6 1.7 1.7 0 001.88-.34l.06-.06L20 7.26l-.06.06A1.7 1.7 0 0019.6 9c.1.4.3.75.6 1 .3.26.7.4 1.1.4h.1v3.2h-.1c-.4 0-.8.14-1.1.4-.3.25-.5.6-.6 1z" />

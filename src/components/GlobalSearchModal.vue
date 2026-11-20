@@ -9,12 +9,12 @@
                             class="bg-surface-elevated rounded-xl shadow-2xl shadow-black/10 border border-border overflow-hidden flex flex-col max-h-[85vh]">
                             <!-- Search input -->
                             <div class="flex items-center px-6 gap-3 shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted shrink-0"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted shrink-0"
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
-                                <input v-model="term" ref="inputRef"
+                                <input aria-label="Search documents and resources" v-model="term" ref="inputRef"
                                     class="flex-1 py-4 text-base bg-transparent border-0 outline-none text-text-primary placeholder:text-text-muted"
                                     type="text" :placeholder="searchPlaceholder" />
                                 <div v-if="loading"
@@ -89,7 +89,7 @@
                                 class="border-t border-border-light px-6 py-2.5 flex items-center justify-between gap-3 shrink-0">
                                 <span v-if="projectStore.currentProject"
                                     class="inline-flex items-center gap-1.5 text-xs text-accent">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -97,7 +97,7 @@
                                     {{ projectStore.currentProject.name }}
                                 </span>
                                 <span v-else class="inline-flex items-center gap-1.5 text-xs text-text-muted">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -120,7 +120,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { useSearch } from '../services/search/useSearch';
+import { useSearch, type SearchResult } from '../services/search/useSearch';
 import { useProjectStore } from '../store/projectStore';
 import { useFeatureStore } from '../store/featureStore';
 
@@ -138,7 +138,7 @@ const emit = defineEmits(['close']);
 const projectStore = useProjectStore();
 
 const term = ref('');
-const results = ref<any[]>([]);
+const results = ref<SearchResult[]>([]);
 const loading = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
 
@@ -207,7 +207,7 @@ function collectionIconBg(collection: string): string {
 }
 
 const groupedResults = computed(() => {
-    const groups: Record<string, { collection: string; items: any[] }> = {};
+    const groups: Record<string, { collection: string; items: SearchResult[] }> = {};
     for (const result of results.value) {
         const feature = collectionFeature[result.collection];
         if (feature && !featureStore.isEnabled(feature)) continue;
@@ -231,7 +231,7 @@ async function performSearch() {
     }
 }
 
-function getResultLink(result: any) {
+function getResultLink(result: SearchResult) {
     switch (result.collection) {
         case 'docs':
             return `/document/${result.id}`;

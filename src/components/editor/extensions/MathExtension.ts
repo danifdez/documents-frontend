@@ -3,7 +3,7 @@ import { Plugin, PluginKey } from 'prosemirror-state';
 import katex from 'katex';
 
 export interface MathOptions {
-    HTMLAttributes: Record<string, any>;
+    HTMLAttributes: Record<string, unknown>;
 }
 
 declare module '@tiptap/core' {
@@ -32,7 +32,7 @@ export const MathExtension = Node.create<MathOptions>({
         return {
             formula: {
                 default: '',
-                parseHTML: (element) => element.getAttribute('data-formula') || '',
+                parseHTML: (element) => element.dataset.formula || '',
                 renderHTML: (attributes) => ({
                     'data-formula': attributes.formula,
                 }),
@@ -62,7 +62,7 @@ export const MathExtension = Node.create<MathOptions>({
         return ({ node }) => {
             const dom = document.createElement('span');
             dom.classList.add('math-node');
-            dom.setAttribute('data-formula', node.attrs.formula);
+            dom.dataset.formula = String(node.attrs.formula);
             dom.contentEditable = 'false';
             dom.style.cssText =
                 'display:inline-block;padding:2px 6px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:4px;cursor:pointer;font-family:serif;vertical-align:middle;';

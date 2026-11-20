@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../utils/errorDetails';
 import { BrowserWindow } from 'electron';
 import type Store from 'electron-store';
 import { standaloneManager } from '../services/standalone/standalone-manager';
@@ -79,8 +80,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       try {
         await downloadAll(emitProgress);
         return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -90,13 +91,13 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
         const updated = await updateServices(emitProgress);
         await startStandalone(store);
         return { success: true, updated };
-      } catch (err: any) {
+      } catch (err: unknown) {
         try {
           await startStandalone(store);
         } catch {
           // Keep the original update error; the manager exposes startup details separately.
         }
-        return { success: false, error: err.message };
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -108,9 +109,9 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
         // A fresh install resets any previous per-feature selection.
         store.set('standaloneEnabledFeatures', profile.features);
         return { success: true };
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Profile install failed:', err);
-        return { success: false, error: err.message };
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -118,8 +119,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       try {
         await downloadComponent(component, emitProgress);
         return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -128,8 +129,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
         await standaloneManager.stop();
         await uninstallServices();
         return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -137,8 +138,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       try {
         await installModels(variant as 'models-cpu' | 'models-gpu', emitProgress);
         return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -146,8 +147,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       try {
         await uninstallModels();
         return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -155,8 +156,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       try {
         const url = await startStandalone(store);
         return { success: true, url };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -164,8 +165,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       try {
         await standaloneManager.stop();
         return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -191,10 +192,10 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       await standaloneManager.stop();
       try {
         return { success: true, url: await startStandalone(store) };
-      } catch (err: any) {
+      } catch (err: unknown) {
         store.set('standaloneBackendPort', previousPort);
         try { await startStandalone(store); } catch { /* preserve the original error */ }
-        return { success: false, error: err.message };
+        return { success: false, error: getErrorMessage(err) };
       }
     },
 
@@ -213,8 +214,8 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
           await standaloneManager.applyFeatures(resolveStandaloneFeatures(store));
         }
         return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) };
       }
     },
   });

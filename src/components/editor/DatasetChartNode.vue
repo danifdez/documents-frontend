@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-2.5 bg-surface border-b border-border">
             <div class="flex items-center gap-2">
-                <svg class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                <svg aria-hidden="true" class="h-4 w-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 16V9" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4" />
@@ -19,7 +19,7 @@
                 <button @click="loadChart" :disabled="loading"
                     class="p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                     title="Refresh">
-                    <svg class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
+                    <svg aria-hidden="true" class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -46,9 +46,10 @@
 </template>
 
 <script setup lang="ts">
+import { getErrorMessage } from '../../utils/errorDetails';
 import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import { Chart, registerables } from 'chart.js';
-import { useDatasets } from '../../services/datasets/useDatasets';
+import { useDatasets, type StatsResult } from '../../services/datasets/useDatasets';
 
 Chart.register(...registerables);
 
@@ -74,7 +75,7 @@ const loadChart = async () => {
     try {
         // Fetch the saved chart config
         const charts = await getSavedCharts(props.datasetId);
-        const savedChart = charts.find((c: any) => c.id === props.chartId);
+        const savedChart = charts.find(c => c.id === props.chartId);
 
         if (!savedChart) {
             error.value = 'Chart not found';
@@ -85,7 +86,7 @@ const loadChart = async () => {
         const { executionId } = await requestStats(props.datasetId, 'chart', savedChart.config);
 
         // Poll for result
-        const poll = () => new Promise<any>((resolve, reject) => {
+        const poll = () => new Promise<StatsResult | null>((resolve, reject) => {
             const timer = setInterval(async () => {
                 try {
                     const result = await getStatsResult(props.datasetId, executionId);
@@ -107,13 +108,13 @@ const loadChart = async () => {
         const result = await poll();
         loading.value = false;
         await renderChart(result);
-    } catch (err: any) {
-        error.value = err.message || 'Failed to load chart';
+    } catch (err: unknown) {
+        error.value = getErrorMessage(err) || 'Failed to load chart';
         loading.value = false;
     }
 };
 
-const renderChart = async (result: any) => {
+const renderChart = async (result: StatsResult | null) => {
     if (chartInstance) {
         chartInstance.destroy();
         chartInstance = null;
@@ -143,9 +144,10 @@ const renderChart = async (result: any) => {
             },
             options: { responsive: true, maintainAspectRatio: false },
         });
-    } else if (data.labels && data.values) {
+    } else if (chartType && chartType !== 'none' && chartType !== 'box' && chartType !== 'heatmap'
+        && chartType !== 'stacked_bar' && data.labels && data.values) {
         const bgColor = chartType === 'pie'
-            ? data.labels.map((_: any, i: number) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
+            ? data.labels.map((_, i) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
             : 'rgba(99, 102, 241, 0.6)';
 
         chartInstance = new Chart(ctx, {

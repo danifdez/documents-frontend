@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 export function assertSafeArchiveEntry(entryPath: string, type: string, linkPath?: string): void {
   assertRelativeArchivePath(entryPath, 'archive entry');

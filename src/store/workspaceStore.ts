@@ -1,9 +1,10 @@
+import { getErrorMessage } from '../utils/errorDetails';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import { setApiBaseUrl } from '../services/api';
 import { reconnectSocket } from '../services/notifications/notification';
-import type { Workspace } from '../types/Workspace';
+import type { StoredWorkspace, Workspace } from '../types/Workspace';
 
 const LOCAL_WORKSPACE_ID = 'local';
 
@@ -21,13 +22,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function loadWorkspaces() {
     const loaded = await window.electronAPI.getWorkspaces();
-    workspaces.value = loaded.map((w: any) => ({ ...w, type: w.type || 'remote' }));
+    workspaces.value = loaded.map(w => ({ ...w, type: w.type || 'remote' }));
 
     // Load default workspace preference
     defaultWorkspaceId.value = await window.electronAPI.getDefaultWorkspace();
 
     // Use default workspace if set, otherwise last active
-    let active: any = null;
+    let active: StoredWorkspace | null = null;
     if (defaultWorkspaceId.value) {
       const defaultWs = workspaces.value.find(w => w.id === defaultWorkspaceId.value);
       if (defaultWs) {
@@ -141,8 +142,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       } else {
         localServerError.value = result.error || 'Failed to start local server';
       }
-    } catch (err: any) {
-      localServerError.value = err.message;
+    } catch (err: unknown) {
+      localServerError.value = getErrorMessage(err);
     } finally {
       localServerLoading.value = false;
     }

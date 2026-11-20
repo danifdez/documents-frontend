@@ -2,35 +2,35 @@
     <div class="note-editor flex flex-col h-full">
         <!-- Toolbar -->
         <div v-if="editor" class="flex items-center gap-1 px-4 py-2 border-b border-border bg-surface">
-            <button type="button" @click="editor.chain().focus().toggleBold().run()"
+            <button aria-label="Bold" type="button" @click="editor.chain().focus().toggleBold().run()"
                 :class="['p-1.5 rounded transition-colors cursor-pointer', editor.isActive('bold') ? 'bg-accent-subtle text-accent' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover']">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
                 </svg>
             </button>
-            <button type="button" @click="editor.chain().focus().toggleItalic().run()"
+            <button aria-label="Italic" type="button" @click="editor.chain().focus().toggleItalic().run()"
                 :class="['p-1.5 rounded transition-colors cursor-pointer', editor.isActive('italic') ? 'bg-accent-subtle text-accent' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover']">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 4h4m-2 0l-4 16m0 0h4" />
                 </svg>
             </button>
-            <button type="button" @click="editor.chain().focus().toggleUnderline().run()"
+            <button aria-label="Underline" type="button" @click="editor.chain().focus().toggleUnderline().run()"
                 :class="['p-1.5 rounded transition-colors cursor-pointer', editor.isActive('underline') ? 'bg-accent-subtle text-accent' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover']">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M7 4v7a5 5 0 0010 0V4M5 20h14" />
                 </svg>
             </button>
             <div class="w-px h-5 bg-border mx-1"></div>
-            <button type="button" @click="editor.chain().focus().toggleBulletList().run()"
+            <button aria-label="Bulleted list" type="button" @click="editor.chain().focus().toggleBulletList().run()"
                 :class="['p-1.5 rounded transition-colors cursor-pointer', editor.isActive('bulletList') ? 'bg-accent-subtle text-accent' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover']">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
                 </svg>
             </button>
-            <button type="button" @click="editor.chain().focus().toggleOrderedList().run()"
+            <button aria-label="Numbered list" type="button" @click="editor.chain().focus().toggleOrderedList().run()"
                 :class="['p-1.5 rounded transition-colors cursor-pointer', editor.isActive('orderedList') ? 'bg-accent-subtle text-accent' : 'text-text-muted hover:text-text-primary hover:bg-surface-hover']">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M7 6h13M7 12h13M7 18h13M3 6v.01M3 12v.01M3 18v.01" />
                 </svg>
             </button>

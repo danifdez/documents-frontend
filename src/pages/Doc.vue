@@ -10,18 +10,18 @@
       <div class="flex-shrink-0 pb-3">
         <Breadcrumb :items="breadcrumbItems" />
         <div class="flex items-center gap-3 mt-1">
-          <input id="docName" v-model="docData.name" @input="handleDocumentNameChange" type="text" required placeholder="Document name..."
+          <input aria-label="Document name" id="docName" v-model="docData.name" @input="handleDocumentNameChange" type="text" required placeholder="Document name..."
             class="flex-1 px-4 py-2 bg-transparent border-0 border-b border-border text-lg font-semibold text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent hover:border-text-muted transition-colors tracking-tight rounded-t-md focus:bg-surface-hover/50" />
           <div class="flex items-center gap-2">
             <Button v-if="!isNewDocument" variant="secondary" size="small" @click="exportDocx"
               :disabled="exportingDocx" title="Export as Word document (.docx)">
-              <svg v-if="exportingDocx" class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none"
+              <svg aria-hidden="true" v-if="exportingDocx" class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor"
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg aria-hidden="true" v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -29,13 +29,13 @@
             </Button>
             <Button v-if="!isNewDocument" variant="secondary" size="small" @click="exportPdf"
               :disabled="exportingPdf" title="Export as PDF">
-              <svg v-if="exportingPdf" class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none"
+              <svg aria-hidden="true" v-if="exportingPdf" class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor"
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg aria-hidden="true" v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -43,7 +43,7 @@
             </Button>
             <Button v-if="!isNewDocument" variant="danger" size="small" @click="removeDoc"
               title="Remove document (Del)">
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
@@ -63,7 +63,7 @@
           <div v-if="isDragOver"
             class="absolute inset-0 z-20 rounded-lg border-2 border-dashed border-accent bg-accent/5 flex items-center justify-center pointer-events-none">
             <div class="flex flex-col items-center gap-2 text-accent">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -155,16 +155,16 @@
               </Button>
               <Button variant="secondary" size="small" :active="viewSideBar === 'search'"
                 @click="viewSideBar = 'search'" title="Search related content">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </Button>
             </ButtonGroup>
             <!-- Close sidebar button when floating over split view -->
-            <button v-if="splitViewActive"
+            <button aria-label="Close sidebar" v-if="splitViewActive"
               class="ml-auto p-1 rounded text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
               @click="showSidebar = false">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -188,7 +188,7 @@
           class="fixed bottom-4 right-4 lg:absolute lg:bottom-2 lg:right-2 z-20 p-2.5 bg-accent text-white rounded-full shadow-lg hover:bg-accent-dark transition-colors cursor-pointer"
           :class="{ 'hidden': showSidebar && !splitViewActive }"
           @click="showSidebar = !showSidebar" title="Toggle sidebar (TOC/Comments)">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
             stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M4 6h16M4 12h16M4 18h7" />
@@ -205,9 +205,11 @@
 </template>
 
 <script setup lang="ts">
-import { useDocument } from '../services/documents/useDocument';
+import type { LookupResult } from '../services/search/useLookup';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import { useDocument, type DocumentRecord } from '../services/documents/useDocument';
 import { useThread } from '../services/threads/useThread';
-import { useResource } from '../services/resources/useResource';
+import { useResource, type Resource } from '../services/resources/useResource';
 import { useCommentList } from '../services/comments/useCommentList';
 import { useDragDrop } from '../composables/useDragDrop';
 import { useAutoSave } from '../composables/useAutoSave';
@@ -230,9 +232,9 @@ import SplitViewActions from '../components/doc/SplitViewActions.vue';
 import SemanticSearchPanel from '../components/doc/SemanticSearchPanel.vue';
 
 const htmlContent = ref('');
-const editorContentRef = ref(null);
+const editorContentRef = ref<InstanceType<typeof EditorContent> | null>(null);
 const splitEditorRef = ref(null);
-const docData = ref<Record<string, any>>({ name: '', content: '' });
+const docData = ref<Partial<DocumentRecord> & { name: string }>({ name: '', content: '' });
 const route = useRoute();
 const router = useRouter();
 const isSaving = ref(false);
@@ -258,7 +260,7 @@ const focusEvidenceFromRoute = async () => {
   const evidence = evidenceFromRoute();
   if (!evidence) return;
   await nextTick();
-  (editorContentRef.value as any)?.focusEvidence?.(evidence);
+  editorContentRef.value?.focusEvidence?.(evidence);
 };
 
 
@@ -282,8 +284,8 @@ const loadCommentCount = async () => {
 
 // Split view state
 const splitViewActive = ref(false);
-const splitDocument = ref<Record<string, any> | null>(null);
-const splitResource = ref<Record<string, any> | null>(null);
+const splitDocument = ref<Partial<DocumentRecord> & { name: string } | null>(null);
+const splitResource = ref<Resource | null>(null);
 
 const closeSplitView = () => {
   splitViewActive.value = false;
@@ -412,6 +414,14 @@ const breadcrumbItems = computed(() => {
   return items;
 });
 
+const relationId = (relation: unknown): number | undefined => {
+  const value = typeof relation === 'object' && relation !== null
+    ? (relation as { id?: unknown }).id
+    : relation;
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : undefined;
+};
+
 const loadDocumentData = async () => {
   const id = route.params.id;
 
@@ -425,15 +435,15 @@ const loadDocumentData = async () => {
       docData.value = await loadDocument(String(id));
     }
 
-    let threadId: string | number | undefined = route.query.threadId || docData.value?.thread;
-    let projectId: string | number | undefined = route.query.projectId || projectStore.currentProject.id;
+    const threadId = relationId(route.query.threadId) || relationId(docData.value.thread);
+    let projectId = relationId(route.query.projectId) || projectStore.currentProject.id;
 
     try {
       if (threadId) {
-        thread.value = await loadThread(threadId);
+        thread.value = await loadThread(String(threadId));
 
         if (thread.value && thread.value.project) {
-          projectId = thread.value.project;
+          projectId = relationId(thread.value.project) ?? projectId;
         }
       }
     } catch (error) {
@@ -477,13 +487,6 @@ const autoSave = useAutoSave(async () => {
       docData.value.content = htmlContent.value;
 
       if (isNewDocument.value) {
-        const relationId = (relation: unknown): number | undefined => {
-          const value = typeof relation === 'object' && relation !== null
-            ? (relation as { id?: unknown }).id
-            : relation;
-          const id = Number(value);
-          return Number.isInteger(id) && id > 0 ? id : undefined;
-        };
         const created = await createDocument({
           name: docData.value.name,
           content: htmlContent.value,
@@ -573,7 +576,7 @@ onUnmounted(() => {
 });
 
 // -- Search result link insertion --
-const insertSearchResultLink = (result: any) => {
+const insertSearchResultLink = (result: LookupResult) => {
   if (!editorContentRef.value || !editorContentRef.value.editor) return;
   const editor = editorContentRef.value.editor;
   const url = `/document/${result.id}`;
@@ -594,14 +597,14 @@ const findAndHighlightCommentMark = (commentId: string) => {
   const editor = editorContentRef.value.editor;
   const doc = editor.state.doc;
 
-  const findCommentMarkPosition = (doc: any): { from: number; to: number } | null => {
+  const findCommentMarkPosition = (doc: ProseMirrorNode): { from: number; to: number } | null => {
     let result: { from: number; to: number } | null = null;
 
-    doc.descendants((node: Record<string, any>, pos: number) => {
+    doc.descendants((node, pos) => {
       if (result) return false;
 
-      const marks = (node.marks as Record<string, any>[]).filter(
-        (mark: any) => mark.type.name === 'comment' && mark.attrs.commentId === commentId
+      const marks = node.marks.filter(
+        mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
       );
 
       if (marks.length > 0) {
@@ -642,14 +645,14 @@ const removeCommentMark = (commentId: string) => {
   const editor = editorContentRef.value.editor;
   const doc = editor.state.doc;
 
-  const findCommentMarkPosition = (doc: any): { from: number; to: number } | null => {
+  const findCommentMarkPosition = (doc: ProseMirrorNode): { from: number; to: number } | null => {
     let result: { from: number; to: number } | null = null;
 
-    doc.descendants((node: Record<string, any>, pos: number) => {
+    doc.descendants((node, pos) => {
       if (result) return false;
 
-      const marks = (node.marks as Record<string, any>[]).filter(
-        (mark: any) => mark.type.name === 'comment' && mark.attrs.commentId === commentId
+      const marks = node.marks.filter(
+        mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
       );
 
       if (marks.length > 0) {

@@ -1,3 +1,4 @@
+import type { StoredMark } from './useMarks';
 import { ref } from 'vue';
 import apiClient from '../api';
 
@@ -5,7 +6,7 @@ export const useMarkUpdate = () => {
     const isLoading = ref(false);
     const error = ref<Error | null>(null);
 
-    const updateMark = async (markId: string, content: string): Promise<any> => {
+    const updateMark = async (markId: string, content: string): Promise<StoredMark> => {
         isLoading.value = true;
         error.value = null;
 

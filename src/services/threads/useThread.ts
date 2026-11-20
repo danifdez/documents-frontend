@@ -13,7 +13,7 @@ export function useThread() {
         return response.data;
     };
 
-    const updateThread = async (id: string, threadData: any) => {
+    const updateThread = async (id: string, threadData: unknown) => {
         try {
             const response = await apiClient.patch(`/threads/${id}`, threadData);
             return response.data;

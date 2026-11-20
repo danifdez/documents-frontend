@@ -1,3 +1,5 @@
+import type { ChartType } from 'chart.js';
+import { getResponseError } from '../../utils/errorDetails';
 import { ref } from 'vue';
 import apiClient from '../api';
 
@@ -11,6 +13,11 @@ export interface DatasetField {
     linkedDatasetId?: number;
     linkedLookupField?: string;
     linkedDisplayField?: string;
+}
+
+export interface DatasetSourceConfig {
+    resourceIds?: number[];
+    resourceTypeFilter?: string[];
 }
 
 export type DatasetSourceMode = 'manual' | 'project_resources' | 'resource_selection';
@@ -38,7 +45,7 @@ export interface Dataset {
     dataSources?: DatasetDataSource[];
     recordCount?: number;
     sourceMode: DatasetSourceMode;
-    sourceConfig: Record<string, any>;
+    sourceConfig: DatasetSourceConfig;
     extractionConfig: DatasetExtractionConfig | null;
     createdAt: string;
     updatedAt: string;
@@ -58,7 +65,7 @@ export type ExtractionStatus = 'pending' | 'in_progress' | 'extracted' | 'failed
 
 export interface DatasetRecord {
     id: number;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     cellMetadata: Record<string, CellAnchor>;
     sourceResourceId: number | null;
     extractionStatus: ExtractionStatus;
@@ -66,6 +73,8 @@ export interface DatasetRecord {
     createdAt: string;
     updatedAt: string;
 }
+
+export type DatasetLinkValues = Record<string, DatasetRecord['data']>;
 
 export interface DatasetRelation {
     id: number;
@@ -144,20 +153,99 @@ export interface CrossTabResult {
     table: { rows: string[]; cols: string[]; values: number[][] };
 }
 
+export type DatasetChartType = ChartType | 'histogram' | 'box' | 'none' | 'stacked_bar' | 'heatmap';
+
+export interface DatasetAnalysisParameters extends Record<string, unknown> {
+    field?: string;
+    fields?: string[];
+    dateField?: string;
+    valueField?: string;
+    period?: string;
+    rowField?: string;
+    colField?: string;
+    fn?: string;
+}
+
+export interface DatasetChartConfig extends Record<string, unknown> {
+    chartType?: DatasetChartType;
+    visualMode?: string;
+    xField?: string;
+    yField?: string;
+    aggregation?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    limit?: number;
+    operation?: string;
+    params?: DatasetAnalysisParameters;
+}
+
+interface DatasetChartData {
+    labels?: string[];
+    values?: (number | null)[];
+    points?: { x: number; y: number }[];
+    regression?: { slope: number; intercept: number; xRange: [number, number] };
+    fields?: { key: string; name: string }[];
+    matrix?: (number | null)[][];
+    pValues?: (number | null)[][];
+    allPoints?: { value: number; isOutlier: boolean }[];
+    outliers?: number[];
+    min?: number;
+    max?: number;
+    lowerFence?: number;
+    upperFence?: number;
+    q1?: number;
+    q3?: number;
+    median?: number;
+    barLabels?: string[];
+    barDatasets?: { label: string; data: (number | null)[]; backgroundColor: string }[];
+}
+
+type TableCell = string | number | boolean | null;
+
+interface DatasetTableData {
+    fields?: (FieldStats & { nullPercent?: number; topValue?: string })[];
+    labels?: string[];
+    values?: (number | null | (number | null)[])[];
+    columns?: string[];
+    rows?: (TableCell | TableCell[])[];
+}
+
+export interface PivotTableData extends DatasetTableData {
+    cols: string[];
+    rows: string[];
+    values: (number | null)[][];
+    rowTotals: (number | null)[];
+    colTotals: (number | null)[];
+    grandTotal: number | null;
+}
+
 export interface StatsResult {
-    datasetId: number;
-    recordCount: number;
-    fieldCount: number;
-    descriptive: Record<string, FieldStats>;
-    correlation: CorrelationResult | null;
-    crossTabs: CrossTabResult[] | null;
     error?: string;
+    operation?: string;
+    chartType?: DatasetChartType;
+    chartData?: DatasetChartData;
+    tableData?: DatasetTableData;
+    stats?: Record<string, unknown> & {
+        correlation?: number;
+        pValue?: number;
+        strongCorrelations?: CorrelationResult['pairs'];
+    };
+    title?: string;
+    xLabel?: string;
+    yLabel?: string;
+    fieldName?: string;
+    field1Name?: string;
+    field2Name?: string;
+    rowFieldName?: string;
+    colFieldName?: string;
+    valueFieldName?: string;
+    fn?: string;
 }
 
 export interface DatasetChart {
     id: number;
     name: string;
-    config: Record<string, any>;
+    config: DatasetChartConfig;
     createdAt: string;
     updatedAt: string;
 }
@@ -175,8 +263,8 @@ export const useDatasets = () => {
     const captureError = async <R>(failureMessage: string, run: () => Promise<R>): Promise<R> => {
         try {
             return await run();
-        } catch (err: any) {
-            error.value = err.response?.data?.message || failureMessage;
+        } catch (err: unknown) {
+            error.value = getResponseError(err) || failureMessage;
             throw err;
         }
     };
@@ -203,17 +291,17 @@ export const useDatasets = () => {
     const getDataset = (id: number): Promise<Dataset> =>
         withLoading('Failed to load dataset', async () => (await apiClient.get(`/datasets/${id}`)).data);
 
-    const createDataset = (data: { name: string; description?: string; projectId?: number; schema: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: Record<string, any> }): Promise<Dataset> =>
+    const createDataset = (data: { name: string; description?: string; projectId?: number; schema: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: DatasetSourceConfig }): Promise<Dataset> =>
         withLoading('Failed to create dataset', async () => (await apiClient.post('/datasets', data)).data);
 
-    const updateDataset = (id: number, data: { name?: string; description?: string; projectId?: number; schema?: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: Record<string, any> }): Promise<Dataset> =>
+    const updateDataset = (id: number, data: { name?: string; description?: string; projectId?: number; schema?: DatasetField[]; sourceMode?: DatasetSourceMode; sourceConfig?: DatasetSourceConfig }): Promise<Dataset> =>
         withLoading('Failed to update dataset', async () => (await apiClient.patch(`/datasets/${id}`, data)).data);
 
     const deleteDataset = async (id: number): Promise<void> => {
         await withLoading('Failed to delete dataset', () => apiClient.delete(`/datasets/${id}`));
     };
 
-    const requestStats = (datasetId: number, operation: string = 'summary', params: Record<string, any> = {}): Promise<{ executionId: string; message: string }> =>
+    const requestStats = (datasetId: number, operation: string = 'summary', params: Record<string, unknown> = {}): Promise<{ executionId: string; message: string }> =>
         withLoading('Failed to request stats', async () => (await apiClient.post(`/datasets/${datasetId}/stats`, { operation, params })).data);
 
     const getStatsResult = async (datasetId: number, executionId: string): Promise<{ status: string; result: StatsResult | null }> => {
@@ -265,10 +353,10 @@ export const useDatasets = () => {
 
     // --- Records ---
 
-    const getRecords = (datasetId: number, params: Record<string, any> = {}): Promise<{ records: DatasetRecord[]; total: number }> =>
+    const getRecords = (datasetId: number, params: Record<string, unknown> = {}): Promise<{ records: DatasetRecord[]; total: number }> =>
         withLoading('Failed to load records', async () => (await apiClient.get(`/datasets/${datasetId}/records`, { params })).data);
 
-    const resolveLinks = async (datasetId: number, values: (string | number)[], lookupField?: string): Promise<Record<string, any>> => {
+    const resolveLinks = async (datasetId: number, values: (string | number)[], lookupField?: string): Promise<DatasetLinkValues> => {
         if (!values.length) return {};
         try {
             const response = await apiClient.post(`/datasets/${datasetId}/resolve-links`, { values, lookupField });
@@ -278,10 +366,10 @@ export const useDatasets = () => {
         }
     };
 
-    const createRecord = (datasetId: number, data: Record<string, any>): Promise<DatasetRecord> =>
+    const createRecord = (datasetId: number, data: Record<string, unknown>): Promise<DatasetRecord> =>
         withLoading('Failed to create record', async () => (await apiClient.post(`/datasets/${datasetId}/records`, { data })).data);
 
-    const updateRecord = (datasetId: number, recordId: number, data: Record<string, any>): Promise<DatasetRecord> =>
+    const updateRecord = (datasetId: number, recordId: number, data: Record<string, unknown>): Promise<DatasetRecord> =>
         withLoading('Failed to update record', async () => (await apiClient.patch(`/datasets/${datasetId}/records/${recordId}`, { data })).data);
 
     const deleteRecord = async (datasetId: number, recordId: number): Promise<void> => {
@@ -369,10 +457,10 @@ export const useDatasets = () => {
     const getSavedCharts = (datasetId: number): Promise<DatasetChart[]> =>
         captureError('Failed to load charts', async () => (await apiClient.get(`/datasets/${datasetId}/charts`)).data);
 
-    const saveChart = (datasetId: number, name: string, config: Record<string, any>): Promise<DatasetChart> =>
+    const saveChart = (datasetId: number, name: string, config: DatasetChartConfig): Promise<DatasetChart> =>
         captureError('Failed to save chart', async () => (await apiClient.post(`/datasets/${datasetId}/charts`, { name, config })).data);
 
-    const updateSavedChart = (chartId: number, data: { name?: string; config?: Record<string, any> }): Promise<DatasetChart> =>
+    const updateSavedChart = (chartId: number, data: { name?: string; config?: DatasetChartConfig }): Promise<DatasetChart> =>
         captureError('Failed to update chart', async () => (await apiClient.patch(`/datasets/charts/${chartId}`, data)).data);
 
     const deleteSavedChart = async (chartId: number): Promise<void> => {
@@ -391,7 +479,7 @@ export const useDatasets = () => {
         await withLoading('Failed to delete relation', () => apiClient.delete(`/datasets/relations/${relationId}`));
     };
 
-    const linkRecords = (relationId: number, sourceRecordId: number, targetRecordId: number): Promise<any> =>
+    const linkRecords = (relationId: number, sourceRecordId: number, targetRecordId: number): Promise<unknown> =>
         withLoading('Failed to link records', async () => (await apiClient.post(`/datasets/relations/${relationId}/links`, { sourceRecordId, targetRecordId })).data);
 
     const unlinkRecords = async (relationId: number, linkId: number): Promise<void> => {

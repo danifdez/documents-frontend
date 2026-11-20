@@ -12,8 +12,8 @@
                     <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
                         <!-- Dataset selector -->
                         <div>
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Dataset *</label>
-                            <select v-model="selectedDatasetId"
+                            <label :for="`${formId}-selected-dataset-id`" class="block text-xs font-medium text-text-secondary mb-1.5">Dataset *</label>
+                            <select :id="`${formId}-selected-dataset-id`" v-model="selectedDatasetId"
                                 class="block w-full rounded-lg bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                                 <option :value="0" disabled>Select a dataset...</option>
                                 <option v-for="ds in datasets" :key="ds.id" :value="ds.id">{{ ds.name }}</option>
@@ -22,7 +22,7 @@
 
                         <!-- Chart selector -->
                         <div v-if="charts.length > 0">
-                            <label class="block text-xs font-medium text-text-secondary mb-1.5">Saved Chart *</label>
+                            <div class="block text-xs font-medium text-text-secondary mb-1.5">Saved Chart *</div>
                             <div class="space-y-1">
                                 <label v-for="chart in charts" :key="chart.id"
                                     class="flex items-center gap-2 text-sm text-text-primary cursor-pointer hover:bg-surface-hover rounded px-2 py-1.5 transition-colors"
@@ -61,9 +61,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { useId, ref, watch } from 'vue';
 import { useDatasets } from '../../services/datasets/useDatasets';
 import Button from '../ui/Button.vue';
+
+const formId = useId();
 
 const modelValue = defineModel<boolean>({ required: true });
 const { getAllDatasets, getSavedCharts } = useDatasets();
@@ -85,7 +87,7 @@ interface DatasetInfo {
 interface ChartInfo {
     id: number;
     name: string;
-    config: Record<string, any>;
+    config: Record<string, unknown>;
 }
 
 const datasets = ref<DatasetInfo[]>([]);

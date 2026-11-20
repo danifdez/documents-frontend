@@ -1,18 +1,25 @@
+import type { SearchResult } from './useSearch';
 import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import apiClient from '../api';
 import { subscribeExecutionPublication } from '../notifications/executionPublication';
 
-export interface LookupResult {
-    id: number | string;
-    name: string;
-    collection: string;
-    score: number;
-    highlightedName?: string;
-    highlightedContent?: string;
+export interface LookupResult extends SearchResult {
     source: 'natural' | 'rag';
-    metadata?: Record<string, any>;
 }
+
+type SemanticSearchResponse = {
+    requestId: string;
+    results?: {
+        text?: string;
+        score?: number;
+        metadata?: {
+            source_type?: string;
+            source_id?: string | number;
+            [key: string]: unknown;
+        };
+    }[];
+};
 
 // Map RAG source_type (singular) to the collection names used by natural search and routes
 const sourceTypeToCollection: Record<string, string> = {
@@ -36,10 +43,10 @@ export function useLookup() {
 
         const requestId = uuidv4();
 
-        const naturalSearch = apiClient.post('/search', {
+        const naturalSearch = apiClient.post<SearchResult[]>('/search', {
             term,
             projectId,
-        }).then(res => (res.data || []).map((r: any) => ({
+        }).then(res => (res.data || []).map(r => ({
             ...r,
             source: 'natural' as const,
         }))).catch((): LookupResult[] => []);
@@ -50,11 +57,11 @@ export function useLookup() {
                 resolve([]);
             }, 15000);
 
-            const onResponse = (data: any) => {
+            const onResponse = (data: SemanticSearchResponse) => {
                 if (data.requestId !== requestId) return;
                 unsubscribe();
                 clearTimeout(timeout);
-                const ragResults = (data.results || []).map((r: any, i: number) => {
+                const ragResults = (data.results || []).map((r, i) => {
                     const rawType = r.metadata?.source_type || 'unknown';
                     const collection = sourceTypeToCollection[rawType] || rawType;
                     const sourceId = r.metadata?.source_id;

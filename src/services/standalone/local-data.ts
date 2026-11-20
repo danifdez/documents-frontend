@@ -1,6 +1,6 @@
 import { app } from 'electron';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const PRODUCT_DATA_DIRECTORY = 'documents-frontend';
 

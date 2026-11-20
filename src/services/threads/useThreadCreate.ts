@@ -12,10 +12,10 @@ export function useThreadCreate() {
         error.value = null;
 
         try {
-            const data: any = { name, projectId: Number(projectId), description };
-            if (parentId) {
-                data.parentId = Number(parentId);
-            }
+            const data = {
+                name, projectId: Number(projectId), description,
+                ...(parentId ? { parentId: Number(parentId) } : {}),
+            };
             const response = await apiClient.post('/threads', data);
 
             newThreadId.value = response.data.id;

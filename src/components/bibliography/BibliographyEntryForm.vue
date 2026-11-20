@@ -4,8 +4,8 @@
         <!-- Item type + CiteKey -->
         <div class="flex gap-3">
             <div class="flex-1">
-                <label class="block text-xs font-medium text-text-muted mb-1">Tipo de elemento</label>
-                <select v-model="form.entryType"
+                <label :for="`${formId}-entry-type`" class="block text-xs font-medium text-text-muted mb-1">Tipo de elemento</label>
+                <select :id="`${formId}-entry-type`" v-model="form.entryType"
                     class="w-full px-2 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-accent bg-surface-elevated">
                     <optgroup v-for="group in itemTypeGroups" :key="group.label" :label="group.label">
                         <option v-for="t in group.types" :key="t.value" :value="t.value">{{ t.label }}</option>
@@ -13,8 +13,8 @@
                 </select>
             </div>
             <div class="w-44">
-                <label class="block text-xs font-medium text-text-muted mb-1">Clave BibTeX</label>
-                <input v-model="form.citeKey" type="text" placeholder="autor2024"
+                <label :for="`${formId}-cite-key`" class="block text-xs font-medium text-text-muted mb-1">Clave BibTeX</label>
+                <input :id="`${formId}-cite-key`" v-model="form.citeKey" type="text" placeholder="autor2024"
                     class="w-full px-2 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-accent" />
             </div>
         </div>
@@ -26,7 +26,7 @@
         <!-- Creators -->
         <div>
             <div class="flex items-center justify-between mb-1.5">
-                <label class="text-xs font-medium text-text-muted">Autores / Creadores</label>
+                <span class="text-xs font-medium text-text-muted">Autores / Creadores</span>
                 <div class="flex gap-1">
                     <button v-for="role in availableCreatorTypes" :key="role.value" type="button"
                         @click="addCreator(role.value)"
@@ -37,17 +37,17 @@
             </div>
             <div class="space-y-1.5">
                 <div v-for="(creator, idx) in form.creators" :key="idx" class="flex gap-2 items-center">
-                    <select v-model="creator.creatorType"
+                    <select aria-label="Creator role" v-model="creator.creatorType"
                         class="w-28 px-2 py-1.5 text-xs border border-border rounded bg-surface-elevated focus:outline-none">
                         <option v-for="ct in allCreatorTypes" :key="ct.value" :value="ct.value">{{ ct.label }}</option>
                     </select>
-                    <input v-model="creator.lastName" type="text" placeholder="Apellido"
+                    <input aria-label="Last name" v-model="creator.lastName" type="text" placeholder="Apellido"
                         class="flex-1 px-2 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-accent" />
-                    <input v-model="creator.firstName" type="text" placeholder="Nombre"
+                    <input aria-label="First name" v-model="creator.firstName" type="text" placeholder="Nombre"
                         class="flex-1 px-2 py-1.5 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-accent" />
-                    <button type="button" @click="removeCreator(idx)"
+                    <button aria-label="Remove creator" type="button" @click="removeCreator(idx)"
                         class="p-1 text-text-muted hover:text-red-500 shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
                                 clip-rule="evenodd" />
@@ -128,7 +128,7 @@
         <!-- Archive / Library fields (collapsed by default) -->
         <details class="group">
             <summary class="cursor-pointer text-xs font-medium text-text-muted flex items-center gap-1 select-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 transition-transform group-open:rotate-90"
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 transition-transform group-open:rotate-90"
                     viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd"
                         d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
@@ -165,9 +165,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { useId, ref, watch, computed } from 'vue';
 import type { BibliographyEntry } from '../../types/Bibliography';
 import FormField from '../ui/FormField.vue';
+
+const formId = useId();
 
 const props = defineProps<{
     entry?: BibliographyEntry | null;

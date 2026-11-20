@@ -13,10 +13,10 @@
       >
         <span class="cursor-pointer" @click="toggleEpochFocus(epoch.id)">{{ epoch.name }}</span>
         <button class="hidden group-hover:block p-0 text-text-muted hover:text-accent transition-colors" title="Edit" @click.stop="emit('edit-epoch', epoch)">
-          <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          <svg aria-hidden="true" class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
         </button>
         <button class="hidden group-hover:block p-0 text-text-muted hover:text-red-400 transition-colors" title="Delete" @click.stop="emit('delete-epoch', epoch)">
-          <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          <svg aria-hidden="true" class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
       <button
@@ -85,7 +85,7 @@
             class="absolute left-1/2 -translate-x-1/2 z-30 flex items-center justify-center"
             :style="{ top: (brk.py - 10) + 'px', width: '24px', height: '20px' }"
           >
-            <svg width="24" height="20" viewBox="0 0 24 20">
+            <svg role="img" aria-label="Timeline axis break" width="24" height="20" viewBox="0 0 24 20">
               <path d="M0 3 L8 7 L0 11 L8 15" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" />
               <path d="M16 3 L24 7 L16 11 L24 15" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" />
             </svg>
