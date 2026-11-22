@@ -208,7 +208,7 @@ async function startSession() {
     if (disposed || pointerCancelled) { await cleanup(); return; }
 
     if (typeof MediaRecorder === 'undefined') {
-      throw new Error('MediaRecorder not available in this environment.');
+      throw new TypeError('MediaRecorder not available in this environment.');
     }
 
     driver = createVoiceDriver();

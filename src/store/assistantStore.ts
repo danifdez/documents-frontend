@@ -17,9 +17,7 @@ export const useAssistantStore = defineStore('assistant', () => {
         loadErrorMessage: 'Failed to load assistants',
         hooks: {
             afterLoad({ owners, activeId }) {
-                if (activeId.value == null) {
-                    activeId.value = owners.value[0]?.id ?? null;
-                }
+                activeId.value ??= owners.value[0]?.id ?? null;
             },
         },
     });

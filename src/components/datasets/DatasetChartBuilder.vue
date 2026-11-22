@@ -249,6 +249,7 @@ import type {
     DatasetField,
 } from '../../services/datasets/useDatasets';
 import { useId, ref, computed, watch, nextTick, onUnmounted, h } from 'vue';
+import { datasetChartConfiguration } from '../../services/datasets/chartConfiguration';
 import { Chart, registerables } from 'chart.js';
 import {
     formatDatasetValue as formatValue,
@@ -388,59 +389,14 @@ const renderChart = async (newResult: StatsResult | null) => {
     const ctx = chartCanvas.value.getContext('2d');
     if (!ctx) return;
 
-    const chartType = newResult.chartType;
-    const data = newResult.chartData;
-
-    if (chartType === 'scatter' && data.points) {
-        chartInstance = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: newResult.title || 'Data',
-                    data: data.points,
-                    backgroundColor: 'rgba(99, 102, 241, 0.5)',
-                    pointRadius: 4,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { title: { display: true, text: newResult.xLabel || '' } },
-                    y: { title: { display: true, text: newResult.yLabel || '' } },
-                },
-            },
-        });
-    } else if (chartType && chartType !== 'none' && chartType !== 'box' && chartType !== 'heatmap'
-        && chartType !== 'stacked_bar' && data.labels && data.values) {
-        const bgColor = chartType === 'pie'
-            ? data.labels.map((_, i) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
-            : 'rgba(99, 102, 241, 0.6)';
-
-        chartInstance = new Chart(ctx, {
-            type: chartType === 'histogram' ? 'bar' : chartType,
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: newResult.yLabel || newResult.title || 'Value',
-                    data: data.values,
-                    backgroundColor: bgColor,
-                    borderColor: chartType === 'line' ? 'rgba(99, 102, 241, 0.8)' : undefined,
-                    borderWidth: chartType === 'line' ? 2 : 1,
-                    fill: chartType === 'line' ? false : undefined,
-                    tension: chartType === 'line' ? 0.3 : undefined,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: chartType === 'pie' ? {} : {
-                    x: { title: { display: true, text: newResult.xLabel || '' } },
-                    y: { title: { display: true, text: newResult.yLabel || '' } },
-                },
-            },
-        });
-    }
+    const configuration = datasetChartConfiguration(newResult);
+    if (!configuration) return;
+    configuration.options = { responsive: true, maintainAspectRatio: false };
+    configuration.options.scales = newResult.chartType === 'pie' ? {} : {
+        x: { title: { display: true, text: newResult.xLabel || '' } },
+        y: { title: { display: true, text: newResult.yLabel || '' } },
+    };
+    chartInstance = new Chart(ctx, configuration);
 };
 
 watch(() => props.result, (newResult) => {

@@ -28,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
     const { useWorkspaceStore } = await import('./workspaceStore');
     const wsStore = useWorkspaceStore();
     if (wsStore.isLocal) {
+      logout();
       authRequired.value = false;
       initialized.value = true;
       // Still load feature flags from backend
@@ -109,13 +110,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function reset() {
-    user.value = null;
-    accessToken.value = null;
-    refreshTokenValue.value = null;
+    logout();
     authRequired.value = false;
     initialized.value = false;
-    localStorage.removeItem(tokenKey('accessToken'));
-    localStorage.removeItem(tokenKey('refreshToken'));
   }
 
   function hasPermission(perm: string): boolean {

@@ -79,7 +79,7 @@ describe('reading point anchors', () => {
     expect(map[0]).toEqual({ node: root.querySelector('p')!.firstChild, off: 2 });
     expect(map[text.indexOf('Next') - 1]).toBeNull();
     expect(map[text.indexOf('Next')]).toMatchObject({ off: 1 });
-    expect(map.length).toBe(text.length);
+    expect(map).toHaveLength(text.length);
   });
 
   it('uses the saved position to distinguish repeated quotes across blocks', () => {

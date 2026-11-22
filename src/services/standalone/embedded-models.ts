@@ -53,7 +53,11 @@ export class EmbeddedModelsService {
     return fs.existsSync(getModelsBinaryPath(dir));
   }
 
-  async start(config: ModelsConfig): Promise<void> {
+  start(config: ModelsConfig): Promise<void> {
+    return Promise.resolve().then(() => this.startWorker(config));
+  }
+
+  private startWorker(config: ModelsConfig): void {
     if (this._running) return;
 
     const binary = this.getBinaryPath();

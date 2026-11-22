@@ -198,6 +198,7 @@ const handleAssignResource = async (resourceId, projectId) => {
     pendingResources.value = pendingResources.value.filter(r => r.id !== resourceId);
     notification.success('Resource assigned to project');
   } catch (e) {
+    console.error('Resource assignment failed:', e);
     notification.error('Failed to assign resource');
   }
 };
@@ -216,6 +217,7 @@ const handleDeleteResource = async () => {
     pendingResources.value = pendingResources.value.filter(r => r.id !== id);
     notification.success('Resource deleted');
   } catch (e) {
+    console.error('Resource deletion failed:', e);
     notification.error('Failed to delete resource');
   }
   resourceToDelete.value = null;

@@ -327,10 +327,23 @@ function buildRRule(): string | null {
     if (form.customEnds === 'count' && form.customCount > 0) {
         parts.push(`COUNT=${form.customCount}`);
     } else if (form.customEnds === 'until' && form.customUntil) {
-        const until = form.customUntil.replace(/-/g, '') + 'T235959Z';
+        const until = form.customUntil.replaceAll('-', '') + 'T235959Z';
         parts.push(`UNTIL=${until}`);
     }
     return parts.join(';');
+}
+
+function applyRecurrenceEnd(fields: Record<string, string>): void {
+    if (fields.COUNT) {
+        form.customEnds = 'count';
+        form.customCount = Number(fields.COUNT);
+    } else if (fields.UNTIL) {
+        form.customEnds = 'until';
+        // UNTIL = YYYYMMDDTHHMMSSZ — extract date.
+        form.customUntil = `${fields.UNTIL.slice(0, 4)}-${fields.UNTIL.slice(4, 6)}-${fields.UNTIL.slice(6, 8)}`;
+    } else {
+        form.customEnds = 'never';
+    }
 }
 
 function parseRRule(rule: string): boolean {
@@ -361,16 +374,7 @@ function parseRRule(rule: string): boolean {
         form.customFreq = freq as typeof form.customFreq;
         form.customInterval = map.INTERVAL ? Number(map.INTERVAL) : 1;
         form.customByDay = map.BYDAY ? map.BYDAY.split(',') : [];
-        if (map.COUNT) {
-            form.customEnds = 'count';
-            form.customCount = Number(map.COUNT);
-        } else if (map.UNTIL) {
-            form.customEnds = 'until';
-            // UNTIL = YYYYMMDDTHHMMSSZ — extract date.
-            form.customUntil = `${map.UNTIL.slice(0, 4)}-${map.UNTIL.slice(4, 6)}-${map.UNTIL.slice(6, 8)}`;
-        } else {
-            form.customEnds = 'never';
-        }
+        applyRecurrenceEnd(map);
         return true;
     }
     // Unmappable.
@@ -400,7 +404,7 @@ function buildAlarm(): AlarmDescriptor | null {
         case '-10': return { offsetMinutes: -10 };
         case '-60': return { offsetMinutes: -60 };
         case 'custom': {
-            const m = Math.max(0, Math.min(10080, form.alarmCustomMinutes | 0));
+            const m = Math.max(0, Math.min(10080, Math.trunc(form.alarmCustomMinutes) || 0));
             return { offsetMinutes: -m };
         }
     }
@@ -409,7 +413,8 @@ function buildAlarm(): AlarmDescriptor | null {
 const customPreview = computed(() => {
     if (form.recurrencePreset !== 'custom') return '';
     const f = form.customFreq.toLowerCase();
-    const every = form.customInterval > 1 ? `every ${form.customInterval} ${f === 'daily' ? 'days' : f.replace(/ly$/, '') + 's'}` : `${f}`;
+    const unit = f === 'daily' ? 'days' : f.replace(/ly$/, '') + 's';
+    const every = form.customInterval > 1 ? `every ${form.customInterval} ${unit}` : f;
     let end = '';
     if (form.customEnds === 'count' && form.customCount > 0) end = `, ${form.customCount} times`;
     else if (form.customEnds === 'until' && form.customUntil) end = `, until ${form.customUntil}`;
@@ -417,36 +422,36 @@ const customPreview = computed(() => {
     return `${every}${days}${end}`;
 });
 
+function populateEventForm(event: CalendarEvent): void {
+    isEditing.value = true;
+    form.title = event.title;
+    form.description = event.description || '';
+    form.startDate = formatDateForInput(new Date(event.startDate), event.allDay);
+    form.endDate = event.endDate ? formatDateForInput(new Date(event.endDate), event.allDay) : '';
+    form.color = event.color || '#3b82f6';
+    form.allDay = event.allDay;
+    form.projectId = event.project?.id || null;
+    if (event.recurrenceRule) {
+        parseRRule(event.recurrenceRule);
+    } else {
+        form.recurrencePreset = 'none';
+        form.recurrenceRuleRaw = '';
+    }
+    applyAlarmFromDescriptor(event.alarm ?? null);
+    form.trackCompletion = event.trackCompletion ?? false;
+
+}
+
 watch(() => props.modelValue, (v) => {
     showModal.value = v;
-    if (v) {
-        if (props.event) {
-            isEditing.value = true;
-            form.title = props.event.title;
-            form.description = props.event.description || '';
-            form.startDate = formatDateForInput(new Date(props.event.startDate), props.event.allDay);
-            form.endDate = props.event.endDate ? formatDateForInput(new Date(props.event.endDate), props.event.allDay) : '';
-            form.color = props.event.color || '#3b82f6';
-            form.allDay = props.event.allDay;
-            form.projectId = props.event.project?.id || null;
-            if (props.event.recurrenceRule) {
-                parseRRule(props.event.recurrenceRule);
-            } else {
-                form.recurrencePreset = 'none';
-                form.recurrenceRuleRaw = '';
-            }
-            applyAlarmFromDescriptor(props.event.alarm ?? null);
-            form.trackCompletion = props.event.trackCompletion ?? false;
-        } else {
-            resetForm();
-            if (props.defaultDate) {
-                form.startDate = formatDateForInput(props.defaultDate, false);
-            }
-            if (props.defaultProjectId) {
-                form.projectId = props.defaultProjectId;
-            }
-        }
+    if (!v) return;
+    if (props.event) {
+        populateEventForm(props.event);
+        return;
     }
+    resetForm();
+    if (props.defaultDate) form.startDate = formatDateForInput(props.defaultDate, false);
+    if (props.defaultProjectId) form.projectId = props.defaultProjectId;
 });
 
 watch(showModal, (v) => { emit('update:modelValue', v); });

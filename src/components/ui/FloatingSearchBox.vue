@@ -1,8 +1,12 @@
 <template>
     <Teleport to="body">
-        <div v-if="isVisible" class="fixed top-4 right-4 z-50" @click.stop>
+        <div v-if="isVisible" class="fixed top-4 right-4 z-50" @click.stop
+            @keydown.enter.stop
+            @keydown.space.stop>
             <div class="bg-surface-elevated rounded-lg shadow-2xl border border-border w-96 overflow-hidden animate-in slide-in-from-top-2 duration-200"
-                @click.stop>
+                @click.stop
+                @keydown.enter.stop
+                @keydown.space.stop>
                 <div class="flex items-center px-4 py-3 border-b border-border">
                     <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-muted mr-3" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
@@ -45,8 +49,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue';
+import { ref, nextTick, watch, type PropType, type Ref } from 'vue';
 import Button from './Button.vue';
+
+interface SearchTarget {
+    search(query: string): number;
+    scrollTo(index: number): void;
+    clearHighlights(): void;
+}
+
+interface SearchContent {
+    content: Ref<SearchTarget | null | undefined>;
+}
 
 const props = defineProps({
     modelValue: {
@@ -54,8 +68,8 @@ const props = defineProps({
         default: false
     },
     activeContents: {
-        type: Array,
-        default: () => []
+        type: Array as PropType<SearchContent[]>,
+        default: (): SearchContent[] => []
     },
 });
 
@@ -67,7 +81,7 @@ const searchInput = ref<HTMLInputElement | null>(null);
 const hasResults = ref(false);
 const currentResultIndex = ref(0);
 const totalResults = ref(0);
-const results = ref([]);
+const results = ref<number[]>([]);
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
 
 watch(() => props.modelValue, (newValue) => {
@@ -99,8 +113,10 @@ const closeSearch = () => {
 const performSearch = () => {
     totalResults.value = 0;
     results.value = [];
+    hasResults.value = false;
+    currentResultIndex.value = 0;
     props.activeContents.forEach((content) => {
-        const numResults = content.content.value.search(searchQuery.value);
+        const numResults = content.content.value?.search(searchQuery.value) ?? 0;
         if (numResults > 0) {
             hasResults.value = true;
         }
@@ -216,9 +232,7 @@ kbd {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-.animate-in {
-    animation: slideInFromTop 0.2s ease-out;
-}
+
 
 @keyframes slideInFromTop {
     from {
@@ -235,6 +249,11 @@ kbd {
 @media (max-width: 480px) {
     .w-96 {
         width: calc(100vw - 2rem);
+    }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .animate-in {
+        animation: slideInFromTop 0.2s ease-out;
     }
 }
 </style>

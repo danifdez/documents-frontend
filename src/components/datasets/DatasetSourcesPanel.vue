@@ -193,13 +193,16 @@ const initial = {
     sourceConfig: JSON.stringify(props.dataset.sourceConfig || {}),
 };
 
+function currentSourceConfig() {
+    if (sourceMode.value === 'manual') return {};
+    return sourceMode.value === 'project_resources'
+        ? { resourceTypeFilter: resourceTypeFilter.value }
+        : { resourceIds: resourceIds.value };
+}
+
 const isDirty = computed(() => {
     if (sourceMode.value !== initial.sourceMode) return true;
-    const current = sourceMode.value === 'manual'
-        ? {}
-        : sourceMode.value === 'project_resources'
-            ? { resourceTypeFilter: resourceTypeFilter.value }
-            : { resourceIds: resourceIds.value };
+    const current = currentSourceConfig();
     return JSON.stringify(current) !== initial.sourceConfig;
 });
 
@@ -208,11 +211,7 @@ const hasRunExtraction = computed(() => !!props.dataset.extractionConfig?.lastRu
 const save = async () => {
     saving.value = true;
     try {
-        const sourceConfig = sourceMode.value === 'manual'
-            ? {}
-            : sourceMode.value === 'project_resources'
-                ? { resourceTypeFilter: resourceTypeFilter.value }
-                : { resourceIds: resourceIds.value };
+        const sourceConfig = currentSourceConfig();
         await updateDataset(props.dataset.id, {
             sourceMode: sourceMode.value,
             sourceConfig,

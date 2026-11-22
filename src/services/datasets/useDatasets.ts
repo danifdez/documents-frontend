@@ -146,12 +146,6 @@ export interface CorrelationResult {
     pairs: { field1: string; field1Name: string; field2: string; field2Name: string; correlation: number; pValue: number; strength: string }[];
 }
 
-export interface CrossTabResult {
-    field1: string; field1Name: string;
-    field2: string; field2Name: string;
-    chi2: number; pValue: number; dof: number;
-    table: { rows: string[]; cols: string[]; values: number[][] };
-}
 
 export type DatasetChartType = ChartType | 'histogram' | 'box' | 'none' | 'stacked_bar' | 'heatmap';
 

@@ -39,6 +39,7 @@ test.beforeAll(async () => {
 });
 test.beforeEach(async ({ playwright }, info) => {
   const realEngine = info.title === benchmarkTitle;
+  // The timing case requires the operator's authorized audio and pinned model.
   test.skip(realEngine && !benchmarkManifest, 'Opt-in real voice timing with a pinned model and authorized audio');
   profile = path.join(output, 'profiles', `${Date.now()}-${info.testId}`); await fs.mkdir(profile, { recursive: true, mode: 0o700 });
   if (realEngine) {
@@ -223,6 +224,7 @@ async function startNoteDictation(selectSuffix = false) {
 
 test('remote dictation in the real note editor', async () => {
   const manifestPath = process.env.VOICE_TEST_REMOTE_MANIFEST;
+  // CI cannot access the authenticated remote trial or its private audio.
   test.skip(!manifestPath, 'Opt-in remote voice trial against the authenticated local laboratory');
   test.setTimeout(120000);
   const { url, token, audio } = JSON.parse(await fs.readFile(manifestPath!, 'utf8'));

@@ -2,7 +2,13 @@
     <Teleport to="body">
         <!-- Backdrop -->
         <Transition name="fade">
-            <div v-if="modelValue" class="fixed inset-0 z-40 bg-black/20" @click="close"></div>
+            <div v-if="modelValue" class="fixed inset-0 z-40 bg-black/20" @click="close"
+                role="button"
+                tabindex="0"
+                aria-label="Dismiss overlay"
+                @keydown.esc.stop="close"
+                @keydown.enter.self.prevent="close"
+                @keydown.space.self.prevent="close"></div>
         </Transition>
 
         <!-- Panel -->
@@ -45,14 +51,18 @@
                             <input aria-label="Task title" :ref="el => setInputRef(el, index)" :value="task.title" type="text"
                                 class="flex-1 bg-transparent text-[15px] text-text-primary outline-none placeholder:text-text-muted"
                                 @focus="expandedTask = task.id" @blur="saveTitle(task, $event)"
-                                @keydown.enter="handleEnter(index, $event)"
+                                @keydown.enter="handleEnter($event)"
                                 @keydown.backspace="handleBackspace(task, index, $event)"
                                 @keydown.up.prevent="focusInput(index - 1)"
                                 @keydown.down.prevent="focusInput(index + 1)" @keydown.esc="close" />
                             <span v-if="task.reminderAt"
                                 class="shrink-0 text-[13px] cursor-default"
                                 :title="`Reminder · ${formatLocal(task.reminderAt)}`"
-                                @click.stop="expandedTask = task.id">🔔</span>
+                                @click.stop="expandedTask = task.id"
+                                role="button"
+                                tabindex="0"
+                                @keydown.enter.self.stop.prevent="expandedTask = task.id"
+                                @keydown.space.self.stop.prevent="expandedTask = task.id">🔔</span>
                             <button aria-label="Delete task" @click="removeTask(task)"
                                 class="shrink-0 p-1.5 rounded-lg text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
                                 <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -154,6 +164,7 @@
 </template>
 
 <script setup lang="ts">
+import { forEachSequential } from '../../utils/forEachSequential';
 import { useId, ref, computed, watch, nextTick, type ComponentPublicInstance } from 'vue';
 import { useUserTasks } from '../../services/user-tasks/useUserTasks';
 import type { UserTask } from '../../types/UserTask';
@@ -295,7 +306,7 @@ const toggleTask = async (task: UserTask) => {
     await loadTasks();
 };
 
-const handleEnter = async (index: number, event: Event) => {
+const handleEnter = async (event: Event) => {
     (event.target as HTMLInputElement).blur();
     await nextTick();
     newTaskInput.value?.focus();
@@ -318,9 +329,9 @@ const removeTask = async (task: UserTask) => {
 };
 
 const clearCompleted = async () => {
-    for (const task of completedTasks.value) {
+    await forEachSequential(completedTasks.value, async (task) => {
         await deleteTask(task.id);
-    }
+    });
     await loadTasks();
 };
 </script>

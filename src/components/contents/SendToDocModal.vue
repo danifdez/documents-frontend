@@ -2,9 +2,11 @@
     <Teleport to="body">
         <Transition name="modal">
             <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center"
-                @click.self="$emit('close')">
-                <div class="fixed inset-0 bg-black/40" @click="$emit('close')"></div>
+                @click.self="$emit('close')"
+                @keydown.esc.stop="$emit('close')">
+                <div class="fixed inset-0 bg-black/40 pointer-events-none" aria-hidden="true"></div>
                 <div
+                    role="dialog" aria-modal="true" aria-label="Send selection to document"
                     class="relative bg-surface-elevated rounded-xl shadow-2xl border border-border w-full max-w-md mx-4 overflow-hidden">
 
                     <!-- Header -->

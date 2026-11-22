@@ -15,7 +15,7 @@ declare module '@tiptap/core' {
     }
 }
 
-export const CommentExtension = Mark.create<CommentOptions>({
+const CommentExtension = Mark.create<CommentOptions>({
     name: 'comment',
     priority: 1000, // High priority to make sure it's applied
 
@@ -92,7 +92,7 @@ export const CommentExtension = Mark.create<CommentOptions>({
                         const $pos = doc.resolve(pos);
                         const commentMark = $pos.marks().find(mark => mark.type.name === 'comment');
 
-                        if (commentMark && commentMark.attrs.commentId) {
+                        if (commentMark?.attrs.commentId) {
                             onCommentClick(commentMark.attrs.commentId);
                             return true;
                         }

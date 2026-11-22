@@ -127,7 +127,7 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
     [IpcChannels.standalone.uninstallServices]: async () => {
       try {
         await standaloneManager.stop();
-        await uninstallServices();
+        uninstallServices();
         return { success: true };
       } catch (err: unknown) {
         return { success: false, error: getErrorMessage(err) };
@@ -145,7 +145,7 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
 
     [IpcChannels.standalone.uninstallModels]: async () => {
       try {
-        await uninstallModels();
+        uninstallModels();
         return { success: true };
       } catch (err: unknown) {
         return { success: false, error: getErrorMessage(err) };

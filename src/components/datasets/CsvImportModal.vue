@@ -25,7 +25,11 @@
                         <div v-if="step === 1" class="space-y-4">
                             <div @drop.prevent="handleDrop" @dragover.prevent
                                 class="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/40 transition-colors cursor-pointer"
-                                @click="triggerFileInput">
+                                @click="triggerFileInput"
+                                role="button"
+                                tabindex="0"
+                                @keydown.enter.self.prevent="triggerFileInput"
+                                @keydown.space.self.prevent="triggerFileInput">
                                 <svg aria-hidden="true" class="mx-auto h-10 w-10 text-text-muted mb-3" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="1.5">
                                     <path stroke-linecap="round" stroke-linejoin="round"

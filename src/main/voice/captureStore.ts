@@ -5,6 +5,7 @@ import * as fs from 'node:fs';
 import * as fsp from 'node:fs/promises';
 import * as path from 'node:path';
 import type { LocalCaptureOptions, LocalCaptureSnapshot, LocalCaptureEvent } from '../../types/voice';
+import { forEachSequential } from '../../utils/forEachSequential';
 import { ENGINE_IDENTITY_MISSING, validateEngineIdentity } from './runtimeIdentity';
 
 export const CAPTURE_LIMITS = { audioBytes: 4 * 1024 * 1024, journalBytes: 16 * 1024 * 1024,
@@ -14,9 +15,15 @@ export const CAPTURE_MISSING = ['model.loaded_instance_identity', 'engine.native
 const UNEXPOSED_NATIVE_SETTINGS = ['engine.compute_backend', 'engine.thread_count', 'engine.sampling_strategy',
   'engine.beam_size', 'engine.temperature_schedule', 'engine.decoder_thresholds', 'engine.context_settings'];
 export const isDetectedLanguage = (value: unknown): value is string => typeof value === 'string' && /^[a-z]{2,3}$/.test(value);
+function compareCanonicalKeys(left: string, right: string): number {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
 export function canonical(value: unknown): string {
   return JSON.stringify(value, (_key, item) => item && typeof item === 'object' && !Array.isArray(item)
-    ? Object.fromEntries(Object.keys(item).sort().map((key) => [key, item[key]])) : item);
+    // The journal hash format uses UTF-16 code unit order across all locales.
+    ? Object.fromEntries(Object.keys(item).toSorted(compareCanonicalKeys)
+      .map((key) => [key, item[key]])) : item);
 }
 export const captureHash = (value: Buffer | string): string => 'sha256:' + createHash('sha256').update(value).digest('hex');
 export function captureId(id: string): string {
@@ -38,12 +45,13 @@ async function readPrivate(file: string, limit: number): Promise<Buffer> {
     const opened = await handle.stat();
     if (opened.ino !== stat.ino || opened.dev !== stat.dev || opened.nlink !== 1 || !opened.isFile()) throw new Error('Local capture file changed');
     const bytes = Buffer.alloc(stat.size);
-    let offset = 0;
-    while (offset < bytes.length) {
-      const read = await handle.read(bytes, offset, bytes.length - offset, offset);
-      if (!read.bytesRead) throw new Error('Local capture file was truncated');
-      offset += read.bytesRead;
+    async function fill(offset: number): Promise<void> {
+      if (offset >= bytes.length) return;
+      const { bytesRead } = await handle.read(bytes, offset, bytes.length - offset, offset);
+      if (!bytesRead) throw new Error('Local capture file was truncated');
+      await fill(offset + bytesRead);
     }
+    await fill(0);
     return bytes;
   } finally { await handle.close(); }
 }
@@ -59,17 +67,20 @@ async function writePrivate(file: string, body: Buffer): Promise<void> {
 }
 
 export class CaptureWriter {
-  private events: LocalCaptureEvent[] = [];
+  private readonly events: LocalCaptureEvent[] = [];
   private bytes = 0;
   private inputBytes = 0;
-  private inputs: { hash: string; size: number }[] = [];
+  private readonly inputs: { hash: string; size: number }[] = [];
   private tail = Promise.resolve();
   failed = false;
   private closed = false;
   private closing?: Promise<void>;
   constructor(readonly options: LocalCaptureOptions, private readonly dir: string, private readonly finished: () => void) {}
   private queue<T>(operation: () => Promise<T>): Promise<T> {
-    const next = this.tail.then(async () => { if (this.failed || this.closed) throw new Error('Local capture is unconfirmed'); return operation(); });
+    const next = this.tail.then(() => {
+      if (this.failed || this.closed) throw new Error('Local capture is unconfirmed');
+      return operation();
+    });
     this.tail = next.then((): undefined => undefined, () => { this.failed = true; this.finished(); });
     return next;
   }
@@ -107,7 +118,7 @@ export class CaptureWriter {
     });
   }
   close(status: 'completed' | 'cancelled' | 'failed', reason: string): Promise<void> {
-    if (this.closing) return this.closing;
+    if (this.closing !== undefined) return this.closing;
     this.closing = this.queue(async () => {
       if (this.events.some((event) => event.eventType === 'session.closed')) return;
       await this.append('session.closed', { status, reason }); this.closed = true; this.finished();
@@ -116,8 +127,129 @@ export class CaptureWriter {
   }
 }
 
+function readJournal(raw: Buffer) {
+  const lines = raw.toString('utf8').split('\n'); const torn = lines.pop() !== '';
+  const events: LocalCaptureEvent[] = []; let previous: string | null = null;
+  for (const line of lines) {
+    if (Buffer.byteLength(line) > CAPTURE_LIMITS.eventBytes || events.length >= CAPTURE_LIMITS.events) throw new Error('Local capture event limit exceeded');
+    const event = JSON.parse(line) as LocalCaptureEvent;
+    const { contentHash, ...base } = event;
+    if (typeof event.eventType !== 'string' || !event.payload || typeof event.payload !== 'object' || Array.isArray(event.payload) ||
+        typeof event.occurredAt !== 'string' || !Number.isFinite(Date.parse(event.occurredAt)) || event.sequence !== events.length + 1 || event.previousHash !== previous || captureHash(canonical(base)) !== contentHash) throw new Error('Local capture integrity differs');
+    events.push(event); previous = contentHash;
+  }
+  return { events, torn };
+}
+
+async function readArtifacts(dir: string, events: LocalCaptureEvent[]) {
+  const artifacts: LocalCaptureSnapshot['artifacts'] = {};
+  let bytes = 0; let count = 0;
+  const observed = events.filter(event => event.eventType === 'source.observed');
+  await forEachSequential(observed, async (event) => {
+    const value = event.payload;
+    if (value.sequence !== ++count || count > 4096 || typeof value.size !== 'number' || value.size > 256 * 1024) throw new Error('Local capture input order differs');
+    const body = await readPrivate(path.join(dir, `input-${count}.bin`), 256 * 1024);
+    bytes += body.length;
+    if (!body.length || body.length !== value.size || captureHash(body) !== value.sha256 || bytes !== value.totalBytes || bytes > CAPTURE_LIMITS.audioBytes) throw new Error('Local capture audio differs');
+    artifacts[String(count)] = { sha256: value.sha256, size: body.length, base64: body.toString('base64') };
+  });
+  return artifacts;
+}
+
+interface CaptureCall {
+  final: boolean;
+  nativeRequested: boolean;
+  detailRequested: boolean;
+  completed?: string;
+  modelInstanceId?: string;
+  sent?: boolean;
+}
+
+function checkCallStarted(calls: Map<number, CaptureCall>, value: Record<string, unknown>, observed: Buffer[]) {
+  const input = value.input as Record<string, unknown> | undefined;
+  const audio = Buffer.concat(observed);
+  if (value.index !== calls.size + 1 || calls.size >= 128 || typeof value.final !== 'boolean' ||
+      value.nativeRequested !== (audio.length > 0) || input?.sha256 !== captureHash(audio) ||
+      input.bytes !== audio.length || input.chunks !== observed.length) throw new Error('Local capture call input differs');
+  const parameters = value.parameters as Record<string, unknown> | undefined;
+  const detailRequested = parameters?.format === 'detail';
+  if (parameters && Object.hasOwn(parameters, 'format') && (!detailRequested || !value.nativeRequested)) {
+    throw new Error('Local capture result format differs');
+  }
+  calls.set(value.index as number, { final: value.final, nativeRequested: value.nativeRequested, detailRequested });
+}
+
+function checkCallCompleted(calls: Map<number, CaptureCall>, value: Record<string, unknown>) {
+  const call = calls.get(value.index as number);
+  if (!call || call.completed !== undefined || call.final !== value.final || typeof value.text !== 'string' ||
+      Buffer.byteLength(value.text) > 16 * 1024) throw new Error('Local capture call result differs');
+  call.completed = value.text;
+  if (Object.hasOwn(value, 'detectedLanguage') !== call.detailRequested ||
+      (call.detailRequested && (value.nativeInvoked !== true || (value.detectedLanguage !== null && !isDetectedLanguage(value.detectedLanguage))))) {
+    throw new Error('Local capture detected language differs');
+  }
+  if (Object.hasOwn(value, 'modelInstanceId')) {
+    if (!call.nativeRequested || value.nativeInvoked !== true) throw new Error('Local capture model identity has no native call');
+    call.modelInstanceId = captureId(value.modelInstanceId as string);
+  }
+}
+
+function checkOutputSent(calls: Map<number, CaptureCall>, value: Record<string, unknown>) {
+  const call = calls.get(value.index as number);
+  if (call?.completed === undefined || call.sent || call.final !== value.final ||
+      value.textSha256 !== captureHash(call.completed)) throw new Error('Local capture output differs');
+  call.sent = true;
+}
+
+function checkCalls(events: LocalCaptureEvent[], artifacts: LocalCaptureSnapshot['artifacts']) {
+  const calls = new Map<number, CaptureCall>();
+  const observed: Buffer[] = [];
+  for (const event of events) {
+    const value = event.payload;
+    if (event.eventType === 'source.observed') {
+      if (typeof value.sequence !== 'number') throw new Error('Local capture input order differs');
+      observed.push(Buffer.from(artifacts[value.sequence].base64, 'base64'));
+    }
+    if (event.eventType === 'call.started') checkCallStarted(calls, value, observed);
+    if (event.eventType === 'call.completed') checkCallCompleted(calls, value);
+    if (event.eventType === 'output.sent') checkOutputSent(calls, value);
+  }
+  return calls;
+}
+
+function terminalStatus(events: LocalCaptureEvent[], calls: Map<number, CaptureCall>) {
+  const closed = events.filter((event) => event.eventType === 'session.closed');
+  if (closed.length > 1 || (closed.length && events.at(-1) !== closed[0])) throw new Error('Local capture terminal order differs');
+  const status = closed[0]?.payload.status;
+  if (status !== undefined && status !== 'completed' && status !== 'cancelled' && status !== 'failed') throw new Error('Invalid local capture state');
+  if (status === 'completed' && ![...calls.values()].some((call) => call.final && call.sent)) throw new Error('Local capture final is unconfirmed');
+  return { status: status as LocalCaptureSnapshot["status"] | undefined, closed: closed.length > 0 };
+}
+
+function missingEvidence(
+  events: LocalCaptureEvent[], calls: Map<number, CaptureCall>, torn: boolean, closed: boolean,
+): string[] {
+  const identities = events.filter((event) => event.eventType === 'engine.observed');
+  if (identities.length > 1 || (identities.length && identities[0].sequence !== 2)) throw new Error('Local capture engine identity order differs');
+  if (identities.length) validateEngineIdentity(identities[0].payload);
+  const missing = identities.length ? [...CAPTURE_MISSING.filter((item) => item !== 'engine.native_binary_identity'), ...ENGINE_IDENTITY_MISSING] : [...CAPTURE_MISSING];
+  const nativeCalls = [...calls.values()].filter((call) => call.nativeRequested);
+  if (nativeCalls.length && nativeCalls.every((call) => call.modelInstanceId !== undefined)) {
+    missing.splice(missing.indexOf('model.loaded_instance_identity'), 1);
+  }
+  if (nativeCalls.some((call) => call.detailRequested)) missing.push(...UNEXPOSED_NATIVE_SETTINGS);
+  if (torn) missing.push('capture.torn_tail');
+  if (!closed) missing.push('capture.terminal_unconfirmed');
+  const started = events.filter((event) => event.eventType === 'call.started');
+  for (const event of started) {
+    const index = event.payload.index;
+    if (typeof index === 'number' && calls.get(index)?.completed === undefined) missing.push(`call.${index}.finish`);
+  }
+  return missing;
+}
+
 export class LocalCaptureStore {
-  private live = new Set<string>();
+  private readonly live = new Set<string>();
   constructor(private readonly root: () => string) {}
   async open(options: LocalCaptureOptions, identity: Record<string, unknown>): Promise<{ claimed: boolean; writer?: CaptureWriter; status: LocalCaptureSnapshot['status'] }> {
     if (options.consent !== 'granted' || options.purpose !== 'evaluation' || !['audio/wav', 'audio/webm', 'audio/webm;codecs=opus', 'audio/ogg', 'audio/ogg;codecs=opus'].includes(options.mediaType)) throw new Error('Local capture consent required');
@@ -146,7 +278,12 @@ export class LocalCaptureStore {
   async lookup(requestId: string): Promise<LocalCaptureSnapshot | null> {
     const id = captureId(requestId);
     for (const dir of [this.root(), path.join(this.root(), id)]) {
-      try { await directory(dir); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
+      try {
+        await directory(dir);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+        throw error;
+      }
     }
     return this.read(id);
   }
@@ -154,88 +291,19 @@ export class LocalCaptureStore {
     const id = captureId(requestId); await directory(this.root());
     const dir = path.join(this.root(), id); await directory(dir);
     const raw = await readPrivate(path.join(dir, 'events.jsonl'), CAPTURE_LIMITS.journalBytes);
-    const lines = raw.toString('utf8').split('\n'); const torn = lines.pop() !== '';
-    const events: LocalCaptureEvent[] = []; let previous: string | null = null;
-    for (const line of lines) {
-      if (Buffer.byteLength(line) > CAPTURE_LIMITS.eventBytes || events.length >= CAPTURE_LIMITS.events) throw new Error('Local capture event limit exceeded');
-      const event = JSON.parse(line) as LocalCaptureEvent;
-      const { contentHash, ...base } = event;
-      if (typeof event.eventType !== 'string' || !event.payload || typeof event.payload !== 'object' || Array.isArray(event.payload) ||
-          typeof event.occurredAt !== 'string' || !Number.isFinite(Date.parse(event.occurredAt)) || event.sequence !== events.length + 1 || event.previousHash !== previous || captureHash(canonical(base)) !== contentHash) throw new Error('Local capture integrity differs');
-      events.push(event); previous = contentHash;
-    }
+    const { events, torn } = readJournal(raw);
     const capture = events[0]?.payload.capture as LocalCaptureOptions | undefined;
     if (events[0]?.eventType !== 'session.accepted' || capture?.requestId !== id || capture.consent !== 'granted' || capture.purpose !== 'evaluation') throw new Error('Local capture authorization is unconfirmed');
-    const artifacts: LocalCaptureSnapshot['artifacts'] = {};
-    let bytes = 0; let count = 0;
-    for (const event of events.filter((item) => item.eventType === 'source.observed')) {
-      const value = event.payload;
-      if (value.sequence !== ++count || count > 4096 || typeof value.size !== 'number' || value.size > 256 * 1024) throw new Error('Local capture input order differs');
-      const body = await readPrivate(path.join(dir, `input-${count}.bin`), 256 * 1024);
-      bytes += body.length;
-      if (!body.length || body.length !== value.size || captureHash(body) !== value.sha256 || bytes !== value.totalBytes || bytes > CAPTURE_LIMITS.audioBytes) throw new Error('Local capture audio differs');
-      artifacts[String(count)] = { sha256: String(value.sha256), size: body.length, base64: body.toString('base64') };
-    }
-    const calls = new Map<number, { final: boolean; nativeRequested: boolean; detailRequested: boolean; completed?: string; modelInstanceId?: string; sent?: boolean }>();
-    const observed: Buffer[] = [];
-    for (const event of events) {
-      const value = event.payload;
-      if (event.eventType === 'source.observed') observed.push(Buffer.from(artifacts[String(value.sequence)].base64, 'base64'));
-      if (event.eventType === 'call.started') {
-        const input = value.input as Record<string, unknown> | undefined;
-        const audio = Buffer.concat(observed);
-        if (value.index !== calls.size + 1 || calls.size >= 128 || typeof value.final !== 'boolean' ||
-            value.nativeRequested !== (audio.length > 0) || input?.sha256 !== captureHash(audio) ||
-            input.bytes !== audio.length || input.chunks !== observed.length) throw new Error('Local capture call input differs');
-        const parameters = value.parameters as Record<string, unknown> | undefined;
-        const detailRequested = parameters?.format === 'detail';
-        if (parameters && Object.hasOwn(parameters, 'format') && (!detailRequested || !value.nativeRequested)) {
-          throw new Error('Local capture result format differs');
-        }
-        calls.set(value.index as number, { final: value.final, nativeRequested: value.nativeRequested, detailRequested });
-      }
-      if (event.eventType === 'call.completed') {
-        const call = calls.get(value.index as number);
-        if (!call || call.completed !== undefined || call.final !== value.final || typeof value.text !== 'string' ||
-            Buffer.byteLength(value.text) > 16 * 1024) throw new Error('Local capture call result differs');
-        call.completed = value.text;
-        if (Object.hasOwn(value, 'detectedLanguage') !== call.detailRequested ||
-            (call.detailRequested && (value.nativeInvoked !== true || (value.detectedLanguage !== null && !isDetectedLanguage(value.detectedLanguage))))) {
-          throw new Error('Local capture detected language differs');
-        }
-        if (Object.hasOwn(value, 'modelInstanceId')) {
-          if (!call.nativeRequested || value.nativeInvoked !== true) throw new Error('Local capture model identity has no native call');
-          call.modelInstanceId = captureId(value.modelInstanceId as string);
-        }
-      }
-      if (event.eventType === 'output.sent') {
-        const call = calls.get(value.index as number);
-        if (!call || call.completed === undefined || call.sent || call.final !== value.final ||
-            value.textSha256 !== captureHash(call.completed)) throw new Error('Local capture output differs');
-        call.sent = true;
-      }
-    }
-    const closed = events.filter((event) => event.eventType === 'session.closed');
-    if (closed.length > 1 || (closed.length && events.at(-1) !== closed[0])) throw new Error('Local capture terminal order differs');
-    const status = closed[0]?.payload.status;
-    if (status !== undefined && !['completed', 'cancelled', 'failed'].includes(String(status))) throw new Error('Invalid local capture state');
-    if (status === 'completed' && ![...calls.values()].some((call) => call.final && call.sent)) throw new Error('Local capture final is unconfirmed');
-    const identities = events.filter((event) => event.eventType === 'engine.observed');
-    if (identities.length > 1 || (identities.length && identities[0].sequence !== 2)) throw new Error('Local capture engine identity order differs');
-    if (identities.length) validateEngineIdentity(identities[0].payload);
-    const missing = identities.length ? [...CAPTURE_MISSING.filter((item) => item !== 'engine.native_binary_identity'), ...ENGINE_IDENTITY_MISSING] : [...CAPTURE_MISSING];
-    const nativeCalls = [...calls.values()].filter((call) => call.nativeRequested);
-    if (nativeCalls.length && nativeCalls.every((call) => call.modelInstanceId !== undefined)) {
-      missing.splice(missing.indexOf('model.loaded_instance_identity'), 1);
-    }
-    if (nativeCalls.some((call) => call.detailRequested)) missing.push(...UNEXPOSED_NATIVE_SETTINGS);
-    if (torn) missing.push('capture.torn_tail');
-    if (!closed.length) missing.push('capture.terminal_unconfirmed');
-    const started = events.filter((event) => event.eventType === 'call.started');
-    for (const event of started) if (!events.some((end) => end.eventType === 'call.completed' && end.payload.index === event.payload.index)) missing.push(`call.${String(event.payload.index)}.finish`);
-    const snapshot: LocalCaptureSnapshot = { schemaVersion: 'voice-local-capture/1', requestId: id, capture,
-      status: torn ? 'interrupted' : status as LocalCaptureSnapshot['status'] ?? (this.live.has(id) ? 'running' : 'interrupted'),
-      events, artifacts, missing };
+    const artifacts = await readArtifacts(dir, events);
+    const calls = checkCalls(events, artifacts);
+    const { status, closed } = terminalStatus(events, calls);
+    const missing = missingEvidence(events, calls, torn, closed);
+    const unfinishedStatus = this.live.has(id) ? 'running' : 'interrupted';
+    const snapshot: LocalCaptureSnapshot = {
+      schemaVersion: 'voice-local-capture/1', requestId: id, capture,
+      status: torn ? 'interrupted' : status ?? unfinishedStatus,
+      events, artifacts, missing,
+    };
     snapshot.manifestHash = captureHash(canonical(snapshot));
     return snapshot;
   }

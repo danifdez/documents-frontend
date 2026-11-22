@@ -65,7 +65,7 @@ export const MathExtension = Node.create<MathOptions>({
             dom.dataset.formula = String(node.attrs.formula);
             dom.contentEditable = 'false';
             dom.style.cssText =
-                'display:inline-block;padding:2px 6px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:4px;cursor:pointer;font-family:serif;vertical-align:middle;';
+                'display:inline-block;padding:2px 6px;background:var(--math-node-background,#F5F3FF);border:1px solid var(--math-node-border,#DDD6FE);border-radius:4px;cursor:pointer;font-family:serif;vertical-align:middle;';
 
             try {
                 katex.render(node.attrs.formula, dom, {
@@ -102,7 +102,7 @@ export const MathExtension = Node.create<MathOptions>({
                 props: {
                     handleDoubleClick(view, pos) {
                         const node = view.state.doc.nodeAt(pos);
-                        if (node && node.type.name === 'mathNode') {
+                        if (node?.type.name === 'mathNode') {
                             const currentFormula = node.attrs.formula;
                             const newFormula = prompt('Edit math formula (LaTeX):', currentFormula);
                             if (newFormula !== null && newFormula !== currentFormula) {
@@ -122,5 +122,3 @@ export const MathExtension = Node.create<MathOptions>({
         ];
     },
 });
-
-export default MathExtension;

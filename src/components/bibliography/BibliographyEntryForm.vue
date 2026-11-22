@@ -307,17 +307,8 @@ const booktitleLabel = computed(() => {
     return 'Libro / Actas';
 });
 
-const numberLabel = computed(() => {
-    const t = form.value.entryType;
-    if (t === 'journalArticle' || t === 'magazineArticle' || t === 'newspaperArticle') return 'Número';
-    return 'Número';
-});
-
-const institutionLabel = computed(() => {
-    const t = form.value.entryType;
-    if (t === 'report') return 'Institución';
-    return 'Institución';
-});
+const numberLabel = 'Número';
+const institutionLabel = 'Institución';
 
 // --- Form state ---
 function emptyForm(): Partial<BibliographyEntry> {

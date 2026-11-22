@@ -1,3 +1,4 @@
+import { forEachSequential } from '../../utils/forEachSequential';
 import { app } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -10,6 +11,7 @@ import { Unpack as TarUnpack } from 'tar';
 import { createHash } from 'node:crypto';
 import { getModelsBinaryPath } from './models-binary';
 import { assertSafeArchiveEntry } from './archive-safety';
+import { trimTrailingSlashes } from '../../utils/urlPath';
 import {
   resolveArtifactUrl,
   selectReleaseArtifact,
@@ -47,6 +49,7 @@ export interface DownloadProgress {
   totalSteps?: number;
   /** Weighted progress across the entire install (0-100). */
   overallPercent?: number;
+  warning?: string;
 }
 
 export interface GpuInfo {
@@ -60,7 +63,7 @@ export interface GpuInfo {
 const GITHUB_REPO = 'danifdez/documents';
 
 const RELEASE_BASE_URL =
-  process.env.DOCUMENTS_RELEASE_BASE_URL?.replace(/\/+$/, '') ||
+  trimTrailingSlashes(process.env.DOCUMENTS_RELEASE_BASE_URL ?? '') ||
   `https://github.com/${GITHUB_REPO}/releases/download/v${app.getVersion()}`;
 const LATEST_RELEASE_MANIFEST_URL =
   process.env.DOCUMENTS_RELEASE_MANIFEST_URL ||
@@ -187,16 +190,23 @@ export function isStandaloneReady(): boolean {
   return status.node && status.backend && status.postgres;
 }
 
+function nvidiaSmiExecutable(): string {
+  if (process.platform !== 'win32') return '/usr/bin/nvidia-smi';
+  const systemBinary = String.raw`C:\Windows\System32\nvidia-smi.exe`;
+  const legacyBinary = String.raw`C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe`;
+  return fs.existsSync(systemBinary) ? systemBinary : legacyBinary;
+}
+
 export function detectGpu(): GpuInfo {
   const result: GpuInfo = { available: false, name: null, cuda: false, vramGB: 0 };
 
   try {
     // Try nvidia-smi (Linux/Windows). memory.total comes back in MiB (nounits).
-    const output = execFileSync('nvidia-smi', ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'], {
+    const output = execFileSync(nvidiaSmiExecutable(), ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'], {
       timeout: 5000,
       encoding: 'utf-8',
     });
-    if (output && output.trim()) {
+    if (output?.trim()) {
       const [name, mib] = output.trim().split('\n')[0].split(',').map((s: string) => s.trim());
       result.available = true;
       result.name = name;
@@ -210,7 +220,7 @@ export function detectGpu(): GpuInfo {
   if (!result.available && process.platform === 'darwin') {
     // macOS: check for Apple Silicon GPU (Metal)
     try {
-      const output = execFileSync('system_profiler', ['SPDisplaysDataType'], {
+      const output = execFileSync('/usr/sbin/system_profiler', ['SPDisplaysDataType'], {
         timeout: 5000,
         encoding: 'utf-8',
       });
@@ -242,7 +252,11 @@ async function downloadComponentFromRelease(
 ): Promise<void> {
   const { manifest, url: manifestUrl, localDirectory } = release;
   const target = getPlatformSuffix();
-  const { component, variant, artifact } = selectReleaseArtifact(manifest, target, componentName);
+  const { component, variant, artifact, fallbackFrom } = selectReleaseArtifact(manifest, target, componentName);
+  const warning = fallbackFrom
+    ? `This release has no ${fallbackFrom.toUpperCase()} AI engine for this system. Installing the CPU version.`
+    : undefined;
+  if (warning) console.warn(warning);
   const url = manifestUrl ? resolveArtifactUrl(manifestUrl, artifact.file) : undefined;
   const userData = app.getPath('userData');
   const baseDir = getComponentBase(userData, component);
@@ -252,7 +266,7 @@ async function downloadComponentFromRelease(
   const tmpFile = path.join(app.getPath('temp'), `documents-download-${componentName}-${Date.now()}.partial`);
 
   if (onProgress) {
-    onProgress({ component: componentName, downloaded: 0, total: artifact.size, percent: 0 });
+    onProgress({ component: componentName, downloaded: 0, total: artifact.size, percent: 0, ...(warning ? { warning } : {}) });
   }
 
   fs.mkdirSync(baseDir, { recursive: true });
@@ -275,14 +289,14 @@ async function downloadComponentFromRelease(
     if (checksum !== artifact.sha256) throw new Error(`Checksum mismatch for ${componentName}`);
 
     fs.mkdirSync(stagingDir, { recursive: true });
-    const isZip = artifact.file.endsWith('.zip');
-    await extractArchive(tmpFile, stagingDir, isZip, (extractPercent) => {
+    const extract = artifact.file.endsWith('.zip') ? extractZip : extractTarGz;
+    await extract(tmpFile, stagingDir, (extractPercent) => {
       if (onProgress) {
         onProgress({ component: componentName, downloaded: artifact.size, total: artifact.size, percent: 50 + Math.round(extractPercent / 2) });
       }
     });
 
-    await normalizeExtraction(componentName, stagingDir);
+    normalizeExtraction(componentName, stagingDir);
     if (process.platform !== 'win32') {
       makeBinariesExecutable(stagingDir);
     }
@@ -325,13 +339,13 @@ export async function updateServices(
   if (installedModels) components.push(`models-${installedModels.state.variant ?? 'cpu'}`);
 
   const updated: string[] = [];
-  for (const componentName of components) {
+  await forEachSequential(components, async (componentName) => {
     const { component, variant, artifact } = selectReleaseArtifact(release.manifest, target, componentName);
     const installed = readInstalledComponent(userData, component, target);
-    if (installed?.state.sha256 === artifact.sha256 && installed.state.variant === variant) continue;
+    if (installed?.state.sha256 === artifact.sha256 && installed.state.variant === variant) return;
     await downloadComponentFromRelease(componentName, release, onProgress);
     updated.push(componentName);
-  }
+  });
   return updated;
 }
 
@@ -386,7 +400,7 @@ function validateExtractedComponent(
   variant?: string,
 ): void {
   const componentManifest = readComponentManifest(root);
-  if (!componentManifest || componentManifest.schemaVersion !== 1 || componentManifest.component !== component) {
+  if (componentManifest?.schemaVersion !== 1 || componentManifest.component !== component) {
     throw new Error(`Invalid ${component} component manifest`);
   }
   if (componentManifest.version !== artifact.version || componentManifest.target !== target) {
@@ -421,9 +435,10 @@ async function runInstalledSelfCheck(
     }
     return;
   }
+  const postgresVersion = artifact.runtime?.postgres;
   const expectedVersion = component === 'node'
     ? artifact.version
-    : String(artifact.runtime?.postgres ?? '').split('+')[0].replace(/\.0$/, '');
+    : typeof postgresVersion === 'string' && postgresVersion.split('+')[0].replace(/\.0$/, '');
   const output = await execFilePromise(entrypoint, ['--version'], { cwd: root, timeout: 30000 });
   if (expectedVersion && !output.includes(expectedVersion)) throw new Error(`${component} self-check reported an unexpected version`);
 }
@@ -443,7 +458,7 @@ function execFilePromise(
 
 // Flattens/unpacks freshly extracted archives whose internal layout does not
 // match the path the rest of the app expects.
-async function normalizeExtraction(component: string, destDir: string): Promise<void> {
+function normalizeExtraction(component: string, destDir: string): void {
   if (component === 'node') {
     // Node archives nest everything under node-v<version>-<platform>/. Lift its
     // contents up one level so bin/ (or node.exe on Windows) sits in destDir.
@@ -464,11 +479,11 @@ export async function downloadAll(
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
   const coreComponents = ['node', 'postgres', 'backend'];
-  for (const component of coreComponents) {
+  await forEachSequential(coreComponents, async (component) => {
     const status = checkInstalled();
-    if (status[component as keyof ComponentStatus]) continue;
+    if (status[component as keyof ComponentStatus]) return;
     await downloadComponent(component, onProgress);
-  }
+  });
 }
 
 /**
@@ -512,8 +527,10 @@ export async function installProfile(
   const steps: Step[] = [];
   for (const component of comps) {
     if (component === 'models-cpu' || component === 'models-gpu') {
-      steps.push({ label: component, weight: STEP_WEIGHT[component], run: (op) => downloadComponent(component, op) });
-      steps.push({ label: 'ai-models', weight: STEP_WEIGHT['ai-models'], run: (op) => setupModels(op) });
+      steps.push(
+        { label: component, weight: STEP_WEIGHT[component], run: (op) => downloadComponent(component, op) },
+        { label: 'ai-models', weight: STEP_WEIGHT['ai-models'], run: (op) => setupModels(op) },
+      );
       continue;
     }
     if (checkInstalled()[component as keyof ComponentStatus]) continue;
@@ -523,8 +540,7 @@ export async function installProfile(
   const totalWeight = steps.reduce((sum, s) => sum + s.weight, 0) || 1;
   let doneWeight = 0;
 
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
+  await forEachSequential(steps, async (step, i) => {
     const emit = (p: DownloadProgress) => {
       const overallPercent = Math.min(100, Math.round(((doneWeight + step.weight * ((p.percent || 0) / 100)) / totalWeight) * 100));
       onProgress?.({ ...p, component: p.component || step.label, step: i + 1, totalSteps: steps.length, overallPercent });
@@ -532,17 +548,17 @@ export async function installProfile(
     emit({ component: step.label, downloaded: 0, total: 0, percent: 0 }); // show the step immediately
     await step.run(emit);
     doneWeight += step.weight;
-  }
+  });
 }
 
-export async function uninstallServices(): Promise<void> {
+export function uninstallServices(): void {
   const servicesDir = getServicesDir();
   if (fs.existsSync(servicesDir)) {
     fs.rmSync(servicesDir, { recursive: true, force: true });
   }
 }
 
-export async function uninstallModels(): Promise<void> {
+export function uninstallModels(): void {
   removeModelsRuntime(app.getPath('userData'));
 }
 
@@ -602,7 +618,7 @@ export async function setupModels(
       lastLine = data.toString().trim();
       // Parse progress from stdout if the models service reports it
       // Expected format: "PROGRESS:<component>:<percent>"
-      const match = lastLine.match(/^PROGRESS:(.+):(\d+)$/);
+      const match = /^PROGRESS:(.+):(\d+)$/.exec(lastLine);
       if (match && onProgress) {
         onProgress({
           component: match[1],
@@ -707,22 +723,6 @@ function downloadFile(
   });
 }
 
-async function extractArchive(
-  archivePath: string,
-  destDir: string,
-  isZip: boolean,
-  onProgress?: (percent: number) => void,
-): Promise<void> {
-  if (isZip) {
-    // zip/jar extraction is a single opaque shell call — no byte-level progress.
-    onProgress?.(0);
-    await extractZip(archivePath, destDir);
-    onProgress?.(100);
-  } else {
-    await extractTarGz(archivePath, destDir, onProgress);
-  }
-}
-
 async function extractTarGz(
   archivePath: string,
   destDir: string,
@@ -758,27 +758,24 @@ function isSafeArchivePath(entryPath: string): boolean {
   return entryPath.split(/[\\/]/).every((segment) => segment !== '..');
 }
 
-async function extractZip(archivePath: string, destDir: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (process.platform === 'win32') {
-      reject(new Error('Secure ZIP extraction is not enabled for standalone releases yet.'));
-    } else {
-      execFile('unzip', ['-Z1', archivePath], (listError, stdout) => {
-        if (listError) {
-          reject(listError);
-          return;
-        }
-        if (stdout.split(/\r?\n/).filter(Boolean).some((entry) => !isSafeArchivePath(entry))) {
-          reject(new Error('ZIP archive contains an unsafe path'));
-          return;
-        }
-        execFile('unzip', ['-qo', archivePath, '-d', destDir], (extractError) => {
-          if (extractError) reject(extractError);
-          else resolve();
-        });
-      });
-    }
-  });
+async function extractZip(
+  archivePath: string,
+  destDir: string,
+  onProgress?: (percent: number) => void,
+): Promise<void> {
+  if (process.platform === 'win32') {
+    throw new Error('Secure ZIP extraction is not enabled for standalone releases yet.');
+  }
+
+  // ZIP has no streaming progress callback.
+  onProgress?.(0);
+  const options = { cwd: destDir, timeout: 300000 };
+  const entries = await execFilePromise('/usr/bin/unzip', ['-Z1', archivePath], options);
+  if (entries.split(/\r?\n/).filter(Boolean).some(entry => !isSafeArchivePath(entry))) {
+    throw new Error('ZIP archive contains an unsafe path');
+  }
+  await execFilePromise('/usr/bin/unzip', ['-qo', archivePath, '-d', destDir], options);
+  onProgress?.(100);
 }
 
 async function sha256File(file: string): Promise<string> {
@@ -787,17 +784,17 @@ async function sha256File(file: string): Promise<string> {
   return hash.digest('hex');
 }
 
+function makeExecutable(file: string): void {
+  const stat = fs.lstatSync(file);
+  if (stat.isFile()) fs.chmodSync(file, (stat.mode & 0o777) | fs.constants.S_IXUSR);
+}
+
 function makeBinariesExecutable(dir: string): void {
   const binDir = path.join(dir, 'bin');
   if (fs.existsSync(binDir)) {
-    for (const file of fs.readdirSync(binDir)) {
-      try { fs.chmodSync(path.join(binDir, file), 0o755); } catch { /* ignore */ }
-    }
+    for (const file of fs.readdirSync(binDir)) makeExecutable(path.join(binDir, file));
   }
   for (const file of fs.readdirSync(dir)) {
-    const fullPath = path.join(dir, file);
-    if (fs.statSync(fullPath).isFile() && !file.includes('.')) {
-      try { fs.chmodSync(fullPath, 0o755); } catch { /* ignore */ }
-    }
+    if (!file.includes('.')) makeExecutable(path.join(dir, file));
   }
 }

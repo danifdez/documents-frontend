@@ -70,7 +70,13 @@
 
     <!-- Edge color picker (teleported) -->
     <Teleport to="body">
-      <div v-if="showEdgeColors" class="fixed inset-0 z-[9998]" @click="showEdgeColors = false"></div>
+      <div v-if="showEdgeColors" class="fixed inset-0 z-[9998]" @click="showEdgeColors = false"
+          role="button"
+          tabindex="0"
+          aria-label="Dismiss overlay"
+          @keydown.esc.stop="showEdgeColors = false"
+          @keydown.enter.self.prevent="showEdgeColors = false"
+          @keydown.space.self.prevent="showEdgeColors = false"></div>
       <div v-if="showEdgeColors" class="fixed z-[9999] bg-surface-elevated border border-border rounded-xl shadow-xl p-2.5"
         :style="edgeColorPos">
         <div class="grid grid-cols-5 gap-1.5">
@@ -85,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, markRaw, onMounted, onBeforeUnmount, provide, type CSSProperties } from 'vue';
+import { ref, computed, watch, markRaw, onMounted, onBeforeUnmount, provide, type CSSProperties, type Ref } from 'vue';
 import { VueFlow, ConnectionMode, MarkerType, useVueFlow, type Node, type Edge, type Connection } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -136,8 +142,8 @@ const nodeTypes = {
   entityGraph: markRaw(EntityGraphNode),
 };
 
-const nodes = ref<Node<CanvasNodeData>[]>([]);
-const edges = ref<Edge<CanvasEdgeData>[]>([]);
+const nodes = ref([]) as Ref<Node<CanvasNodeData>[]>;
+const edges = ref([]) as Ref<Edge<CanvasEdgeData>[]>;
 const viewport = ref({ x: 0, y: 0, zoom: 1 });
 let skipDataWatch = false;
 let internalChange = false;
@@ -184,8 +190,56 @@ const fetchNeighborhood = (entityNames: string[]): Promise<RelationshipData> => 
       entities: response.data?.entities || [],
       relationships: response.data?.relationships || [],
     }))
-    .catch(() => ({ entities: [], relationships: [] }));
+    .catch((): RelationshipData => ({ entities: [], relationships: [] }));
 };
+
+function addRelationshipEdges(
+  relationships: RelationshipData['relationships'],
+  nodeId: string,
+  sourceName: string,
+  nameToNodeId: Map<string, string>,
+): number {
+  let added = 0;
+  for (const rel of relationships) {
+    const srcName = String(rel.source).toLowerCase();
+    const tgtName = String(rel.target).toLowerCase();
+    const label = (rel.predicate || '').replaceAll('_', ' ');
+
+    let fromNodeId: string | null = null;
+    let toNodeId: string | null = null;
+
+    // Only draw edges involving the source entity
+    if (srcName === sourceName && nameToNodeId.has(tgtName)) {
+      fromNodeId = nodeId;
+      toNodeId = nameToNodeId.get(tgtName)!;
+    } else if (tgtName === sourceName && nameToNodeId.has(srcName)) {
+      fromNodeId = nameToNodeId.get(srcName)!;
+      toNodeId = nodeId;
+    }
+
+    if (!fromNodeId || !toNodeId || fromNodeId === toNodeId) continue;
+
+    const edgeExists = edges.value.some(e =>
+      (e.source === fromNodeId && e.target === toNodeId) ||
+      (e.source === toNodeId && e.target === fromNodeId)
+    );
+    if (edgeExists) continue;
+
+    edges.value = [...edges.value, {
+      id: `rel-${fromNodeId}-${toNodeId}-${Date.now()}-${added}`,
+      source: fromNodeId,
+      target: toNodeId,
+      type: 'smoothstep',
+      label,
+      data: { arrow: true, color: '#6366f1' },
+      style: { '--canvas-edge-color': '#6366f1' },
+      markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#6366f1' },
+    }];
+    added++;
+  }
+
+  return added;
+}
 
 const drawRelationships = async (nodeId: string) => {
   const sourceNode = findNode(nodeId);
@@ -207,59 +261,8 @@ const drawRelationships = async (nodeId: string) => {
     const result = await fetchNeighborhood(allNames);
     const relationships = result.relationships || [];
 
-    console.log('[DrawRel] queried names:', allNames);
-    console.log('[DrawRel] got', relationships.length, 'relationships');
-    if (relationships.length > 0) {
-      console.log('[DrawRel] sample:', relationships.slice(0, 10));
-    }
-
-    // Build name -> canvas node id map
-    const nameToNodeId = new Map<string, string>();
-    for (const n of allEntityNodes) {
-      nameToNodeId.set((n.data.entityName as string).toLowerCase(), n.id);
-    }
-
-    const sourceName = entityName.toLowerCase();
-
-    let added = 0;
-    for (const rel of relationships) {
-      const srcName = String(rel.source).toLowerCase();
-      const tgtName = String(rel.target).toLowerCase();
-      const label = (rel.predicate || '').replaceAll('_', ' ');
-
-      let fromNodeId: string | null = null;
-      let toNodeId: string | null = null;
-
-      // Only draw edges involving the source entity
-      if (srcName === sourceName && nameToNodeId.has(tgtName)) {
-        fromNodeId = nodeId;
-        toNodeId = nameToNodeId.get(tgtName)!;
-      } else if (tgtName === sourceName && nameToNodeId.has(srcName)) {
-        fromNodeId = nameToNodeId.get(srcName)!;
-        toNodeId = nodeId;
-      }
-
-      if (!fromNodeId || !toNodeId || fromNodeId === toNodeId) continue;
-
-      const edgeExists = edges.value.some(e =>
-        (e.source === fromNodeId && e.target === toNodeId) ||
-        (e.source === toNodeId && e.target === fromNodeId)
-      );
-      if (edgeExists) continue;
-
-      edges.value = [...edges.value, {
-        id: `rel-${fromNodeId}-${toNodeId}-${Date.now()}-${added}`,
-        source: fromNodeId,
-        target: toNodeId,
-        type: 'smoothstep',
-        label,
-        data: { arrow: true, color: '#6366f1' },
-        style: { stroke: '#6366f1', strokeWidth: 1.5 },
-        markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#6366f1' },
-      }];
-      added++;
-    }
-
+    const nameToNodeId = new Map(allEntityNodes.map(node => [String(node.data.entityName).toLowerCase(), node.id]));
+    const added = addRelationshipEdges(relationships, nodeId, String(entityName).toLowerCase(), nameToNodeId);
     if (added > 0) emitChange();
   } finally {
     const sn = findNode(nodeId);
@@ -420,8 +423,7 @@ const buildEdgeStyle = (data: CanvasEdgeData | undefined) => {
   const color = data?.color || '#94a3b8';
   const dashed = data?.dashed;
   return {
-    stroke: color,
-    strokeWidth: 1.5,
+    '--canvas-edge-color': color,
     ...(dashed ? { strokeDasharray: '6 4' } : {}),
   };
 };
@@ -645,8 +647,13 @@ defineExpose({ addNode, updateNodeData, exportAsImage });
   cursor: crosshair;
 }
 
+.canvas-flow .vue-flow__edge .vue-flow__edge-path {
+  stroke: var(--canvas-edge-color, #94a3b8);
+  stroke-width: 1.5;
+}
+
 .canvas-flow .vue-flow__edge.selected .vue-flow__edge-path {
-  stroke: var(--color-accent, #6366f1) !important;
+  stroke: var(--color-accent, #6366f1);
   stroke-width: 2;
 }
 

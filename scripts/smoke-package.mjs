@@ -24,14 +24,9 @@ if (packagedMetadata.productName !== 'Documents') {
   throw new Error(`Unexpected packaged product name: ${packagedMetadata.productName}`);
 }
 const executableCandidates = ['documents-frontend', 'documents-frontend.exe'];
-let found = false;
-for (const name of executableCandidates) {
-  try {
-    await access(path.join(packageDir, name), constants.X_OK);
-    found = true;
-  } catch {
-    // Try the next platform-specific name.
-  }
-}
+const availability = await Promise.allSettled(
+  executableCandidates.map(name => access(path.join(packageDir, name), constants.X_OK)),
+);
+const found = availability.some(result => result.status === 'fulfilled');
 if (!found && process.platform !== 'darwin') throw new Error('Packaged Electron executable not found');
 console.log(`Verified packaged Frontend ${expectedVersion}`);

@@ -77,7 +77,7 @@ describe('Standalone release manifest', () => {
     const manifest = validateReleaseManifest(manifestValue());
     expect(() => selectReleaseArtifact(manifest, 'darwin-arm64', 'backend')).toThrow('does not support');
     expect(selectReleaseArtifact(manifest, 'linux-x64', 'models-gpu')).toMatchObject({
-      component: 'models', variant: 'cpu', artifact: { file: 'components/models-cpu.tar.gz' },
+      component: 'models', variant: 'cpu', fallbackFrom: 'cuda', artifact: { file: 'components/models-cpu.tar.gz' },
     });
   });
 });

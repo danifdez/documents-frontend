@@ -31,7 +31,7 @@ const rendered = computed(() => {
     font-size: 0.875rem;
     line-height: 1.55;
     color: inherit;
-    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .markdown-content :deep(p) {

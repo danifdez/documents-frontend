@@ -220,29 +220,29 @@ function anchorFromIndex(root: HTMLElement, index: number): ReadingPointAnchor {
   };
 }
 
-function nodeIndexAtPoint(root: HTMLElement, x: number, y: number): number | null {
+function caretAtPoint(x: number, y: number): { node: Node; offset: number } | null {
   const doc = document;
-  let range: Range | null = null;
-  if (typeof doc.caretRangeFromPoint === 'function') {
-    range = doc.caretRangeFromPoint(x, y) as Range | null;
-  } else if (typeof doc.caretPositionFromPoint === 'function') {
-    const pos = doc.caretPositionFromPoint(x, y);
-    if (pos) {
-      range = document.createRange();
-      range.setStart(pos.offsetNode, pos.offset);
-      range.collapse(true);
-    }
+  if (typeof doc.caretPositionFromPoint === 'function') {
+    const position = doc.caretPositionFromPoint(x, y);
+    if (position) return { node: position.offsetNode, offset: position.offset };
   }
-  if (!range || !root.contains(range.startContainer)) return null;
 
+  // Older browser engines expose the WebKit API without the standard API.
+  const legacy = doc as Document & Record<string, (x: number, y: number) => Range | null>;
+  const range = legacy['caretRangeFromPoint']?.(x, y);
+  return range ? { node: range.startContainer, offset: range.startOffset } : null;
+}
+
+function nodeIndexAtPoint(root: HTMLElement, x: number, y: number): number | null {
+  const caret = caretAtPoint(x, y);
+  if (!caret || !root.contains(caret.node)) return null;
   const { map } = buildTextMap(root);
-  const container = range.startContainer;
-  const offset = range.startOffset;
+  const { node: container, offset } = caret;
   let firstForNode = -1;
   let lastForNode = -1;
   for (let i = 0; i < map.length; i++) {
     const entry = map[i];
-    if (entry && entry.node === container) {
+    if (entry?.node === container) {
       if (firstForNode === -1) firstForNode = i;
       lastForNode = i;
     }
@@ -250,7 +250,7 @@ function nodeIndexAtPoint(root: HTMLElement, x: number, y: number): number | nul
   if (firstForNode === -1) return null;
   for (let i = firstForNode; i <= lastForNode; i++) {
     const entry = map[i];
-    if (entry && entry.off >= offset) return i;
+    if (entry?.off >= offset) return i;
   }
   return lastForNode;
 }

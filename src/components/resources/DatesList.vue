@@ -31,7 +31,11 @@
         <ul v-if="resolved.length" class="divide-y divide-border-light">
             <li v-for="d in resolved" :key="d.id"
                 class="px-4 py-2 hover:bg-surface-hover cursor-pointer"
-                @click="$emit('select', d)">
+                @click="$emit('select', d)"
+                role="button"
+                tabindex="0"
+                @keydown.enter.self.prevent="$emit('select', d)"
+                @keydown.space.self.prevent="$emit('select', d)">
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2 min-w-0">
                         <span class="font-mono text-sm text-text-primary whitespace-nowrap">{{ formatDate(d) }}</span>

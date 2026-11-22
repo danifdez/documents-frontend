@@ -53,8 +53,12 @@ describe('desktop workspace IPC', () => {
     store.set.mockClear();
     expect(invoke('remove', 'local')).toBe(true);
     expect(store.set).toHaveBeenCalledExactlyOnceWith('workspaces', [remote]);
+    store.set.mockClear();
     expect(invoke('setActive', 'deleted')).toBeNull();
+    expect(store.set).not.toHaveBeenCalled();
     expect(invoke('getActive')).toEqual(remote);
+    expect(() => invoke('add', { ...remote, name: 'Duplicate' })).toThrow('already exists');
+    expect(invoke('list')).toEqual([remote]);
     invoke('setDefault', null);
     expect(invoke('getDefault')).toBeNull();
     invoke('remove', 'remote');

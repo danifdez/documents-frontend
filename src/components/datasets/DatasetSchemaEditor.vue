@@ -74,17 +74,17 @@
 
             <!-- Linked dataset config -->
             <div v-if="datasets.length > 0" class="ml-1">
-                <label :for="`${formId}-linked-dataset-${index}`" class="flex items-center gap-2 text-xs text-text-secondary cursor-pointer"
-                    @click="toggleLink(field)">
+                <button type="button" class="flex items-center gap-2 text-xs text-text-secondary cursor-pointer"
+                    :aria-expanded="Boolean(field.linkedDatasetId)" @click="toggleLink(field)">
                     <svg aria-hidden="true" class="h-3.5 w-3.5" :class="field.linkedDatasetId ? 'text-accent' : 'text-text-muted'"
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
                     {{ field.linkedDatasetId ? 'Linked to dataset' : 'Link to another dataset (FK)' }}
-                </label>
+                </button>
                 <div v-if="field.linkedDatasetId" class="grid grid-cols-3 gap-2 mt-1.5">
-                    <select :id="`${formId}-linked-dataset-${index}`" v-model="field.linkedDatasetId"
+                    <select aria-label="Linked dataset" v-model="field.linkedDatasetId"
                         class="rounded-lg bg-surface-elevated border border-border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
                         <option :value="undefined">No link</option>
                         <option v-for="ds in datasets" :key="ds.id" :value="ds.id">{{ ds.name }}</option>
@@ -156,27 +156,28 @@ const suggesting = ref(false);
 const showSuggestions = ref(false);
 const suggestions = ref<DatasetField[]>([]);
 
+async function suggestionSourceIds(): Promise<number[]> {
+    if (props.sourceMode === 'resource_selection') return props.sourceConfig?.resourceIds ?? [];
+    if (props.sourceMode !== 'project_resources' || !props.projectId) return [];
+
+    const resources = await fetchResourcesByProject(props.projectId);
+    const all: { id: number; mimeType?: string }[] = Array.isArray(resources) ? resources : [];
+    const filters: string[] = props.sourceConfig?.resourceTypeFilter ?? [];
+    const matches = filters.length
+        ? all.filter(resource => filters.some(filter => filter.endsWith('/')
+            ? (resource.mimeType ?? '').startsWith(filter)
+            : resource.mimeType === filter))
+        : all;
+    return matches.slice(0, 3).map(resource => resource.id);
+}
+
 const suggestColumns = async () => {
     if (!canSuggest.value) return;
     suggesting.value = true;
     suggestions.value = [];
     try {
-        let resourceIds: number[] = [];
-        if (props.sourceMode === 'resource_selection') {
-            resourceIds = (props.sourceConfig?.resourceIds ?? []) as number[];
-        } else if (props.sourceMode === 'project_resources' && props.projectId) {
-            const resources = await fetchResourcesByProject(props.projectId);
-            const all: { id: number; mimeType?: string }[] = Array.isArray(resources) ? resources : [];
-            const filters: string[] = props.sourceConfig?.resourceTypeFilter ?? [];
-            const matched = filters.length > 0
-                ? all.filter((r) => filters.some((f) => f.endsWith('/') ? (r.mimeType || '').startsWith(f) : r.mimeType === f))
-                : all;
-            resourceIds = matched.slice(0, 3).map((r) => r.id);
-        }
-        if (!resourceIds.length) {
-            suggesting.value = false;
-            return;
-        }
+        const resourceIds = await suggestionSourceIds();
+        if (!resourceIds.length) return;
         const { executionId } = await proposeColumns(resourceIds, props.projectId ?? undefined);
         if (!executionId) {
             suggesting.value = false;

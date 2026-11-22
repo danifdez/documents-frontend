@@ -2,8 +2,10 @@
     <Teleport to="body">
         <Transition name="modal" appear>
             <div v-if="modelValue" class="modal-overlay" v-on="$attrs"
-                @click="closeOnBackdrop ? $emit('update:modelValue', false) : null">
-                <div class="modal-container" :class="{ 'modal-wide': wide }" @click.stop>
+                @click.self="closeOnBackdrop ? $emit('update:modelValue', false) : null"
+                @keydown.esc.stop="$emit('update:modelValue', false)">
+                <div class="modal-container" :class="{ 'modal-wide': wide }"
+                    role="dialog" aria-modal="true" :aria-label="title || 'Dialog'">
                     <div class="modal-header">
                         <h3 class="modal-title">{{ title }}</h3>
                         <button aria-label="Close dialog" class="modal-close" @click="$emit('update:modelValue', false)">
@@ -104,7 +106,7 @@ defineEmits(['update:modelValue']);
     color: var(--color-text-muted);
     padding: 0.375rem;
     border-radius: 0.5rem;
-    transition: all 0.2s;
+    transition: color 0.2s, background-color 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -148,13 +150,9 @@ defineEmits(['update:modelValue']);
     opacity: 0;
 }
 
-.modal-enter-active .modal-container {
-    animation: modal-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
 
-.modal-leave-active .modal-container {
-    animation: modal-out 0.15s ease-in forwards;
-}
+
+
 
 @keyframes modal-in {
     from {
@@ -175,6 +173,15 @@ defineEmits(['update:modelValue']);
     to {
         opacity: 0;
         transform: scale(0.97) translateY(4px);
+    }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .modal-enter-active .modal-container {
+        animation: modal-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-leave-active .modal-container {
+        animation: modal-out 0.15s ease-in forwards;
     }
 }
 </style>

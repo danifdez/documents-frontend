@@ -8,6 +8,11 @@ export function getActiveWorkspaceId(): string {
   return localStorage.getItem(ACTIVE_WORKSPACE_ID_KEY) || FALLBACK_WORKSPACE_ID;
 }
 
+export function setActiveWorkspaceId(id: string | null): void {
+  if (id) localStorage.setItem(ACTIVE_WORKSPACE_ID_KEY, id);
+  else localStorage.removeItem(ACTIVE_WORKSPACE_ID_KEY);
+}
+
 export function workspaceKey(key: string): string {
   return `${key}_${getActiveWorkspaceId()}`;
 }

@@ -13,20 +13,20 @@
 }
 
 /* Customize colors for different notification types */
-.Vue-Toastification__toast--success {
-  background-color: #10b981 !important;
+.Vue-Toastification__toast.Vue-Toastification__toast--success {
+  background-color: #10b981;
 }
 
-.Vue-Toastification__toast--error {
-  background-color: #ef4444 !important;
+.Vue-Toastification__toast.Vue-Toastification__toast--error {
+  background-color: #ef4444;
 }
 
-.Vue-Toastification__toast--info {
-  background-color: #6366f1 !important;
+.Vue-Toastification__toast.Vue-Toastification__toast--info {
+  background-color: #6366f1;
 }
 
-.Vue-Toastification__toast--warning {
-  background-color: #f59e0b !important;
+.Vue-Toastification__toast.Vue-Toastification__toast--warning {
+  background-color: #f59e0b;
 }
 
 /* Style for the close button */

@@ -131,7 +131,9 @@ const electronAPI: ElectronAPI = {
 
     // Offline filesystem storage
     offlinePutItem: (wsId: string, type: string, id: number, data: OfflineEntity, syncedAt: string, parentType?: string, parentId?: number) =>
-        ipcRenderer.invoke(IpcChannels.offline.putItem, wsId, type, id, data, syncedAt, parentType, parentId),
+        ipcRenderer.invoke(IpcChannels.offline.putItem, {
+            workspaceId: wsId, entityType: type, entityId: id, data, syncedAt, parentType, parentId,
+        }),
     offlineGetItem: (wsId: string, type: string, id: number) =>
         ipcRenderer.invoke(IpcChannels.offline.getItem, wsId, type, id),
     offlineDeleteItem: (wsId: string, type: string, id: number) =>

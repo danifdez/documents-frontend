@@ -52,12 +52,12 @@ export function readInstalledComponent(
   expectedTarget?: string,
 ): { root: string; state: InstalledComponentState; manifest: ComponentManifest } | null {
   const state = readJson(getComponentStatePath(userData, component)) as Partial<InstalledComponentState> | null;
-  if (!state || state.schemaVersion !== 1 || state.component !== component || !isSafeDirectoryName(state.path)) return null;
+  if (state?.schemaVersion !== 1 || state.component !== component || !isSafeDirectoryName(state.path)) return null;
   if (typeof state.version !== 'string' || typeof state.target !== 'string' || !/^[a-f0-9]{64}$/.test(state.sha256 ?? '')) return null;
   if (expectedTarget && state.target !== expectedTarget) return null;
   const root = path.join(getComponentBase(userData, component), state.path);
   const manifest = readJson(path.join(root, 'component-manifest.json')) as Partial<ComponentManifest> | null;
-  if (!manifest || manifest.schemaVersion !== 1 || manifest.component !== component) return null;
+  if (manifest?.schemaVersion !== 1 || manifest.component !== component) return null;
   if (manifest.version !== state.version || manifest.target !== state.target || !isSafeEntrypoint(manifest.entrypoint)) return null;
   if (component === 'models' && manifest.variant !== state.variant) return null;
   if (!fs.existsSync(path.join(root, manifest.entrypoint))) return null;

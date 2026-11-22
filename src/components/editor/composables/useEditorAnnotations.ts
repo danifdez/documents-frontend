@@ -127,7 +127,7 @@ export function useEditorAnnotations(
         anchorFromEditor(editor, selection.text),
       );
 
-      if (newMark && newMark.id) {
+      if (newMark?.id) {
         markContentMap.value.set(newMark.id, selection.text);
       }
 

@@ -58,7 +58,7 @@ export class ModelManager {
       const before = await handle.stat({ bigint: true });
       if (!before.isFile() || before.nlink !== 1n || signature(before) !== signature(first)) return false;
       const cached = this.verified;
-      if (!cached || cached.file !== file || cached.signature !== signature(before)) {
+      if (cached?.file !== file || cached.signature !== signature(before)) {
         const hash = createHash('sha256');
         let bytes = 0;
         for await (const chunk of handle.createReadStream({ autoClose: false, end: this.manifest.sizeBytes })) {
@@ -79,7 +79,7 @@ export class ModelManager {
     try { return await this.verify(this.modelPath()); } catch { return false; }
   }
   ensure(progress?: (value: LocalModelProgress) => void): Promise<void> {
-    if (this.pending) return this.pending;
+    if (this.pending !== undefined) return this.pending;
     const pending = this.prepare(progress).catch(() => { throw new Error('Local voice model could not be prepared'); });
     this.pending = pending;
     void pending.finally(() => { if (this.pending === pending) this.pending = undefined; }).catch((): undefined => undefined);

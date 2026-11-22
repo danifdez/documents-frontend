@@ -18,9 +18,9 @@ export class MockVoiceDriver implements VoiceDriver {
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private index = 0;
-  private partialCbs = new Set<(p: VoicePartial) => void>();
-  private errorCbs = new Set<(err: Error) => void>();
-  private intervalMs: number;
+  private readonly partialCbs = new Set<(p: VoicePartial) => void>();
+  private readonly errorCbs = new Set<(err: Error) => void>();
+  private readonly intervalMs: number;
   private finalResolver: (() => void) | null = null;
 
   constructor(engine: VoiceEngine = 'remote', intervalMs = 500) {
@@ -28,9 +28,10 @@ export class MockVoiceDriver implements VoiceDriver {
     this.intervalMs = intervalMs;
   }
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     this.index = 0;
     this.timer = setInterval(() => this.tick(), this.intervalMs);
+    return Promise.resolve();
   }
 
   pushChunk(_chunk: Blob): void {
@@ -46,9 +47,10 @@ export class MockVoiceDriver implements VoiceDriver {
     });
   }
 
-  async cancel(): Promise<void> {
+  cancel(): Promise<void> {
     this.clearTimer();
     this.finalResolver = null;
+    return Promise.resolve();
   }
 
   onPartial(cb: (p: VoicePartial) => void): () => void {

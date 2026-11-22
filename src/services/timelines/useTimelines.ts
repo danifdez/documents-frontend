@@ -40,7 +40,7 @@ export function useTimelines() {
     }
   };
 
-  const createTimeline = async (data: Partial<TimelineRecord>) => {
+  const createTimeline = async (data: Partial<TimelineRecord> & { projectId?: number }) => {
     try {
       const response = await apiClient.post('/timelines', data);
       return response.data;

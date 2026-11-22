@@ -38,7 +38,6 @@ export function useDictationInsert(
 
     const current = modelRef.value;
     const before = current.slice(0, anchor.value);
-    const expectedDictated = current.slice(anchor.value, anchor.value + lastPartialLen.value);
     const afterDictated = current.slice(anchor.value + lastPartialLen.value);
 
     // Detects manual editing: what existed before the anchor must remain
@@ -48,10 +47,6 @@ export function useDictationInsert(
       abortedRef.value = true;
       return;
     }
-    // expectedDictated can differ only if we ourselves put it there in
-    // the previous partial; the count is correct. We don't use it to
-    // abort.
-    void expectedDictated;
 
     const newValue = before + text + tailAtStart.value;
     modelRef.value = newValue;

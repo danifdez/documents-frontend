@@ -152,7 +152,6 @@ const {
     border-radius: 9999px;
     display: inline-block;
     opacity: 0.5;
-    animation: typing-bounce 1s infinite ease-in-out;
 }
 
 @keyframes typing-bounce {
@@ -168,7 +167,6 @@ const {
     display: inline-block;
     margin-left: 1px;
     color: var(--color-accent);
-    animation: stream-caret-blink 1s steps(2) infinite;
 }
 
 @keyframes stream-caret-blink {
@@ -242,7 +240,6 @@ const {
     border: 2px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
     border-top-color: var(--color-accent);
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -266,5 +263,18 @@ const {
 .event-meta {
     color: var(--color-text-muted);
     font-size: 0.6875rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .typing-dot {
+        animation: typing-bounce 1s infinite ease-in-out;
+    }
+
+    .stream-caret {
+        animation: stream-caret-blink 1s steps(2) infinite;
+    }
+
+    .event-spinner {
+        animation: spin 0.8s linear infinite;
+    }
 }
 </style>

@@ -1,3 +1,4 @@
+import { forEachSequential } from '../utils/forEachSequential';
 import type { OfflineEntity } from '../types/offline';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
@@ -30,6 +31,30 @@ interface OfflineBundle {
   notes?: OfflineEntity[];
   files?: { resourceId: number; base64: string; mimeType: string }[];
   excludedFiles?: { name: string }[];
+}
+
+const bundleEntityTypes = {
+  resources: 'resource',
+  docs: 'doc',
+  threads: 'thread',
+  comments: 'comment',
+  marks: 'mark',
+  readingPoints: 'reading-point',
+  notes: 'note',
+} as const;
+
+const manifestTypes = new Set(['resource', 'doc', 'thread', 'note']);
+
+function bundleItems(bundle: OfflineBundle) {
+  const fields = Object.keys(bundleEntityTypes) as (keyof typeof bundleEntityTypes)[];
+  return fields.flatMap(field => (bundle[field] ?? []).map(item => ({
+    type: bundleEntityTypes[field],
+    item,
+  })));
+}
+
+async function checkOfflineEnabled() {
+  // Offline support is always enabled. Retain the store's existing method.
 }
 
 const MIME_TO_EXT: Record<string, string> = {
@@ -79,7 +104,7 @@ export const useOfflineStore = defineStore('offline', () => {
     if (value && !wasReachable) {
       stopRecoveryPoll();
       if (pendingChangeCount.value > 0 || offlineItemKeys.value.size > 0) {
-        syncOnReconnect();
+        void syncOnReconnect();
       }
     } else if (!value && wasReachable) {
       startRecoveryPoll();
@@ -130,10 +155,6 @@ export const useOfflineStore = defineStore('offline', () => {
     recoveryAttempt = 0;
   }
 
-  async function checkOfflineEnabled() {
-    // No-op: offline support is always on locally. Kept for backwards compat.
-  }
-
   async function loadOfflineState() {
     const wsId = getActiveWorkspaceId();
     const manifest = await getManifest(wsId);
@@ -158,32 +179,10 @@ export const useOfflineStore = defineStore('offline', () => {
       offlineItemKeys.value.add(`project:${bundle.project.id}`);
     }
 
-    // Store all entities from bundle
-    for (const r of bundle.resources || []) {
-      await putOfflineItem(wsId, 'resource', r.id, r, now, type, id);
-      offlineItemKeys.value.add(`resource:${r.id}`);
-    }
-    for (const d of bundle.docs || []) {
-      await putOfflineItem(wsId, 'doc', d.id, d, now, type, id);
-      offlineItemKeys.value.add(`doc:${d.id}`);
-    }
-    for (const t of bundle.threads || []) {
-      await putOfflineItem(wsId, 'thread', t.id, t, now, type, id);
-      offlineItemKeys.value.add(`thread:${t.id}`);
-    }
-    for (const c of bundle.comments || []) {
-      await putOfflineItem(wsId, 'comment', c.id, c, now, type, id);
-    }
-    for (const m of bundle.marks || []) {
-      await putOfflineItem(wsId, 'mark', m.id, m, now, type, id);
-    }
-    for (const p of bundle.readingPoints || []) {
-      await putOfflineItem(wsId, 'reading-point', p.id, p, now, type, id);
-    }
-    for (const n of bundle.notes || []) {
-      await putOfflineItem(wsId, 'note', n.id, n, now, type, id);
-      offlineItemKeys.value.add(`note:${n.id}`);
-    }
+    await forEachSequential(bundleItems(bundle), async ({ type: entityType, item }) => {
+      await putOfflineItem(wsId, entityType, item.id, item, now, type, id);
+      if (manifestTypes.has(entityType)) offlineItemKeys.value.add(`${entityType}:${item.id}`);
+    });
 
     // Store files — pass base64 directly to filesystem
     await Promise.all(
@@ -220,16 +219,12 @@ export const useOfflineStore = defineStore('offline', () => {
 
     // Find and remove all child items that were saved with this parent
     const allItems = await getAllOfflineItemsByWorkspace(wsId);
-    for (const item of allItems) {
-      if (item.parentType === type && item.parentId === id) {
-        await deleteOfflineItem(wsId, item.entityType, item.entityId);
-        offlineItemKeys.value.delete(`${item.entityType}:${item.entityId}`);
-
-        if (item.entityType === 'resource') {
-          await deleteOfflineFile(wsId, item.entityId);
-        }
-      }
-    }
+    const children = allItems.filter(item => item.parentType === type && item.parentId === id);
+    await forEachSequential(children, async (item) => {
+      await deleteOfflineItem(wsId, item.entityType, item.entityId);
+      offlineItemKeys.value.delete(`${item.entityType}:${item.entityId}`);
+      if (item.entityType === 'resource') await deleteOfflineFile(wsId, item.entityId);
+    });
 
     // Remove the parent key itself
     offlineItemKeys.value.delete(`${type}:${id}`);
@@ -257,55 +252,50 @@ export const useOfflineStore = defineStore('offline', () => {
     }
   }
 
+  async function pushPendingChanges(wsId: string): Promise<void> {
+    const pending = await getAllPendingChanges(wsId);
+    if (!pending.length) return;
+
+    const changes = pending.map(change => ({
+      entityType: change.entityType,
+      entityId: change.entityId,
+      method: change.method,
+      payload: change.payload,
+      updatedAt: change.timestamp,
+    }));
+    const { data } = await apiClient.post<{
+      results?: { status: string; entityType: string; entityId: number; serverData?: OfflineEntity }[];
+    }>('/offline/sync', { changes });
+    const now = new Date().toISOString();
+    await forEachSequential(data.results ?? [], async (result) => {
+      if (result.status === 'conflict' && result.serverData) {
+        await putOfflineItem(wsId, result.entityType, result.entityId, result.serverData, now);
+      }
+    });
+    await clearPendingChanges(wsId);
+    pendingChangeCount.value = 0;
+  }
+
+  async function pullServerChanges(wsId: string): Promise<void> {
+    const since = lastSyncTimestamp.value;
+    if (!since) return;
+    const projects = [...offlineItemKeys.value].filter(key => key.startsWith('project:'));
+    await forEachSequential(projects, async (key) => {
+      const projectId = Number.parseInt(key.split(':')[1], 10);
+      const { data } = await apiClient.get<OfflineBundle>('/offline/changes', { params: { since, projectId } });
+      const now = new Date().toISOString();
+      await forEachSequential(bundleItems(data), ({ type, item }) => putOfflineItem(wsId, type, item.id, item, now));
+    });
+  }
+
   async function syncOnReconnect() {
     if (isSyncing.value) return;
     isSyncing.value = true;
     const wsId = getActiveWorkspaceId();
 
     try {
-      // Push local changes
-      const pending = await getAllPendingChanges(wsId);
-      if (pending.length > 0) {
-        const changes = pending.map(c => ({
-          entityType: c.entityType,
-          entityId: c.entityId,
-          method: c.method,
-          payload: c.payload,
-          updatedAt: c.timestamp,
-        }));
-
-        const { data } = await apiClient.post('/offline/sync', { changes });
-
-        for (const result of data.results || []) {
-          if (result.status === 'conflict' && result.serverData) {
-            await putOfflineItem(wsId, result.entityType, result.entityId, result.serverData, new Date().toISOString());
-          }
-        }
-
-        await clearPendingChanges(wsId);
-        pendingChangeCount.value = 0;
-      }
-
-      // Pull server changes
-      if (lastSyncTimestamp.value) {
-        const projectKeys = [...offlineItemKeys.value].filter((k) => k.startsWith('project:'));
-        for (const pk of projectKeys) {
-          const projectId = Number.parseInt(pk.split(':')[1], 10);
-          const { data: changes } = await apiClient.get('/offline/changes', {
-            params: { since: lastSyncTimestamp.value, projectId },
-          });
-
-          const now = new Date().toISOString();
-          for (const r of changes.resources || []) await putOfflineItem(wsId, 'resource', r.id, r, now);
-          for (const d of changes.docs || []) await putOfflineItem(wsId, 'doc', d.id, d, now);
-          for (const t of changes.threads || []) await putOfflineItem(wsId, 'thread', t.id, t, now);
-          for (const c of changes.comments || []) await putOfflineItem(wsId, 'comment', c.id, c, now);
-          for (const m of changes.marks || []) await putOfflineItem(wsId, 'mark', m.id, m, now);
-          for (const p of changes.readingPoints || []) await putOfflineItem(wsId, 'reading-point', p.id, p, now);
-          for (const n of changes.notes || []) await putOfflineItem(wsId, 'note', n.id, n, now);
-        }
-      }
-
+      await pushPendingChanges(wsId);
+      await pullServerChanges(wsId);
       lastSyncTimestamp.value = new Date().toISOString();
       await persistManifest();
     } catch (e) {

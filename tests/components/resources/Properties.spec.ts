@@ -28,7 +28,11 @@ async function openProperties(overrides: Partial<Resource> = {}) {
   const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/resource/:id', component: Properties }] });
   await router.push('/resource/17');
   const data = reactive({ ...resource, ...overrides });
-  const view = render(Properties, { props: { resource: data }, global: { plugins: [router] } });
+  const view = render(Properties, {
+    props: { resource: data },
+    attrs: { 'onResource:updated': (_id: number, patch: Record<string, unknown>) => Object.assign(data, patch) },
+    global: { plugins: [router] },
+  });
   await waitFor(() => expect(api.get).toHaveBeenCalledWith('/resource-types'));
   return { data, view };
 }

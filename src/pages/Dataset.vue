@@ -1115,46 +1115,35 @@ const savedViewLabel = (sv: DatasetChart): string => {
     return allModes.find(m => m.id === inferVisualMode(sv.config))?.label || 'Chart';
 };
 
+function periodLabel(period?: string): string | undefined {
+    if (!period) return undefined;
+    const labels: Record<string, string> = { D: 'daily', W: 'weekly', ME: 'monthly', QE: 'quarterly', YE: 'yearly' };
+    return labels[period] || period;
+}
+
 const savedViewSummary = (sv: DatasetChart): string => {
     const c = sv.config;
     const params = c.params || {};
-    const fieldName = (key: string) => {
+    const fieldName = (key?: string) => {
         if (!key || !dataset.value) return key;
         return dataset.value.schema.find(f => f.key === key)?.name || key;
     };
     const mode = inferVisualMode(c);
-    const parts: string[] = [];
-
-    if (mode.startsWith('chart-')) {
-        if (c.xField) parts.push(fieldName(c.xField));
-        if (c.yField) parts.push(fieldName(c.yField));
-        if (c.aggregation && c.aggregation !== 'count') parts.push(c.aggregation);
-        else if (!c.yField) parts.push('count');
-    } else if (mode === 'summary') {
-        parts.push('All fields overview');
-    } else if (mode === 'distribution') {
-        if (params.field) parts.push(fieldName(params.field));
-    } else if (mode === 'time-series') {
-        if (params.dateField) parts.push(fieldName(params.dateField));
-        if (params.valueField) parts.push(fieldName(params.valueField));
-        if (params.period) {
-            const periods: Record<string, string> = { D: 'daily', W: 'weekly', ME: 'monthly', QE: 'quarterly', YE: 'yearly' };
-            parts.push(periods[params.period] || params.period);
-        }
-    } else if (mode === 'correlation') {
-        if (params.fields?.length) parts.push(`${params.fields.length} fields`);
-        else parts.push('Numeric fields');
-    } else if (mode === 'outliers') {
-        if (params.field) parts.push(fieldName(params.field));
-        parts.push('IQR + Z-score');
-    } else if (mode === 'pivot') {
-        if (params.rowField) parts.push(fieldName(params.rowField));
-        if (params.colField) parts.push(fieldName(params.colField));
-        if (params.fn) parts.push(params.fn);
-    }
-
-    if (parts.length === 0) return new Date(sv.createdAt).toLocaleDateString();
-    return parts.join(' · ');
+    const chartFields = () => {
+        const aggregation = c.aggregation && c.aggregation !== 'count' ? c.aggregation : undefined;
+        return [fieldName(c.xField), fieldName(c.yField), aggregation ?? (c.yField ? undefined : 'count')];
+    };
+    const simpleModes: Record<string, () => (string | undefined)[]> = {
+        summary: () => ['All fields overview'],
+        distribution: () => [fieldName(params.field)],
+        'time-series': () => [fieldName(params.dateField), fieldName(params.valueField), periodLabel(params.period)],
+        correlation: () => [params.fields?.length ? `${params.fields.length} fields` : 'Numeric fields'],
+        outliers: () => [fieldName(params.field), 'IQR + Z-score'],
+        pivot: () => [fieldName(params.rowField), fieldName(params.colField), params.fn],
+    };
+    const values = mode.startsWith('chart-') ? chartFields() : simpleModes[mode]?.() ?? [];
+    const parts = values.filter(Boolean);
+    return parts.length ? parts.join(' · ') : new Date(sv.createdAt).toLocaleDateString();
 };
 
 const handleDeleteSavedChart = async (chartId: number) => {

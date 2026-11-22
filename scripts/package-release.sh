@@ -25,8 +25,9 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-[ -n "$VERSION" ] && [ -n "$TARGET" ] && [ -n "$STAGING" ] && [ -n "$OUTPUT" ] ||
+if [ -z "$VERSION" ] || [ -z "$TARGET" ] || [ -z "$STAGING" ] || [ -z "$OUTPUT" ]; then
   die "Frontend packaging requires --version, --target, --staging and --output" 2
+fi
 validate_semver "$VERSION"
 assert_local_target "$TARGET"
 assert_inside_workspace "$STAGING"

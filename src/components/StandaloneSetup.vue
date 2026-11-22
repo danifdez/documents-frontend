@@ -61,6 +61,7 @@
 import { getErrorMessage } from '../utils/errorDetails';
 import { ref, computed, onMounted } from 'vue';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { useNotification } from '../composables/useNotification';
 
 interface InstallPlan {
   status: 'yes' | 'slow' | 'no';
@@ -79,6 +80,7 @@ interface Report {
 const emit = defineEmits<{ (e: 'done'): void; (e: 'use-server'): void; (e: 'back'): void }>();
 
 const workspaceStore = useWorkspaceStore();
+const notification = useNotification();
 
 const phase = ref<'checking' | 'blocked' | 'confirm' | 'installing' | 'error'>('checking');
 const report = ref<Report | null>(null);
@@ -122,6 +124,7 @@ const progressLabel = computed(() => {
 onMounted(async () => {
   window.electronAPI?.onStandaloneDownloadProgress?.((p) => {
     progressComponent.value = p.component;
+    if (p.warning) notification.warning(p.warning);
     // Drive the bar with the weighted overall progress when available.
     progressPercent.value = p.overallPercent ?? p.percent;
     progressStep.value = p.step ?? 0;

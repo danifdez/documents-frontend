@@ -67,7 +67,7 @@ async function addProject() {
 
             emit('project:created', projectId);
             const projectStore = useProjectStore();
-            if (newProject && newProject.id) {
+            if (newProject.id) {
                 projectStore.setCurrentProject(newProject);
             } else {
                 console.error('Invalid project data, cannot set in store');

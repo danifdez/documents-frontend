@@ -74,7 +74,13 @@
       </template>
 
       <Teleport to="body">
-        <div v-if="showColors" class="fixed inset-0 z-[9998]" @click="showColors = false"></div>
+        <div v-if="showColors" class="fixed inset-0 z-[9998]" @click="showColors = false"
+            role="button"
+            tabindex="0"
+            aria-label="Dismiss overlay"
+            @keydown.esc.stop="showColors = false"
+            @keydown.enter.self.prevent="showColors = false"
+            @keydown.space.self.prevent="showColors = false"></div>
         <div v-if="showColors" class="fixed z-[9999] bg-surface-elevated border border-border rounded-xl shadow-xl p-2.5"
           :style="colorPickerStyle">
           <div class="grid grid-cols-4 gap-1.5">
@@ -129,7 +135,13 @@
 
       <!-- Border color picker (teleported) -->
       <Teleport to="body">
-        <div v-if="showBorderColors" class="fixed inset-0 z-[9998]" @click="showBorderColors = false"></div>
+        <div v-if="showBorderColors" class="fixed inset-0 z-[9998]" @click="showBorderColors = false"
+            role="button"
+            tabindex="0"
+            aria-label="Dismiss overlay"
+            @keydown.esc.stop="showBorderColors = false"
+            @keydown.enter.self.prevent="showBorderColors = false"
+            @keydown.space.self.prevent="showBorderColors = false"></div>
         <div v-if="showBorderColors" class="fixed z-[9999] bg-surface-elevated border border-border rounded-xl shadow-xl p-2.5"
           :style="borderColorPickerStyle">
           <div class="grid grid-cols-5 gap-1.5">
@@ -230,15 +242,12 @@ const shapeColors = ['#E0E7FF', '#DBEAFE', '#FEF3C7', '#DCFCE7', '#FCE7F3', '#F3
 const textColors = ['#FFFFFF', '#F1F5F9', '#DBEAFE', '#FEF3C7', '#DCFCE7', '#FCE7F3', '#F3E8FF', '#FEE2E2'];
 const bubbleColors = ['#BFDBFE', '#DBEAFE', '#EFF6FF', '#BBF7D0', '#FBCFE8', '#E9D5FF', '#FED7AA', '#FECACA'];
 const cardColors = ['#6366F1', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#0EA5E9'];
-const colors = props.nodeType === 'shape' ? shapeColors
-  : props.nodeType === 'bubble' ? bubbleColors
-  : props.nodeType === 'card' ? cardColors
-  : textColors;
-
-const defaultColor = props.nodeType === 'shape' ? '#E0E7FF'
-  : props.nodeType === 'bubble' ? '#DBEAFE'
-  : props.nodeType === 'card' ? '#6366F1'
-  : '#FFFFFF';
+const palettes: Record<string, { colors: string[]; defaultColor: string }> = {
+  shape: { colors: shapeColors, defaultColor: '#E0E7FF' },
+  bubble: { colors: bubbleColors, defaultColor: '#DBEAFE' },
+  card: { colors: cardColors, defaultColor: '#6366F1' },
+};
+const { colors, defaultColor } = palettes[props.nodeType] ?? { colors: textColors, defaultColor: '#FFFFFF' };
 
 // ── Border radius ──
 const borderRadiusSteps = [0, 4, 8, 16, 999];
@@ -276,7 +285,7 @@ const selectBorderColor = (color: string) => {
   emit('update', { borderColor: color });
 };
 
-const borderStyles = ['solid', 'dashed', 'dotted', 'none'] as const;
+const borderStyles: readonly string[] = ['solid', 'dashed', 'dotted', 'none'] as const;
 const cycleBorderStyle = () => {
   const current = props.data.borderStyle || 'solid';
   const idx = borderStyles.indexOf(current);

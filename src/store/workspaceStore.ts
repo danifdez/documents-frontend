@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 import { setApiBaseUrl } from '../services/api';
+import { setActiveWorkspaceId } from '../services/workspaceScope';
 import { reconnectSocket } from '../services/notifications/notification';
 import type { StoredWorkspace, Workspace } from '../types/Workspace';
 
@@ -40,6 +41,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       active = await window.electronAPI.getActiveWorkspace();
     }
     activeWorkspace.value = active ? { ...active, type: active.type || 'remote' } : null;
+    setActiveWorkspaceId(activeWorkspace.value?.id ?? null);
 
     if (activeWorkspace.value) {
       if (activeWorkspace.value.type === 'local') {
@@ -93,8 +95,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
     await window.electronAPI.removeWorkspace(id);
     workspaces.value = workspaces.value.filter((w) => w.id !== id);
-    if (activeWorkspace.value?.id === id && workspaces.value.length > 0) {
-      await switchWorkspace(workspaces.value[0].id);
+    if (activeWorkspace.value?.id === id) {
+      if (workspaces.value.length > 0) {
+        await switchWorkspace(workspaces.value[0].id);
+      } else {
+        const { useAuthStore } = await import('./authStore');
+        useAuthStore().reset();
+        activeWorkspace.value = null;
+        setActiveWorkspaceId(null);
+      }
     }
   }
 
@@ -109,8 +118,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     await window.electronAPI.setActiveWorkspace(id);
     activeWorkspace.value = workspace;
+    setActiveWorkspaceId(workspace.id);
 
     if (workspace.type === 'local') {
+      const { useAuthStore } = await import('./authStore');
+      useAuthStore().reset();
       await startLocalServer();
     } else {
       setApiBaseUrl(workspace.url);

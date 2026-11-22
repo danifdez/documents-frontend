@@ -51,7 +51,3 @@ export function markStyle(type: string | null | undefined): string {
     const border = config.border ? `border-bottom:2px solid ${config.border};` : '';
     return `${border}background:${config.bg};padding:1px 2px;border-radius:2px;cursor:pointer;`;
 }
-
-export function generateMarkId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}

@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
     <Transition name="favorites-panel" appear>
-      <div v-if="modelValue" class="favorites-overlay" @click="close">
-        <div class="favorites-container" @click.stop>
+      <div v-if="modelValue" class="favorites-overlay" @click.self="close" @keydown.esc.stop="close">
+        <div class="favorites-container">
           <!-- Header -->
           <div class="favorites-header">
             <div class="flex items-center gap-3 flex-1 min-w-0">
@@ -658,13 +658,9 @@ watch(() => projectStore.currentProject?.id, (id) => {
   opacity: 0;
 }
 
-.favorites-panel-enter-active .favorites-container {
-  animation: favorites-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
 
-.favorites-panel-leave-active .favorites-container {
-  animation: favorites-out 0.15s ease-in forwards;
-}
+
+
 
 @keyframes favorites-in {
   from {
@@ -688,5 +684,14 @@ watch(() => projectStore.currentProject?.id, (id) => {
     opacity: 0;
     transform: scale(0.97) translateY(4px);
   }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .favorites-panel-enter-active .favorites-container {
+      animation: favorites-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .favorites-panel-leave-active .favorites-container {
+      animation: favorites-out 0.15s ease-in forwards;
+    }
 }
 </style>

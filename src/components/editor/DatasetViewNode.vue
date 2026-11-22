@@ -228,6 +228,7 @@
 </template>
 
 <script setup lang="ts">
+import { forEachSequential } from '../../utils/forEachSequential';
 import { getResponseError } from '../../utils/errorDetails';
 import { ref, computed, onMounted, nextTick } from 'vue';
 import { useDatasets, type DatasetField, type DatasetRecord } from '../../services/datasets/useDatasets';
@@ -413,14 +414,14 @@ const applyEdits = async () => {
 
     // Save each changed record
     let hasError = false;
-    for (const [recordId, data] of changes) {
+    await forEachSequential(changes, async ([recordId, data]) => {
         try {
             await updateRecord(props.datasetId, recordId, data);
         } catch (err: unknown) {
             console.error(`Failed to update record ${recordId}:`, err);
             hasError = true;
         }
-    }
+    });
 
     editingCells.value = new Map();
 

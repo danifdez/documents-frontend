@@ -17,7 +17,10 @@
                         </th>
                         <th v-for="field in schema" :key="field.key"
                             class="px-4 py-2.5 text-left text-[11px] font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-secondary transition-colors overflow-hidden truncate"
-                            @click="$emit('sort', field.key)">
+                            @click="$emit('sort', field.key)"
+                            tabindex="0"
+                            @keydown.enter.self.prevent="$emit('sort', field.key)"
+                            @keydown.space.self.prevent="$emit('sort', field.key)">
                             {{ field.name }}
                             <svg aria-hidden="true" v-if="field.linkedDatasetId" class="inline h-3 w-3 text-accent ml-0.5" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -237,7 +240,8 @@
             <Transition name="modal">
                 <div v-if="popup.show"
                     class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-                    @click.self="popup.show = false">
+                    @click.self="popup.show = false"
+                    @keydown.esc.stop="popup.show = false">
                     <div class="bg-surface-elevated rounded-xl shadow-2xl border border-border max-w-lg w-full mx-4 overflow-hidden">
                         <div class="px-5 py-3.5 border-b border-border-light flex items-center justify-between">
                             <div class="flex items-center gap-2 min-w-0">
@@ -261,9 +265,9 @@
                             <table class="w-full text-sm">
                                 <tbody class="divide-y divide-border-light">
                                     <tr v-for="(value, key) in popup.data" :key="key" class="hover:bg-surface-hover/50">
-                                        <td class="px-5 py-2.5 text-xs font-medium text-text-muted uppercase tracking-wider whitespace-nowrap w-1/3">
+                                        <th scope="row" class="px-5 py-2.5 text-left text-xs font-medium text-text-muted uppercase tracking-wider whitespace-nowrap w-1/3">
                                             {{ getFieldName(key as string) }}
-                                        </td>
+                                        </th>
                                         <td class="px-5 py-2.5 text-text-primary break-words">
                                             {{ value ?? '—' }}
                                         </td>
@@ -499,14 +503,7 @@ const getLinkedDisplay = (field: DatasetField, record: DatasetRecord): string | 
     return firstVal ? String(firstVal) : null;
 };
 
-let resolveVersion = 0;
-const resolveAllLinks = async () => {
-    const fields = linkedFields();
-    if (fields.length === 0 || props.records.length === 0) return;
-
-    const version = ++resolveVersion;
-    linkedDataLoading.value = true;
-
+function groupLinkValues(fields: DatasetField[], records: DatasetRecord[]) {
     // Group values by linked dataset + lookup field
     const byDataset = new Map<string, { dsId: number; lookupField?: string; values: Set<string> }>();
     for (const field of fields) {
@@ -515,23 +512,36 @@ const resolveAllLinks = async () => {
         const lookupField = field.linkedLookupField || undefined;
         const groupKey = `${dsId}:${lookupField || '_pk'}`;
         if (!byDataset.has(groupKey)) byDataset.set(groupKey, { dsId, lookupField, values: new Set() });
-        for (const record of props.records) {
+        for (const record of records) {
             const val = record.data[field.key];
             if (val != null && val !== '') byDataset.get(groupKey)!.values.add(String(val));
         }
     }
 
+    return byDataset;
+}
+
+let resolveVersion = 0;
+const resolveAllLinks = async () => {
+    const fields = linkedFields();
+    if (fields.length === 0 || props.records.length === 0) return;
+
+    const version = ++resolveVersion;
+    linkedDataLoading.value = true;
+
+    const byDataset = groupLinkValues(fields, props.records);
+
     // Fetch linked records for each dataset
     const newLinkedData = { ...linkedData.value };
-    for (const [groupKey, { dsId, lookupField, values }] of byDataset) {
-        if (values.size === 0) continue;
+    await Promise.all([...byDataset].map(async ([groupKey, { dsId, lookupField, values }]) => {
+        if (values.size === 0) return;
         try {
             // Merge into cache keyed by groupKey so different lookup fields don't collide
             newLinkedData[groupKey] = await resolveDatasetLinks(dsId, [...values], lookupField);
         } catch (err) {
             console.warn(`Failed to resolve links for dataset ${dsId}:`, err);
         }
-    }
+    }));
     if (version !== resolveVersion) return; // discard stale results
     linkedData.value = newLinkedData;
     linkedDataLoading.value = false;

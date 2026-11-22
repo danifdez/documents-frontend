@@ -283,7 +283,7 @@
                         </div>
                     </div>
                     <div v-else-if="displayMode === 'relationships'" class="flex-1 min-h-0">
-                        <ResourceRelationships :resource-id="resourceId" :project-id="resource.project?.id" />
+                        <ResourceRelationships :resource-id="Number(resourceId)" :project-id="resource.project?.id" />
                     </div>
                     <ResourceDocumentEditor v-else-if="displayMode === 'workspace' && workspaceDocument"
                         ref="workspaceEditor" v-model="workspaceDocument" variant="workspace"
@@ -416,7 +416,8 @@
                 </div>
 
                 <div class="overflow-y-auto flex-1 min-h-0">
-                    <Properties v-if="viewSideBar === 'properties'" :resource="resource" />
+                    <Properties v-if="viewSideBar === 'properties'" :resource="resource"
+                        @resource:updated="applyPropertyUpdate" />
                     <CommentSidebar v-else-if="viewSideBar === 'comments'" :resource-id="String(resource.id)"
                         @comment-clicked="findAndHighlightResourceComment"
                         @comment-deleted="removeResourceCommentMark" />
@@ -507,8 +508,7 @@
 <script setup lang="ts">
 import type { ReadingPoint } from '../services/readingPoints/useReadingPoints';
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useResource, type Resource } from '../services/resources/useResource';
 import { useResourceIcon } from '../composables/useResourceIcon';
 import { useDocument, type DocumentRecord } from '../services/documents/useDocument';
@@ -574,6 +574,10 @@ const { fetchTranslatedContent, fetchEntities, fetchRawFileText, confirmExtracti
 const { createDocument, appendToDocument } = useResourceDocs();
 const { fetchPendingEntities } = useResourcePendingEntities();
 const resource = ref<Resource>({});
+
+function applyPropertyUpdate(id: number, patch: Record<string, unknown>): void {
+    if (resource.value.id === id) Object.assign(resource.value, patch);
+}
 const projectStore = useProjectStore();
 const featureStore = useFeatureStore();
 const notification = useNotification();
@@ -867,6 +871,7 @@ const loadRawHtmlContent = async () => {
             ? extractMhtmlHtml(source) ?? 'Unable to read the HTML document from this MHTML file.'
             : source;
     } catch (err) {
+        console.error('Could not read resource HTML:', err);
         rawHtmlContent.value = 'Error loading raw HTML content';
     }
 };
@@ -947,7 +952,7 @@ const downloadResource = async () => {
         link.download = resource.value.originalName || `resource-${resourceId.value}`;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        link.remove();
     } catch (err) {
         console.error('Failed to download resource:', err);
     }
@@ -1013,6 +1018,7 @@ const removeResource = async () => {
             router.push('/');
         }
     } catch (error) {
+        console.error('Resource removal failed:', error);
         notification.error('Failed to remove resource');
     }
 };
@@ -1139,6 +1145,7 @@ const saveResourceName = async () => {
 
         notification.success('Resource name updated successfully');
     } catch (error) {
+        console.error('Resource rename failed:', error);
         notification.error('Failed to update resource name');
         isEditingName.value = false;
     } finally {
@@ -1182,6 +1189,7 @@ const runModelExecution = async (
         void refreshResourceAfterExecution(execution.executionId, resourceId.value);
         await afterSuccess?.();
     } catch (error) {
+        console.error('Resource execution request failed:', error);
         notification.error(`Failed to create ${label.toLowerCase()} execution`);
     }
 };
@@ -1369,11 +1377,11 @@ const activateWorkspaceSplitView = () => {
 
 const escapeHtml = (unsafe: string) => {
     return unsafe
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
 };
 
 
@@ -1506,8 +1514,9 @@ const handleSummarizeSelection = async (text: string) => {
 }
 
 .drag-over {
-    border: 2px dashed #3b82f6 !important;
-    background-color: rgba(59, 130, 246, 0.1) !important;
+    outline: 2px dashed #3b82f6;
+    outline-offset: -2px;
+    background-color: rgba(59, 130, 246, 0.1);
     border-radius: 8px;
     position: relative;
 }
@@ -1518,7 +1527,7 @@ const handleSummarizeSelection = async (text: string) => {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(59, 130, 246, 0.9);
+    background: #1d4ed8;
     color: white;
     padding: 12px 24px;
     border-radius: 8px;

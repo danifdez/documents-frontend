@@ -30,17 +30,17 @@ export interface UseChatViewOptions<TMsg extends ChatViewMessage> {
  * Script core shared by AgentChat.vue and AssistantChat.vue: bubble/event-card
  * rendering and scroll bookkeeping.
  */
+function bubbleClass(role: 'user' | 'assistant' | 'system' | 'event'): string {
+    if (role === 'user') {
+        return 'max-w-[80%] rounded-2xl rounded-tr-md px-4 py-2.5 bg-accent text-white';
+    }
+    return 'max-w-[80%] rounded-2xl rounded-tl-md px-4 py-2.5 bg-surface-elevated border border-border-light text-text-primary';
+}
+
 export function useChatView<TMsg extends ChatViewMessage>(options: UseChatViewOptions<TMsg>) {
     const { store } = options;
 
     const scrollContainer = ref<HTMLElement | null>(null);
-
-    function bubbleClass(role: 'user' | 'assistant' | 'system' | 'event'): string {
-        if (role === 'user') {
-            return 'max-w-[80%] rounded-2xl rounded-tr-md px-4 py-2.5 bg-accent text-white';
-        }
-        return 'max-w-[80%] rounded-2xl rounded-tl-md px-4 py-2.5 bg-surface-elevated border border-border-light text-text-primary';
-    }
 
     function eventIcon(event: AssistantMessageEvent | null): string {
         if (!event) return '·';
@@ -89,12 +89,12 @@ export function useChatView<TMsg extends ChatViewMessage>(options: UseChatViewOp
     // the view down.
     watch(
         () => [
-            store.activeMessages[store.activeMessages.length - 1]?.id,
+            store.activeMessages.at(-1)?.id,
             store.isActivePending,
             store.activeId,
         ],
         () => {
-            scrollToBottom();
+            void scrollToBottom();
         },
         { immediate: true },
     );

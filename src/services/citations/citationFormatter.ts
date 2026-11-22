@@ -84,8 +84,8 @@ function authorListAPA(authors: ZoteroCreator[]): string {
     });
     if (names.length === 1) return names[0];
     if (names.length === 2) return `${names[0]} & ${names[1]}`;
-    if (names.length <= 20) return names.slice(0, -1).join(', ') + ', & ' + names[names.length - 1];
-    return names.slice(0, 19).join(', ') + ', ... ' + names[names.length - 1];
+    if (names.length <= 20) return names.slice(0, -1).join(', ') + ', & ' + names.at(-1);
+    return names.slice(0, 19).join(', ') + ', ... ' + names.at(-1);
 }
 
 // ── Chicago (Author-Date) ────────────────────────────────────────────
@@ -130,6 +130,15 @@ function authorListChicago(authors: ZoteroCreator[]): string {
 
 // ── IEEE ─────────────────────────────────────────────────────────────
 
+function formatIEEEJournal(journal: string, e: BibliographyEntry): string {
+    let j = italicise(journal);
+    if (e.volume) j += `, vol. ${e.volume}`;
+    if (e.number) j += `, no. ${e.number}`;
+    if (e.pages) j += `, pp. ${e.pages}`;
+    if (e.year) j += `, ${e.year}`;
+    return j + '.';
+}
+
 function formatIEEE(e: BibliographyEntry, index?: number): string {
     const parts: string[] = [];
     const prefix = index != null ? `[${index}]` : '';
@@ -142,12 +151,7 @@ function formatIEEE(e: BibliographyEntry, index?: number): string {
     parts.push(`${prefix} ${authorStr},`);
     if (e.title) parts.push(`"${e.title},"`);
     if (e.journal) {
-        let j = italicise(e.journal);
-        if (e.volume) j += `, vol. ${e.volume}`;
-        if (e.number) j += `, no. ${e.number}`;
-        if (e.pages) j += `, pp. ${e.pages}`;
-        if (e.year) j += `, ${e.year}`;
-        parts.push(j + '.');
+        parts.push(formatIEEEJournal(e.journal, e));
     } else {
         if (e.publisher) parts.push(e.publisher + ',');
         if (e.year) parts.push(`${e.year}.`);
@@ -192,6 +196,15 @@ function authorListMLA(authors: ZoteroCreator[]): string {
 
 // ── Vancouver ────────────────────────────────────────────────────────
 
+function formatVancouverJournal(journal: string, e: BibliographyEntry): string {
+    let j = journal;
+    if (e.year) j += `. ${e.year}`;
+    if (e.volume) j += `;${e.volume}`;
+    if (e.number) j += `(${e.number})`;
+    if (e.pages) j += `:${e.pages}`;
+    return j + '.';
+}
+
 function formatVancouver(e: BibliographyEntry, index?: number): string {
     const parts: string[] = [];
     const prefix = index != null ? `${index}.` : '';
@@ -204,12 +217,7 @@ function formatVancouver(e: BibliographyEntry, index?: number): string {
     parts.push(`${prefix} ${authorStr}.`);
     if (e.title) parts.push(`${e.title}.`);
     if (e.journal) {
-        let j = e.journal;
-        if (e.year) j += `. ${e.year}`;
-        if (e.volume) j += `;${e.volume}`;
-        if (e.number) j += `(${e.number})`;
-        if (e.pages) j += `:${e.pages}`;
-        parts.push(j + '.');
+        parts.push(formatVancouverJournal(e.journal, e));
     } else {
         if (e.publisher) parts.push(`${e.place ? e.place + ': ' : ''}${e.publisher};`);
         if (e.year) parts.push(`${e.year}.`);

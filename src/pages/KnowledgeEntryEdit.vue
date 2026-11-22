@@ -86,6 +86,10 @@
                                         </div>
                                         <template v-else>
                                             <div v-for="ent in entitySearchResults" :key="ent.id" @click="linkEntity(ent)"
+                                                role="button"
+                                                tabindex="0"
+                                                @keydown.enter.self.prevent="linkEntity(ent)"
+                                                @keydown.space.self.prevent="linkEntity(ent)"
                                                 class="px-3 py-2 text-xs cursor-pointer hover:bg-surface-hover transition-colors">
                                                 <span class="font-medium text-text-primary">{{ ent.name }}</span>
                                                 <span class="ml-1.5 text-[10px] text-text-muted">{{ ent.entityType?.name }}</span>

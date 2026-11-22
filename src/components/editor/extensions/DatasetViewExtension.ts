@@ -127,5 +127,3 @@ export const DatasetViewExtension = Node.create<DatasetViewOptions>({
         };
     },
 });
-
-export default DatasetViewExtension;

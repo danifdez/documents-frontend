@@ -95,7 +95,7 @@ export function useResourceEditor({
                     ? resource.value.content
                     : editContent.value;
 
-                if (!contentToSave || !contentToSave.trim()) {
+                if (!contentToSave?.trim()) {
                     notification.error('Content cannot be empty');
                     return;
                 }

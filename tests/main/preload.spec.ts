@@ -111,7 +111,9 @@ describe('Electron renderer bridge contract', () => {
     const record = { id: 7, name: 'Source notes' };
     const stamp = '2026-02-01T09:00:00Z';
     await assertInvokes([
-      [() => api.offlinePutItem('ws', 'doc', 7, record, stamp, 'project', 10), IpcChannels.offline.putItem, 'ws', 'doc', 7, record, stamp, 'project', 10],
+      [() => api.offlinePutItem('ws', 'doc', 7, record, stamp, 'project', 10), IpcChannels.offline.putItem, {
+        workspaceId: 'ws', entityType: 'doc', entityId: 7, data: record, syncedAt: stamp, parentType: 'project', parentId: 10,
+      }],
       [() => api.offlineGetItem('ws', 'doc', 7), IpcChannels.offline.getItem, 'ws', 'doc', 7],
       [() => api.offlineDeleteItem('ws', 'doc', 7), IpcChannels.offline.deleteItem, 'ws', 'doc', 7],
       [() => api.offlineGetAllItemsByWorkspace('ws'), IpcChannels.offline.getAllItemsByWorkspace, 'ws'],

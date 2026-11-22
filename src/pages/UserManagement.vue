@@ -105,7 +105,8 @@
     </div>
 
     <!-- ═══ CREATE / EDIT USER MODAL ═══ -->
-    <div v-if="showCreateModal || editingUser" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="closeModal">
+    <div v-if="showCreateModal || editingUser" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="closeModal"
+        @keydown.esc.stop="closeModal">
       <div class="bg-surface border border-border rounded-2xl shadow-xl w-full max-w-md p-6">
         <h2 class="text-lg font-semibold text-text-primary mb-4">
           {{ editingUser ? 'Edit User' : 'Create User' }}
@@ -162,7 +163,8 @@
     </div>
 
     <!-- ═══ CREATE / EDIT GROUP MODAL ═══ -->
-    <div v-if="showGroupModal || editingGroup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="closeGroupModal">
+    <div v-if="showGroupModal || editingGroup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="closeGroupModal"
+        @keydown.esc.stop="closeGroupModal">
       <div class="bg-surface border border-border rounded-2xl shadow-xl w-full max-w-md p-6">
         <h2 class="text-lg font-semibold text-text-primary mb-4">
           {{ editingGroup ? 'Edit Group' : 'Create Group' }}

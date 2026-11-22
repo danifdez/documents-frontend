@@ -88,9 +88,10 @@ describe('desktop GPU detection', () => {
     ['Example RTX, 8188\nOther Adapter, 4096', 'Example RTX', 8],
     ['Legacy GPU, N/A', 'Legacy GPU', 0],
   ])('uses the first reported adapter when NVIDIA detection succeeds', (output, name, vramGB) => {
+    Object.defineProperty(process, 'platform', { ...platform, value: 'linux' });
     state.exec.mockReturnValue(output);
     expect(detectGpu()).toEqual({ available: true, cuda: true, name, vramGB });
-    expect(state.exec).toHaveBeenCalledExactlyOnceWith('nvidia-smi',
+    expect(state.exec).toHaveBeenCalledExactlyOnceWith('/usr/bin/nvidia-smi',
       ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'],
       { timeout: 5000, encoding: 'utf-8' });
   });
@@ -100,7 +101,7 @@ describe('desktop GPU detection', () => {
     state.exec.mockImplementationOnce(() => { throw new Error('NVIDIA utility unavailable'); });
     state.exec.mockReturnValueOnce('Chipset Model: Apple M3\nMetal: Supported');
     expect(detectGpu()).toEqual({ available: true, cuda: false, name: 'Apple M3', vramGB: 0 });
-    expect(state.exec).toHaveBeenLastCalledWith('system_profiler', ['SPDisplaysDataType'],
+    expect(state.exec).toHaveBeenLastCalledWith('/usr/sbin/system_profiler', ['SPDisplaysDataType'],
       { timeout: 5000, encoding: 'utf-8' });
   });
 

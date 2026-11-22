@@ -199,5 +199,3 @@ export const TimelineViewExtension = Node.create<TimelineViewOptions>({
         };
     },
 });
-
-export default TimelineViewExtension;

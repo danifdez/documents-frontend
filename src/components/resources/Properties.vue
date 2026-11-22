@@ -57,6 +57,10 @@
                         <div v-for="(suggestion, index) in filteredAuthorSuggestions" :key="suggestion.id"
                             @mousedown="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
                             @click="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
+                            role="button"
+                            tabindex="0"
+                            @keydown.enter.self.prevent="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
+                            @keydown.space.self.prevent="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
                             :class="['px-3 py-1.5 cursor-pointer text-sm', index === selectedSuggestionIndex ? 'bg-accent-subtle' : 'hover:bg-surface-hover']">
                             {{ suggestion.name }}
                         </div>
@@ -131,12 +135,18 @@ import PropertyRow from './PropertyRow.vue';
 
 const { loadResourceTypes, resourceTypes } = useResourceType();
 const { updateResource } = useResource();
+const emit = defineEmits<{
+    'resource:updated': [resourceId: number, patch: Record<string, unknown>];
+    'project:assigned': [resource: Record<string, unknown>];
+}>();
 
 // Generic field update for PropertyRow components
 const handleFieldUpdate = async (field: string, value: string | number) => {
     try {
-        await updateResource(props.resource.id, { [field]: value || null });
-        props.resource[field] = value || null;
+        const resourceId = props.resource.id;
+        const patch = { [field]: value || null };
+        await updateResource(resourceId, patch);
+        emit('resource:updated', resourceId, patch);
     } catch (err) {
         console.error(`Failed to update ${field}:`, err);
     }
@@ -342,16 +352,16 @@ const saveResourceType = async () => {
     }
 
     try {
-        await updateResource(props.resource.id, {
-            type: editResourceType.value || null
-        });
-
-        props.resource.type = editResourceType.value || null;
+        const resourceId = props.resource.id;
+        const patch = { type: editResourceType.value || null };
+        await updateResource(resourceId, patch);
+        emit('resource:updated', resourceId, patch);
 
         setTimeout(() => {
             isEditingType.value = false;
         }, 1500);
     } catch (error) {
+        console.error('Failed to update resource type:', error);
         isEditingType.value = false;
     }
 };
@@ -509,18 +519,18 @@ const saveResourceAuthors = async () => {
     }
 
     try {
-        const updatedAuthors = await updateResourceAuthors(props.resource.id, newAuthorNames);
-        props.resource.authors = updatedAuthors;
+        const resourceId = props.resource.id;
+        const authors = await updateResourceAuthors(resourceId, newAuthorNames);
+        emit('resource:updated', resourceId, { authors });
 
         setTimeout(() => {
             isEditingAuthors.value = false;
         }, 1500);
     } catch (error) {
+        console.error('Failed to update resource authors:', error);
         isEditingAuthors.value = false;
     }
 };
-
-const emit = defineEmits(['project:assigned']);
 
 const startProjectEdit = async () => {
     isEditingProject.value = true;
@@ -546,17 +556,20 @@ const handleProjectChange = async () => {
     }
 
     try {
-        if (editProjectId.value) {
-            await assignResourceToProject(props.resource.id, editProjectId.value);
-            const project = allProjects.value.find((p: Project) => String(p.id) === editProjectId.value);
-            props.resource.project = project ? { id: project.id, name: project.name } : null;
+        const resourceId = props.resource.id;
+        const projectId = editProjectId.value;
+        const selected = allProjects.value.find((p: Project) => String(p.id) === projectId);
+        const project = selected ? { id: selected.id, name: selected.name } : null;
+        if (projectId) {
+            await assignResourceToProject(resourceId, projectId);
         } else {
-            await updateResource(props.resource.id, { project: null });
-            props.resource.project = null;
+            await updateResource(resourceId, { project: null });
         }
-        emit('project:assigned', props.resource);
+        emit('resource:updated', resourceId, { project });
+        emit('project:assigned', { ...props.resource, project });
         isEditingProject.value = false;
     } catch (error) {
+        console.error('Failed to update resource project:', error);
         isEditingProject.value = false;
     }
 };

@@ -70,7 +70,8 @@
         </div>
 
         <!-- Add modal -->
-        <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showAddModal = false">
+        <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showAddModal = false"
+            @keydown.esc.stop="showAddModal = false">
             <div class="bg-surface rounded-lg shadow-xl p-6 w-96 max-w-[90vw]">
                 <h3 class="text-sm font-semibold mb-4">Add Relationship</h3>
                 <div class="space-y-3">
@@ -288,7 +289,7 @@ const runSimulation = () => {
             for (let j = i + 1; j < simNodes.length; j++) {
                 let dx = simNodes[j].x - simNodes[i].x;
                 let dy = simNodes[j].y - simNodes[i].y;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                const dist = Math.hypot(dx, dy) || 1;
                 const minDist = simNodes[i].radius + simNodes[j].radius + 80;
                 const force = (3000 * alpha) / (dist * dist);
                 // Extra push if too close
@@ -304,7 +305,7 @@ const runSimulation = () => {
         for (const l of simLinks) {
             const s = simNodes[l.source], t = simNodes[l.target];
             const dx = t.x - s.x, dy = t.y - s.y;
-            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const dist = Math.hypot(dx, dy) || 1;
             const idealDist = s.radius + t.radius + 120;
             const force = (dist - idealDist) * 0.002 * alpha;
             s.vx += (dx / dist) * force; s.vy += (dy / dist) * force;
@@ -323,45 +324,7 @@ const runSimulation = () => {
     tick();
 };
 
-const drawFrame = () => {
-    const canvas = canvasRef.value; if (!canvas) return;
-    const w = canvas.offsetWidth, h = canvas.offsetHeight;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = w * dpr; canvas.height = h * dpr;
-    const ctx = canvas.getContext('2d'); if (!ctx) return;
-    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
-
-    ctx.save();
-    ctx.translate(panX.value, panY.value);
-    ctx.scale(zoom.value, zoom.value);
-
-    const textColor = getComputedStyle(canvas).getPropertyValue('--color-text-primary') || '#e2e8f0';
-    const mutedColor = getComputedStyle(canvas).getPropertyValue('--color-text-muted') || '#94a3b8';
-
-    // Links
-    for (const l of simLinks) {
-        const s = simNodes[l.source], t = simNodes[l.target];
-        const dx = t.x - s.x, dy = t.y - s.y, dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y);
-        ctx.strokeStyle = 'rgba(148,163,184,0.3)'; ctx.lineWidth = 2; ctx.stroke();
-
-        // Arrow
-        const angle = Math.atan2(dy, dx);
-        const ex = t.x - (dx / dist) * (t.radius + 3), ey = t.y - (dy / dist) * (t.radius + 3);
-        ctx.beginPath(); ctx.moveTo(ex, ey);
-        ctx.lineTo(ex - 12 * Math.cos(angle - 0.28), ey - 12 * Math.sin(angle - 0.28));
-        ctx.lineTo(ex - 12 * Math.cos(angle + 0.28), ey - 12 * Math.sin(angle + 0.28));
-        ctx.closePath(); ctx.fillStyle = 'rgba(148,163,184,0.45)'; ctx.fill();
-
-        // Edge label
-        const mx = (s.x + t.x) / 2, my = (s.y + t.y) / 2;
-        const label = l.predicate.replaceAll('_', ' ');
-        ctx.fillStyle = mutedColor;
-        ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-        ctx.fillText(label.length > 28 ? label.slice(0, 27) + '...' : label, mx, my - 6);
-    }
-
+function drawResourceNodes(ctx: CanvasRenderingContext2D, textColor: string): void {
     // Nodes
     for (let i = 0; i < simNodes.length; i++) {
         const n = simNodes[i];
@@ -389,6 +352,48 @@ const drawFrame = () => {
         ctx.font = '10px system-ui, sans-serif'; ctx.textBaseline = 'middle';
         ctx.fillText(n.type.length > 5 ? n.type.slice(0, 4) : n.type, n.x, n.y);
     }
+}
+
+const drawFrame = () => {
+    const canvas = canvasRef.value; if (!canvas) return;
+    const w = canvas.offsetWidth, h = canvas.offsetHeight;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h);
+
+    ctx.save();
+    ctx.translate(panX.value, panY.value);
+    ctx.scale(zoom.value, zoom.value);
+
+    const textColor = getComputedStyle(canvas).getPropertyValue('--color-text-primary') || '#e2e8f0';
+    const mutedColor = getComputedStyle(canvas).getPropertyValue('--color-text-muted') || '#94a3b8';
+
+    // Links
+    for (const l of simLinks) {
+        const s = simNodes[l.source], t = simNodes[l.target];
+        const dx = t.x - s.x, dy = t.y - s.y, dist = Math.hypot(dx, dy) || 1;
+
+        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y);
+        ctx.strokeStyle = 'rgba(148,163,184,0.3)'; ctx.lineWidth = 2; ctx.stroke();
+
+        // Arrow
+        const angle = Math.atan2(dy, dx);
+        const ex = t.x - (dx / dist) * (t.radius + 3), ey = t.y - (dy / dist) * (t.radius + 3);
+        ctx.beginPath(); ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - 12 * Math.cos(angle - 0.28), ey - 12 * Math.sin(angle - 0.28));
+        ctx.lineTo(ex - 12 * Math.cos(angle + 0.28), ey - 12 * Math.sin(angle + 0.28));
+        ctx.closePath(); ctx.fillStyle = 'rgba(148,163,184,0.45)'; ctx.fill();
+
+        // Edge label
+        const mx = (s.x + t.x) / 2, my = (s.y + t.y) / 2;
+        const label = l.predicate.replaceAll('_', ' ');
+        ctx.fillStyle = mutedColor;
+        ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(label.length > 28 ? label.slice(0, 27) + '...' : label, mx, my - 6);
+    }
+
+    drawResourceNodes(ctx, textColor);
 
     ctx.restore();
 };

@@ -130,5 +130,3 @@ export const DatasetChartExtension = Node.create<DatasetChartOptions>({
         };
     },
 });
-
-export default DatasetChartExtension;

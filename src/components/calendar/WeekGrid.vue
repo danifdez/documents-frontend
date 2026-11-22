@@ -5,7 +5,11 @@
             <div v-for="(day, i) in weekDays" :key="i"
                 class="px-2 py-2 text-center border-r border-border-light last:border-r-0 cursor-pointer hover:bg-surface-hover transition-colors"
                 :class="{ 'bg-accent/5': day.isToday }"
-                @click="$emit('dayClick', day.date)">
+                @click="$emit('dayClick', day.date)"
+                role="button"
+                tabindex="0"
+                @keydown.enter.self.prevent="$emit('dayClick', day.date)"
+                @keydown.space.self.prevent="$emit('dayClick', day.date)">
                 <div class="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                     {{ dayNames[i] }}
                 </div>
@@ -24,6 +28,10 @@
                 <div class="flex flex-col gap-1">
                     <div v-for="event in getEventsForDay(day.date)" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                         @click.stop="$emit('eventClick', event)"
+                        role="button"
+                        tabindex="0"
+                        @keydown.enter.self.stop.prevent="$emit('eventClick', event)"
+                        @keydown.space.self.stop.prevent="$emit('eventClick', event)"
                         class="px-2 py-1.5 rounded text-[11px] font-medium cursor-pointer hover:opacity-80 transition-opacity"
                         :class="{ 'opacity-50 line-through': event.trackCompletion && event.completed }"
                         :style="{ backgroundColor: event.color + '20', color: event.color }">

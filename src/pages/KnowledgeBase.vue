@@ -31,6 +31,10 @@
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                 <div v-for="entry in filteredItems" :key="entry.id"
                     @click="router.push(`/knowledge-base/${entry.id}`)"
+                    role="button"
+                    tabindex="0"
+                    @keydown.enter.self.prevent="router.push(`/knowledge-base/${entry.id}`)"
+                    @keydown.space.self.prevent="router.push(`/knowledge-base/${entry.id}`)"
                     class="group bg-surface-elevated border border-border rounded-xl p-4 cursor-pointer hover:border-accent/40 hover:shadow-sm transition-all duration-200">
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <h3 class="text-sm font-medium text-text-primary leading-snug line-clamp-2 group-hover:text-accent transition-colors">

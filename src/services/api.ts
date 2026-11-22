@@ -53,12 +53,12 @@ apiClient.interceptors.response.use(
         const originalRequest = error.config;
 
         if (error.response?.status !== 401 || originalRequest._retry) {
-            return Promise.reject(error);
+            throw error;
         }
 
         // Don't retry auth endpoints
         if (originalRequest.url?.startsWith('/auth/')) {
-            return Promise.reject(error);
+            throw error;
         }
 
         if (isRefreshing) {
@@ -82,7 +82,7 @@ apiClient.interceptors.response.use(
             localStorage.removeItem(workspaceKey('accessToken'));
             localStorage.removeItem(workspaceKey('refreshToken'));
             window.location.hash = '#/login';
-            return Promise.reject(error);
+            throw error;
         }
 
         try {
@@ -97,7 +97,7 @@ apiClient.interceptors.response.use(
             localStorage.removeItem(workspaceKey('accessToken'));
             localStorage.removeItem(workspaceKey('refreshToken'));
             window.location.hash = '#/login';
-            return Promise.reject(refreshError);
+            throw refreshError;
         } finally {
             isRefreshing = false;
         }

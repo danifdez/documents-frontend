@@ -69,7 +69,7 @@ describe('bibliography', () => {
 
     await fireEvent.update(search, '');
     await fireEvent.click(button('Proyecto'));
-    expect(screen.queryByText(book.title)).toBeTruthy();
+    expect(screen.getByText(book.title)).toBeTruthy();
     expect(screen.queryAllByText(article.title)).toHaveLength(1);
   });
 

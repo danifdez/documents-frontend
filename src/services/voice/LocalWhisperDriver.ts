@@ -8,8 +8,8 @@ export class LocalWhisperDriver implements VoiceDriver {
   private starting?: Promise<void>;
   private stopping?: Promise<void>;
   private chunks = Promise.resolve();
-  private partialCbs = new Set<(p: VoicePartial) => void>();
-  private errorCbs = new Set<(err: Error) => void>();
+  private readonly partialCbs = new Set<(p: VoicePartial) => void>();
+  private readonly errorCbs = new Set<(err: Error) => void>();
   private unsubPartial?: () => void;
   private unsubError?: () => void;
   private completion?: { resolve(): void; reject(error: Error): void };
@@ -17,7 +17,7 @@ export class LocalWhisperDriver implements VoiceDriver {
   start(): Promise<void> {
     const bridge = window.voice;
     if (!bridge?.isLocalAvailable()) return Promise.reject(new Error('Local voice is unavailable'));
-    if (this.starting || this.stopping || this.sessionId) return Promise.reject(new Error('Local voice is already active'));
+    if (this.starting !== undefined || this.stopping !== undefined || this.sessionId) return Promise.reject(new Error('Local voice is already active'));
     const generation = ++this.generation;
     this.chunks = Promise.resolve();
     this.unsubPartial = bridge.onPartialLocal((payload) => {
@@ -56,7 +56,7 @@ export class LocalWhisperDriver implements VoiceDriver {
     const bridge = window.voice;
     const id = this.sessionId;
     const generation = this.generation;
-    if (!bridge || !id || this.stopping) return;
+    if (!bridge || !id || this.stopping !== undefined) return;
     this.chunks = this.chunks.then(async () => {
       if (generation !== this.generation) return;
       const bytes = await chunk.arrayBuffer();
@@ -71,7 +71,7 @@ export class LocalWhisperDriver implements VoiceDriver {
   }
 
   stop(): Promise<void> {
-    if (this.stopping) return this.stopping;
+    if (this.stopping !== undefined) return this.stopping;
     const bridge = window.voice;
     const id = this.sessionId;
     const generation = this.generation;
@@ -103,7 +103,7 @@ export class LocalWhisperDriver implements VoiceDriver {
   async cancel(): Promise<void> {
     const bridge = window.voice;
     const id = this.sessionId;
-    const pendingStart = !!this.starting;
+    const pendingStart = this.starting !== undefined;
     this.generation++;
     this.completion?.reject(new VoiceCancelledError());
     this.teardown();

@@ -181,7 +181,11 @@
                     </div>
 
                     <!-- Entity name + type (clickable to edit) -->
-                    <div class="flex-1 min-w-0 flex items-center gap-2 cursor-pointer" @click="startEditEntity(entity)">
+                    <div class="flex-1 min-w-0 flex items-center gap-2 cursor-pointer" @click="startEditEntity(entity)"
+                        role="button"
+                        tabindex="0"
+                        @keydown.enter.self.prevent="startEditEntity(entity)"
+                        @keydown.space.self.prevent="startEditEntity(entity)">
                         <span class="text-[13px] font-medium truncate"
                             :class="entity.isConfirmed ? 'text-text-muted line-through' : entity.status === 'merged' ? 'text-text-muted' : 'text-text-primary'">
                             {{ getEntityDisplayText(entity) }}
@@ -430,6 +434,21 @@ const checkForDuplicates = async (entity: PendingEntity, newName: string): Promi
     return null;
 };
 
+async function refreshEntityTranslation(entity: PendingEntity): Promise<void> {
+    try {
+        await retranslatePendingEntity(entity.id, {
+            newName: entity.name, currentLanguage: 'en',
+            resourceLanguage: props.resourceLanguage, targetLanguage: props.targetLanguage
+        });
+        const updatedEntities = await fetchPendingEntitiesByResourceId(props.resourceId);
+        const updated = updatedEntities.find(e => e.id === entity.id);
+        if (updated) {
+            entity.translations = updated.translations;
+            (entity as PendingEntityWithEdit)._editedTranslation = updated.translations?.[props.targetLanguage] || '';
+        }
+    } catch { }
+}
+
 const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
     isSaving.value = entity.id;
     try {
@@ -459,20 +478,7 @@ const saveEntity = async (entity: PendingEntity, isTranslation = false) => {
                 entityTypeId: entity.entityType?.id, scope: entity.scope,
                 aliases: entity.aliases?.filter(a => a.value.trim() !== '')
             });
-            if (nameChanged) {
-                try {
-                    await retranslatePendingEntity(entity.id, {
-                        newName: entity.name, currentLanguage: 'en',
-                        resourceLanguage: props.resourceLanguage, targetLanguage: props.targetLanguage
-                    });
-                    const updatedEntities = await fetchPendingEntitiesByResourceId(props.resourceId);
-                    const updated = updatedEntities.find(e => e.id === entity.id);
-                    if (updated) {
-                        entity.translations = updated.translations;
-                        (entity as PendingEntityWithEdit)._editedTranslation = updated.translations?.[props.targetLanguage] || '';
-                    }
-                } catch { }
-            }
+            if (nameChanged) await refreshEntityTranslation(entity);
         }
     } catch { } finally { isSaving.value = null; }
 };

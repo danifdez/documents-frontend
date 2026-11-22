@@ -175,7 +175,7 @@
                     <div v-for="entity in filteredEntities" :key="entity.id">
                         <div class="group px-3 py-2 hover:bg-surface-hover transition-colors cursor-pointer"
                             :class="activeEntityIds && !activeEntityIds.has(entity.id) ? 'opacity-20' : activeEntityIds?.has(entity.id) ? 'bg-accent-subtle/30' : ''"
-                            @click="toggleExpand(entity)">
+                            @click.self="toggleExpand(entity)" @keydown.esc.self="collapseEntity(entity.id)">
                             <div class="flex items-center gap-2">
                                 <input :aria-label="`Select ${entity.name}`" type="checkbox" :checked="checkedEntityIds.has(entity.id)"
                                     @click.stop="toggleChecked(entity.id)"
@@ -184,9 +184,10 @@
                                     :class="getEntityTypeBadgeClass(entity.entityType?.name)">
                                     {{ entity.entityType?.name || '—' }}
                                 </span>
-                                <span class="text-xs font-medium text-text-primary truncate flex-1">{{ entity.name }}</span>
+                                <button type="button" class="text-left text-xs font-medium text-text-primary truncate flex-1"
+                                    :aria-expanded="expandedId === entity.id" @click="toggleExpand(entity)">{{ entity.name }}</button>
                                 <!-- Actions -->
-                                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" @click.stop>
+                                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 group-focus-within:opacity-100">
                                     <button @click="startEditing(entity)" class="p-1 rounded text-text-muted hover:text-accent transition-colors cursor-pointer" title="Edit">
                                         <svg aria-hidden="true" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -207,7 +208,7 @@
                             <p v-if="entity.description" class="text-[11px] text-text-muted truncate mt-0.5 pl-0.5">{{ entity.description }}</p>
 
                             <!-- Expanded detail -->
-                            <div v-if="expandedId === entity.id" class="mt-2 pt-2 border-t border-border-light" @click.stop>
+                            <div v-if="expandedId === entity.id" class="mt-2 pt-2 border-t border-border-light">
                                 <div v-if="loadingDetail" class="flex items-center gap-1.5 py-1">
                                     <LoadingSpinner size="sm" />
                                     <span class="text-[10px] text-text-muted">Loading...</span>
@@ -583,6 +584,10 @@ const expandedId = ref<number | null>(null);
 const expandedDetail = ref<EntityDetail | null>(null);
 const loadingDetail = ref(false);
 
+function collapseEntity(id: number): void {
+    if (expandedId.value === id) expandedId.value = null;
+}
+
 const toggleExpand = async (entity: Entity) => {
     if (expandedId.value === entity.id) {
         expandedId.value = null;
@@ -624,6 +629,7 @@ const createKBFromEntity = async (entity: Entity) => {
         });
         router.push(`/knowledge-base/${entry.id}`);
     } catch (err) {
+        console.error('Knowledge entry creation failed:', err);
         notification.error('Failed to create KB entry');
     }
 };
@@ -665,18 +671,22 @@ const removeTranslation = (i: number) => { editForm.value.translations.splice(i,
 const addAlias = () => { editForm.value.aliases.push({ locale: '', value: '' }); };
 const removeAlias = (i: number) => { editForm.value.aliases.splice(i, 1); };
 
+function entityEditLabels() {
+    const translations: Record<string, string> = {};
+    for (const t of editForm.value.translations) {
+        if (t.locale.trim() && t.value.trim()) translations[t.locale.trim()] = t.value.trim();
+    }
+    const aliases = editForm.value.aliases
+        .filter(a => a.value.trim())
+        .map(a => ({ locale: a.locale.trim() || 'en', value: a.value.trim() }));
+    return { translations, aliases };
+}
+
 const saveEditing = async () => {
     if (!editingId.value || !editForm.value.name.trim()) return;
     saving.value = true;
     try {
-        const translations: Record<string, string> = {};
-        for (const t of editForm.value.translations) {
-            if (t.locale.trim() && t.value.trim()) translations[t.locale.trim()] = t.value.trim();
-        }
-        const aliases = editForm.value.aliases
-            .filter(a => a.value.trim())
-            .map(a => ({ locale: a.locale.trim() || 'en', value: a.value.trim() }));
-
+        const { translations, aliases } = entityEditLabels();
         const data = {
             name: editForm.value.name.trim(),
             description: editForm.value.description.trim() || undefined,
@@ -686,13 +696,14 @@ const saveEditing = async () => {
             aliases: aliases.length > 0 ? aliases : undefined,
         };
 
-        await updateEntity(editingId.value, data);
-        const idx = entities.value.findIndex(e => e.id === editingId.value);
+        const id = editingId.value;
+        await updateEntity(id, data);
+        const idx = entities.value.findIndex(e => e.id === id);
         if (idx !== -1) {
             entities.value[idx].name = data.name;
             entities.value[idx].description = data.description || null;
-            entities.value[idx].translations = Object.keys(translations).length > 0 ? translations : null;
-            entities.value[idx].aliases = aliases.length > 0 ? aliases : null;
+            entities.value[idx].translations = data.translations ?? null;
+            entities.value[idx].aliases = data.aliases ?? null;
             if (data.entityTypeId) {
                 const et = entityTypes.value.find(t => t.id === data.entityTypeId);
                 if (et) entities.value[idx].entityType = { id: et.id, name: et.name, description: et.description };

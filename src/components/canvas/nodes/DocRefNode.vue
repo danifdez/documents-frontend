@@ -10,7 +10,11 @@
       @update="onToolbarUpdate" />
     <div class="flex items-start gap-2 h-full">
       <div class="p-0.5 rounded bg-accent/10 cursor-pointer hover:bg-accent/20 transition-colors shrink-0 mt-0.5"
-        @click="navigateToDoc" :title="node.data.sourceName || 'Open document'">
+        @click="navigateToDoc"
+        role="button"
+        tabindex="0"
+        @keydown.enter.self.prevent="navigateToDoc"
+        @keydown.space.self.prevent="navigateToDoc" :title="node.data.sourceName || 'Open document'">
         <svg aria-hidden="true" class="h-3 w-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

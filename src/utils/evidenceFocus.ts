@@ -16,11 +16,7 @@ type CharacterRef<T> = {
 
 const normalizeEvidence = (text: string) => text.replace(/\s+/g, ' ').trim();
 
-const locate = <T>(
-    segments: EvidenceSegment<T>[],
-    needle: string,
-    keepWhitespace: boolean,
-): EvidenceFragment<T>[] => {
+function evidenceTextMap<T>(segments: EvidenceSegment<T>[], keepWhitespace: boolean) {
     const characters: string[] = [];
     const references: Array<CharacterRef<T> | null> = [];
     let previousWasWhitespace = false;
@@ -42,7 +38,15 @@ const locate = <T>(
         }
     }
 
-    const haystack = characters.join('');
+    return { haystack: characters.join(''), references };
+}
+
+const locate = <T>(
+    segments: EvidenceSegment<T>[],
+    needle: string,
+    keepWhitespace: boolean,
+): EvidenceFragment<T>[] => {
+    const { haystack, references } = evidenceTextMap(segments, keepWhitespace);
     let start = haystack.indexOf(needle);
     if (start < 0) {
         start = haystack.toLowerCase().indexOf(needle.toLowerCase());
@@ -57,7 +61,7 @@ const locate = <T>(
         if (!reference) {
             continue;
         }
-        const previous = fragments[fragments.length - 1];
+        const previous = fragments.at(-1);
         if (previous && previous.target === reference.target &&
             previous.to <= reference.offset) {
             previous.to = reference.offset + 1;

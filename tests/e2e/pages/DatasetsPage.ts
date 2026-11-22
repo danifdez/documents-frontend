@@ -34,21 +34,3 @@ export class DatasetsPage extends BasePage {
     return this.page.getByText(name, { exact: true });
   }
 }
-
-export class DatasetPage extends BasePage {
-  get newRecordButton() { return this.page.locator('button:has-text("New Record")'); }
-  get importCsvButton() { return this.page.locator('button:has-text("Import CSV")'); }
-  get schemaTab() { return this.page.getByRole('button', { name: 'Schema' }); }
-  get dataTab() { return this.page.getByRole('button', { name: 'Data' }); }
-  get backButton() { return this.page.locator('button:has(path[d="M15 19l-7-7 7-7"])'); }
-
-  async expectVisible() {
-    await expect(this.page).toHaveURL(/#\/datasets\/\d+/);
-    await expect(this.newRecordButton).toBeVisible();
-  }
-
-  async goBack() {
-    await this.backButton.click();
-    await expect(this.page).toHaveURL(/#\/datasets$/, { timeout: 10_000 });
-  }
-}

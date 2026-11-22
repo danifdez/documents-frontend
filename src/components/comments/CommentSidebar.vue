@@ -30,7 +30,11 @@
       <div v-for="comment in sortedComments" :key="comment.id" :id="`comment-${comment.id}`"
         class="group border-b border-border-light last:border-b-0 px-4 py-3 transition-colors hover:bg-surface-hover cursor-pointer"
         :class="{ 'bg-amber-50': highlightedCommentId === comment.id }"
-        @click="handleCommentClick(comment.id)">
+        @click="handleCommentClick(comment.id)"
+        role="button"
+        tabindex="0"
+        @keydown.enter.self.prevent="handleCommentClick(comment.id)"
+        @keydown.space.self.prevent="handleCommentClick(comment.id)">
         <div class="flex justify-between items-start gap-2 mb-1.5">
           <div class="flex-1 text-text-primary text-sm leading-relaxed whitespace-pre-wrap break-words">
             {{ comment.content }}

@@ -303,7 +303,7 @@ const getArrowPoints = (edge: CanvasEdge) => {
     const to = getNodeCenter(edge.target);
     const dx = to.x - from.x;
     const dy = to.y - from.y;
-    const len = Math.sqrt(dx * dx + dy * dy);
+    const len = Math.hypot(dx, dy);
     if (len === 0) return '0,0 0,0 0,0';
     const ux = dx / len;
     const uy = dy / len;

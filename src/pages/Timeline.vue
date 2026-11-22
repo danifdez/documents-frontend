@@ -307,7 +307,11 @@
             <div v-for="event in filteredListEvents" :key="'list-' + event.id"
               class="flex items-center gap-2 px-3 py-2 border-b border-border/50 cursor-pointer hover:bg-surface-hover transition-colors group"
               :class="selectedEvent?.id === event.id ? 'bg-accent/5' : ''"
-              @click="highlightEvent(event)">
+              @click="highlightEvent(event)"
+              role="button"
+              tabindex="0"
+              @keydown.enter.self.prevent="highlightEvent(event)"
+              @keydown.space.self.prevent="highlightEvent(event)">
               <div class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: event.color }"></div>
               <div class="min-w-0 flex-1">
                 <p class="text-xs text-text-primary truncate font-medium">{{ event.title }}</p>
@@ -346,7 +350,11 @@
                 <div v-for="event in filteredListEvents" :key="'hlist-' + event.id"
                   class="flex items-center gap-3 px-4 py-3 border-b border-border/30 cursor-pointer hover:bg-surface-hover transition-colors group"
                   :class="selectedEvent?.id === event.id ? 'bg-accent/5' : ''"
-                  @click="highlightEvent(event)">
+                  @click="highlightEvent(event)"
+                  role="button"
+                  tabindex="0"
+                  @keydown.enter.self.prevent="highlightEvent(event)"
+                  @keydown.space.self.prevent="highlightEvent(event)">
                   <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: event.color }"></div>
                   <div class="min-w-0 flex-1">
                     <p class="text-sm text-text-primary truncate font-medium">{{ event.title }}</p>

@@ -54,7 +54,10 @@ const statusColor = computed(() => {
 });
 
 const statusText = computed(() => {
-  if (!offlineStore.isOnline) return `Offline${offlineStore.pendingChangeCount ? ` (${offlineStore.pendingChangeCount})` : ''}`;
+  if (!offlineStore.isOnline) {
+    const pending = offlineStore.pendingChangeCount;
+    return pending ? `Offline (${pending})` : 'Offline';
+  }
   if (offlineStore.isSyncing) return 'Syncing...';
   if (offlineStore.pendingChangeCount > 0) return `${offlineStore.pendingChangeCount} pending`;
   return 'Synced';

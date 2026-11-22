@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
     <Transition name="notes-panel" appear>
-      <div v-if="modelValue" class="notes-overlay" @click="closePanel">
-        <div class="notes-container" @click.stop>
+      <div v-if="modelValue" class="notes-overlay" @click.self="closePanel" @keydown.esc.stop="closePanel">
+        <div class="notes-container">
           <!-- Header -->
           <div class="notes-header">
             <div class="flex items-center gap-3 flex-1 min-w-0">
@@ -202,7 +202,7 @@ const filteredNotes = computed(() => {
   if (term) {
     list = list.filter(n =>
       norm(n.title).includes(term) ||
-      (n.content && norm(n.content.replace(/<[^>]*>/g, '')).includes(term))
+      (n.content && norm(n.content.replace(/<[^<>]*>/g, '')).includes(term))
     );
   }
   return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
@@ -469,13 +469,9 @@ async function openWithNote(noteId: number) {
   opacity: 0;
 }
 
-.notes-panel-enter-active .notes-container {
-  animation: notes-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
 
-.notes-panel-leave-active .notes-container {
-  animation: notes-out 0.15s ease-in forwards;
-}
+
+
 
 @keyframes notes-in {
   from {
@@ -499,5 +495,14 @@ async function openWithNote(noteId: number) {
     opacity: 0;
     transform: scale(0.97) translateY(4px);
   }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .notes-panel-enter-active .notes-container {
+      animation: notes-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .notes-panel-leave-active .notes-container {
+      animation: notes-out 0.15s ease-in forwards;
+    }
 }
 </style>

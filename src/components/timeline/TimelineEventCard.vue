@@ -7,6 +7,10 @@
     }"
     :class="cardClass"
     @click="$emit('click', event)"
+    role="button"
+    tabindex="0"
+    @keydown.enter.self.prevent="$emit('click', event)"
+    @keydown.space.self.prevent="$emit('click', event)"
   >
     <p class="text-[11px] font-semibold text-text-primary truncate leading-tight">{{ event.title }}</p>
     <p class="text-[9px] text-text-muted mt-0.5 leading-tight">

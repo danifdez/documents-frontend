@@ -53,6 +53,19 @@ export function isSafeRelativePath(value: string): boolean {
   return segments.every((segment) => segment !== '' && segment !== '.' && segment !== '..');
 }
 
+function validateTarget(targetName: string, targetValue: Record<string, unknown>): void {
+  for (const component of ['node', 'backend', 'postgres', 'frontend'] as const) {
+    if (targetValue[component] !== undefined) validateArtifact(targetValue[component], `${targetName}.${component}`);
+  }
+  if (targetValue.models !== undefined) {
+    if (!isRecord(targetValue.models)) throw new Error(`Invalid models variants: ${targetName}`);
+    for (const [variant, artifact] of Object.entries(targetValue.models)) {
+      if (!['cpu', 'cuda', 'metal'].includes(variant)) throw new Error(`Invalid Models variant: ${variant}`);
+      validateArtifact(artifact, `${targetName}.models.${variant}`);
+    }
+  }
+}
+
 export function validateReleaseManifest(value: unknown): ReleaseManifest {
   if (!isRecord(value) || value.schemaVersion !== 1 || typeof value.release !== 'string' || !value.release) {
     throw new Error('Invalid release manifest header');
@@ -65,16 +78,7 @@ export function validateReleaseManifest(value: unknown): ReleaseManifest {
     if (!TARGET_PATTERN.test(targetName) || !isRecord(targetValue)) {
       throw new Error(`Invalid release target: ${targetName}`);
     }
-    for (const component of ['node', 'backend', 'postgres', 'frontend'] as const) {
-      if (targetValue[component] !== undefined) validateArtifact(targetValue[component], `${targetName}.${component}`);
-    }
-    if (targetValue.models !== undefined) {
-      if (!isRecord(targetValue.models)) throw new Error(`Invalid models variants: ${targetName}`);
-      for (const [variant, artifact] of Object.entries(targetValue.models)) {
-        if (!['cpu', 'cuda', 'metal'].includes(variant)) throw new Error(`Invalid Models variant: ${variant}`);
-        validateArtifact(artifact, `${targetName}.models.${variant}`);
-      }
-    }
+    validateTarget(targetName, targetValue);
   }
 
   return value as unknown as ReleaseManifest;
@@ -94,7 +98,7 @@ export function selectReleaseArtifact(
   manifest: ReleaseManifest,
   targetName: string,
   componentName: string,
-): { component: ReleaseComponent; variant?: ModelsVariant; artifact: ReleaseArtifact } {
+): { component: ReleaseComponent; variant?: ModelsVariant; artifact: ReleaseArtifact; fallbackFrom?: ModelsVariant } {
   const target = manifest.targets[targetName];
   if (!target) throw new Error(`Release ${manifest.release} does not support ${targetName}`);
 
@@ -103,7 +107,10 @@ export function selectReleaseArtifact(
     const variant = target.models?.[requestedModelsVariant] ? requestedModelsVariant : 'cpu';
     const artifact = target.models?.[variant];
     if (!artifact) throw new Error(`Release ${manifest.release} has no Models ${requestedModelsVariant} or CPU artifact for ${targetName}`);
-    return { component: 'models', variant, artifact };
+    return {
+      component: 'models', variant, artifact,
+      ...(variant === requestedModelsVariant ? {} : { fallbackFrom: requestedModelsVariant }),
+    };
   }
 
   if (!['node', 'backend', 'postgres'].includes(componentName)) {

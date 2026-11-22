@@ -2,6 +2,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createHash } from 'node:crypto';
+import { hasExactOwnKeys } from '../../utils/hasExactOwnKeys';
 
 export interface BinaryIdentity { sha256: string; sizeBytes: number }
 export interface VoiceEngineIdentity {
@@ -20,6 +21,18 @@ function physicalPath(file: string): string {
   return file.replace(`.asar${path.sep}`, `.asar.unpacked${path.sep}`);
 }
 
+function verifySystemPath(file: string): void {
+  // The filesystem root also identifies its owner inside a mapped UID namespace.
+  const owner = fs.lstatSync(path.parse(file).root, { bigint: true }).uid;
+  for (let current = file; ; current = path.dirname(current)) {
+    const stat = fs.lstatSync(current, { bigint: true });
+    if (stat.isSymbolicLink() || stat.uid !== owner || (stat.mode & 0o022n) !== 0n) {
+      throw new Error('Untrusted local voice system dependency');
+    }
+    if (current === path.dirname(current)) return;
+  }
+}
+
 /** Keep a digest bound to one regular file, and refuse replacement after selection. */
 export class VerifiedRuntimeFile {
   readonly identity: BinaryIdentity;
@@ -30,15 +43,7 @@ export class VerifiedRuntimeFile {
         (process.platform !== 'win32' && (first.mode & 0o002n) !== 0n)) {
       throw new Error('Invalid local voice dependency');
     }
-    if (system) {
-      // The filesystem root also identifies its owner inside a mapped UID namespace.
-      const owner = fs.lstatSync(path.parse(file).root, { bigint: true }).uid;
-      for (let current = file; ; current = path.dirname(current)) {
-        const stat = fs.lstatSync(current, { bigint: true });
-        if (stat.isSymbolicLink() || stat.uid !== owner || (stat.mode & 0o022n) !== 0n) throw new Error('Untrusted local voice system dependency');
-        if (current === path.dirname(current)) break;
-      }
-    }
+    if (system) verifySystemPath(file);
     if (executable) fs.accessSync(file, fs.constants.X_OK);
     const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK);
     try {
@@ -108,16 +113,17 @@ export function loadVoiceBindings(loader: NodeRequire = require) {
 
 /** Validate the bounded evidence shape without exporting paths or environment variables. */
 export function validateEngineIdentity(value: unknown): asserts value is VoiceEngineIdentity {
-  const keys = (item: unknown, names: string[]): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item) &&
-    Object.keys(item).sort().join(',') === [...names].sort().join(',');
+  const keys = hasExactOwnKeys;
   const binary = (item: unknown) => keys(item, ['sha256', 'sizeBytes']) && typeof item.sha256 === 'string' && /^sha256:[0-9a-f]{64}$/.test(item.sha256) &&
     Number.isSafeInteger(item.sizeBytes) && Number(item.sizeBytes) > 0 && Number(item.sizeBytes) <= MAX_BINARY_BYTES;
   if (!keys(value, ['adapter', 'nativeBinary', 'decoder', 'runtime', 'verification']) || value.verification !== 'module_load_and_file_checks' ||
       !keys(value.adapter, ['name', 'version', 'entry']) || value.adapter.name !== 'smart-whisper' || typeof value.adapter.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(value.adapter.version) || !binary(value.adapter.entry) ||
-      !binary(value.nativeBinary) || !keys(value.decoder, ['source', 'binary']) || !['bundled', 'system'].includes(String(value.decoder.source)) || !binary(value.decoder.binary) ||
+      !binary(value.nativeBinary) || !keys(value.decoder, ['source', 'binary']) || (value.decoder.source !== 'bundled' && value.decoder.source !== 'system') || !binary(value.decoder.binary) ||
       !keys(value.runtime, ['platform', 'arch', 'node', 'electron', 'modules']) ||
-      !['linux', 'darwin', 'win32', 'freebsd', 'openbsd', 'aix', 'sunos', 'android'].includes(String(value.runtime.platform)) ||
-      !['x64', 'arm64', 'arm', 'ia32', 'ppc64', 's390x', 'riscv64', 'loong64'].includes(String(value.runtime.arch)) ||
+      typeof value.runtime.platform !== 'string' ||
+      !['linux', 'darwin', 'win32', 'freebsd', 'openbsd', 'aix', 'sunos', 'android'].includes(value.runtime.platform) ||
+      typeof value.runtime.arch !== 'string' ||
+      !['x64', 'arm64', 'arm', 'ia32', 'ppc64', 's390x', 'riscv64', 'loong64'].includes(value.runtime.arch) ||
       typeof value.runtime.node !== 'string' || !/^\d+\.\d+\.\d+$/.test(value.runtime.node) ||
       !(value.runtime.electron === null || typeof value.runtime.electron === 'string' && /^\d+\.\d+\.\d+$/.test(value.runtime.electron)) ||
       !(value.runtime.modules === null || typeof value.runtime.modules === 'string' && /^\d{1,5}$/.test(value.runtime.modules))) throw new Error('Invalid local voice engine identity');

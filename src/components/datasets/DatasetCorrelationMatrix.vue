@@ -112,7 +112,10 @@
                                     class="px-3 py-2 text-center font-mono cursor-pointer transition-all hover:ring-2 hover:ring-accent/40 hover:z-20 relative"
                                     :style="{ backgroundColor: cellColor(val), color: cellTextColor(val) }"
                                     :title="cellTooltip(i, j)"
-                                    @click="handleCellClick(i, j)">
+                                    @click="handleCellClick(i, j)"
+                                    tabindex="0"
+                                    @keydown.enter.self.prevent="handleCellClick(i, j)"
+                                    @keydown.space.self.prevent="handleCellClick(i, j)">
                                     {{ val !== null ? val.toFixed(2) : '—' }}
                                 </td>
                             </tr>

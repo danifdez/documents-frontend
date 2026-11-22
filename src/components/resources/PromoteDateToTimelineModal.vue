@@ -3,7 +3,8 @@
         <Transition name="modal">
             <div v-if="modelValue"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-                @click.self="close">
+                @click.self="close"
+                @keydown.esc.stop="close">
                 <div class="bg-surface-elevated rounded-xl shadow-2xl border border-border max-w-lg w-full mx-4 overflow-hidden">
                     <div class="px-6 py-4 border-b border-border-light">
                         <h3 class="text-base font-semibold text-text-primary tracking-tight">Add to project timeline</h3>

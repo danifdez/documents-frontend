@@ -27,7 +27,7 @@ function installBridge() {
     getWorkspaces: vi.fn().mockResolvedValue([remote, second]),
     getDefaultWorkspace: vi.fn().mockResolvedValue(null),
     getActiveWorkspace: vi.fn().mockResolvedValue(remote),
-    setActiveWorkspace: vi.fn(async (id: string) => { localStorage.setItem('activeWorkspaceId', id); }),
+    setActiveWorkspace: vi.fn().mockResolvedValue(undefined),
     addWorkspace: vi.fn().mockResolvedValue(undefined),
     updateWorkspace: vi.fn().mockResolvedValue(undefined),
     removeWorkspace: vi.fn().mockResolvedValue(undefined),
@@ -114,8 +114,14 @@ describe('workspace-scoped authentication', () => {
       .mockRejectedValueOnce(new Error('starting'));
 
     await useWorkspaceStore().loadWorkspaces();
+    expect(localStorage.getItem('activeWorkspaceId')).toBe(local.id);
+    localStorage.setItem('accessToken_local', 'stale-session');
+    localStorage.setItem('accessToken_library', 'remote-session');
     const store = useAuthStore();
+    expect(store.accessToken).toBe('stale-session');
     await store.checkAuthStatus();
+    expect(store.accessToken).toBeNull();
+    expect(localStorage.getItem('accessToken_library')).toBe('remote-session');
     expect(store.authRequired).toBe(false);
     expect(store.hasPermission('export')).toBe(true);
     expect(useFeatureStore().isEnabled('bibliography')).toBe(false);

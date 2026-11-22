@@ -1,7 +1,8 @@
 import type { IpcMainInvokeEvent, WebContents } from 'electron';
 import { localEngine, type LocalEngine, VOICE_LIMITS } from '../voice/localEngine';
-import type { LocalVoiceStartOptions } from '../../types/voice';
+import type { LocalCaptureReceipt, LocalVoiceStartOptions } from '../../types/voice';
 import { IpcChannels } from '../../ipc/channels';
+import { hasExactOwnKeys } from '../../utils/hasExactOwnKeys';
 import type { IpcHandlerMap } from './registry';
 
 /** Voice controls are limited to a trusted application window's main frame. */
@@ -26,9 +27,10 @@ export function createVoiceHandlers(isTrustedWindow: (sender: WebContents) => bo
       const sender = owner(event);
       if (options === undefined) return engine.startSession(sender);
       const value = options as LocalVoiceStartOptions;
-      if (!value || typeof value !== 'object' || Object.keys(value).join() !== 'capture' || !value.capture ||
-          typeof value.capture !== 'object' || Array.isArray(value.capture) ||
-          Object.keys(value.capture).filter((key) => key !== 'requestHash').sort().join() !== 'consent,mediaType,purpose,requestId' ||
+      const capture = value?.capture;
+      const required = ['consent', 'mediaType', 'purpose', 'requestId'];
+      const captureKeys = capture && Object.hasOwn(capture, 'requestHash') ? [...required, 'requestHash'] : required;
+      if (!hasExactOwnKeys(value, ['capture']) || !hasExactOwnKeys(capture, captureKeys) ||
           (value.capture.requestHash !== undefined && !/^sha256:[0-9a-f]{64}$/.test(value.capture.requestHash)) ||
           value.capture.consent !== 'granted' || value.capture.purpose !== 'evaluation' ||
           !['audio/wav', 'audio/webm', 'audio/webm;codecs=opus', 'audio/ogg', 'audio/ogg;codecs=opus'].includes(value.capture.mediaType) ||
@@ -55,7 +57,8 @@ export function createVoiceHandlers(isTrustedWindow: (sender: WebContents) => bo
       const sender = owner(event);
       if (!captureAllowed(sender) || typeof exportEvidence !== 'boolean') throw new Error('Local voice capture authorization required');
       const capture = await engine.capture(id(requestId));
-      return exportEvidence ? capture : { sessionId: capture.requestId, status: capture.status, claimed: false };
+      const receipt: LocalCaptureReceipt = { sessionId: capture.requestId, status: capture.status, claimed: false };
+      return exportEvidence ? capture : receipt;
     },
     [IpcChannels.voice.cancel]: (event, sessionId?: unknown) => engine.cancelSession(owner(event), sessionId === undefined ? undefined : id(sessionId)),
   };

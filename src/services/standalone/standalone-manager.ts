@@ -23,7 +23,9 @@ export interface LocalServiceReport {
 }
 
 function describeError(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'Unknown standalone service error';
 }
 
 const LOCAL_ID = 'local';
@@ -31,7 +33,7 @@ const LOCAL_ID = 'local';
 class StandaloneManager {
   private postgres: EmbeddedPostgresService | null = null;
   private backend: EmbeddedBackendService | null = null;
-  private _status: LocalServiceStatus = {
+  private readonly _status: LocalServiceStatus = {
     postgres: 'stopped',
     backend: 'stopped',
     models: 'not_installed',
@@ -202,7 +204,7 @@ class StandaloneManager {
   }
 
   getBackendUrl(): string | null {
-    if (!this.backend || !this.backend.running) return null;
+    if (!this.backend?.running) return null;
     return this.backend.url;
   }
 

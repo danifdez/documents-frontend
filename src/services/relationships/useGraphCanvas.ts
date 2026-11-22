@@ -151,24 +151,27 @@ export function useGraphCanvas({ getEntities, getRelationships, getNodeColor }: 
         }
     };
 
+    function selectClickedNode(clickedIdx: number): void {
+        if (selectedNodeIdx.value === clickedIdx && focusedNodeIdx.value === null) {
+            selectedNodeIdx.value = null;
+            activeEntityIds.value = null;
+        } else if (focusedNodeIdx.value === null) {
+            selectedNodeIdx.value = clickedIdx;
+            // Set active entity IDs for 1-hop
+            const ids = new Set<number | string>();
+            ids.add(nodes[clickedIdx].id);
+            for (const l of links) {
+                if (l.source === clickedIdx) ids.add(nodes[l.target].id);
+                if (l.target === clickedIdx) ids.add(nodes[l.source].id);
+            }
+            activeEntityIds.value = ids;
+        }
+    }
+
     const onMouseUp = () => {
         // Click (not drag) on a node → select it (1-hop highlight)
         if (!didDrag && draggedNode) {
-            const clickedIdx = nodes.indexOf(draggedNode);
-            if (selectedNodeIdx.value === clickedIdx && focusedNodeIdx.value === null) {
-                selectedNodeIdx.value = null;
-                activeEntityIds.value = null;
-            } else if (focusedNodeIdx.value === null) {
-                selectedNodeIdx.value = clickedIdx;
-                // Set active entity IDs for 1-hop
-                const ids = new Set<number | string>();
-                ids.add(nodes[clickedIdx].id);
-                for (const l of links) {
-                    if (l.source === clickedIdx) ids.add(nodes[l.target].id);
-                    if (l.target === clickedIdx) ids.add(nodes[l.source].id);
-                }
-                activeEntityIds.value = ids;
-            }
+            selectClickedNode(nodes.indexOf(draggedNode));
             drawFrame();
         }
         // Click on empty space (no drag) → deselect and unfocus

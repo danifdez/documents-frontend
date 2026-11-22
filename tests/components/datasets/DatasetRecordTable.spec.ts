@@ -137,7 +137,7 @@ describe('dataset record table', () => {
     await fireEvent.click(linked[0]);
     const heading = await screen.findByRole('heading', { name: 'Accessions — Record #A-7' });
     const popup = within(heading.closest('.max-w-lg')!);
-    expect(popup.getByRole('cell', { name: 'Category' })).toBeTruthy();
+    expect(popup.getByRole('rowheader', { name: 'Category' })).toBeTruthy();
     expect(popup.getByRole('cell', { name: 'Manuscript collection' })).toBeTruthy();
     await fireEvent.click(button('Close cell details'));
     expect(screen.queryByRole('heading', { name: /Record #A-7/ })).toBeNull();

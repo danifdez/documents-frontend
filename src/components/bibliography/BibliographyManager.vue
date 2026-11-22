@@ -44,6 +44,10 @@
                     <div v-else>
                         <div v-for="entry in filteredEntries" :key="entry.id"
                             @click="selectEntry(entry)"
+                            role="button"
+                            tabindex="0"
+                            @keydown.enter.self.prevent="selectEntry(entry)"
+                            @keydown.space.self.prevent="selectEntry(entry)"
                             :class="selectedEntry?.id === entry.id ? 'bg-accent/10 border-l-2 border-accent' : 'hover:bg-surface-hover border-l-2 border-transparent'"
                             class="flex items-start gap-2 px-4 py-3 cursor-pointer transition-colors border-b border-border/50">
                             <div class="flex-1 min-w-0">
@@ -310,7 +314,8 @@
         <!-- Import BibTeX modal (shared) -->
         <div v-if="showImportBibTeX"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-            @click.self="showImportBibTeX = false">
+            @click.self="showImportBibTeX = false"
+            @keydown.esc.stop="showImportBibTeX = false">
             <div class="bg-surface-elevated rounded-lg shadow-xl p-4 w-96 max-w-full">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-semibold">Importar BibTeX</h3>
@@ -616,12 +621,19 @@ const handleImportResource = async (resourceId: number) => {
     }
 };
 
-const handleBibTeXFileSelect = (event: Event) => {
+let selectedBibTeXFile: File | undefined;
+
+const handleBibTeXFileSelect = async (event: Event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
+    selectedBibTeXFile = file;
+    bibTeXFileContent.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => { bibTeXFileContent.value = (e.target?.result as string) ?? ''; };
-    reader.readAsText(file);
+    try {
+        const content = await file.text();
+        if (file === selectedBibTeXFile) bibTeXFileContent.value = content;
+    } catch (error) {
+        console.error('Could not read the BibTeX file:', error);
+    }
 };
 
 const handleImportBibTeX = async () => {

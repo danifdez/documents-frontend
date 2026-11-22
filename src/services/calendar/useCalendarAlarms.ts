@@ -20,10 +20,10 @@ export function bindCalendarAlarms() {
   bound = true;
   const missed = useMissedAlarmsStore();
   onSocketEvent('calendar:alarm', (payload: CalendarAlarmPayload) => {
-    window.calendarAlarms?.showAlarmNotification(payload);
+    void window.calendarAlarms?.showAlarmNotification(payload);
   });
   onSocketEvent('calendar:missed', (payload: CalendarMissedPayload) => {
     missed.replaceItems(payload.items);
-    window.calendarAlarms?.showMissedAggregate(payload);
+    void window.calendarAlarms?.showMissedAggregate(payload);
   });
 }

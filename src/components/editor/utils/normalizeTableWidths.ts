@@ -20,8 +20,8 @@ export function normalizeTableWidths(html: string): string {
         const cleaned = style
             .replace(WIDTH_STYLE_PATTERN, '')
             .replace(/^\s*;+/, '')
-            .replace(/;+\s*$/, '')
-            .trim();
+            .trim()
+            .replace(/(?<!;);+$/, '');
         if (cleaned) element.setAttribute('style', cleaned);
         else element.removeAttribute('style');
     };

@@ -43,7 +43,7 @@ export class EmbeddedBackendService {
     try {
       const cmd = process.platform === 'win32' ? 'where' : 'which';
       const res = spawnSync(cmd, ['node'], { encoding: 'utf-8' });
-      if (res && res.status === 0 && res.stdout) {
+      if (res?.status === 0 && res.stdout) {
         const p = res.stdout.toString().split(/\r?\n/)[0].trim();
         if (p) return p;
       }
@@ -132,9 +132,12 @@ export class EmbeddedBackendService {
 
     try { process.kill(pid!, 'SIGTERM'); } catch { return; }
     const deadline = Date.now() + 5000;
-    while (this.isProcessAlive(pid!) && Date.now() < deadline) {
+    const waitForExit = async (): Promise<void> => {
+      if (!this.isProcessAlive(pid!) || Date.now() >= deadline) return;
       await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+      await waitForExit();
+    };
+    await waitForExit();
     if (this.isProcessAlive(pid!)) {
       try { process.kill(pid!, 'SIGKILL'); } catch { /* already gone */ }
     }

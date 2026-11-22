@@ -362,6 +362,7 @@ const handleEventCreated = async (data) => {
     await createEvent(data);
     await loadEventsByProject(route.params.id);
   } catch (e) {
+    console.error('Event creation failed:', e);
     notification.error('Failed to create event');
   }
 };

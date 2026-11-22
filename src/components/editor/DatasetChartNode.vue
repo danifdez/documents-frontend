@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import { getErrorMessage } from '../../utils/errorDetails';
 import { ref, onMounted, nextTick, onUnmounted } from 'vue';
+import { datasetChartConfiguration } from '../../services/datasets/chartConfiguration';
 import { Chart, registerables } from 'chart.js';
 import { useDatasets, type StatsResult } from '../../services/datasets/useDatasets';
 
@@ -128,45 +129,10 @@ const renderChart = async (result: StatsResult | null) => {
     const ctx = chartCanvas.value.getContext('2d');
     if (!ctx) return;
 
-    const chartType = result.chartType;
-    const data = result.chartData;
-
-    if (chartType === 'scatter' && data.points) {
-        chartInstance = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: result.title || 'Data',
-                    data: data.points,
-                    backgroundColor: 'rgba(99, 102, 241, 0.5)',
-                    pointRadius: 4,
-                }],
-            },
-            options: { responsive: true, maintainAspectRatio: false },
-        });
-    } else if (chartType && chartType !== 'none' && chartType !== 'box' && chartType !== 'heatmap'
-        && chartType !== 'stacked_bar' && data.labels && data.values) {
-        const bgColor = chartType === 'pie'
-            ? data.labels.map((_, i) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
-            : 'rgba(99, 102, 241, 0.6)';
-
-        chartInstance = new Chart(ctx, {
-            type: chartType === 'histogram' ? 'bar' : chartType,
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: result.yLabel || result.title || 'Value',
-                    data: data.values,
-                    backgroundColor: bgColor,
-                    borderColor: chartType === 'line' ? 'rgba(99, 102, 241, 0.8)' : undefined,
-                    borderWidth: chartType === 'line' ? 2 : 1,
-                    fill: chartType === 'line' ? false : undefined,
-                    tension: chartType === 'line' ? 0.3 : undefined,
-                }],
-            },
-            options: { responsive: true, maintainAspectRatio: false },
-        });
-    }
+    const configuration = datasetChartConfiguration(result);
+    if (!configuration) return;
+    configuration.options = { responsive: true, maintainAspectRatio: false };
+    chartInstance = new Chart(ctx, configuration);
 };
 
 onMounted(() => {

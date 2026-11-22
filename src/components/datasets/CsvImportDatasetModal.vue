@@ -26,7 +26,11 @@
                         <div v-if="step === 1" class="space-y-4">
                             <div @drop.prevent="handleDrop" @dragover.prevent
                                 class="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/40 transition-colors cursor-pointer"
-                                @click="triggerFileInput">
+                                @click="triggerFileInput"
+                                role="button"
+                                tabindex="0"
+                                @keydown.enter.self.prevent="triggerFileInput"
+                                @keydown.space.self.prevent="triggerFileInput">
                                 <svg class="mx-auto h-10 w-10 text-text-muted mb-3" fill="none" viewBox="0 0 24 24" aria-hidden="true"
                                     stroke="currentColor" stroke-width="1.5">
                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -233,13 +237,12 @@ const handleDrop = (e: DragEvent) => {
     }
 };
 
-const handleParse = () => {
-    if (!selectedFile.value) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const text = e.target?.result as string;
-        if (!text) return;
+const handleParse = async () => {
+    const file = selectedFile.value;
+    if (!file) return;
+    try {
+        const text = await file.text();
+        if (!text || selectedFile.value !== file) return;
 
         const lines = text.split('\n').filter(l => l.trim());
         if (lines.length === 0) return;
@@ -265,8 +268,9 @@ const handleParse = () => {
         totalRows.value = dataLines.length;
         datasetName.value = selectedFile.value!.name.replace(/\.\w+$/, '');
         step.value = 2;
-    };
-    reader.readAsText(selectedFile.value);
+    } catch (error) {
+        console.error('Could not read the CSV file:', error);
+    }
 };
 
 const parseCSVLine = (line: string): string[] => {
@@ -285,15 +289,13 @@ const parseCSVLine = (line: string): string[] => {
             } else {
                 current += char;
             }
+        } else if (char === '"') {
+            inQuotes = true;
+        } else if (char === ',') {
+            result.push(current.trim());
+            current = '';
         } else {
-            if (char === '"') {
-                inQuotes = true;
-            } else if (char === ',') {
-                result.push(current.trim());
-                current = '';
-            } else {
-                current += char;
-            }
+            current += char;
         }
     }
     result.push(current.trim());

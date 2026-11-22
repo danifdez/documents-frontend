@@ -183,7 +183,7 @@
                     <table v-if="result.tableData.labels && result.tableData.values" class="w-full text-sm">
                         <tbody class="divide-y divide-border-light">
                             <tr v-for="(label, i) in result.tableData.labels" :key="i" class="hover:bg-surface-hover">
-                                <td class="px-3 py-1.5 text-text-primary">{{ label }}</td>
+                                <th scope="row" class="px-3 py-1.5 text-left font-normal text-text-primary">{{ label }}</th>
                                 <td class="px-3 py-1.5 text-right text-text-secondary font-mono">
                                     {{ formatTableValue(result.tableData.values[i]) }}
                                 </td>
@@ -219,6 +219,7 @@ import type {
     DatasetField,
 } from '../../services/datasets/useDatasets';
 import { useId, ref, computed, watch, nextTick, onUnmounted } from 'vue';
+import { seriesConfiguration } from '../../services/datasets/chartConfiguration';
 import { Chart, registerables } from 'chart.js';
 import {
     formatDatasetValue as formatValue,
@@ -336,28 +337,12 @@ const renderChart = async (newResult: StatsResult | null) => {
             },
             options: { responsive: true, maintainAspectRatio: false },
         });
-    } else if (chartType && chartType !== 'box' && chartType !== 'heatmap'
-        && chartType !== 'stacked_bar' && data.labels && data.values) {
-        const bgColor = chartType === 'pie'
-            ? data.labels.map((_: string, i: number) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
-            : 'rgba(99, 102, 241, 0.6)';
-
-        chartInstance = new Chart(ctx, {
-            type: chartType === 'histogram' ? 'bar' : chartType,
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: newResult.fieldName || newResult.fn || 'Value',
-                    data: data.values,
-                    backgroundColor: bgColor,
-                    borderColor: chartType === 'line' ? 'rgba(99, 102, 241, 0.8)' : undefined,
-                    borderWidth: chartType === 'line' ? 2 : 1,
-                    fill: chartType === 'line' ? false : undefined,
-                    tension: chartType === 'line' ? 0.3 : undefined,
-                }],
-            },
-            options: { responsive: true, maintainAspectRatio: false },
-        });
+    } else {
+        const configuration = seriesConfiguration(chartType, data, newResult.fieldName || newResult.fn || 'Value');
+        if (configuration) {
+            configuration.options = { responsive: true, maintainAspectRatio: false };
+            chartInstance = new Chart(ctx, configuration);
+        }
     }
 };
 

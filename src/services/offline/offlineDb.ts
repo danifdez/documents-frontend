@@ -29,9 +29,6 @@ export async function putOfflineFile(wsId: string, resourceId: number, base64Dat
   await window.electronAPI.offlinePutFile(wsId, resourceId, base64Data, mimeType, ext);
 }
 
-export async function getOfflineFilePath(wsId: string, resourceId: number): Promise<string | null> {
-  return window.electronAPI.offlineGetFilePath(wsId, resourceId);
-}
 
 export async function deleteOfflineFile(wsId: string, resourceId: number) {
   await window.electronAPI.offlineDeleteFile(wsId, resourceId);

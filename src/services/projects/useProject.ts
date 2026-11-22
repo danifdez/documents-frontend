@@ -6,7 +6,7 @@ export function useProject() {
     const error = ref(null);
     const isLoading = ref(false);
 
-    const loadProject = async (id: string): Promise<object> => {
+    const loadProject = async (id: string): Promise<Project | null> => {
         if (!id) {
             error.value = 'Invalid project ID';
             return null;
@@ -16,7 +16,7 @@ export function useProject() {
         error.value = null;
 
         try {
-            const response = await apiClient.get(`/projects/${id}`);
+            const response = await apiClient.get<Project>(`/projects/${id}`);
 
             if (!response.data) {
                 throw new Error('No data returned from API');

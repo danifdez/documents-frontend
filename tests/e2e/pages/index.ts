@@ -1,4 +1,3 @@
-export { BasePage } from './BasePage';
 export { Topbar } from './Topbar';
 export { DashboardPage } from './DashboardPage';
 export { ProjectPage } from './ProjectPage';
@@ -12,8 +11,7 @@ export { EntitiesPage } from './EntitiesPage';
 export { KnowledgeBasePage, KnowledgeEntryPage } from './KnowledgeBasePage';
 export { TaskPanel } from './TaskPanel';
 export { SettingsPage } from './SettingsPage';
-export { DatasetsPage, DatasetPage } from './DatasetsPage';
+export { DatasetsPage } from './DatasetsPage';
 export { BibliographyPage } from './BibliographyPage';
 export { LoginPage } from './LoginPage';
-export { ResourcePage } from './ResourcePage';
 export { UserManagementPage } from './UserManagementPage';

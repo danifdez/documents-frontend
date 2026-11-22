@@ -8,7 +8,11 @@
             <div v-for="a in store.assistants" :key="a.id"
                 class="px-3 py-2.5 rounded-lg cursor-pointer transition-colors" :class="selection === 'assistant-' + a.id
                     ? 'bg-accent-subtle text-accent-dark'
-                    : 'hover:bg-surface-hover text-text-secondary'" @click="onSelectAssistant(a.id)">
+                    : 'hover:bg-surface-hover text-text-secondary'" @click="onSelectAssistant(a.id)"
+                    role="button"
+                    tabindex="0"
+                    @keydown.enter.self.prevent="onSelectAssistant(a.id)"
+                    @keydown.space.self.prevent="onSelectAssistant(a.id)">
                 <div class="flex items-center gap-2">
                     <span class="text-lg leading-none">{{ a.icon || '◇' }}</span>
                     <span class="text-sm font-semibold">{{ a.name }}</span>

@@ -29,52 +29,46 @@ export function useResourceSplitDrop({
         handleDrop
     } = useDragDrop();
 
+    async function openDocument(id: string) {
+        try {
+            const document = await loadDocument(id);
+            splitResource.value = null;
+            splitDocument.value = document;
+            splitViewActive.value = true;
+        } catch {
+            notification.error('Failed to load document');
+        }
+    }
+
+    async function openResource(id: string) {
+        try {
+            const { loadResource } = useResource();
+            const resource = await loadResource(id);
+            splitDocument.value = null;
+            splitResource.value = resource;
+            splitViewActive.value = true;
+        } catch {
+            notification.error('Failed to load resource');
+        }
+    }
+
     const onDrop = async (event: DragEvent) => {
         event.preventDefault();
         event.stopPropagation();
-
         const droppedData = handleDrop(event);
-
-        if (droppedData && droppedData.type === 'document') {
-            try {
-                const document = droppedData.document;
-                if (document && document.id) {
-                    const fullDocument = await loadDocument(document.id);
-                    splitResource.value = null;
-                    splitDocument.value = fullDocument;
-                    splitViewActive.value = true;
-                }
-            } catch {
-                notification.error('Failed to load document');
-            }
-        } else if (droppedData && droppedData.type === 'resource') {
-            try {
-                // DragData only types `document`; other payloads come through its index signature
-                const droppedResource = droppedData.resource as { id?: string | number } | undefined;
-                if (droppedResource && droppedResource.id && String(droppedResource.id) !== String(resourceId.value)) {
-                    const { loadResource: loadSplitResource } = useResource();
-                    const fullResource = await loadSplitResource(String(droppedResource.id));
-                    splitDocument.value = null;
-                    splitResource.value = fullResource;
-                    splitViewActive.value = true;
-                }
-            } catch {
-                notification.error('Failed to load resource');
-            }
-        } else {
-            const dataTransfer = event.dataTransfer;
-            const files = dataTransfer?.files;
-
-            if (files && files.length > 0) {
-                // OS file drops are intentionally ignored; the branch exists so they
-                // don't fall through to the link-dropped notification below
-            } else {
-                const url = dataTransfer?.getData('text/uri-list') || dataTransfer?.getData('text/plain');
-                if (url) {
-                    notification.info(`Link dropped: ${url}`);
-                }
-            }
+        if (droppedData?.type === 'document') {
+            if (droppedData.document?.id) await openDocument(droppedData.document.id);
+            return;
         }
+        if (droppedData?.type === 'resource') {
+            const resource = droppedData.resource as { id?: string | number } | undefined;
+            if (resource?.id && String(resource.id) !== resourceId.value) await openResource(String(resource.id));
+            return;
+        }
+        const transfer = event.dataTransfer;
+        if (!transfer || transfer.files?.length > 0) return;
+        const url = transfer.getData('text/uri-list') || transfer.getData('text/plain');
+        if (url) notification.info(`Link dropped: ${url}`);
     };
 
     const onDragOver = (event: DragEvent) => {

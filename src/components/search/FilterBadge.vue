@@ -13,6 +13,8 @@
 </template>
 
 <script setup lang="ts">
+defineEmits<{ clear: [] }>();
+
 defineProps({
     term: { type: String, default: '' },
     label: { type: String, default: 'Filtered by' },

@@ -40,10 +40,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import axios from 'axios';
 import type { Workspace } from '../types/Workspace';
 import FormField from './ui/FormField.vue';
+import { trimTrailingSlashes } from '../utils/urlPath';
 
 const props = withDefaults(defineProps<{
   workspace?: Workspace | null;
@@ -57,7 +58,7 @@ const emit = defineEmits<{
   save: [{ name: string; url: string }];
 }>();
 
-const editing = !!props.workspace;
+const editing = computed(() => Boolean(props.workspace));
 const name = ref(props.workspace?.name || '');
 const url = ref(props.workspace?.url || '');
 const testing = ref(false);
@@ -79,7 +80,7 @@ async function testConnection() {
 
 function handleSubmit() {
   if (!name.value.trim() || !url.value.trim()) return;
-  const cleanUrl = url.value.replace(/\/+$/, '');
+  const cleanUrl = trimTrailingSlashes(url.value);
   emit('save', { name: name.value.trim(), url: cleanUrl });
 }
 

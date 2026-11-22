@@ -179,7 +179,7 @@ describe('dataset statistics', () => {
     await waitFor(() => expect(lastChart()).toMatchObject({
       type: 'line', data: { datasets: [{ label: 'Pages', data: [15, 19], tension: 0.3 }] },
     }));
-    expect(screen.getByRole('cell', { name: '2026-01' })).toBeTruthy();
+    expect(screen.getByRole('rowheader', { name: '2026-01' })).toBeTruthy();
     await fireEvent.click(btn('Export PNG'));
     await fireEvent.click(btn('Export CSV'));
     expect(downloads.downloads).toEqual([

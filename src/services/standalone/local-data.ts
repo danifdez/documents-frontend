@@ -32,20 +32,25 @@ export function migrateLegacyLocalData(): void {
 
   for (const legacyRoot of legacyRoots) {
     for (const name of ['pg-data', 'documents', 'pg-credentials.json']) {
-      const source = path.join(legacyRoot, name);
-      const target = path.join(persistentRoot, name);
-      if (!fs.existsSync(source) || fs.existsSync(target)) continue;
-
-      fs.mkdirSync(persistentRoot, { recursive: true });
-      try {
-        fs.renameSync(source, target);
-      } catch (error: unknown) {
-        const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
-        if (code === 'EXDEV') {
-          throw new Error(`Local data was not moved because its destination is on another filesystem. Move ${source} to ${target} before starting Documents.`);
-        }
-        throw error;
-      }
+      moveLegacyItem(legacyRoot, persistentRoot, name);
     }
+  }
+}
+
+
+function moveLegacyItem(legacyRoot: string, persistentRoot: string, name: string): void {
+  const source = path.join(legacyRoot, name);
+  const target = path.join(persistentRoot, name);
+  if (!fs.existsSync(source) || fs.existsSync(target)) return;
+
+  fs.mkdirSync(persistentRoot, { recursive: true });
+  try {
+    fs.renameSync(source, target);
+  } catch (error: unknown) {
+    const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
+    if (code === 'EXDEV') {
+      throw new Error(`Local data was not moved because its destination is on another filesystem. Move ${source} to ${target} before starting Documents.`);
+    }
+    throw error;
   }
 }

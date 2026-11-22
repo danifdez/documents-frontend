@@ -56,7 +56,8 @@ import { Handle, Position, useNode } from '@vue-flow/core';
 import { NodeResizer } from '@vue-flow/node-resizer';
 import '@vue-flow/node-resizer/dist/style.css';
 import NodeFloatingToolbar from '../NodeFloatingToolbar.vue';
-import { Chart, registerables, type ChartConfiguration } from 'chart.js';
+import { Chart, registerables } from 'chart.js';
+import { datasetChartConfiguration } from '../../../services/datasets/chartConfiguration';
 import { useDatasets, type StatsResult } from '../../../services/datasets/useDatasets';
 
 Chart.register(...registerables);
@@ -125,48 +126,9 @@ const renderChart = (result: StatsResult | null) => {
   const ctx = offscreen.getContext('2d');
   if (!ctx) return;
 
-  const { chartType, chartData: data, title, yLabel } = result;
-  let config: ChartConfiguration | null = null;
-
-  if (chartType === 'scatter' && data.points) {
-    config = {
-      type: 'scatter' as const,
-      data: {
-        datasets: [{
-          label: title || 'Data',
-          data: data.points,
-          backgroundColor: 'rgba(99, 102, 241, 0.5)',
-          pointRadius: 4,
-        }],
-      },
-    };
-  } else if (chartType && chartType !== 'none' && chartType !== 'box' && chartType !== 'heatmap'
-        && chartType !== 'stacked_bar' && data.labels && data.values) {
-    const isPie = chartType === 'pie' || chartType === 'doughnut';
-    const bgColor = isPie
-      ? data.labels.map((_, i) => `hsla(${(i * 360) / data.labels.length}, 70%, 60%, 0.7)`)
-      : 'rgba(99, 102, 241, 0.6)';
-
-    config = {
-      type: chartType === 'histogram' ? 'bar' : chartType,
-      data: {
-        labels: data.labels,
-        datasets: [{
-          label: yLabel || title || 'Value',
-          data: data.values,
-          backgroundColor: bgColor,
-          borderColor: chartType === 'line' ? 'rgba(99, 102, 241, 0.8)' : undefined,
-          borderWidth: chartType === 'line' ? 2 : 1,
-          fill: chartType === 'line' ? false : undefined,
-          tension: chartType === 'line' ? 0.3 : undefined,
-        }],
-      },
-    };
-  }
-
+  const config = datasetChartConfiguration(result, true);
   if (!config) return;
-
-  const isPie = chartType === 'pie' || chartType === 'doughnut';
+  const isPie = result.chartType === 'pie' || result.chartType === 'doughnut';
   config.options = {
     responsive: false,
     animation: false,

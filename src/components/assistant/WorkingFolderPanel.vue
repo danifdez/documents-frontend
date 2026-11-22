@@ -78,7 +78,8 @@
             </div>
 
             <div v-if="editorMode" class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 p-3"
-                @click.self="closeEditor">
+                @click.self="closeEditor"
+                @keydown.esc.stop="closeEditor">
                 <form class="flex max-h-full w-full flex-col rounded-lg border border-border bg-surface-elevated p-4 shadow-xl"
                     @submit.prevent="saveEditor">
                     <div class="mb-3 flex items-center justify-between gap-2">
@@ -117,7 +118,8 @@
             </div>
 
             <div v-if="pendingDelete" class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 p-4"
-                @click.self="pendingDelete = null">
+                @click.self="pendingDelete = null"
+                @keydown.esc.stop="pendingDelete = null">
                 <div class="w-full max-w-80 rounded-lg border border-border bg-surface-elevated p-4 shadow-xl">
                     <h4 class="mb-2 text-sm font-semibold text-text-primary">Delete file?</h4>
                     <p class="mb-4 break-words text-xs text-text-secondary">
@@ -139,6 +141,7 @@
 </template>
 
 <script setup lang="ts">
+import { forEachSequential } from '../../utils/forEachSequential';
 import { getErrorMessage, getResponseError } from '../../utils/errorDetails';
 import { computed, ref, watch } from 'vue';
 import LoadingSpinner from '../ui/LoadingSpinner.vue';
@@ -283,16 +286,17 @@ function onDragLeave(event: DragEvent) {
 async function onDrop(event: DragEvent) {
     dragging.value = false;
     if (!props.ownerType || props.ownerId === null || !hasFolder.value) return;
-    for (const file of Array.from(event.dataTransfer?.files ?? [])) {
+    const { ownerType, ownerId } = props;
+    await forEachSequential(Array.from(event.dataTransfer?.files ?? []), async (file) => {
         const upload = { name: file.name, error: undefined as string | undefined };
         uploads.value.push(upload);
         try {
-            await api.upload(props.ownerType, props.ownerId, file);
+            await api.upload(ownerType!, ownerId!, file);
             uploads.value = uploads.value.filter((item) => item !== upload);
         } catch (error: unknown) {
             upload.error = getResponseError(error, 'error') || getErrorMessage(error) || 'Upload failed';
         }
-    }
+    });
     await refresh();
 }
 

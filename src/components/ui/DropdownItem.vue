@@ -1,8 +1,8 @@
 <template>
-    <div class="block px-4 py-2 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary cursor-pointer transition-colors duration-150"
-        :class="className" role="menuitem" tabindex="-1" @click="$emit('click', $event)">
+    <button type="button" class="block w-full text-left px-4 py-2 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary cursor-pointer transition-colors duration-150"
+        :class="className" role="menuitem" @click="$emit('click', $event)">
         <slot></slot>
-    </div>
+    </button>
 </template>
 
 <script setup lang="ts">

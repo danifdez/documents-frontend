@@ -31,7 +31,11 @@
             : 'border-transparent text-text-secondary hover:border-border'"
           :style="{ backgroundColor: epoch.color }"
         >
-          <span class="cursor-pointer" @click="toggleEpochFocus(epoch.id)">{{ epoch.name }}</span>
+          <span class="cursor-pointer" @click="toggleEpochFocus(epoch.id)"
+              role="button"
+              tabindex="0"
+              @keydown.enter.self.prevent="toggleEpochFocus(epoch.id)"
+              @keydown.space.self.prevent="toggleEpochFocus(epoch.id)">{{ epoch.name }}</span>
           <button class="hidden group-hover:block p-0 text-text-muted hover:text-accent transition-colors" title="Edit" @click.stop="emit('edit-epoch', epoch)">
             <svg aria-hidden="true" class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
           </button>
@@ -65,6 +69,10 @@
                 display: focusedEpochId && focusedEpochId !== epoch.id ? 'none' : undefined,
               }"
               @click="$emit('edit-epoch', epoch)"
+              role="button"
+              tabindex="0"
+              @keydown.enter.self.prevent="$emit('edit-epoch', epoch)"
+              @keydown.space.self.prevent="$emit('edit-epoch', epoch)"
             >
               <span class="absolute left-1.5 top-1 text-[9px] font-semibold text-text-primary/70 whitespace-nowrap truncate"
                 :style="{ maxWidth: Math.max(20, dateToPixel(epoch.endDate) - dateToPixel(epoch.startDate) - 8) + 'px' }">
@@ -117,6 +125,10 @@
                 backgroundColor: event.color,
               }"
               @click="$emit('edit-event', event)"
+              role="button"
+              tabindex="0"
+              @keydown.enter.self.prevent="$emit('edit-event', event)"
+              @keydown.space.self.prevent="$emit('edit-event', event)"
             ></div>
           </template>
 
@@ -132,6 +144,10 @@
                 backgroundColor: event.color,
               }"
               @click="$emit('edit-event', event)"
+              role="button"
+              tabindex="0"
+              @keydown.enter.self.prevent="$emit('edit-event', event)"
+              @keydown.space.self.prevent="$emit('edit-event', event)"
             ></div>
           </template>
 
@@ -181,6 +197,10 @@
                   ? { left: dateToPixel(el.event.date) + 'px', bottom: (timelineHeight - axisY + 6 + el.connectorH) + 'px' }
                   : { left: dateToPixel(el.event.date) + 'px', top: (axisY + 6 + el.connectorH) + 'px' }"
                 @click="$emit('edit-event', el.event)"
+                role="button"
+                tabindex="0"
+                @keydown.enter.self.prevent="$emit('edit-event', el.event)"
+                @keydown.space.self.prevent="$emit('edit-event', el.event)"
               >
                 <span
                   class="text-[10px] font-medium text-text-primary leading-tight text-center max-w-[100px] truncate block group-hover:text-accent transition-colors px-1 py-0.5 rounded"
@@ -479,11 +499,10 @@ const timeTicks = computed(() => {
     const d = new Date(ms);
     const dateStr = d.toISOString().slice(0, 10);
     const px = dateToPixel(dateStr);
-    const label = stepDays >= 365
-      ? d.getUTCFullYear().toString()
-      : stepDays >= 28
-        ? d.toLocaleDateString(undefined, { year: '2-digit', month: 'short' })
-        : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const dateOptions: Intl.DateTimeFormatOptions = stepDays >= 28
+      ? { year: '2-digit', month: 'short' }
+      : { month: 'short', day: 'numeric' };
+    const label = stepDays >= 365 ? d.getUTCFullYear().toString() : d.toLocaleDateString(undefined, dateOptions);
     ticks.push({ px, label });
   }
   return ticks;

@@ -1,15 +1,5 @@
 import type { Page } from '@playwright/test';
 
-/**
- * Navigate to a hash route within the Electron app.
- * The app uses createWebHashHistory(), so URLs are like file://...index.html#/path
- */
-export async function navigateTo(window: Page, hashPath: string) {
-  const currentUrl = window.url();
-  const base = currentUrl.split('#')[0];
-  await window.goto(`${base}#${hashPath}`);
-  await window.waitForLoadState('domcontentloaded');
-}
 
 /**
  * Confirm the backend is reachable before running tests.

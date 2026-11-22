@@ -41,57 +41,109 @@ export const buildGraphLayout = (ents: RelationshipEntity[], rels: Relationship[
         if (si !== undefined && ti !== undefined) links.push({ source: si, target: ti, predicate: r.predicate, weight: r.confidence || 1 });
     }
 
-    // Initial layout: place hubs at center, radiate neighbors outward
-    const placed = new Set<number>();
-    const queue: number[] = [];
-
-    // Place the top hub at center
-    if (nodes.length > 0) {
-        nodes[0].x = SIM_W / 2;
-        nodes[0].y = SIM_H / 2;
-        placed.add(0);
-        queue.push(0);
-    }
-
-    // BFS radial placement
-    while (queue.length > 0) {
-        const curr = queue.shift()!;
-        const neighbors: number[] = [];
-        for (const l of links) {
-            if (l.source === curr && !placed.has(l.target)) neighbors.push(l.target);
-            if (l.target === curr && !placed.has(l.source)) neighbors.push(l.source);
-        }
-        if (neighbors.length === 0) continue;
-
-        const ringRadius = nodes[curr].radius + 140 + neighbors.length * 15;
-        // Find existing angle bias from already-placed neighbors
-        let startAngle = Math.random() * Math.PI * 2;
-        const angleStep = (Math.PI * 2) / Math.max(neighbors.length, 1);
-
-        for (let i = 0; i < neighbors.length; i++) {
-            const ni = neighbors[i];
-            const angle = startAngle + i * angleStep;
-            nodes[ni].x = nodes[curr].x + Math.cos(angle) * ringRadius;
-            nodes[ni].y = nodes[curr].y + Math.sin(angle) * ringRadius;
-            placed.add(ni);
-            queue.push(ni);
-        }
-    }
-
-    // Place any disconnected nodes in a ring around the periphery
-    const unplaced = nodes.filter((_, i) => !placed.has(i));
-    if (unplaced.length > 0) {
-        const peripheryRadius = SIM_W * 0.35;
-        const angleStep = (Math.PI * 2) / unplaced.length;
-        unplaced.forEach((n, i) => {
-            n.x = SIM_W / 2 + Math.cos(i * angleStep) * peripheryRadius;
-            n.y = SIM_H / 2 + Math.sin(i * angleStep) * peripheryRadius;
-        });
-    }
-
+    initializePositions(nodes, links);
     runSimulation(nodes, links);
     return { nodes, links };
 };
+
+function initializePositions(nodes: SimNode[], links: SimLink[]): void {
+    if (!nodes.length) return;
+
+    const placed = new Set<number>([0]);
+    const queue = [0];
+    nodes[0].x = SIM_W / 2;
+    nodes[0].y = SIM_H / 2;
+
+    while (queue.length) {
+        const current = queue.shift()!;
+        const neighbors = unplacedNeighbors(links, current, placed);
+        if (!neighbors.length) continue;
+
+        const ringRadius = nodes[current].radius + 140 + neighbors.length * 15;
+        const startAngle = Math.random() * Math.PI * 2;
+        const angleStep = 2 * Math.PI / neighbors.length;
+        neighbors.forEach((index, position) => {
+            const angle = startAngle + position * angleStep;
+            nodes[index].x = nodes[current].x + Math.cos(angle) * ringRadius;
+            nodes[index].y = nodes[current].y + Math.sin(angle) * ringRadius;
+            placed.add(index);
+            queue.push(index);
+        });
+    }
+
+    const unplaced = nodes.filter((_, index) => !placed.has(index));
+    const peripheryRadius = SIM_W * 0.35;
+    const angleStep = 2 * Math.PI / unplaced.length;
+    unplaced.forEach((node, index) => {
+        node.x = SIM_W / 2 + Math.cos(index * angleStep) * peripheryRadius;
+        node.y = SIM_H / 2 + Math.sin(index * angleStep) * peripheryRadius;
+    });
+}
+
+function unplacedNeighbors(links: SimLink[], current: number, placed: Set<number>): number[] {
+    const neighbors: number[] = [];
+    for (const link of links) {
+        if (link.source === current && !placed.has(link.target)) neighbors.push(link.target);
+        if (link.target === current && !placed.has(link.source)) neighbors.push(link.source);
+    }
+    return neighbors;
+}
+
+function repelNodes(nodes: SimNode[], adj: Map<number, Set<number>>, alpha: number): void {
+    // Repulsion between nodes — radius-aware, stronger for non-neighbors
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+            let dx = nodes[j].x - nodes[i].x;
+            let dy = nodes[j].y - nodes[i].y;
+            const dist = Math.hypot(dx, dy) || 1;
+            const minDist = nodes[i].radius + nodes[j].radius + 60;
+            const areNeighbors = adj.get(i)?.has(j);
+            const repStrength = areNeighbors ? 3000 : 5000;
+            let force = (repStrength * alpha) / (dist * dist);
+            if (dist < minDist) {
+                force += (minDist - dist) * 1.0;
+            }
+            dx = (dx / dist) * force; dy = (dy / dist) * force;
+            nodes[i].vx -= dx; nodes[i].vy -= dy;
+            nodes[j].vx += dx; nodes[j].vy += dy;
+        }
+    }
+}
+
+function attractLinkedNodes(nodes: SimNode[], links: SimLink[], alpha: number): void {
+    // Attraction along edges — keeps connected nodes close
+    for (const l of links) {
+        const s = nodes[l.source], t = nodes[l.target];
+        const dx = t.x - s.x, dy = t.y - s.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const idealDist = s.radius + t.radius + 130;
+        const force = (dist - idealDist) * 0.004 * alpha;
+        s.vx += (dx / dist) * force; s.vy += (dy / dist) * force;
+        t.vx -= (dx / dist) * force; t.vy -= (dy / dist) * force;
+    }
+}
+
+function repelNodesFromEdges(nodes: SimNode[], links: SimLink[], alpha: number): void {
+    for (const l of links) {
+        const s = nodes[l.source], t = nodes[l.target];
+        for (let k = 0; k < nodes.length; k++) {
+            if (k === l.source || k === l.target) continue;
+            const n = nodes[k];
+            const ex = t.x - s.x, ey = t.y - s.y;
+            const edgeLen2 = ex * ex + ey * ey || 1;
+            const proj = Math.max(0, Math.min(1, ((n.x - s.x) * ex + (n.y - s.y) * ey) / edgeLen2));
+            const closestX = s.x + proj * ex, closestY = s.y + proj * ey;
+            const dx2 = n.x - closestX, dy2 = n.y - closestY;
+            const distToEdge = Math.hypot(dx2, dy2) || 1;
+            const clearance = n.radius + 35;
+            if (distToEdge < clearance) {
+                const push = (clearance - distToEdge) * 0.4 * alpha;
+                n.vx += (dx2 / distToEdge) * push;
+                n.vy += (dy2 / distToEdge) * push;
+            }
+        }
+    }
+}
 
 export const runSimulation = (nodes: SimNode[], links: SimLink[]): void => {
     const maxIter = 500;
@@ -114,58 +166,11 @@ export const runSimulation = (nodes: SimNode[], links: SimLink[]): void => {
             n.vy += (SIM_H / 2 - n.y) * 0.0005 * alpha;
         }
 
-        // Repulsion between nodes — radius-aware, stronger for non-neighbors
-        for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-                let dx = nodes[j].x - nodes[i].x;
-                let dy = nodes[j].y - nodes[i].y;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                const minDist = nodes[i].radius + nodes[j].radius + 60;
-                const areNeighbors = adj.get(i)?.has(j);
-                const repStrength = areNeighbors ? 3000 : 5000;
-                let force = (repStrength * alpha) / (dist * dist);
-                if (dist < minDist) {
-                    force += (minDist - dist) * 1.0;
-                }
-                dx = (dx / dist) * force; dy = (dy / dist) * force;
-                nodes[i].vx -= dx; nodes[i].vy -= dy;
-                nodes[j].vx += dx; nodes[j].vy += dy;
-            }
-        }
+        repelNodes(nodes, adj, alpha);
 
-        // Attraction along edges — keeps connected nodes close
-        for (const l of links) {
-            const s = nodes[l.source], t = nodes[l.target];
-            const dx = t.x - s.x, dy = t.y - s.y;
-            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            const idealDist = s.radius + t.radius + 130;
-            const force = (dist - idealDist) * 0.004 * alpha;
-            s.vx += (dx / dist) * force; s.vy += (dy / dist) * force;
-            t.vx -= (dx / dist) * force; t.vy -= (dy / dist) * force;
-        }
+        attractLinkedNodes(nodes, links, alpha);
 
-        // Edge-node repulsion — prevent nodes from sitting on top of edges
-        if (iterations % 4 === 0) {
-            for (const l of links) {
-                const s = nodes[l.source], t = nodes[l.target];
-                for (let k = 0; k < nodes.length; k++) {
-                    if (k === l.source || k === l.target) continue;
-                    const n = nodes[k];
-                    const ex = t.x - s.x, ey = t.y - s.y;
-                    const edgeLen2 = ex * ex + ey * ey || 1;
-                    const proj = Math.max(0, Math.min(1, ((n.x - s.x) * ex + (n.y - s.y) * ey) / edgeLen2));
-                    const closestX = s.x + proj * ex, closestY = s.y + proj * ey;
-                    const dx2 = n.x - closestX, dy2 = n.y - closestY;
-                    const distToEdge = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
-                    const clearance = n.radius + 35;
-                    if (distToEdge < clearance) {
-                        const push = (clearance - distToEdge) * 0.4 * alpha;
-                        n.vx += (dx2 / distToEdge) * push;
-                        n.vy += (dy2 / distToEdge) * push;
-                    }
-                }
-            }
-        }
+        if (iterations % 4 === 0) repelNodesFromEdges(nodes, links, alpha);
 
         // Damping
         for (const n of nodes) { n.vx *= 0.7; n.vy *= 0.7; n.x += n.vx; n.y += n.vy; }
@@ -179,10 +184,11 @@ export const collectNodesWithinHops = (links: SimLink[], startIdx: number, maxDe
     let frontier = [startIdx];
     for (let depth = 0; depth < maxDepth; depth++) {
         const nextFrontier: number[] = [];
-        for (const fi of frontier) {
-            for (const l of links) {
-                if (l.source === fi && !visited.has(l.target)) { visited.add(l.target); nextFrontier.push(l.target); }
-                if (l.target === fi && !visited.has(l.source)) { visited.add(l.source); nextFrontier.push(l.source); }
+        for (const from of frontier) {
+            for (const next of unplacedNeighbors(links, from, visited)) {
+                if (visited.has(next)) continue;
+                visited.add(next);
+                nextFrontier.push(next);
             }
         }
         frontier = nextFrontier;
@@ -230,14 +236,7 @@ export interface DrawGraphOptions {
     getNodeColor: (type: string) => string;
 }
 
-export const drawGraph = (ctx: CanvasRenderingContext2D, nodes: SimNode[], links: SimLink[], opts: DrawGraphOptions): void => {
-    const { width, height, dpr, zoom, panX, panY, mutedColor, getNodeColor } = opts;
-    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, width, height);
-
-    ctx.save();
-    ctx.translate(panX, panY);
-    ctx.scale(zoom, zoom);
-
+function graphHighlights(links: SimLink[], opts: DrawGraphOptions) {
     // Highlight set — focus (dblclick, 2-hop) takes priority over selection (click, 1-hop)
     const focus = opts.focusedNodeIdx;
     const sel = focus ?? opts.selectedNodeIdx;
@@ -259,8 +258,17 @@ export const drawGraph = (ctx: CanvasRenderingContext2D, nodes: SimNode[], links
             }
         });
     }
-    const hasSelection = sel !== null;
+    return { sel, highlightNodes, highlightEdges };
+}
 
+function drawEdges(
+    ctx: CanvasRenderingContext2D,
+    nodes: SimNode[],
+    links: SimLink[],
+    mutedColor: string,
+    hasSelection: boolean,
+    highlightEdges: Set<number>,
+): void {
     // Count parallel edges between same node pairs to curve them
     const edgePairCount = new Map<string, number>();
     const edgePairIndex = new Map<string, number>();
@@ -280,7 +288,7 @@ export const drawGraph = (ctx: CanvasRenderingContext2D, nodes: SimNode[], links
         const labelAlpha = isActive ? 1 : 0.15;
 
         const s = nodes[l.source], t = nodes[l.target];
-        const dx = t.x - s.x, dy = t.y - s.y, dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const dx = t.x - s.x, dy = t.y - s.y, dist = Math.hypot(dx, dy) || 1;
 
         // Perpendicular offset for parallel edges
         const nx = -dy / dist, ny = dx / dist;
@@ -319,10 +327,59 @@ export const drawGraph = (ctx: CanvasRenderingContext2D, nodes: SimNode[], links
         ctx.globalAlpha = labelAlpha;
         ctx.fillStyle = mutedColor;
         ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-        const lbl = l.predicate.replace(/_/g, ' ');
+        const lbl = l.predicate.replaceAll('_', ' ');
         ctx.fillText(lbl.length > 24 ? lbl.slice(0, 23) + '…' : lbl, labelX, labelY - 4);
         ctx.globalAlpha = 1;
     });
+}
+
+function drawNodeName(ctx: CanvasRenderingContext2D, n: SimNode): void {
+    // Name inside
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const maxWidth = n.radius * 1.6;
+    const fontSize = Math.max(8, Math.min(12, n.radius * 0.38));
+    ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+
+    const words = n.name.split(/\s+/);
+    const lines: string[] = [];
+    let currentLine = '';
+    for (const word of words) {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+        } else {
+            currentLine = testLine;
+        }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    const maxLines = Math.max(1, Math.floor(n.radius / (fontSize * 0.7)));
+    const displayLines = lines.slice(0, maxLines);
+    if (lines.length > maxLines) {
+        displayLines[maxLines - 1] = displayLines[maxLines - 1].slice(0, -1) + '…';
+    }
+
+    const lineHeight = fontSize * 1.2;
+    const startY = n.y - ((displayLines.length - 1) * lineHeight) / 2;
+    for (let i = 0; i < displayLines.length; i++) {
+        ctx.fillText(displayLines[i], n.x, startY + i * lineHeight);
+    }
+}
+
+export const drawGraph = (ctx: CanvasRenderingContext2D, nodes: SimNode[], links: SimLink[], opts: DrawGraphOptions): void => {
+    const { width, height, dpr, zoom, panX, panY, mutedColor, getNodeColor } = opts;
+    ctx.scale(dpr, dpr); ctx.clearRect(0, 0, width, height);
+
+    ctx.save();
+    ctx.translate(panX, panY);
+    ctx.scale(zoom, zoom);
+
+    const { sel, highlightNodes, highlightEdges } = graphHighlights(links, opts);
+    const hasSelection = sel !== null;
+
+    drawEdges(ctx, nodes, links, mutedColor, hasSelection, highlightEdges);
 
     for (let ni = 0; ni < nodes.length; ni++) {
         const n = nodes[ni];
@@ -344,39 +401,7 @@ export const drawGraph = (ctx: CanvasRenderingContext2D, nodes: SimNode[], links
         ctx.lineWidth = isSelected ? 3.5 : 2.5;
         ctx.stroke();
 
-        // Name inside
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const maxWidth = n.radius * 1.6;
-        const fontSize = Math.max(8, Math.min(12, n.radius * 0.38));
-        ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
-
-        const words = n.name.split(/\s+/);
-        const lines: string[] = [];
-        let currentLine = '';
-        for (const word of words) {
-            const testLine = currentLine ? currentLine + ' ' + word : word;
-            if (ctx.measureText(testLine).width > maxWidth && currentLine) {
-                lines.push(currentLine);
-                currentLine = word;
-            } else {
-                currentLine = testLine;
-            }
-        }
-        if (currentLine) lines.push(currentLine);
-
-        const maxLines = Math.max(1, Math.floor(n.radius / (fontSize * 0.7)));
-        const displayLines = lines.slice(0, maxLines);
-        if (lines.length > maxLines) {
-            displayLines[maxLines - 1] = displayLines[maxLines - 1].slice(0, -1) + '…';
-        }
-
-        const lineHeight = fontSize * 1.2;
-        const startY = n.y - ((displayLines.length - 1) * lineHeight) / 2;
-        for (let i = 0; i < displayLines.length; i++) {
-            ctx.fillText(displayLines[i], n.x, startY + i * lineHeight);
-        }
-
+        drawNodeName(ctx, n);
         ctx.globalAlpha = 1;
     }
 

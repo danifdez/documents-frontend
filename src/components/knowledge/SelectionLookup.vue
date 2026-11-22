@@ -53,6 +53,10 @@
                         </button>
                     </div>
                     <div v-for="entry in kbResults" :key="entry.id" @click="goToEntry(entry.id)"
+                        role="button"
+                        tabindex="0"
+                        @keydown.enter.self.prevent="goToEntry(entry.id)"
+                        @keydown.space.self.prevent="goToEntry(entry.id)"
                         class="px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-surface transition-colors">
                         <p class="text-xs font-medium text-text-primary line-clamp-1">{{ entry.title }}</p>
                         <p v-if="entry.summary" class="text-xs text-text-muted mt-0.5 line-clamp-2">{{ entry.summary }}</p>

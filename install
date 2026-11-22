@@ -2,7 +2,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # ── Colors ──
@@ -38,8 +37,8 @@ if [ -f ".env" ]; then
   ok ".env already exists (skipping)"
 else
   echo ""
-  printf "${BOLD}${CYAN}── Frontend environment configuration ──${NC}\n"
-  printf "${DIM}  Press Enter to accept the default value shown in brackets.${NC}\n"
+  printf '%b%s%b\n' "${BOLD}${CYAN}" '── Frontend environment configuration ──' "$NC"
+  printf '%b%s%b\n' "${DIM}" '  Press Enter to accept the default value shown in brackets.' "$NC"
   echo ""
 
   ask "Backend API URL" "http://localhost:3000"; API_URL="$REPLY"
@@ -66,9 +65,9 @@ fi
 
 # ── Summary ──
 echo ""
-printf "${GREEN}============================================${NC}\n"
-printf "${GREEN}  Frontend installation complete!${NC}\n"
-printf "${GREEN}============================================${NC}\n"
+printf '%b%s%b\n' "${GREEN}" '============================================' "$NC"
+printf '%b%s%b\n' "${GREEN}" '  Frontend installation complete!' "$NC"
+printf '%b%s%b\n' "${GREEN}" '============================================' "$NC"
 echo ""
 echo "  Start dev server:  npm start"
 echo ""

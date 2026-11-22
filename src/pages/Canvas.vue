@@ -761,9 +761,9 @@ const pickerHighlightedContent = computed(() => {
   if (!pickerSelectedItem.value) return '';
   const html = pickerSelectedItem.value.htmlContent;
   if (!pickerSearch.value.trim()) return html;
-  const term = pickerSearch.value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const term = pickerSearch.value.trim().replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
   const regex = new RegExp(`(${term})`, 'gi');
-  return html.replace(/>([^<]*)</g, (match: string, text: string) => {
+  return html.replace(/>([^<>]*)</g, (_match: string, text: string) => {
     return '>' + text.replace(regex, '<mark class="bg-amber-200/60 rounded px-0.5">$1</mark>') + '<';
   });
 });

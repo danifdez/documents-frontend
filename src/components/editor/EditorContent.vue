@@ -27,7 +27,11 @@
                             :class="`marker-gutter-icon-${m.type}`"
                             :style="{ top: m.top + 'px' }"
                             :title="m.label + ': ' + m.text"
-                            @click="handleMarkerGutterClick(m.id)">
+                            @click="handleMarkerGutterClick(m.id)"
+                            role="button"
+                            tabindex="0"
+                            @keydown.enter.self.prevent="handleMarkerGutterClick(m.id)"
+                            @keydown.space.self.prevent="handleMarkerGutterClick(m.id)">
                             {{ m.icon }}
                         </div>
                     </div>
@@ -272,7 +276,7 @@ const cssVars = ref({
     '--paragraph-spacing': settings.value.paragraphSpacing.toString(),
 });
 
-function createSearchDecorationPlugin(getDecorations) {
+function createSearchDecorationPlugin(getDecorations: () => DecorationSet) {
     return new Plugin({
         props: {
             decorations() {
@@ -963,13 +967,21 @@ const scrollToPosition = (position: number) => {
     font-size: 14px;
     cursor: pointer;
     border-radius: 6px;
-    transition: transform 0.15s, box-shadow 0.15s;
     user-select: none;
     z-index: 5;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+    .marker-gutter-icon {
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .marker-gutter-icon:hover {
+        transform: scale(1.2);
+    }
+}
+
 .marker-gutter-icon:hover {
-    transform: scale(1.2);
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
@@ -1028,11 +1040,6 @@ const scrollToPosition = (position: number) => {
     font-family: var(--font-family);
 }
 
-:deep(.ProseMirror img) {
-    width: 100%;
-    margin: calc(var(--paragraph-spacing) * 0.5em) 0;
-}
-
 :deep(.ProseMirror h1) {
     font-size: calc(var(--font-size-p) * 2.2px);
     margin-bottom: calc(var(--paragraph-spacing) * 1em);
@@ -1083,10 +1090,9 @@ const scrollToPosition = (position: number) => {
 
 :deep(.editor-content table) {
     border-collapse: collapse;
-    /* Tables always span the document. `!important` is required because Tiptap
-       pins an inline pixel width on tables that carry column widths (e.g. pasted
-       from the web or a saved resized table), which would otherwise win. */
-    width: 100% !important;
+    /* Fill the editor while honoring larger column widths from Tiptap. */
+    width: 100%;
+    min-inline-size: 100%;
     margin: 1rem 0;
 }
 
@@ -1108,15 +1114,15 @@ const scrollToPosition = (position: number) => {
 }
 
 :deep(.editor-content ul) {
-    list-style-type: disc !important;
+    list-style-type: disc;
     padding-left: 2.5rem;
     margin: 0.5rem 0;
 }
 
 :deep(.editor-content ul li) {
-    display: list-item !important;
+    display: list-item;
     margin-bottom: 0.25rem;
-    list-style-type: disc !important;
+    list-style-type: disc;
 }
 
 :deep(.editor-content ol) {
@@ -1269,8 +1275,8 @@ const scrollToPosition = (position: number) => {
 }
 
 :deep(.math-node:hover) {
-    background-color: #EDE9FE !important;
-    border-color: #C4B5FD !important;
+    --math-node-background: #EDE9FE;
+    --math-node-border: #C4B5FD;
 }
 
 /* Video embeds */
@@ -1347,6 +1353,7 @@ const scrollToPosition = (position: number) => {
 
 /* Image styling */
 :deep(.ProseMirror img) {
+    width: 100%;
     max-width: 100%;
     height: auto;
     margin: calc(var(--paragraph-spacing) * 0.5em) 0;

@@ -1,4 +1,5 @@
-import type { OfflineEntity, OfflineItem, OfflinePendingChange } from '../../types/offline';
+import { forEachSequential } from '../../utils/forEachSequential';
+import type { OfflineItem, OfflinePendingChange } from '../../types/offline';
 import { app } from 'electron';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -45,9 +46,8 @@ async function writeJson(filePath: string, data: unknown): Promise<void> {
 
 export function createOfflineHandlers(): IpcHandlerMap {
   return {
-    [IpcChannels.offline.putItem]: async (_, wsId: string, type: string, id: number, data: OfflineEntity, syncedAt: string, parentType?: string, parentId?: number) => {
-      const p = itemPath(wsId, type, id);
-      await writeJson(p, { workspaceId: wsId, entityType: type, entityId: id, data, syncedAt, parentType, parentId });
+    [IpcChannels.offline.putItem]: async (_, item: OfflineItem) => {
+      await writeJson(itemPath(item.workspaceId, item.entityType, item.entityId), item);
     },
 
     [IpcChannels.offline.getItem]: async (_, wsId: string, type: string, id: number) => {
@@ -67,19 +67,15 @@ export function createOfflineHandlers(): IpcHandlerMap {
       const results: OfflineItem[] = [];
 
       try {
-        const types = await fs.readdir(itemsDir);
-        for (const type of types) {
-          const typeDir = path.join(itemsDir, type);
-          const stat = await fs.stat(typeDir);
-          if (!stat.isDirectory()) continue;
-
+        const types = await fs.readdir(itemsDir, { withFileTypes: true });
+        await forEachSequential(types.filter(entry => entry.isDirectory()), async (type) => {
+          const typeDir = path.join(itemsDir, type.name);
           const files = await fs.readdir(typeDir);
-          for (const file of files) {
-            if (!file.endsWith('.json')) continue;
+          await forEachSequential(files.filter(file => file.endsWith('.json')), async (file) => {
             const item = await readJsonSafe<OfflineItem | null>(path.join(typeDir, file), null);
             if (item) results.push(item);
-          }
-        }
+          });
+        });
       } catch {
         // Directory may not exist yet
       }

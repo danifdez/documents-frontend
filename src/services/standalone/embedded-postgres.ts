@@ -14,7 +14,7 @@ export class EmbeddedPostgresService {
   private process: ChildProcess | null = null;
   private _port: number = 0;
   private _running = false;
-  private workspaceId: string;
+  private readonly workspaceId: string;
   // PID of a postmaster we adopted from a previous run (orphaned by an Electron
   // crash) instead of spawning ourselves. We don't own its ChildProcess handle,
   // so `stop()` must signal it by PID.
@@ -125,6 +125,28 @@ export class EmbeddedPostgresService {
     };
   }
 
+  private async adoptPostmaster(): Promise<boolean> {
+    if (this.isInitialized()) {
+      const existing = this.readPostmasterPid();
+      if (existing && this.isProcessAlive(existing.pid)) {
+        try {
+          await this.waitForReady(existing.port, 3000);
+          this._adoptedPid = existing.pid;
+          this._port = existing.port;
+          this._running = true;
+          return true;
+        } catch {
+          // PID alive but not accepting connections on that port — fall through
+          // and let the spawn below surface the real error.
+        }
+      } else if (existing) {
+        try { fs.rmSync(this.getPidFilePath()); } catch { /* ignore */ }
+      }
+    }
+
+    return false;
+  }
+
   async start(preferredPort?: number): Promise<void> {
     if (this._running) return;
 
@@ -146,23 +168,7 @@ export class EmbeddedPostgresService {
     // the same dir is impossible regardless of the port — so don't try to start
     // another. Adopt the live one (read its port from the pidfile); if the lock
     // is stale (the process is gone), remove it so a fresh start can proceed.
-    if (this.isInitialized()) {
-      const existing = this.readPostmasterPid();
-      if (existing && this.isProcessAlive(existing.pid)) {
-        try {
-          await this.waitForReady(existing.port, 3000);
-          this._adoptedPid = existing.pid;
-          this._port = existing.port;
-          this._running = true;
-          return;
-        } catch {
-          // PID alive but not accepting connections on that port — fall through
-          // and let the spawn below surface the real error.
-        }
-      } else if (existing) {
-        try { fs.rmSync(this.getPidFilePath()); } catch { /* ignore */ }
-      }
-    }
+    if (await this.adoptPostmaster()) return;
 
     const port = preferredPort || await findFreePort();
 

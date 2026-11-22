@@ -1,7 +1,8 @@
 <template>
     <Teleport to="body">
         <Transition name="chat-overlay">
-            <div v-if="show" class="fixed inset-0 z-50 flex justify-end" @click.self="$emit('close')">
+            <div v-if="show" class="fixed inset-0 z-50 flex justify-end" @click.self="$emit('close')"
+                @keydown.esc.stop="$emit('close')">
                 <Transition name="chat-panel" appear>
                     <div v-if="show"
                         class="h-full w-[420px] max-w-full bg-surface-elevated border-l border-border flex flex-col shadow-2xl shadow-black/10">
@@ -85,7 +86,7 @@
                                 <div class="flex-1 relative">
                                     <input aria-label="Ask a question" v-model="input" type="text" placeholder="Ask a question..."
                                         class="w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all pr-10"
-                                        :disabled="isLoading" @keydown.escape="$emit('close')" ref="chatInput" />
+                                        :disabled="isLoading" ref="chatInput" />
                                 </div>
                                 <button aria-label="Send message" type="submit" :disabled="isLoading || !input.trim()"
                                     class="p-2.5 bg-accent hover:bg-accent-dark text-white rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0">

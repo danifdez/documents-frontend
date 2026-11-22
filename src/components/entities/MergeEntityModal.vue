@@ -26,7 +26,11 @@
                                 Pending Entities (this document)
                             </div>
                             <div v-for="entity in filteredPendingEntities" :key="'pending-' + entity.id"
-                                @click="selectTargetEntity('pending', entity)" :class="[
+                                @click="selectTargetEntity('pending', entity)"
+                                role="button"
+                                tabindex="0"
+                                @keydown.enter.self.prevent="selectTargetEntity('pending', entity)"
+                                @keydown.space.self.prevent="selectTargetEntity('pending', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'pending' && selectedTarget.id === entity.id
                                         ? 'bg-blue-100'
@@ -58,7 +62,11 @@
                                 Confirmed Entities (this document)
                             </div>
                             <div v-for="entity in confirmedEntitiesByScope.document" :key="'confirmed-doc-' + entity.id"
-                                @click="selectTargetEntity('confirmed', entity)" :class="[
+                                @click="selectTargetEntity('confirmed', entity)"
+                                role="button"
+                                tabindex="0"
+                                @keydown.enter.self.prevent="selectTargetEntity('confirmed', entity)"
+                                @keydown.space.self.prevent="selectTargetEntity('confirmed', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
                                         ? 'bg-blue-100'
@@ -89,7 +97,11 @@
                                 Confirmed Entities (this project)
                             </div>
                             <div v-for="entity in confirmedEntitiesByScope.project" :key="'confirmed-proj-' + entity.id"
-                                @click="selectTargetEntity('confirmed', entity)" :class="[
+                                @click="selectTargetEntity('confirmed', entity)"
+                                role="button"
+                                tabindex="0"
+                                @keydown.enter.self.prevent="selectTargetEntity('confirmed', entity)"
+                                @keydown.space.self.prevent="selectTargetEntity('confirmed', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
                                         ? 'bg-blue-100'
@@ -120,7 +132,11 @@
                                 Confirmed Entities (global)
                             </div>
                             <div v-for="entity in confirmedEntitiesByScope.global" :key="'confirmed-glob-' + entity.id"
-                                @click="selectTargetEntity('confirmed', entity)" :class="[
+                                @click="selectTargetEntity('confirmed', entity)"
+                                role="button"
+                                tabindex="0"
+                                @keydown.enter.self.prevent="selectTargetEntity('confirmed', entity)"
+                                @keydown.space.self.prevent="selectTargetEntity('confirmed', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
                                         ? 'bg-blue-100'

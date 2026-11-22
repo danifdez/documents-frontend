@@ -44,7 +44,11 @@
     <div v-else class="flex-1 overflow-y-auto">
       <div v-for="result in results" :key="`${result.collection}-${result.id}`"
         class="border-b border-border-light last:border-b-0 px-3 py-2.5 hover:bg-surface-hover transition-colors cursor-pointer group"
-        @click="openResult(result)">
+        @click="openResult(result)"
+        role="button"
+        tabindex="0"
+        @keydown.enter.self.prevent="openResult(result)"
+        @keydown.space.self.prevent="openResult(result)">
         <div class="flex items-start gap-2">
           <div class="flex-shrink-0 mt-0.5">
             <span class="inline-flex items-center justify-center w-5 h-5 rounded"

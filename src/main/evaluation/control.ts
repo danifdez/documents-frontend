@@ -11,16 +11,18 @@ import { LocalEngine } from '../voice/localEngine';
 import { createVoiceHandlers } from '../ipc/voice-handlers';
 import { registerIpcHandlers } from '../ipc/registry';
 import { laboratoryProfile } from './profile';
+import { hasExactOwnKeys } from '../../utils/hasExactOwnKeys';
 const LIMIT = 8 * 1024 * 1024;
 const PAGE = 'data:text/html;charset=utf-8,' + encodeURIComponent('<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; frame-src \'none\'"><title>Documents evaluation</title>');
 function exact(value: unknown, names: string[]): asserts value is Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join() !== names.sort().join()) throw new Error('Invalid evaluation request');
+  if (!hasExactOwnKeys(value, names)) throw new Error('Invalid evaluation request');
 }
 export function checkedEvaluationInput(value: unknown, mode: string): EvaluationInput {
   exact(value, ['media_type', 'chunks', 'execution']); exact(value.execution, ['delivery', 'finish', 'evidence_mode']);
-  if (!['audio/wav','audio/webm','audio/webm;codecs=opus','audio/ogg','audio/ogg;codecs=opus'].includes(String(value.media_type)) ||
+  if (typeof value.media_type !== 'string' ||
+      !['audio/wav','audio/webm','audio/webm;codecs=opus','audio/ogg','audio/ogg;codecs=opus'].includes(value.media_type) ||
       !Array.isArray(value.chunks) || value.chunks.length > 4096 || value.execution.delivery !== 'ordered_ack' ||
-      !['stop','cancel'].includes(String(value.execution.finish)) || value.execution.evidence_mode !== mode) throw new Error('Invalid evaluation conditions');
+      (value.execution.finish !== 'stop' && value.execution.finish !== 'cancel') || value.execution.evidence_mode !== mode) throw new Error('Invalid evaluation conditions');
   let bytes = 0;
   for (const chunk of value.chunks) {
     exact(chunk, ['size', 'sha256', 'base64']);
@@ -46,6 +48,32 @@ function privateToken(profile: string): string {
     return value.token;
   } finally { fs.closeSync(fd); }
 }
+function handleEvaluationConnection(socket: net.Socket, dispatch: (raw: Buffer) => Promise<unknown>): void {
+  let raw = Buffer.alloc(0);
+  let handled = false;
+  socket.setTimeout(15000, () => socket.destroy());
+  function respond(ok: boolean, value: unknown) {
+    if (socket.destroyed) return;
+    const output = JSON.stringify({ ok, value }) + '\n';
+    socket.end(Buffer.byteLength(output) <= LIMIT ? output : '{"ok":false,"value":null}\n');
+  }
+  socket.on('error', (): undefined => undefined);
+  socket.on('data', (part) => {
+    if (handled) {
+      socket.destroy();
+      return;
+    }
+    raw = Buffer.concat([raw, Buffer.isBuffer(part) ? part : Buffer.from(part)]);
+    if (raw.length > LIMIT) {
+      socket.destroy();
+      return;
+    }
+    if (!raw.includes(10)) return;
+    handled = true;
+    void dispatch(raw).then(value => respond(true, value), () => respond(false, null));
+  });
+}
+
 export async function startEvaluation(profile: string, preload: string, engine = new LocalEngine(undefined, undefined, { allowModelDownload: false }), mode: 'observed' | 'simulated' = 'observed') {
   laboratoryProfile(profile);
   const endpoint = path.join(profile, 'evaluation.sock');
@@ -61,9 +89,12 @@ export async function startEvaluation(profile: string, preload: string, engine =
   const pending = new Map<string, { resolve(value: unknown): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }>();
   ipcMain.handle(IpcChannels.evaluation.result, (event, message: unknown) => {
     if (!trusted(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('Evaluation access denied');
-    exact(message, ['id','ok','value']); const item = pending.get(String(message.id));
-    if (!item || typeof message.ok !== 'boolean') throw new Error('Unknown evaluation response');
-    clearTimeout(item.timer); pending.delete(String(message.id));
+    exact(message, ['id', 'ok', 'value']);
+    if (typeof message.id !== 'string' || typeof message.ok !== 'boolean') throw new Error('Unknown evaluation response');
+    const item = pending.get(message.id);
+    if (!item) throw new Error('Unknown evaluation response');
+    clearTimeout(item.timer);
+    pending.delete(message.id);
     if (message.ok) item.resolve(message.value); else item.reject(new Error('Evaluation operation failed'));
   });
   const invoke = (operation: EvaluationOperation, requestId: string, input?: EvaluationInput, requestHash?: string) => new Promise<unknown>((resolve, reject) => {
@@ -75,56 +106,63 @@ export async function startEvaluation(profile: string, preload: string, engine =
   });
   await window.loadURL(PAGE);
   const jobs = new Map<string, string>();
-  const server = net.createServer((socket) => {
-    let raw = Buffer.alloc(0); let handled = false;
-    socket.setTimeout(15000, () => socket.destroy());
-    const respond = (ok: boolean, value: unknown) => {
-      if (socket.destroyed) return;
-      const output = JSON.stringify({ ok, value }) + '\n';
-      socket.end(Buffer.byteLength(output) <= LIMIT ? output : '{"ok":false,"value":null}\n');
-    };
-    socket.on('error', () => undefined);
-    socket.on('data', (part) => {
-      if (handled) { socket.destroy(); return; }
-      raw = Buffer.concat([raw, Buffer.isBuffer(part) ? part : Buffer.from(part)]);
-      if (raw.length > LIMIT) { socket.destroy(); return; }
-      if (!raw.includes(10)) return;
-      handled = true;
-      void (async () => {
-        if (raw.indexOf(10) !== raw.length - 1) throw new Error('Invalid evaluation framing');
-        const request = JSON.parse(raw.toString('utf8')); exact(request, ['token','operation','requestId','input']);
-        if (typeof request.token !== 'string' || request.token.length !== token.length || !timingSafeEqual(Buffer.from(request.token), Buffer.from(token))) throw new Error('Evaluation access denied');
-        if (request.operation === 'health') return { protocol: 'documents-evaluation/1', evidence_mode: mode, pid: process.pid };
-        if (request.operation === 'shutdown') {
-          setTimeout(() => {
-            if (server.listening) server.close();
-            void engine.shutdown().finally(() => app.quit()).catch((): undefined => undefined);
-          }, 100);
-          return { stopping: true };
-        }
-        const id = captureId(String(request.requestId));
-        if (request.operation === 'run') {
-          const input = checkedEvaluationInput(request.input, mode); const hash = captureHash(canonical(input)); const job = jobs.get(id);
-          if (job) { if (job !== hash) throw new Error('Evaluation input conflict'); return { request_id: id, submitted: true }; }
-          if (jobs.size >= 64) throw new Error('Evaluation session limit exceeded');
-          jobs.set(id, hash);
-          try {
-            const status = await invoke('status', id) as { status: string };
-            if (status.status !== 'not_found') {
-              const capture = await invoke('capture', id) as { capture: { requestHash?: string } };
-              if (capture.capture.requestHash !== hash) throw new Error('Evaluation request identity differs');
-            } else {
-              // The renderer owns the whole sequence after dispatch, even if this connection disappears.
-              void invoke('run', id, input, hash).catch((): undefined => undefined);
-            }
-          } catch { throw new Error('Evaluation submission is unconfirmed'); }
-          return { request_id: id, submitted: true };
-        }
-        if (!['status','capture','cancel'].includes(String(request.operation)) || request.input !== null) throw new Error('Unknown evaluation operation');
-        return invoke(request.operation as EvaluationOperation, id);
-      })().then((value) => respond(true, value), () => respond(false, null));
-    });
-  });
+  async function submit(requestId: string, value: unknown) {
+    const input = checkedEvaluationInput(value, mode);
+    const hash = captureHash(canonical(input));
+    const job = jobs.get(requestId);
+    if (job !== undefined) {
+      if (job !== hash) throw new Error('Evaluation input conflict');
+      return { request_id: requestId, submitted: true };
+    }
+    if (jobs.size >= 64) throw new Error('Evaluation session limit exceeded');
+    jobs.set(requestId, hash);
+    try {
+      const status = await invoke('status', requestId) as { status: string };
+      if (status.status === 'not_found') {
+        // The renderer completes the sequence even if this connection disappears.
+        void invoke('run', requestId, input, hash).catch((): undefined => undefined);
+      } else {
+        const capture = await invoke('capture', requestId) as { capture: { requestHash?: string } };
+        if (capture.capture.requestHash !== hash) throw new Error('Evaluation request identity differs');
+      }
+    } catch {
+      throw new Error('Evaluation submission is unconfirmed');
+    }
+    return { request_id: requestId, submitted: true };
+  }
+
+  function shutdown() {
+    if (server.listening) server.close();
+    void engine.shutdown().finally(() => app.quit()).catch((): undefined => undefined);
+  }
+
+  async function dispatch(raw: Buffer): Promise<unknown> {
+    if (raw.indexOf(10) !== raw.length - 1) throw new Error('Invalid evaluation framing');
+    const request: unknown = JSON.parse(raw.toString('utf8'));
+    exact(request, ['token', 'operation', 'requestId', 'input']);
+    if (typeof request.token !== 'string') throw new Error('Evaluation access denied');
+    const supplied = Buffer.from(request.token);
+    const expected = Buffer.from(token);
+    if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
+      throw new Error('Evaluation access denied');
+    }
+
+    if (request.operation === 'health') return { protocol: 'documents-evaluation/1', evidence_mode: mode, pid: process.pid };
+    if (request.operation === 'shutdown') {
+      setTimeout(shutdown, 100);
+      return { stopping: true };
+    }
+
+    if (typeof request.requestId !== 'string') throw new Error('Invalid evaluation request ID');
+    const id = captureId(request.requestId);
+    if (request.operation === 'run') return submit(id, request.input);
+    if (request.operation !== 'status' && request.operation !== 'capture' && request.operation !== 'cancel' || request.input !== null) {
+      throw new Error('Unknown evaluation operation');
+    }
+    return invoke(request.operation, id);
+  }
+
+  const server = net.createServer(socket => handleEvaluationConnection(socket, dispatch));
   server.maxConnections = 16;
   await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(endpoint, () => { fs.chmodSync(endpoint, 0o600); resolve(); }); });
   window.on('closed', () => app.quit());

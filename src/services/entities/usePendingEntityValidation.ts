@@ -49,7 +49,8 @@ export const usePendingEntityValidation = () => {
 
     const fetchConfirmedEntitiesByResource = (resourceId: number | string, term?: string): Promise<Record<EntityScope, Entity[]>> =>
         request('Failed to fetch confirmed entities', async () => {
-            const url = `/entities/by-resource/${resourceId}${term ? `?term=${encodeURIComponent(term)}` : ''}`;
+            const query = term ? `?term=${encodeURIComponent(term)}` : '';
+            const url = `/entities/by-resource/${resourceId}${query}`;
             return (await apiClient.get(url)).data;
         });
 

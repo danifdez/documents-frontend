@@ -64,7 +64,7 @@ const listPatterns: Array<{ regex: RegExp; type: string; filterByParent?: { type
 
 function matchUrl(url: string): { type: string; id: number; subfield?: string } | null {
   for (const pattern of urlPatterns) {
-    const match = url.match(pattern.regex);
+    const match = pattern.regex.exec(url);
     if (match) {
       return { type: pattern.type, id: Number.parseInt(match[1], 10), subfield: pattern.subfield };
     }
@@ -74,7 +74,7 @@ function matchUrl(url: string): { type: string; id: number; subfield?: string } 
 
 function matchListUrl(url: string): { type: string; parentId?: number } | null {
   for (const pattern of listPatterns) {
-    const match = url.match(pattern.regex);
+    const match = pattern.regex.exec(url);
     if (match) {
       const parentId = pattern.filterByParent ? Number.parseInt(match[pattern.filterByParent.paramIndex], 10) : undefined;
       return { type: pattern.type, parentId };
@@ -135,13 +135,16 @@ function offlineResponse(data: unknown, config: InternalAxiosRequestConfig, stat
 }
 
 async function queueOfflineMutation(
-  config: InternalAxiosRequestConfig,
+  config: OfflineRequestConfig,
   matched: { type: string; id: number },
 ) {
   const { useOfflineStore } = await import('../../store/offlineStore');
+  if (config.workspaceId && config.workspaceId !== getActiveWorkspaceId()) {
+    throw new Error('The workspace changed before the offline request could be saved');
+  }
   const offlineStore = useOfflineStore();
   const method = config.method!.toUpperCase() as 'PATCH' | 'POST' | 'DELETE';
-  const payload = config.data ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data) : {};
+  const payload = typeof config.data === 'string' && config.data ? JSON.parse(config.data) : config.data || {};
   await offlineStore.addPendingChange(matched.type, matched.id, method, payload);
   return offlineResponse({ ...payload, id: matched.id }, config, 'OK (queued offline)');
 }
@@ -149,13 +152,47 @@ async function queueOfflineMutation(
 // ── Interceptors ──
 
 const OFFLINE_ABORT = '__offline_abort__';
-type OfflineRequestConfig = InternalAxiosRequestConfig & { [OFFLINE_ABORT]?: unknown };
+type OfflineRequestConfig = InternalAxiosRequestConfig & {
+  [OFFLINE_ABORT]?: unknown;
+  workspaceId?: string;
+};
+
+async function recoverOfflineResponse(error: AxiosError) {
+  const config: OfflineRequestConfig | undefined = error.config;
+  if (!config) throw error;
+
+  const activeWorkspace = getActiveWorkspaceId();
+  if (config.workspaceId && config.workspaceId !== activeWorkspace) throw error;
+  const url = config.url ?? '';
+
+  if (OFFLINE_ABORT in config) {
+    if (config.method === 'get') return offlineResponse(config[OFFLINE_ABORT], config, 'OK (offline)');
+    const matched = matchUrl(url);
+    if (matched) return queueOfflineMutation(config, matched);
+    throw error;
+  }
+
+  if (error.response || error.code === 'ERR_CANCELED') throw error;
+  setServerReachable(false);
+
+  if (config.method === 'get') {
+    const cached = await resolveFromCache(url);
+    return offlineResponse(cached !== undefined ? cached : [], config, 'OK (offline fallback)');
+  }
+
+  if (!config.method || !['patch', 'put', 'post', 'delete'].includes(config.method)) throw error;
+  const matched = matchUrl(url);
+  if (matched) return queueOfflineMutation(config, matched);
+  // Other mutations cannot be queued; return the existing offline fallback.
+  return offlineResponse({}, config, 'Service Unavailable (offline)');
+}
 
 export function registerOfflineInterceptors(apiClient: AxiosInstance) {
 
   // Request interceptor: if server is unreachable, resolve from cache immediately
   apiClient.interceptors.request.use(
     async (config: OfflineRequestConfig) => {
+      config.workspaceId = getActiveWorkspaceId();
       if (serverReachable) return config;
 
       if (config.method !== 'get') {
@@ -189,10 +226,12 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
   // Response interceptor
   apiClient.interceptors.response.use(
     (response) => {
-      // Server responded — mark as reachable
-      setServerReachable(true);
-      if (response.config.baseURL) {
-        localStorage.setItem('_lastApiBaseUrl', response.config.baseURL);
+      const config: OfflineRequestConfig = response.config;
+      const activeWorkspace = getActiveWorkspaceId();
+      const originatingWorkspace = config.workspaceId ?? activeWorkspace;
+      if (originatingWorkspace === activeWorkspace) {
+        setServerReachable(true);
+        if (config.baseURL) localStorage.setItem('_lastApiBaseUrl', config.baseURL);
       }
 
       // Write-through cache: store every successful GET so we can serve it
@@ -205,63 +244,12 @@ export function registerOfflineInterceptors(apiClient: AxiosInstance) {
         const isBinary = response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer';
         if (url && !isBinary && !skipCache && !url.startsWith('/auth/refresh')) {
           try {
-            setUrlCache(getActiveWorkspaceId(), 'get', url, response.data);
+            setUrlCache(originatingWorkspace, 'get', url, response.data);
           } catch { /* ignore caching failures */ }
         }
       }
       return response;
     },
-    async (error: AxiosError) => {
-      const config: OfflineRequestConfig | undefined = error.config;
-      if (!config) return Promise.reject(error);
-
-      // Handle requests we aborted ourselves for offline mode
-      if (OFFLINE_ABORT in config) {
-        const data = config[OFFLINE_ABORT];
-
-        // GET: return cached data (or empty fallback)
-        if (config.method === 'get') {
-          return offlineResponse(data, config, 'OK (offline)');
-        }
-
-        // Mutations: queue for later sync
-        const url = config.url || '';
-        const matched = matchUrl(url);
-        if (matched) {
-          return queueOfflineMutation(config, matched);
-        }
-
-        return Promise.reject(error);
-      }
-
-      // Real network error (server was thought reachable but isn't).
-      // Covers ERR_NETWORK, ERR_NETWORK_CHANGED, ECONNREFUSED, ECONNRESET, ECONNABORTED, etc.
-      // Exclude our own aborted requests (ERR_CANCELED).
-      if (!error.response && error.code !== 'ERR_CANCELED') {
-        setServerReachable(false);
-
-        // Try to serve this failed GET from cache, fallback to empty
-        if (config.method === 'get') {
-          const url = config.url || '';
-          const cached = await resolveFromCache(url);
-          return offlineResponse(cached !== undefined ? cached : [], config, 'OK (offline fallback)');
-        }
-
-        // Queue mutations
-        if (config.method && ['patch', 'put', 'post', 'delete'].includes(config.method)) {
-          const url = config.url || '';
-          const matched = matchUrl(url);
-          if (matched) {
-            return queueOfflineMutation(config, matched);
-          }
-          // Unknown mutation URL: don't reject (would surface as unhandled rejection
-          // and can blank the UI). Return a 503-like synthetic response; callers
-          // checking response.status can react, callers awaiting data get an empty object.
-          return offlineResponse({}, config, 'Service Unavailable (offline)');
-        }
-      }
-
-      return Promise.reject(error);
-    },
+    recoverOfflineResponse,
   );
 }

@@ -15,8 +15,7 @@
             <div class="px-4">
                 <input aria-label="Search references" type="text" v-model="searchQuery"
                     placeholder="Search..."
-                    class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent text-sm"
-                    autofocus />
+                    class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent text-sm" />
             </div>
 
             <!-- Results -->
@@ -32,8 +31,9 @@
                     Search to insert a reference.
                 </div>
                 <ul v-else class="space-y-1">
-                    <li v-for="item in results" :key="`${item.type}-${item.id}`"
-                        class="p-2.5 hover:bg-surface-hover cursor-pointer rounded-md flex items-start gap-2"
+                    <li v-for="item in results" :key="`${item.type}-${item.id}`">
+                      <button type="button"
+                        class="w-full text-left p-2.5 hover:bg-surface-hover cursor-pointer rounded-md flex items-start gap-2"
                         @click="selectItem(item)">
                         <span class="text-[10px] px-1.5 py-0.5 rounded shrink-0 mt-0.5" :style="badgeStyle(item.type)">
                             {{ typeLabels[item.type] || item.type }}
@@ -47,6 +47,7 @@
                             </p>
                             <p v-else-if="item.content" class="text-xs text-text-muted mt-0.5 line-clamp-1">{{ item.content }}</p>
                         </div>
+                      </button>
                     </li>
                 </ul>
             </div>

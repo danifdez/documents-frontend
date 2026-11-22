@@ -187,7 +187,7 @@ function toggleMainWindow() {
 function resolveQuickAssistantShortcut(
   settings: ElectronSettings | null | undefined,
 ): string | null {
-  if (!settings || settings.quickAssistantShortcut === undefined) {
+  if (settings?.quickAssistantShortcut === undefined) {
     return DEFAULT_QUICK_ASSISTANT_SHORTCUT;
   }
   return settings.quickAssistantShortcut;
@@ -343,6 +343,29 @@ function getCloseBehavior(): 'tray' | 'quit' {
   return settings?.closeBehavior === 'quit' ? 'quit' : 'tray';
 }
 
+function updateWindowShortcut(previous: string | null, next: string | null): void {
+  if (previous === next) return;
+  if (previous) {
+    try { globalShortcut.unregister(previous); } catch { /* Already removed. */ }
+  }
+  if (next && !globalShortcut.register(next, () => toggleMainWindow())) {
+    console.warn('[settings] failed to register global shortcut', next);
+  }
+}
+
+function updateAssistantShortcut(previous: ElectronSettings | null, settings: ElectronSettings): void {
+  const before = previous ? resolveQuickAssistantShortcut(previous) : null;
+  const next = resolveQuickAssistantShortcut(settings);
+  if (before === next) return;
+  if (before) {
+    try { globalShortcut.unregister(before); } catch { /* Already removed. */ }
+  }
+  // The boot-time default can already hold the requested combination.
+  if (next && !globalShortcut.isRegistered(next) && !globalShortcut.register(next, () => toggleQuickAssistant())) {
+    console.warn('[settings] failed to register quick assistant shortcut', next);
+  }
+}
+
 // Apply the side effects of the residente/tray preferences.
 // Called from `settings:set` and at boot to reapply persisted settings.
 function applySettingsEffects(
@@ -360,39 +383,8 @@ function applySettingsEffects(
     }
   }
 
-  // toggleShortcut — re-register the global shortcut when it changes.
-  const prevShortcut = previous?.toggleShortcut ?? null;
-  const newShortcut = settings.toggleShortcut ?? null;
-  if (prevShortcut !== newShortcut) {
-    if (prevShortcut) {
-      try { globalShortcut.unregister(prevShortcut); } catch { /* no-op */ }
-    }
-    if (newShortcut) {
-      const ok = globalShortcut.register(newShortcut, () => toggleMainWindow());
-      if (!ok) {
-        console.warn('[settings] failed to register global shortcut', newShortcut);
-      }
-    }
-  }
-
-  // quickAssistantShortcut — same treatment for the floating assistant. The
-  // resolver distinguishes "cleared" (null) from "not configured" (undefined).
-  const prevQuickShortcut = previous
-    ? resolveQuickAssistantShortcut(previous)
-    : null;
-  const newQuickShortcut = resolveQuickAssistantShortcut(settings);
-  if (prevQuickShortcut !== newQuickShortcut) {
-    if (prevQuickShortcut) {
-      try { globalShortcut.unregister(prevQuickShortcut); } catch { /* no-op */ }
-    }
-    // Skip when the same combo is already held from the boot-time default.
-    if (newQuickShortcut && !globalShortcut.isRegistered(newQuickShortcut)) {
-      const ok = globalShortcut.register(newQuickShortcut, () => toggleQuickAssistant());
-      if (!ok) {
-        console.warn('[settings] failed to register quick assistant shortcut', newQuickShortcut);
-      }
-    }
-  }
+  updateWindowShortcut(previous?.toggleShortcut ?? null, settings.toggleShortcut ?? null);
+  updateAssistantShortcut(previous, settings);
 
   // hideDockIcon — macOS only. `app.dock` is undefined on other platforms.
   if (process.platform === 'darwin' && settings.hideDockIcon !== previous?.hideDockIcon) {
@@ -676,7 +668,7 @@ async function reinstallStandaloneFromSplash() {
   showSplashLoading();
   try {
     await standaloneManager.stop();
-    await uninstallServices();
+    uninstallServices();
     showSplashLoading('Reinstalling local services…');
     await downloadAll();
     startStandaloneFromSplash();
@@ -705,7 +697,7 @@ async function resetStandaloneFromSplash() {
   try {
     await standaloneManager.stop();
     fs.rmSync(getPersistentLocalDataDir(), { recursive: true, force: true });
-    await uninstallServices();
+    uninstallServices();
     showSplashLoading('Installing local services…');
     await downloadAll();
     startStandaloneFromSplash();

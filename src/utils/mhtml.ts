@@ -25,13 +25,15 @@ function headerValue(value: string | undefined): string {
 }
 
 function headerParameter(value: string | undefined, name: string): string | null {
-    const match = value?.match(new RegExp(`(?:^|;)\\s*${name}=(?:"([^"]+)"|([^;\\s]+))`, 'i'));
+    if (!value) return null;
+    const pattern = new RegExp(String.raw`(?:^|;)\s*${name}=(?:"([^"]+)"|([^;\s]+))`, 'i');
+    const match = pattern.exec(value);
     return match ? (match[1] ?? match[2]).trim() : null;
 }
 
 function base64Bytes(source: string): Uint8Array {
     const binary = atob(source.replace(/\s/g, ''));
-    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return Uint8Array.from(binary, (character) => character.codePointAt(0) ?? 0);
 }
 
 function quotedPrintableBytes(source: string): Uint8Array {

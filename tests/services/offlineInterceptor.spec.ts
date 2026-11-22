@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import axios, { AxiosError, type AxiosInstance } from 'axios';
+import axios, { AxiosError, type AxiosInstance, type AxiosResponse } from 'axios';
 import { createPinia, setActivePinia } from 'pinia';
 import { useOfflineStore } from '@/store/offlineStore';
+import { setUrlCache } from '@/services/offline/urlCache';
+import { setActiveWorkspaceId } from '@/services/workspaceScope';
 import {
   registerOfflineInterceptors,
   setServerReachable,
@@ -117,3 +119,28 @@ describe.each(['already offline', 'network failure'] as const)(
     });
   },
 );
+
+it('writes a delayed GET response into the workspace that sent it', async () => {
+  setActivePinia(createPinia());
+  setServerReachable(true);
+  vi.mocked(setUrlCache).mockClear();
+  setActiveWorkspaceId('library');
+  let respond: () => void;
+  const client = axios.create({
+    adapter: config => new Promise<AxiosResponse>(resolve => {
+      respond = () => resolve({ config, status: 200, statusText: 'OK', data: [{ id: 17 }], headers: {} });
+    }),
+  });
+  registerOfflineInterceptors(client);
+
+  try {
+    const result = client.get('/projects');
+    await vi.waitFor(() => expect(respond).toBeTypeOf('function'));
+    setActiveWorkspaceId('archive');
+    respond!();
+    await result;
+    expect(setUrlCache).toHaveBeenCalledExactlyOnceWith('library', 'get', '/projects', [{ id: 17 }]);
+  } finally {
+    setActiveWorkspaceId(null);
+  }
+});

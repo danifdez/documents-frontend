@@ -17,6 +17,22 @@ export interface FeatureToggleResult {
   error?: string;
 }
 
+/**
+ * The local backend and models were just restarted. Requests that landed in
+ * the gap can mark the backend unreachable, and once unreachable the offline
+ * interceptor serves everything from cache — so clear that state explicitly
+ * and rebuild the realtime socket instead of waiting for a probe.
+ */
+async function recoverLocalConnection() {
+  const [{ setServerReachable }, { reconnectSocket }, { useWorkspaceStore }] = await Promise.all([
+    import('../services/offline/offlineInterceptor'),
+    import('../services/notifications/notification'),
+    import('./workspaceStore'),
+  ]);
+  setServerReachable(true);
+  reconnectSocket(useWorkspaceStore().activeWorkspace?.url);
+}
+
 export const useFeatureStore = defineStore('features', () => {
   const backendFeatures = ref<Record<string, boolean>>({});
   const disabledFeatures = ref<string[]>([]);
@@ -92,22 +108,6 @@ export const useFeatureStore = defineStore('features', () => {
     }
     await saveLocalPreferences();
     return { success: true };
-  }
-
-  /**
-   * The local backend and models were just restarted. Requests that landed in
-   * the gap can mark the backend unreachable, and once unreachable the offline
-   * interceptor serves everything from cache — so clear that state explicitly
-   * and rebuild the realtime socket instead of waiting for a probe.
-   */
-  async function recoverLocalConnection() {
-    const [{ setServerReachable }, { reconnectSocket }, { useWorkspaceStore }] = await Promise.all([
-      import('../services/offline/offlineInterceptor'),
-      import('../services/notifications/notification'),
-      import('./workspaceStore'),
-    ]);
-    setServerReachable(true);
-    reconnectSocket(useWorkspaceStore().activeWorkspace?.url);
   }
 
   async function saveLocalPreferences() {

@@ -17,21 +17,19 @@ declare module '@tiptap/core' {
 
 function getEmbedUrl(url: string): string | null {
     // YouTube
-    const ytMatch = url.match(
-        /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-    );
+    const ytMatch = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/.exec(url);
     if (ytMatch) {
         return `https://www.youtube.com/embed/${ytMatch[1]}`;
     }
 
     // Vimeo
-    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    const vimeoMatch = /vimeo\.com\/(\d+)/.exec(url);
     if (vimeoMatch) {
         return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
     }
 
     // Dailymotion
-    const dmMatch = url.match(/dailymotion\.com\/video\/([a-zA-Z0-9]+)/);
+    const dmMatch = /dailymotion\.com\/video\/([a-zA-Z0-9]+)/.exec(url);
     if (dmMatch) {
         return `https://www.dailymotion.com/embed/video/${dmMatch[1]}`;
     }
@@ -170,7 +168,7 @@ export const VideoExtension = Node.create<VideoOptions>({
                 iframe.src = embedUrl;
                 iframe.width = String(node.attrs.width || this.options.width);
                 iframe.height = String(node.attrs.height || this.options.height);
-                iframe.frameBorder = '0';
+                iframe.style.border = '0';
                 iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
                 if (this.options.allowFullscreen) {
                     iframe.allowFullscreen = true;
@@ -202,5 +200,3 @@ export const VideoExtension = Node.create<VideoOptions>({
         };
     },
 });
-
-export default VideoExtension;

@@ -12,7 +12,11 @@
                 class="px-2 py-1 rounded text-[11px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity mb-0.5"
                 :class="{ 'opacity-50 line-through': event.trackCompletion && event.completed }"
                 :style="{ backgroundColor: event.color + '20', color: event.color }"
-                @click="$emit('eventClick', event)">
+                @click="$emit('eventClick', event)"
+                role="button"
+                tabindex="0"
+                @keydown.enter.self.prevent="$emit('eventClick', event)"
+                @keydown.space.self.prevent="$emit('eventClick', event)">
                 <span v-if="event.trackCompletion && event.completed" class="mr-0.5">✓</span>{{ event.title }}
             </div>
         </div>
@@ -24,7 +28,11 @@
                 <div v-for="hour in 24" :key="hour - 1"
                     class="absolute w-full flex border-b border-border-light/50 hover:bg-surface-hover/50 transition-colors cursor-pointer"
                     :style="{ top: (hour - 1) * 48 + 'px', height: '48px' }"
-                    @click="handleHourClick(hour - 1)">
+                    @click="handleHourClick(hour - 1)"
+                    role="button"
+                    tabindex="0"
+                    @keydown.enter.self.prevent="handleHourClick(hour - 1)"
+                    @keydown.space.self.prevent="handleHourClick(hour - 1)">
                     <div class="w-10 shrink-0 pr-1.5 pt-0.5 text-right">
                         <span class="text-[10px] text-text-muted leading-none">{{ formatHourLabel(hour - 1) }}</span>
                     </div>
@@ -44,7 +52,11 @@
                         color: evt.event.color,
                         borderLeft: '3px solid ' + evt.event.color,
                     }"
-                    @click.stop="$emit('eventClick', evt.event)">
+                    @click.stop="$emit('eventClick', evt.event)"
+                    role="button"
+                    tabindex="0"
+                    @keydown.enter.self.stop.prevent="$emit('eventClick', evt.event)"
+                    @keydown.space.self.stop.prevent="$emit('eventClick', evt.event)">
                     <p class="truncate font-semibold"
                        :class="{ 'line-through': evt.event.trackCompletion && evt.event.completed }">
                         <span v-if="evt.event.trackCompletion && evt.event.completed" class="mr-0.5">✓</span>{{ evt.event.title }}

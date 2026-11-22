@@ -169,12 +169,12 @@ const generateHeadingId = (text: string): string => {
         .trim();
 };
 
-const scrollToHeading = (heading: Heading) => {
+const scrollToHeading = (heading: TocHeadingLike) => {
     // Set active heading for visual feedback
     activeHeadingId.value = heading.id;
 
     // Emit scroll event to parent
-    emit('scrollTo', heading.position);
+    if (typeof heading.position === 'number') emit('scrollTo', heading.position);
 
     // Additional fallback scroll mechanism
     setTimeout(() => {
@@ -381,12 +381,11 @@ onBeforeUnmount(() => {
 }
 
 .toc-sidebar button:hover {
-    background: transparent !important;
-    transform: none !important;
+    background: transparent;
 }
 
-.toc-sidebar button:active {
-    transform: none !important;
+.toc-sidebar button:is(:hover, :active) {
+    transform: none;
 }
 
 .toc-sidebar button {

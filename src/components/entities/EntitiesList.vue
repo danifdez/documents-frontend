@@ -69,7 +69,11 @@
 
                 <!-- View Mode (compact) -->
                 <div v-else class="group px-4 py-2.5 flex items-center gap-3">
-                    <div @click="highlightEntityInContent(entity)" class="flex-1 min-w-0 cursor-pointer flex items-center gap-2.5"
+                    <div @click="highlightEntityInContent(entity)"
+                        role="button"
+                        tabindex="0"
+                        @keydown.enter.self.prevent="highlightEntityInContent(entity)"
+                        @keydown.space.self.prevent="highlightEntityInContent(entity)" class="flex-1 min-w-0 cursor-pointer flex items-center gap-2.5"
                         :title="`Click to highlight ${displayEntityName(entity)} in the document`">
                         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider shrink-0"
                             :class="getEntityTypeBadgeClass(displayEntityType(entity))">
@@ -83,7 +87,9 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" @click.stop>
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" @click.stop
+                        @keydown.enter.stop
+                        @keydown.space.stop>
                         <button @click="startEditing(entity)"
                             class="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface transition-colors cursor-pointer"
                             title="Edit">
@@ -210,27 +216,10 @@ const emit = defineEmits<{
  */
 const displayEntityName = (entity: ResourceListEntity | null): string => {
     if (!entity) return '';
-    try {
-        if (props.displayMode === 'translated') {
-            const translations = entity.translations as Record<string, string> | undefined;
-            if (translations && translations[props.targetLanguage]) {
-                return translations[props.targetLanguage];
-            }
-        } else {
-            if (props.resourceLanguage === 'en') {
-                return entity.name;
-            } else {
-                const translations = entity.translations as Record<string, string> | undefined;
-                if (translations && translations[props.resourceLanguage]) {
-                    return translations[props.resourceLanguage];
-                }
-            }
-        }
-
-        return entity.name;
-    } catch (e) {
-        return entity.name;
-    }
+    const language = props.displayMode === 'translated' ? props.targetLanguage : props.resourceLanguage;
+    if (props.displayMode !== 'translated' && language === 'en') return entity.name;
+    const translations = entity.translations as Record<string, string> | undefined;
+    return translations?.[language] || entity.name;
 };
 
 const displayEntityType = (entity: ResourceListEntity | null): string => {
@@ -258,30 +247,11 @@ const displayedEntities = computed(() => {
         const name = (entity.name || '').toString().toLowerCase();
         if (name.includes(q)) return true;
 
-        // translations
-        try {
-            const translations = entity.translations as Record<string, string> | undefined;
-            if (translations) {
-                for (const v of Object.values(translations)) {
-                    if ((v || '').toLowerCase().includes(q)) return true;
-                }
-            }
-        } catch (e) {
-            // ignore
-        }
-
-        // aliases
-        if (entity.aliases && entity.aliases.length > 0) {
-            for (const a of entity.aliases) {
-                if ((a.value || '').toLowerCase().includes(q)) return true;
-            }
-        }
-
-        // entity type
-        const typeName = displayEntityType(entity).toLowerCase();
-        if (typeName.includes(q)) return true;
-
-        return false;
+        const translated = Object.values(entity.translations ?? {})
+            .some(value => typeof value === 'string' && value.toLowerCase().includes(q));
+        if (translated) return true;
+        const alias = entity.aliases?.some(item => (item.value ?? '').toLowerCase().includes(q));
+        return Boolean(alias) || displayEntityType(entity).toLowerCase().includes(q);
     });
 });
 
@@ -405,6 +375,7 @@ const handleRemoveEntityConfirm = async () => {
         emit('entity:removed', entity.id);
         notification.success(`Entity "${displayEntityName(entity)}" removed from resource`);
     } catch (error) {
+        console.error('Resource entity removal failed:', error);
         notification.error('Failed to remove entity from resource');
     } finally {
         entityToRemove.value = null;
@@ -461,6 +432,7 @@ const handleMergeEntityConfirm = async () => {
         notification.success(`Entity "${displayEntityName(selectedEntity.value)}" merged into "${displayEntityName(mergedEntity)}"`);
         closeMergeModal();
     } catch (error) {
+        console.error('Entity merge failed:', error);
         notification.error('Failed to merge entities');
     } finally {
         isMerging.value = false;

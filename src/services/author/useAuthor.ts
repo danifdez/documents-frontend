@@ -1,3 +1,4 @@
+import { forEachSequential } from '../../utils/forEachSequential';
 import { ref } from "vue";
 import apiClient from "../api";
 
@@ -67,13 +68,13 @@ export function useAuthor() {
             await apiClient.delete(`/resources/${resourceId}/authors`);
 
             const createdAuthors: Author[] = [];
-            for (const authorName of authorNames) {
-                if (authorName.trim()) {
-                    const author = await findOrCreateAuthor(authorName.trim());
-                    await addAuthorToResource(resourceId, author.id);
-                    createdAuthors.push(author);
-                }
-            }
+            await forEachSequential(authorNames, async (authorName) => {
+                const name = authorName.trim();
+                if (!name) return;
+                const author = await findOrCreateAuthor(name);
+                await addAuthorToResource(resourceId, author.id);
+                createdAuthors.push(author);
+            });
 
             return createdAuthors;
         } catch (err) {

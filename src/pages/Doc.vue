@@ -346,7 +346,7 @@ const onDrop = async (event: DragEvent) => {
     }
   } else if (droppedData && droppedData.type === 'resource') {
     try {
-      const droppedResource = droppedData.resource;
+      const droppedResource = droppedData.resource as { id?: number | string } | undefined;
       if (droppedResource && droppedResource.id) {
         const { loadResource } = useResource();
         const fullResource = await loadResource(String(droppedResource.id));
@@ -591,37 +591,37 @@ const highlightComment = (commentId: string) => {
   }
 };
 
+function findCommentMarkPosition(doc: ProseMirrorNode, commentId: string): { from: number; to: number } | null {
+  let result: { from: number; to: number } | null = null;
+
+  doc.descendants((node, pos) => {
+    if (result) return false;
+
+    const marks = node.marks.filter(
+      mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
+    );
+
+    if (marks.length > 0) {
+      result = {
+        from: pos,
+        to: pos + node.nodeSize
+      };
+      return false;
+    }
+
+    return true;
+  });
+
+  return result;
+}
+
 const findAndHighlightCommentMark = (commentId: string) => {
   if (!editorContentRef.value || !editorContentRef.value.editor) return;
 
   const editor = editorContentRef.value.editor;
   const doc = editor.state.doc;
 
-  const findCommentMarkPosition = (doc: ProseMirrorNode): { from: number; to: number } | null => {
-    let result: { from: number; to: number } | null = null;
-
-    doc.descendants((node, pos) => {
-      if (result) return false;
-
-      const marks = node.marks.filter(
-        mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
-      );
-
-      if (marks.length > 0) {
-        result = {
-          from: pos,
-          to: pos + node.nodeSize
-        };
-        return false;
-      }
-
-      return true;
-    });
-
-    return result;
-  };
-
-  const position = findCommentMarkPosition(doc);
+  const position = findCommentMarkPosition(doc, commentId);
 
   if (position) {
     editor.commands.setTextSelection(position);
@@ -645,31 +645,7 @@ const removeCommentMark = (commentId: string) => {
   const editor = editorContentRef.value.editor;
   const doc = editor.state.doc;
 
-  const findCommentMarkPosition = (doc: ProseMirrorNode): { from: number; to: number } | null => {
-    let result: { from: number; to: number } | null = null;
-
-    doc.descendants((node, pos) => {
-      if (result) return false;
-
-      const marks = node.marks.filter(
-        mark => mark.type.name === 'comment' && mark.attrs.commentId === commentId
-      );
-
-      if (marks.length > 0) {
-        result = {
-          from: pos,
-          to: pos + node.nodeSize
-        };
-        return false;
-      }
-
-      return true;
-    });
-
-    return result;
-  };
-
-  const position = findCommentMarkPosition(doc);
+  const position = findCommentMarkPosition(doc, commentId);
 
   if (position) {
     editor.commands.setTextSelection({ from: position.from, to: position.to });
@@ -708,7 +684,7 @@ const exportDoc = async (format: 'docx' | 'pdf') => {
     link.download = filename;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error(`Failed to export document as ${format.toUpperCase()}:`, error);

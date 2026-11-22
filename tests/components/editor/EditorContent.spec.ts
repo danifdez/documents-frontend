@@ -143,7 +143,7 @@ describe('EditorContent.vue', () => {
 
         // Verify the DOM structure reflects the split paragraphs
         const paragraphs = editorContent.element.querySelectorAll('p');
-        expect(paragraphs.length).toBe(2);
+        expect(paragraphs).toHaveLength(2);
         expect(paragraphs[0].textContent).toBe('Test');
         expect(paragraphs[1].textContent).toBe('content');
     });

@@ -1,7 +1,11 @@
 <template>
     <div class="px-3 py-2.5 rounded-lg cursor-pointer transition-colors group"
         :class="active ? 'bg-accent-subtle text-accent-dark' : 'hover:bg-surface-hover text-text-secondary'"
-        @click="$emit('select')">
+        @click="$emit('select')"
+        role="button"
+        tabindex="0"
+        @keydown.enter.self.prevent="$emit('select')"
+        @keydown.space.self.prevent="$emit('select')">
         <div class="flex items-center gap-2">
             <span v-if="agent.icon" class="text-base leading-none">{{ agent.icon }}</span>
             <span class="text-sm font-medium truncate flex-1">{{ agent.name }}</span>

@@ -1,15 +1,15 @@
 <template>
-    <div class="relative inline-block text-left" ref="dropdownRef">
-        <div @click="toggleDropdown">
+    <div class="relative inline-block text-left" ref="dropdownRef" @keydown.esc.stop="dismiss">
+        <div ref="triggerRef" @click="toggleDropdown" @keydown.down.stop.prevent="openFromKeyboard">
             <slot name="trigger">
-                <Button v-if="!showDots">
+                <Button v-if="!showDots" aria-haspopup="menu" :aria-expanded="isOpen">
                     {{ label }}
                     <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="1.75">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
                 </Button>
-                <button v-else aria-label="More options"
+                <button v-else type="button" aria-label="More options" aria-haspopup="menu" :aria-expanded="isOpen"
                     class="p-2 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-all duration-200 cursor-pointer">
                     <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path
@@ -20,11 +20,12 @@
         </div>
 
         <Transition name="dropdown">
-            <div v-show="isOpen"
+            <div v-show="isOpen" ref="menuRef"
+                @keydown.down.prevent="moveFocus(1)" @keydown.up.prevent="moveFocus(-1)"
                 class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg shadow-black/8 bg-surface-elevated border border-border overflow-hidden z-10"
-                :class="menuClassName" role="menu" aria-orientation="vertical" aria-labelledby="menu-button"
+                :class="menuClassName" role="menu" aria-orientation="vertical" :aria-label="label"
                 tabindex="-1">
-                <div class="py-1" role="none">
+                <div class="py-1" role="presentation">
                     <slot></slot>
                 </div>
             </div>
@@ -33,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted } from 'vue';
 import Button from './Button.vue';
 
 defineProps({
@@ -57,6 +58,28 @@ defineProps({
 
 const isOpen = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
+const triggerRef = ref<HTMLElement | null>(null);
+const menuRef = ref<HTMLElement | null>(null);
+
+function moveFocus(step: number) {
+    const items = [...(menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+    if (!items.length) return;
+    const current = items.findIndex(item => item === document.activeElement);
+    const index = current === -1 ? (step > 0 ? 0 : items.length - 1) : (current + step + items.length) % items.length;
+    items[index].focus();
+}
+
+async function openFromKeyboard() {
+    isOpen.value = true;
+    await nextTick();
+    moveFocus(1);
+}
+
+function dismiss() {
+    if (!isOpen.value) return;
+    isOpen.value = false;
+    triggerRef.value?.querySelector<HTMLElement>('button, [tabindex="0"]')?.focus();
+}
 
 const toggleDropdown = () => {
     isOpen.value = !isOpen.value;

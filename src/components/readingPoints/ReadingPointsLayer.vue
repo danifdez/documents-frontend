@@ -26,7 +26,8 @@
             <button class="rp-menu-item rp-menu-danger" @click="removePoint(labelMenu.point!)">Quitar</button>
         </div>
 
-        <div v-if="modal.visible" class="rp-modal-backdrop" data-reading-point-ui @click.self="closeModal">
+        <div v-if="modal.visible" class="rp-modal-backdrop" data-reading-point-ui @click.self="closeModal"
+            @keydown.esc.stop="closeModal">
             <div class="rp-modal">
                 <h3 class="rp-modal-title">Punto de libro</h3>
                 <label class="rp-modal-label" for="rp-name">Nombre</label>
@@ -356,7 +357,7 @@ defineExpose({
 
 .rp-label-section {
     left: 0;
-    color: #ffffff;
+    color: #202124;
     background: #49be8f;
     border-radius: 0 6px 6px 0;
 }
@@ -487,9 +488,9 @@ defineExpose({
     border: 1px solid transparent;
 }
 
-.rp-modal-danger {
+.rp-modal-actions .rp-modal-danger {
     background: transparent;
-    border-color: #d93025 !important;
+    border-color: #d93025;
     color: #d93025;
 }
 

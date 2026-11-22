@@ -149,7 +149,7 @@ export const MarkExtension = Mark.create<MarkOptions>({
                         const $pos = doc.resolve(pos);
                         const textMark = $pos.marks().find((mark) => mark.type.name === 'textMark');
 
-                        if (textMark && textMark.attrs.markId) {
+                        if (textMark?.attrs.markId) {
                             onMarkClick(textMark.attrs.markId, textMark.attrs.markType);
                             return true;
                         }
@@ -162,6 +162,6 @@ export const MarkExtension = Mark.create<MarkOptions>({
     },
 });
 
-export { MARK_CONFIG, generateMarkId, isMarkType, type MarkType } from './markTypes';
+export { MARK_CONFIG, type MarkType } from './markTypes';
 
 export default MarkExtension;

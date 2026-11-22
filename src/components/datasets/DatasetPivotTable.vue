@@ -292,7 +292,8 @@ const formatValue = (val: unknown): string => formatDatasetValue(val, 2);
 const exportCsv = () => {
     if (!pivotTable.value) return;
     const td = pivotTable.value;
-    let csv = `"",${td.cols.map((c: string) => `"${c}"`).join(',')},Total\n`;
+    const columnHeaders = td.cols.map((column: string) => `"${column}"`).join(',');
+    let csv = `"",${columnHeaders},Total\n`;
     td.values.forEach((row: (number | null)[], i: number) => {
         csv += `"${td.rows[i]}",${row.map((v: number | null) => v ?? '').join(',')},${td.rowTotals[i] ?? ''}\n`;
     });

@@ -233,13 +233,12 @@ async function handleSave() {
     saving.value = true;
     error.value = null;
     try {
+        const emptyFolderScope: null | undefined = isEdit.value ? null : undefined;
         const payload = {
             name: form.value.name.trim(),
             sub: form.value.sub.trim() || undefined,
             icon: form.value.icon.trim() || undefined,
-            folderScope: form.value.folderScope.trim()
-                ? form.value.folderScope.trim()
-                : (isEdit.value ? null : undefined),
+            folderScope: form.value.folderScope.trim() || emptyFolderScope,
             systemPrompt: form.value.systemPrompt.trim() || undefined,
             pinned: form.value.pinned,
         };

@@ -18,9 +18,9 @@ export class BackendWhisperDriver implements VoiceDriver {
   readonly engine: VoiceEngine = 'remote';
 
   private socket: Socket | null = null;
-  private partialCbs = new Set<(p: VoicePartial) => void>();
-  private errorCbs = new Set<(err: Error) => void>();
-  private queuedCbs = new Set<(info: VoiceQueuedInfo) => void>();
+  private readonly partialCbs = new Set<(p: VoicePartial) => void>();
+  private readonly errorCbs = new Set<(err: Error) => void>();
+  private readonly queuedCbs = new Set<(info: VoiceQueuedInfo) => void>();
   private stopResolver: (() => void) | null = null;
   private stopTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingAudio = Promise.resolve();
@@ -115,7 +115,7 @@ export class BackendWhisperDriver implements VoiceDriver {
     });
   }
 
-  async cancel(): Promise<void> {
+  cancel(): Promise<void> {
     const socket = this.socket;
     if (socket && !socket.disconnected) {
       try { socket.emit('voice:cancel', {}); } catch { /* ignore */ }
@@ -127,6 +127,7 @@ export class BackendWhisperDriver implements VoiceDriver {
     }
     if (this.stopResolver) this.stopResolver();
     else this.teardown();
+    return Promise.resolve();
   }
 
   onPartial(cb: (p: VoicePartial) => void): () => void {

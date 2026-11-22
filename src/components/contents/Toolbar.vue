@@ -2,7 +2,9 @@
     <div class="bg-surface-elevated py-2">
         <!-- Context menu for text selection -->
         <div v-if="showContextMenu" :style="contextMenuStyle"
-            class="fixed z-50 bg-surface-elevated shadow-lg rounded-md border border-border py-1 min-w-[160px]" @click.stop>
+            class="fixed z-50 bg-surface-elevated shadow-lg rounded-md border border-border py-1 min-w-[160px]" @click.stop
+            @keydown.enter.stop
+            @keydown.space.stop>
             <button v-for="type in markTypes" :key="type" @click="handleContextMenuAction(type)"
                 class="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center gap-2 text-sm"
                 :class="{ 'bg-surface-hover': activeMarkType === type }">
@@ -102,6 +104,10 @@
                             </button>
                         </div>
                         <div v-for="entry in kbResults" :key="entry.id" @click="goToKBEntry(entry.id)"
+                            role="button"
+                            tabindex="0"
+                            @keydown.enter.self.prevent="goToKBEntry(entry.id)"
+                            @keydown.space.self.prevent="goToKBEntry(entry.id)"
                             class="px-4 py-2 border-b border-border last:border-0 cursor-pointer hover:bg-surface-hover text-sm">
                             <p class="font-medium text-text-primary text-xs line-clamp-1">{{ entry.title }}</p>
                             <p v-if="entry.summary" class="text-xs text-text-muted mt-0.5 line-clamp-2">{{ entry.summary }}</p>
@@ -225,52 +231,32 @@ const handleContextMenuAction = (action: MarkType | 'comment' | 'reading' | 'sec
     lookupTab.value = null;
 
     if (markTypes.includes(action as MarkType)) {
-        handleAddMark(action as MarkType);
-    } else if (action === 'comment') {
-        handleAddComment();
-    } else if (action === 'reading') {
-        emit('add-reading-point', { ...contextMenuPosition.value });
-    } else if (action === 'section') {
-        emit('add-section-point', { ...contextMenuPosition.value });
-    } else if (action === 'send') {
-        // get selection and emit to parent
-        try {
-            const selection = window.getSelection();
-            if (!selection || selection.isCollapsed) return;
-            const text = selection.toString().trim();
-            if (!text) return;
-            emit('send-selection-to-workspace', text);
-            // clear native selection
-            selection.removeAllRanges();
-        } catch (e) {
-            console.error('Failed to capture selection for send action', e);
-        }
+        void handleAddMark(action as MarkType);
+        return;
     }
-    else if (action === 'send-to-doc') {
-        try {
-            const selection = window.getSelection();
-            if (!selection || selection.isCollapsed) return;
-            const text = selection.toString().trim();
-            if (!text) return;
-            emit('send-selection-to-doc', text);
-            selection.removeAllRanges();
-        } catch (e) {
-            console.error('Failed to capture selection for send-to-doc action', e);
-        }
-    }
-    else if (action === 'summarize') {
-        try {
-            const selection = window.getSelection();
-            if (!selection || selection.isCollapsed) return;
-            const text = selection.toString().trim();
-            if (!text) return;
-            emit('summarize-selection', text);
-            selection.removeAllRanges();
-        } catch (e) {
-            console.error('Failed to capture selection for summarize action', e);
-        }
+
+    switch (action) {
+        case 'comment': handleAddComment(); break;
+        case 'reading': emit('add-reading-point', { ...contextMenuPosition.value }); break;
+        case 'section': emit('add-section-point', { ...contextMenuPosition.value }); break;
+        case 'send': emitSelection('send-selection-to-workspace'); break;
+        case 'send-to-doc': emitSelection('send-selection-to-doc'); break;
+        case 'summarize': emitSelection('summarize-selection'); break;
     }
 };
+
+function emitSelection(event: 'send-selection-to-workspace' | 'send-selection-to-doc' | 'summarize-selection') {
+    try {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return;
+        const text = selection.toString().trim();
+        if (!text) return;
+        emit(event, text);
+        selection.removeAllRanges();
+    } catch (error) {
+        console.error('Failed to capture text selection:', error);
+    }
+}
 
 const searchInKB = async () => {
     lookupTab.value = 'kb';
@@ -374,7 +360,6 @@ const handleKeyboardShortcut = (event: KeyboardEvent) => {
     if (event.ctrlKey && event.altKey && (event.key === 's' || event.key === 'S')) {
         event.preventDefault();
         handleContextMenuAction('summarize');
-        return;
     }
 };
 
@@ -382,7 +367,8 @@ const updateMarkActiveStatus = () => {
     try {
         activeMarkType.value = activeTypeFromSelection();
         isMarkActive.value = activeMarkType.value !== null;
-    } catch (error) {
+    } catch {
+        // Selection can be invalid while the editor DOM is being replaced.
         activeMarkType.value = null;
         isMarkActive.value = false;
     }
@@ -444,51 +430,55 @@ const anchorFromEditor = (quote: string) => {
     };
 };
 
+function handleNativeSelectionMark(type: MarkType) {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+        alert('Please select some text to highlight');
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+        alert('Please select some text to highlight');
+        return;
+    }
+
+    const selectedText = selection.toString().trim();
+    if (!selectedText) {
+        alert('Please select some text to highlight');
+        return;
+    }
+
+    const selectedElement = range.commonAncestorContainer;
+    const parentElement = selectedElement.nodeType === Node.TEXT_NODE
+        ? selectedElement.parentElement
+        : selectedElement as Element;
+
+    const existingMark = parentElement?.closest<HTMLElement>('[data-mark-id]') ||
+        parentElement?.querySelector<HTMLElement>('[data-mark-id]');
+
+    if (existingMark) {
+        const markId = existingMark.dataset.markId;
+        const existingType = existingMark.dataset.markType;
+        if (markId && existingType === type) {
+            emit('remove-mark', markId);
+            return;
+        }
+    }
+
+    emit('add-mark', {
+        text: selectedText,
+        from: 0,
+        to: selectedText.length,
+        type
+    });
+
+    selection.removeAllRanges();
+}
+
 const handleAddMark = async (type: MarkType = 'highlight') => {
     if (!props.editor) {
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) {
-            alert('Please select some text to highlight');
-            return;
-        }
-
-        const range = selection.getRangeAt(0);
-        if (range.collapsed) {
-            alert('Please select some text to highlight');
-            return;
-        }
-
-        const selectedText = selection.toString().trim();
-        if (!selectedText) {
-            alert('Please select some text to highlight');
-            return;
-        }
-
-        const selectedElement = range.commonAncestorContainer;
-        const parentElement = selectedElement.nodeType === Node.TEXT_NODE
-            ? selectedElement.parentElement
-            : selectedElement as Element;
-
-        const existingMark = parentElement?.closest<HTMLElement>('[data-mark-id]') ||
-            parentElement?.querySelector<HTMLElement>('[data-mark-id]');
-
-        if (existingMark) {
-            const markId = existingMark.dataset.markId;
-            const existingType = existingMark.dataset.markType;
-            if (markId && existingType === type) {
-                emit('remove-mark', markId);
-                return;
-            }
-        }
-
-        emit('add-mark', {
-            text: selectedText,
-            from: 0,
-            to: selectedText.length,
-            type
-        });
-
-        selection.removeAllRanges();
+        handleNativeSelectionMark(type);
         return;
     }
 
@@ -506,6 +496,7 @@ const handleAddMark = async (type: MarkType = 'highlight') => {
 
                 emit('remove-mark', attrs.markId);
             } catch (error) {
+                console.error('Could not delete the selected mark:', error);
                 alert('Failed to remove mark. Please try again.');
             }
         }
@@ -543,6 +534,7 @@ const handleAddMark = async (type: MarkType = 'highlight') => {
             });
         }
     } catch (error) {
+        console.error('Could not create a mark from the selection:', error);
         alert('Failed to create mark. Please try again.');
     }
 };

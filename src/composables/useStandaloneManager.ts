@@ -1,5 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue';
 import { useElectronApi } from './useElectronApi';
+import { useNotification } from './useNotification';
 
 export type ServiceKey = 'postgres' | 'backend' | 'models';
 
@@ -29,6 +30,7 @@ export interface HardwareReport {
  */
 export function useStandaloneManager() {
     const { isElectron } = useElectronApi();
+    const notification = useNotification();
 
     // ── Install state ──
     const standaloneInstalled = ref({ backend: false, postgres: false, models: false });
@@ -56,7 +58,7 @@ export function useStandaloneManager() {
     let statusPollTimer: ReturnType<typeof setInterval> | null = null;
     function startStatusPolling() {
         if (statusPollTimer) return;
-        refreshServiceStatus();
+        void refreshServiceStatus();
         statusPollTimer = setInterval(refreshServiceStatus, 3000);
     }
     function stopStatusPolling() {
@@ -149,6 +151,7 @@ export function useStandaloneManager() {
         if (isElectron && window.electronAPI.onStandaloneDownloadProgress) {
             window.electronAPI.onStandaloneDownloadProgress((progress) => {
                 downloadProgress.value = progress;
+                if (progress.warning) notification.warning(progress.warning);
             });
         }
     }

@@ -17,8 +17,8 @@ export function useGlobalKeyboard() {
         initialized = true;
 
         window.addEventListener('keydown', (event: KeyboardEvent) => {
-            if (event.ctrlKey) {
-                if (event.shiftKey && event.key.toLowerCase() === 'f') {
+            if (event.ctrlKey && event.key.toLowerCase() === 'f') {
+                if (event.shiftKey) {
                     event.preventDefault();
                     showGlobalSearch.value = true;
                 } else if (event.key === 'f') {
@@ -54,9 +54,7 @@ export function useGlobalKeyboard() {
             if (event.key === 'Escape') {
                 showSearch.value = false;
                 showGlobalSearch.value = false;
-                if (showNotesPanel.value) {
-                    showNotesPanel.value = false;
-                }
+                showNotesPanel.value = false;
             }
         }, true);
     }

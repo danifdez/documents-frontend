@@ -8,6 +8,10 @@
         <div ref="dropZoneRef"
           class="border-2 border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-surface-hover w-full min-h-28"
           :class="{ 'border-blue-500 bg-blue-50': dragging }" @click="selectDocuments"
+          role="button"
+          tabindex="0"
+          @keydown.enter.self.prevent="selectDocuments"
+          @keydown.space.self.prevent="selectDocuments"
           @dragenter.prevent="handleDragEnter" @dragover.prevent="handleDragOver" @dragleave.prevent="handleDragLeave"
           @drop.prevent="handleDrop">
           <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-text-muted" fill="none" viewBox="0 0 24 24"
@@ -212,23 +216,18 @@ const handleDrop = (e: DragEvent) => {
   if (dropZoneRef.value && !dropZoneRef.value.contains(e.target as Node)) return;
   dragCounter.value = 0;
   dragging.value = false;
-  const files = e.dataTransfer?.files;
-  if (files && files.length > 0) {
-    addFiles(files);
-  } else {
-    // Fallback: try to use items (e.g., Safari/edge)
-    const items = e.dataTransfer?.items;
-    if (items && items.length > 0) {
-      const filesFromItems: File[] = [];
-      for (const item of Array.from(items)) {
-        if (item.kind === 'file') {
-          const f = item.getAsFile();
-          if (f) filesFromItems.push(f);
-        }
-      }
-      if (filesFromItems.length > 0) addFiles(filesFromItems);
-    }
+  const transfer = e.dataTransfer;
+  if (!transfer) return;
+  if (transfer.files?.length) {
+    addFiles(transfer.files);
+    return;
   }
+  // Some browsers only expose the items list for dropped files.
+  const files = Array.from(transfer.items ?? [])
+    .filter(item => item.kind === 'file')
+    .map(item => item.getAsFile())
+    .filter((file): file is File => file !== null);
+  if (files.length) addFiles(files);
 };
 
 const importDocuments = async () => {

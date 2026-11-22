@@ -827,14 +827,14 @@ function statusBadgeClass(state: string): string {
 
 // Plain-language summary shown at the top of the Server tab.
 const overallStatus = computed(() => {
-    const states = serviceStatusList.map((svc) => serviceStatus.value[svc.key]);
-    if (states.includes('error')) {
+    const states = new Set(serviceStatusList.map((svc) => serviceStatus.value[svc.key]));
+    if (states.has('error')) {
         return { dot: 'bg-red-500', title: 'Something needs attention', subtitle: 'One or more parts could not start. See the details below.' };
     }
-    if (states.includes('starting')) {
+    if (states.has('starting')) {
         return { dot: 'bg-amber-500 animate-pulse', title: 'Starting up…', subtitle: 'The local services are getting ready.' };
     }
-    if (states.includes('stopped')) {
+    if (states.has('stopped')) {
         return { dot: 'bg-border', title: 'Local server is stopped', subtitle: 'Start it again from the Workspaces tab.' };
     }
     if (serviceStatus.value.models === 'not_installed') {

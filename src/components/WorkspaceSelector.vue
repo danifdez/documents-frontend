@@ -25,6 +25,10 @@
       class="absolute left-0 top-full mt-1 w-56 bg-surface border border-border rounded-lg shadow-lg z-50 py-1">
       <div v-for="ws in workspaceStore.workspaces" :key="ws.id"
         @click="selectWorkspace(ws.id)"
+        role="button"
+        tabindex="0"
+        @keydown.enter.self.prevent="selectWorkspace(ws.id)"
+        @keydown.space.self.prevent="selectWorkspace(ws.id)"
         class="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors"
         :class="ws.id === workspaceStore.activeWorkspaceId
           ? 'bg-accent-subtle text-accent-dark font-medium'

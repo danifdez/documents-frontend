@@ -21,16 +21,20 @@
             :style="{ position: 'fixed', left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px', zIndex: 10000 }"
             class="bg-surface-elevated border-border border rounded shadow-lg">
             <ul class="py-1">
-                <li class="px-4 py-2 hover:bg-surface-hover cursor-pointer" @click="saveImageAsResource">Save image as
-                    resource</li>
+                <li>
+                    <button type="button" class="w-full px-4 py-2 text-left hover:bg-surface-hover cursor-pointer"
+                        @click="saveImageAsResource">Save image as resource</button>
+                </li>
             </ul>
         </div>
         <div v-if="annotationMenu.visible"
             :style="{ position: 'fixed', left: `${annotationMenu.x}px`, top: `${annotationMenu.y}px`, zIndex: 10001 }"
             class="bg-surface-elevated border-border border rounded shadow-lg">
             <ul class="py-1">
-                <li class="px-4 py-2 hover:bg-surface-hover cursor-pointer text-sm"
-                    @click="deleteAnnotationFromMenu">Eliminar</li>
+                <li>
+                    <button type="button" class="w-full px-4 py-2 text-left hover:bg-surface-hover cursor-pointer text-sm"
+                        @click="deleteAnnotationFromMenu">Eliminar</button>
+                </li>
             </ul>
         </div>
     </div>
@@ -167,7 +171,7 @@ const cssVars = ref({
 });
 
 const escapeRegExp = (text: string) => {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 };
 
 const applySettings = () => {
@@ -344,7 +348,7 @@ const clearHighlights = () => {
         while (mark.firstChild) {
             parent.insertBefore(mark.firstChild, mark);
         }
-        parent.removeChild(mark);
+        mark.remove();
         parent.normalize();
     });
 }
@@ -357,7 +361,7 @@ const clearEntityHighlights = () => {
         while (mark.firstChild) {
             parent.insertBefore(mark.firstChild, mark);
         }
-        parent.removeChild(mark);
+        mark.remove();
         parent.normalize();
     });
 };
@@ -373,7 +377,8 @@ const buildNormalizedMap = (original: string): { normalized: string; map: number
         const nfd = original[i].normalize('NFD');
         for (const ch of nfd) {
             // Skip combining diacritical marks (U+0300–U+036F)
-            if (ch.charCodeAt(0) >= 0x0300 && ch.charCodeAt(0) <= 0x036f) continue;
+            const codePoint = ch.codePointAt(0);
+            if (codePoint !== undefined && codePoint >= 0x0300 && codePoint <= 0x036f) continue;
             normalized += ch;
             map.push(i);
         }
@@ -434,7 +439,7 @@ const highlightEntity = (entityName: string, aliases: string[] = []) => {
         const { normalized, map } = buildNormalizedMap(originalText);
 
         // Try with Unicode-aware word boundaries first
-        let pattern = new RegExp(`(?<![\\p{L}\\p{N}])(${termsPattern})(?![\\p{L}\\p{N}])`, 'giu');
+        let pattern = new RegExp(String.raw`(?<![\p{L}\p{N}])(${termsPattern})(?![\p{L}\p{N}])`, 'giu');
         let matches: { origStart: number; origEnd: number }[] = [];
         let match;
 
@@ -509,6 +514,7 @@ const saveModifiedContent = async () => {
             savedSuccessfully.value = false;
         }, 2000);
     } catch (error) {
+        console.error('Could not save HTML content:', error);
         savedSuccessfully.value = false;
         alert('Failed to save content. Please try again.');
     }
@@ -537,6 +543,7 @@ const handleAddMark = async (data: { text: string; from: number; to: number; typ
             await saveModifiedContent();
         }
     } catch (error) {
+        console.error('Could not create a mark in HTML content:', error);
         alert('Failed to create mark. Please try again.');
     }
 };
@@ -547,98 +554,41 @@ const handleRemoveMark = async (markId: string) => {
         await deleteMark(markId);
         await saveModifiedContent();
     } catch (error) {
+        console.error('Could not remove a mark from HTML content:', error);
         alert('Failed to remove mark. Please try again.');
     }
 };
 
-const wrapTextWithMark = (text: string, markId: string, type: string = 'highlight') => {
-    if (!extractedContent.value) return;
-
-    const walker = document.createTreeWalker(
-        extractedContent.value,
-        NodeFilter.SHOW_TEXT,
-        null
-    );
-
-    const textNodes = [];
-    let node;
-    while ((node = walker.nextNode())) {
-        textNodes.push(node);
+function wrapFirstTextMatch(text: string, span: HTMLSpanElement): void {
+    if (!extractedContent.value || !text) return;
+    const walker = document.createTreeWalker(extractedContent.value, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+        const node = walker.currentNode as Text;
+        const index = node.data.indexOf(text);
+        if (index === -1) continue;
+        const match = node.splitText(index);
+        match.splitText(text.length);
+        span.textContent = text;
+        span.style.cursor = 'pointer';
+        match.replaceWith(span);
+        return;
     }
+}
 
-    for (const textNode of textNodes) {
-        const content = textNode.textContent;
-        if (content && content.includes(text)) {
-            const index = content.indexOf(text);
-            if (index !== -1) {
-                const beforeText = content.substring(0, index);
-                const afterText = content.substring(index + text.length);
+function wrapTextWithMark(text: string, markId: string, type = 'highlight'): void {
+    const span = document.createElement('span');
+    span.className = `marker-highlight marker-type-${type}`;
+    span.dataset.markId = markId;
+    span.dataset.markType = type;
+    wrapFirstTextMatch(text, span);
+}
 
-                const span = document.createElement('span');
-                span.className = `marker-highlight marker-type-${type}`;
-                span.dataset.markId = markId;
-                span.dataset.markType = type;
-                span.textContent = text;
-                span.style.cursor = 'pointer';
-
-                const parent = textNode.parentNode;
-                if (beforeText) {
-                    parent.insertBefore(document.createTextNode(beforeText), textNode);
-                }
-                parent.insertBefore(span, textNode);
-                if (afterText) {
-                    parent.insertBefore(document.createTextNode(afterText), textNode);
-                }
-                parent.removeChild(textNode);
-                break;
-            }
-        }
-    }
-};
-
-const wrapTextWithComment = (text: string, commentId: string) => {
-    if (!extractedContent.value) return;
-
-    const walker = document.createTreeWalker(
-        extractedContent.value,
-        NodeFilter.SHOW_TEXT,
-        null
-    );
-
-    const textNodes = [];
-    let node;
-    while ((node = walker.nextNode())) {
-        textNodes.push(node);
-    }
-
-    for (const textNode of textNodes) {
-        const content = textNode.textContent;
-        if (content && content.includes(text)) {
-            const index = content.indexOf(text);
-            if (index !== -1) {
-                const beforeText = content.substring(0, index);
-                const afterText = content.substring(index + text.length);
-
-                const span = document.createElement('span');
-                span.className = 'comment-mark';
-                span.dataset.commentId = commentId;
-                span.textContent = text;
-                span.style.cursor = 'pointer';
-
-                const parent = textNode.parentNode;
-                if (beforeText) {
-                    parent.insertBefore(document.createTextNode(beforeText), textNode);
-                }
-                parent.insertBefore(span, textNode);
-                if (afterText) {
-                    parent.insertBefore(document.createTextNode(afterText), textNode);
-                }
-                parent.removeChild(textNode);
-                break;
-            }
-        }
-    }
-};
+function wrapTextWithComment(text: string, commentId: string): void {
+    const span = document.createElement('span');
+    span.className = 'comment-mark';
+    span.dataset.commentId = commentId;
+    wrapFirstTextMatch(text, span);
+}
 
 const removeMarkFromDOM = (markId: string) => {
     if (!extractedContent.value) return;
@@ -648,7 +598,7 @@ const removeMarkFromDOM = (markId: string) => {
         const parent = markElement.parentNode;
         const text = markElement.textContent;
         parent.insertBefore(document.createTextNode(text), markElement);
-        parent.removeChild(markElement);
+        markElement.remove();
         parent.normalize();
     }
 };
@@ -835,7 +785,7 @@ const getNodeByPath = (path: number[], container: Element): Node | null => {
     return current;
 };
 
-const isRemoteImage = (src) => {
+const isRemoteImage = (src: string) => {
     if (typeof src === 'string' && src.startsWith('data:image/')) {
         return true;
     }
@@ -847,7 +797,15 @@ const isRemoteImage = (src) => {
     }
 };
 
-const handleImageContextMenu = (event) => {
+function imageFileName(source: string): string {
+    try {
+        return new URL(source, window.location.origin).pathname.split('/').at(-1) || '';
+    } catch {
+        return source.split('/').at(-1) || '';
+    }
+}
+
+const handleImageContextMenu = (event: MouseEvent) => {
     // Un clic derecho sobre un resaltado o un comentario abre su propio menú,
     // con la única opción de eliminarlo.
     const target = event.target as HTMLElement | null;
@@ -868,26 +826,16 @@ const handleImageContextMenu = (event) => {
     annotationMenu.value.visible = false;
 
     if (!extractedContent.value) return;
-    if (target && target.tagName === 'IMG') {
-        const src = target.getAttribute('src');
-        if (src && isRemoteImage(src)) {
-            event.preventDefault();
-            let name = '';
-            try {
-                const urlObj = new URL(src, window.location.origin);
-                name = urlObj.pathname.split('/').pop() || '';
-            } catch {
-                name = src.split('/').pop() || '';
-            }
-            contextMenuImageUrl.value = { url: src, alt: target.getAttribute('alt') || '', name: name };
-            showContextMenu.value = true;
-            contextMenuPosition.value = { x: event.clientX, y: event.clientY };
-        } else {
-            showContextMenu.value = false;
-        }
-    } else {
+    const image = target?.tagName === 'IMG' ? target as HTMLImageElement : null;
+    const src = image?.getAttribute('src');
+    if (!src || !isRemoteImage(src)) {
         showContextMenu.value = false;
+        return;
     }
+    event.preventDefault();
+    contextMenuImageUrl.value = { url: src, alt: image?.alt || '', name: imageFileName(src) };
+    showContextMenu.value = true;
+    contextMenuPosition.value = { x: event.clientX, y: event.clientY };
 };
 
 const handleClickOutside = () => {
@@ -918,7 +866,7 @@ const saveImageAsResource = async () => {
         const formData = new FormData();
         formData.append('file', blob, 'imported-image.jpg');
         formData.append('relatedTo', props.resourceId);
-        formData.append('projectId', currentProject.id);
+        formData.append('projectId', String(currentProject.id));
         formData.append('url', contextMenuImageUrl.value.url);
         formData.append('originalName', contextMenuImageUrl.value.name);
         formData.append('name', contextMenuImageUrl.value.alt || '');
@@ -956,7 +904,7 @@ const removeCommentMark = async (commentId: string) => {
         while (el.firstChild) {
             parent.insertBefore(el.firstChild, el);
         }
-        parent.removeChild(el);
+        el.remove();
         parent.normalize();
     }
     await saveModifiedContent();
@@ -1043,7 +991,7 @@ defineExpose({
     border-radius: 0.25rem;
     padding: 0.125rem;
     border: 1px solid #2196F3;
-    color: #1976D2;
+    color: #12579c;
     font-weight: 500;
     cursor: pointer;
 }

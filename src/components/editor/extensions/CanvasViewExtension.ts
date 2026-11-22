@@ -160,5 +160,3 @@ export const CanvasViewExtension = Node.create<CanvasViewOptions>({
         };
     },
 });
-
-export default CanvasViewExtension;

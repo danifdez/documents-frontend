@@ -7,14 +7,14 @@ import { IpcEvents } from '../../ipc/channels';
 import { decodeAudio } from './decodeAudio';
 import { endianness } from 'node:os';
 import { CAPTURE_LIMITS, captureHash, isDetectedLanguage, localCaptureStore, type LocalCaptureStore, type CaptureWriter } from './captureStore';
-import type { LocalVoiceStartOptions, LocalCaptureSnapshot } from '../../types/voice';
+import type { LocalVoiceStartOptions, LocalCaptureSnapshot, LocalCaptureStatus } from '../../types/voice';
 import { loadVoiceBindings, validateEngineIdentity, type VoiceEngineIdentity } from './runtimeIdentity';
 
 interface WhisperLike {
   transcribe(pcm: Float32Array, opts: { language: string; print_realtime: boolean; print_progress: boolean; print_timestamps: boolean; print_special: boolean; format?: 'detail' }): Promise<{ result: Promise<{ text: string; lang?: string }[]>; model?: object }>;
   free(): Promise<void>;
 }
-interface WhisperCtor { new (file: string, opts: { gpu: boolean }): WhisperLike }
+type WhisperCtor = new (file: string, opts: { gpu: boolean }) => WhisperLike;
 export interface VoiceRuntime {
   available(): boolean;
   hasModel(): Promise<boolean>;
@@ -89,6 +89,21 @@ interface Session {
   detach(): void;
 }
 
+function snapshotVoiceInput(s: Session) {
+  const audio = Buffer.concat(s.chunks);
+  const parameters = {
+    language: 'auto',
+    print_realtime: false,
+    print_progress: false,
+    print_timestamps: false,
+    print_special: false,
+    ...(s.capture && audio.length ? { format: 'detail' as const } : {}),
+  };
+  return { audio, parameters };
+}
+
+type VoiceInput = ReturnType<typeof snapshotVoiceInput>;
+
 export class LocalEngine {
   private session: Session | null = null;
   private whisper: WhisperLike | null = null;
@@ -119,7 +134,7 @@ export class LocalEngine {
     if (this.closing || this.session || owner.isDestroyed()) throw new Error('Local voice is busy or unavailable');
     // Reserve before awaiting model preparation; no second caller can take over.
     const s: Session = { id: options?.capture.requestId ?? randomUUID(), owner, phase: 'starting', loading: true,
-      chunks: [], bytes: 0, calls: 0, captureClosed: true, inputWrites: Promise.resolve(), queuedBytes: 0, abort: new AbortController(), detach: () => undefined };
+      chunks: [], bytes: 0, calls: 0, captureClosed: true, inputWrites: Promise.resolve(), queuedBytes: 0, abort: new AbortController(), detach: (): undefined => undefined };
     this.session = s;
     const lost = () => this.close(s, 'cancelled', 'owner_unavailable');
     const navigation = (details: { isMainFrame: boolean; isSameDocument: boolean }) => {
@@ -136,35 +151,10 @@ export class LocalEngine {
     s.deadline = setTimeout(() => this.fail(s, 'Local voice session limit exceeded'), VOICE_LIMITS.sessionMs);
     try {
       if (options) {
-        const accepted = await this.captures.open(options.capture, {
-          expectedModel: MODEL_MANIFEST,
-          engine: { family: 'whisper.cpp', adapter: 'smart-whisper', requestedGpu: false, language: 'auto' },
-        });
-        if (!accepted.claimed) {
-          this.close(s, 'cancelled', 'recovered');
-          return { sessionId: s.id, claimed: false, status: accepted.status };
-        }
-        s.capture = accepted.writer;
-        s.captureClosed = false;
-        if (s.phase === 'closed') { this.close(s); throw new Error('Local voice session was cancelled'); }
+        const previous = await this.claimCapture(s, options);
+        if (previous) return previous;
       }
-      if (!this.isAvailable()) throw new Error('Local voice is unavailable');
-      await this.preload(owner);
-      if (s.phase !== 'starting' || owner.isDestroyed()) throw new Error('Local voice session was cancelled');
-      if (s.capture && this.runtime.identity) {
-        const identity = this.runtime.identity();
-        validateEngineIdentity(identity);
-        await s.capture.event('engine.observed', identity as unknown as Record<string, unknown>);
-        if (s.phase !== 'starting') throw new Error('Local voice session was cancelled');
-      }
-      s.phase = 'recording';
-      if (s.capture) await s.capture.event('session.recording', {});
-      if (s.phase !== 'recording') throw new Error('Local voice session was cancelled');
-      s.interval = setInterval(() => {
-        if (!s.pending && s.phase === 'recording' && s.chunks.length) {
-          void this.run(s, false).catch((): undefined => undefined);
-        }
-      }, 2000);
+      await this.beginRecording(s);
       return { sessionId: s.id, ...(s.capture ? { claimed: true, status: 'running' as const } : {}) };
     } catch (error) {
       this.close(s, 'failed', 'preparation_failed');
@@ -176,6 +166,45 @@ export class LocalEngine {
     } finally {
       s.loading = false;
       this.release(s);
+    }
+  }
+
+  private async claimCapture(s: Session, options: LocalVoiceStartOptions): Promise<StartLocalResult | undefined> {
+    const accepted = await this.captures.open(options.capture, {
+      expectedModel: MODEL_MANIFEST,
+      engine: { family: 'whisper.cpp', adapter: 'smart-whisper', requestedGpu: false, language: 'auto' },
+    });
+    if (!accepted.claimed) {
+      this.close(s, 'cancelled', 'recovered');
+      return { sessionId: s.id, claimed: false, status: accepted.status };
+    }
+    s.capture = accepted.writer;
+    s.captureClosed = false;
+    if (s.phase === 'closed') {
+      this.close(s);
+      throw new Error('Local voice session was cancelled');
+    }
+  }
+
+  private async beginRecording(s: Session): Promise<void> {
+    if (!this.isAvailable()) throw new Error('Local voice is unavailable');
+    await this.preload(s.owner);
+    if (s.phase !== 'starting' || s.owner.isDestroyed()) throw new Error('Local voice session was cancelled');
+    if (s.capture && this.runtime.identity) {
+      const identity = this.runtime.identity();
+      validateEngineIdentity(identity);
+      await s.capture.event('engine.observed', identity as unknown as Record<string, unknown>);
+      if (s.phase !== 'starting') throw new Error('Local voice session was cancelled');
+    }
+    s.phase = 'recording';
+    if (s.capture) await s.capture.event('session.recording', {});
+    if (s.phase !== 'recording') throw new Error('Local voice session was cancelled');
+    s.interval = setInterval(() => this.runPartial(s), 2000);
+  }
+
+  private runPartial(s: Session): void {
+    if (s.pending === undefined && s.phase === 'recording' && s.chunks.length) {
+      void this.run(s, false).catch((): undefined => undefined);
     }
   }
 
@@ -224,26 +253,30 @@ export class LocalEngine {
   stopSession(owner: WebContents, id: string): Promise<void> {
     const s = this.owned(owner, id);
     if (!s || s.phase === 'closed') return Promise.resolve();
-    if (s.stop) return s.stop;
+    if (s.stop !== undefined) return s.stop;
     if (s.phase !== 'recording') return Promise.reject(new Error('Local voice session is not ready'));
     s.phase = 'stopping';
     clearInterval(s.interval);
-    s.stop = (async () => {
-      // Do not launch a final pass until the previous native call has drained.
+    s.stop = this.finishRecording(s);
+    return s.stop;
+  }
+  private async finishRecording(s: Session): Promise<void> {
+    try {
+      // Drain the previous native call before starting a final pass.
       await s.inputWrites;
-      if (s.phase === 'closed') { await s.captureClosing; return; }
-      if (s.capture) await s.capture.event('session.stopping', {});
-      await s.pending;
-      if (s.abort.signal.aborted) { await s.captureClosing; return; }
-      await this.run(s, true);
+      if (s.phase !== 'closed') {
+        if (s.capture) await s.capture.event('session.stopping', {});
+        await s.pending;
+        if (!s.abort.signal.aborted) await this.run(s, true);
+      }
       await s.captureClosing;
-    })().catch(async () => {
+    } catch {
       this.fail(s, 'Local voice capture could not be confirmed');
       await s.captureClosing?.catch((): undefined => undefined);
       throw new Error('Local voice processing failed');
-    });
-    return s.stop;
+    }
   }
+
   async cancelSession(owner: WebContents, id?: string): Promise<void> {
     const s = this.owned(owner, id);
     if (s) { this.close(s, 'cancelled', 'operator_cancelled'); await s.captureClosing; }
@@ -256,68 +289,13 @@ export class LocalEngine {
       try {
         const index = s.calls + 1;
         if (index > VOICE_LIMITS.calls) throw new Error('Call limit exceeded');
-        const snapshotInput = () => {
-          const audio = Buffer.concat(s.chunks);
-          const parameters = { language: 'auto', print_realtime: false, print_progress: false, print_timestamps: false, print_special: false,
-            ...(s.capture && audio.length ? { format: 'detail' as const } : {}) };
-          return { audio, parameters };
-        };
-        const capture = s.capture;
-        let input;
-        if (capture) {
-          // Record a prefix after the preceding checked writes and before later chunks.
-          const started = s.inputWrites.then(async () => {
-            if (s.phase !== expected) return;
-            const snapshot = snapshotInput();
-            const { audio, parameters } = snapshot;
-            await capture.event('call.started', { index, final, parameters, nativeRequested: audio.length > 0,
-              input: { sha256: captureHash(audio), bytes: audio.length, chunks: s.chunks.length } });
-            return snapshot;
-          });
-          s.inputWrites = started.then((): undefined => undefined, (): undefined => undefined);
-          input = await started;
-        } else {
-          input = snapshotInput();
-        }
-        if (!input) return;
-        const { audio, parameters } = input;
-        if (s.phase !== expected) return;
+        const input = s.capture ? await this.recordInput(s, s.capture, index, final, expected) : snapshotVoiceInput(s);
+        if (!input || s.phase !== expected) return;
+        const { audio } = input;
         s.calls = index;
-        let text = '';
-        let details: Record<string, unknown> = {};
-        if (audio.length) {
-          const decodeStart = process.hrtime.bigint();
-          const pcm = await this.runtime.decode(audio, s.abort.signal);
-          const decodeEnd = process.hrtime.bigint();
-          const decoded = s.capture ? { sha256: captureHash(Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength)), samples: pcm.length, sampleRate: 16000, channels: 1, encoding: 'float32', endianness: endianness() } : undefined;
-          if (s.phase !== expected) return;
-          if (!(await this.runtime.hasModel())) throw new Error('Local voice model verification failed');
-          if (s.phase !== expected) return;
-          this.runtime.identity?.();
-          const inferenceStart = process.hrtime.bigint();
-          const task = await this.whisper!.transcribe(pcm, parameters);
-          const segments = await task.result;
-          const inferenceEnd = process.hrtime.bigint();
-          if (s.phase !== expected) return;
-          if (!(await this.runtime.hasModel())) throw new Error('Local voice model verification failed');
-          if (s.phase !== expected) return;
-          this.runtime.identity?.();
-          details = { decoded,
-            decodeUs: Number((decodeEnd - decodeStart) / 1000n), inferenceUs: Number((inferenceEnd - inferenceStart) / 1000n), modelReadyBeforeAndAfter: true };
-          if (parameters.format === 'detail') {
-            const detectedLanguage = segments[0]?.lang;
-            details.detectedLanguage = isDetectedLanguage(detectedLanguage) && segments.every((segment) => segment.lang === detectedLanguage)
-              ? detectedLanguage : null;
-          }
-          // The task holds the model used by the native call, including after a reload.
-          if (s.capture && task.model) {
-            const modelInstanceId = this.modelInstances.get(task.model) ?? randomUUID();
-            this.modelInstances.set(task.model, modelInstanceId);
-            details.modelInstanceId = modelInstanceId;
-          }
-          text = segments.map((segment) => segment.text).join(' ').trim();
-          if (Buffer.byteLength(text) > VOICE_LIMITS.textBytes) throw new Error('Output limit exceeded');
-        }
+        const result = audio.length ? await this.transcribeInput(s, expected, input) : { text: '', details: {} };
+        if (!result) return;
+        const { text, details } = result;
         if (s.phase !== expected || s.owner.isDestroyed()) return;
         if (s.capture) await s.capture.event('call.completed', { index, final, nativeInvoked: audio.length > 0, text, ...details });
         if (s.phase !== expected || s.owner.isDestroyed()) return;
@@ -340,6 +318,66 @@ export class LocalEngine {
     }).catch((): undefined => undefined);
     return work;
   }
+  private recordInput(s: Session, capture: CaptureWriter, index: number, final: boolean, expected: Phase): Promise<VoiceInput | undefined> {
+    // Reserve the checked prefix before allowing a later capture write.
+    const started = s.inputWrites.then(async () => {
+      if (s.phase !== expected) return;
+      const input = snapshotVoiceInput(s);
+      const { audio, parameters } = input;
+      await capture.event('call.started', { index, final, parameters, nativeRequested: audio.length > 0,
+        input: { sha256: captureHash(audio), bytes: audio.length, chunks: s.chunks.length } });
+      return input;
+    });
+    s.inputWrites = started.then((): undefined => undefined, (): undefined => undefined);
+    return started;
+  }
+
+  private async transcribeInput(s: Session, expected: Phase, { audio, parameters }: VoiceInput) {
+    const decodeStart = process.hrtime.bigint();
+    const pcm = await this.runtime.decode(audio, s.abort.signal);
+    const decodeEnd = process.hrtime.bigint();
+    const decoded = s.capture ? {
+      sha256: captureHash(Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength)),
+      samples: pcm.length, sampleRate: 16000, channels: 1, encoding: 'float32', endianness: endianness(),
+    } : undefined;
+    if (s.phase !== expected || !await this.verifyModelForPhase(s, expected)) return;
+
+    if (s.phase !== expected) return;
+    const inferenceStart = process.hrtime.bigint();
+    const task = await this.whisper!.transcribe(pcm, parameters);
+    const segments = await task.result;
+    const inferenceEnd = process.hrtime.bigint();
+    if (s.phase !== expected || !await this.verifyModelForPhase(s, expected)) return;
+
+    const details: Record<string, unknown> = {
+      decoded,
+      decodeUs: Number((decodeEnd - decodeStart) / 1000n),
+      inferenceUs: Number((inferenceEnd - inferenceStart) / 1000n),
+      modelReadyBeforeAndAfter: true,
+    };
+    if (parameters.format === 'detail') {
+      const language = segments[0]?.lang;
+      details.detectedLanguage = isDetectedLanguage(language) && segments.every(segment => segment.lang === language)
+        ? language : null;
+    }
+    if (s.capture && task.model) {
+      // Keep the identity bound to the native call's model, even after a reload.
+      const modelInstanceId = this.modelInstances.get(task.model) ?? randomUUID();
+      this.modelInstances.set(task.model, modelInstanceId);
+      details.modelInstanceId = modelInstanceId;
+    }
+    const text = segments.map(segment => segment.text).join(' ').trim();
+    if (Buffer.byteLength(text) > VOICE_LIMITS.textBytes) throw new Error('Output limit exceeded');
+    return { text, details };
+  }
+
+  private async verifyModelForPhase(s: Session, expected: Phase): Promise<boolean> {
+    if (!(await this.runtime.hasModel())) throw new Error('Local voice model verification failed');
+    if (s.phase !== expected) return false;
+    this.runtime.identity?.();
+    return true;
+  }
+
   private fail(s: Session, message: string) {
     if (s.phase !== 'closed' && !s.owner.isDestroyed()) {
       try { s.owner.send(IpcEvents.voice.error, { sessionId: s.id, message }); } catch { /* Window closed. */ }
@@ -366,12 +404,12 @@ export class LocalEngine {
     this.release(s);
   }
   private release(s: Session) {
-    if (s.phase === 'closed' && !s.loading && !s.pending && s.captureClosed && this.session === s) {
+    if (s.phase === 'closed' && !s.loading && s.pending === undefined && s.captureClosed && this.session === s) {
       s.detach();
       this.session = null;
     }
   }
-  async captureStatus(requestId: string): Promise<import('../../types/voice').LocalCaptureStatus> {
+  async captureStatus(requestId: string): Promise<LocalCaptureStatus> {
     try {
       const active = this.session?.id === requestId ? this.session : null;
       if (active && active.phase !== 'closed') return { sessionId: requestId, status: 'running', phase: active.phase };

@@ -12,7 +12,7 @@ export function useResourceToc(contentRef: Ref<{ toc?: TocItem[]; scrollToHeadin
 
     const refreshToc = () => {
         try {
-            if (contentRef.value && contentRef.value.toc) {
+            if (contentRef.value?.toc) {
                 tocItems.value = contentRef.value.toc;
             } else {
                 tocItems.value = [];
