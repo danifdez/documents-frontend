@@ -25,35 +25,31 @@
                             <div class="bg-surface-hover px-3 py-2 text-xs font-medium text-text-secondary">
                                 Pending Entities (this document)
                             </div>
-                            <div v-for="entity in filteredPendingEntities" :key="'pending-' + entity.id"
-                                @click="selectTargetEntity('pending', entity)"
-                                role="button"
-                                tabindex="0"
-                                @keydown.enter.self.prevent="selectTargetEntity('pending', entity)"
-                                @keydown.space.self.prevent="selectTargetEntity('pending', entity)" :class="[
+                            <button type="button" class="block w-full text-left" v-for="entity in filteredPendingEntities" :key="'pending-' + entity.id"
+                                @click="selectTargetEntity('pending', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'pending' && selectedTarget.id === entity.id
                                         ? 'bg-blue-100'
                                         : ''
                                 ]">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="text-sm font-medium">{{ entity.name }}</div>
-                                        <div class="text-xs text-text-muted">{{ entity.entityType?.name }} · {{
-                                            entity.scope }}</div>
-                                        <div v-if="entity.description" class="text-xs text-text-muted italic mt-1">{{
-                                            entity.description }}</div>
-                                    </div>
-                                    <div v-if="selectedTarget?.type === 'pending' && selectedTarget.id === entity.id"
-                                        class="text-blue-600">
+                                <span class="flex items-center justify-between">
+                                    <span class="block flex-1">
+                                        <span class="block text-sm font-medium">{{ entity.name }}</span>
+                                        <span class="block text-xs text-text-muted">{{ entity.entityType?.name }} · {{
+                                            entity.scope }}</span>
+                                        <span v-if="entity.description" class="block text-xs text-text-muted italic mt-1">{{
+                                            entity.description }}</span>
+                                    </span>
+                                    <span v-if="selectedTarget?.type === 'pending' && selectedTarget.id === entity.id"
+                                        class="block text-blue-600">
                                         <svg aria-hidden="true" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd"
                                                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                                 clip-rule="evenodd" />
                                         </svg>
-                                    </div>
-                                </div>
-                            </div>
+                                    </span>
+                                </span>
+                            </button>
                         </div>
 
                         <!-- Confirmed entities section - Document scope -->
@@ -61,34 +57,30 @@
                             <div class="bg-green-50 px-3 py-2 text-xs font-medium text-green-800">
                                 Confirmed Entities (this document)
                             </div>
-                            <div v-for="entity in confirmedEntitiesByScope.document" :key="'confirmed-doc-' + entity.id"
-                                @click="selectTargetEntity('confirmed', entity)"
-                                role="button"
-                                tabindex="0"
-                                @keydown.enter.self.prevent="selectTargetEntity('confirmed', entity)"
-                                @keydown.space.self.prevent="selectTargetEntity('confirmed', entity)" :class="[
+                            <button type="button" class="block w-full text-left" v-for="entity in confirmedEntitiesByScope.document" :key="'confirmed-doc-' + entity.id"
+                                @click="selectTargetEntity('confirmed', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
                                         ? 'bg-blue-100'
                                         : ''
                                 ]">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="text-sm font-medium">{{ entity.name }}</div>
-                                        <div class="text-xs text-text-muted">{{ entity.entityType?.name }}</div>
-                                        <div v-if="entity.description" class="text-xs text-text-muted italic mt-1">{{
-                                            entity.description }}</div>
-                                    </div>
-                                    <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
-                                        class="text-blue-600">
+                                <span class="flex items-center justify-between">
+                                    <span class="block flex-1">
+                                        <span class="block text-sm font-medium">{{ entity.name }}</span>
+                                        <span class="block text-xs text-text-muted">{{ entity.entityType?.name }}</span>
+                                        <span v-if="entity.description" class="block text-xs text-text-muted italic mt-1">{{
+                                            entity.description }}</span>
+                                    </span>
+                                    <span v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
+                                        class="block text-blue-600">
                                         <svg aria-hidden="true" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd"
                                                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                                 clip-rule="evenodd" />
                                         </svg>
-                                    </div>
-                                </div>
-                            </div>
+                                    </span>
+                                </span>
+                            </button>
                         </div>
 
                         <!-- Confirmed entities section - Project scope -->
@@ -96,34 +88,30 @@
                             <div class="bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
                                 Confirmed Entities (this project)
                             </div>
-                            <div v-for="entity in confirmedEntitiesByScope.project" :key="'confirmed-proj-' + entity.id"
-                                @click="selectTargetEntity('confirmed', entity)"
-                                role="button"
-                                tabindex="0"
-                                @keydown.enter.self.prevent="selectTargetEntity('confirmed', entity)"
-                                @keydown.space.self.prevent="selectTargetEntity('confirmed', entity)" :class="[
+                            <button type="button" class="block w-full text-left" v-for="entity in confirmedEntitiesByScope.project" :key="'confirmed-proj-' + entity.id"
+                                @click="selectTargetEntity('confirmed', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
                                         ? 'bg-blue-100'
                                         : ''
                                 ]">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="text-sm font-medium">{{ entity.name }}</div>
-                                        <div class="text-xs text-text-muted">{{ entity.entityType?.name }}</div>
-                                        <div v-if="entity.description" class="text-xs text-text-muted italic mt-1">{{
-                                            entity.description }}</div>
-                                    </div>
-                                    <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
-                                        class="text-blue-600">
+                                <span class="flex items-center justify-between">
+                                    <span class="block flex-1">
+                                        <span class="block text-sm font-medium">{{ entity.name }}</span>
+                                        <span class="block text-xs text-text-muted">{{ entity.entityType?.name }}</span>
+                                        <span v-if="entity.description" class="block text-xs text-text-muted italic mt-1">{{
+                                            entity.description }}</span>
+                                    </span>
+                                    <span v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
+                                        class="block text-blue-600">
                                         <svg aria-hidden="true" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd"
                                                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                                 clip-rule="evenodd" />
                                         </svg>
-                                    </div>
-                                </div>
-                            </div>
+                                    </span>
+                                </span>
+                            </button>
                         </div>
 
                         <!-- Confirmed entities section - Global scope -->
@@ -131,34 +119,30 @@
                             <div class="bg-purple-50 px-3 py-2 text-xs font-medium text-purple-800">
                                 Confirmed Entities (global)
                             </div>
-                            <div v-for="entity in confirmedEntitiesByScope.global" :key="'confirmed-glob-' + entity.id"
-                                @click="selectTargetEntity('confirmed', entity)"
-                                role="button"
-                                tabindex="0"
-                                @keydown.enter.self.prevent="selectTargetEntity('confirmed', entity)"
-                                @keydown.space.self.prevent="selectTargetEntity('confirmed', entity)" :class="[
+                            <button type="button" class="block w-full text-left" v-for="entity in confirmedEntitiesByScope.global" :key="'confirmed-glob-' + entity.id"
+                                @click="selectTargetEntity('confirmed', entity)" :class="[
                                     'px-3 py-2 cursor-pointer hover:bg-blue-50 transition-colors',
                                     selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id
                                         ? 'bg-blue-100'
                                         : ''
                                 ]">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="text-sm font-medium">{{ entity.name }}</div>
-                                        <div class="text-xs text-text-muted">{{ entity.entityType?.name }}</div>
-                                        <div v-if="entity.description" class="text-xs text-text-muted italic mt-1">{{
-                                            entity.description }}</div>
-                                    </div>
-                                    <div v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
-                                        class="text-blue-600">
+                                <span class="flex items-center justify-between">
+                                    <span class="block flex-1">
+                                        <span class="block text-sm font-medium">{{ entity.name }}</span>
+                                        <span class="block text-xs text-text-muted">{{ entity.entityType?.name }}</span>
+                                        <span v-if="entity.description" class="block text-xs text-text-muted italic mt-1">{{
+                                            entity.description }}</span>
+                                    </span>
+                                    <span v-if="selectedTarget?.type === 'confirmed' && selectedTarget.id === entity.id"
+                                        class="block text-blue-600">
                                         <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                             <path fill-rule="evenodd"
                                                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                                 clip-rule="evenodd" />
                                         </svg>
-                                    </div>
-                                </div>
-                            </div>
+                                    </span>
+                                </span>
+                            </button>
                         </div>
 
                         <!-- No results -->

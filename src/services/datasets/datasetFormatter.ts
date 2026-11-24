@@ -12,15 +12,26 @@ export function formatDatasetValue(val: unknown, maximumFractionDigits = 3): str
 export function formatDatasetText(value: unknown): string {
     if (Array.isArray(value)) return value.map(item => item == null ? '' : formatDatasetText(item)).join(',');
     if (value instanceof Date) return value.toString();
-    if (value !== null && typeof value === 'object') {
-        try {
-            return JSON.stringify(value) ?? '';
-        } catch {
-            // Unserializable structured values do not have a readable label.
-            return '';
-        }
+    if (value === null) return 'null';
+    switch (typeof value) {
+        case 'string':
+            return value;
+        case 'undefined':
+            return 'undefined';
+        case 'boolean':
+        case 'number':
+        case 'bigint':
+        case 'symbol':
+            return value.toString();
+        case 'function':
+            return Function.prototype.toString.call(value);
+        case 'object':
+            try {
+                return JSON.stringify(value) ?? '';
+            } catch {
+                return '';
+            }
     }
-    return String(value);
 }
 
 // ── Field keys as human-readable labels ──────────────────────────────

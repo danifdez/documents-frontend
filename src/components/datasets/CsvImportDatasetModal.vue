@@ -24,23 +24,19 @@
                     <div class="px-6 py-5 overflow-y-auto min-h-0">
                         <!-- Step 1: Upload -->
                         <div v-if="step === 1" class="space-y-4">
-                            <div @drop.prevent="handleDrop" @dragover.prevent
-                                class="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/40 transition-colors cursor-pointer"
-                                @click="triggerFileInput"
-                                role="button"
-                                tabindex="0"
-                                @keydown.enter.self.prevent="triggerFileInput"
-                                @keydown.space.self.prevent="triggerFileInput">
+                            <button type="button" @drop.prevent="handleDrop" @dragover.prevent
+                                class="block w-full border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/40 transition-colors cursor-pointer"
+                                @click="triggerFileInput">
                                 <svg class="mx-auto h-10 w-10 text-text-muted mb-3" fill="none" viewBox="0 0 24 24" aria-hidden="true"
                                     stroke="currentColor" stroke-width="1.5">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
-                                <p class="text-sm text-text-secondary mb-1">Drop your CSV file here or click to browse
-                                </p>
-                                <p class="text-xs text-text-muted">The schema will be inferred automatically from the
-                                    file</p>
-                            </div>
+                                <span class="block text-sm text-text-secondary mb-1">Drop your CSV file here or click to browse
+                                </span>
+                                <span class="block text-xs text-text-muted">The schema will be inferred automatically from the
+                                    file</span>
+                            </button>
                             <input aria-label="Choose CSV file" ref="fileInputRef" type="file" accept=".csv" class="hidden"
                                 @change="handleFileSelect" />
                             <div v-if="selectedFile" class="flex items-center gap-2 text-sm text-text-primary">

@@ -34,16 +34,13 @@
 
         <div v-if="resolved.length" class="mt-3 space-y-1">
             <div v-for="item in resolved" :key="'row-' + item.id"
-                class="flex items-center gap-2 text-xs hover:bg-surface-hover rounded px-2 py-1 cursor-pointer"
-                @click="$emit('select', item)"
-                role="button"
-                tabindex="0"
-                @keydown.enter.self.prevent="$emit('select', item)"
-                @keydown.space.self.prevent="$emit('select', item)">
-                <span class="font-mono text-text-primary whitespace-nowrap">{{ item.date }}</span>
-                <span class="text-text-muted italic truncate">“{{ item.rawExpression }}”</span>
+                class="relative flex items-center gap-2 text-xs hover:bg-surface-hover rounded px-2 py-1 cursor-pointer">
+                <button type="button" class="after:absolute after:inset-0 after:content-[''] flex min-w-0 items-center gap-2 text-left" @click="$emit('select', item)">
+                    <span class="font-mono text-text-primary whitespace-nowrap">{{ item.date }}</span>
+                    <span class="text-text-muted italic truncate">“{{ item.rawExpression }}”</span>
+                </button>
                 <button v-if="canPromote" @click.stop="$emit('promote', item)"
-                    class="ml-auto text-[10px] px-1.5 py-0.5 rounded border border-border text-text-secondary hover:bg-accent-subtle hover:text-accent">
+                    class="relative z-10 ml-auto text-[10px] px-1.5 py-0.5 rounded border border-border text-text-secondary hover:bg-accent-subtle hover:text-accent">
                     Add to project timeline
                 </button>
             </div>

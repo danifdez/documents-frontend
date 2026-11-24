@@ -118,11 +118,13 @@ describe('project favorites', () => {
   });
 
   it('preserves a favorite when editing is canceled, then supports recategorizing and removing it', async () => {
-    await openPanel();
+    const { view } = await openPanel();
     await screen.findByText(journal.title);
     await fireEvent.click(favorite(journal.title).getByTitle('Edit'));
-    await fireEvent.update(edit().getByLabelText('Favorite title'), 'Draft title');
-    await fireEvent.click(button('Cancel'));
+    const title = edit().getByLabelText('Favorite title');
+    await fireEvent.update(title, 'Draft title');
+    await fireEvent.keyDown(title, { key: 'Escape' });
+    expect(view.emitted()['update:modelValue']).toBeUndefined();
     expect(api.patch).not.toHaveBeenCalled();
 
     await fireEvent.click(favorite(journal.title).getByTitle('Edit'));

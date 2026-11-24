@@ -64,8 +64,10 @@ const menuRef = ref<HTMLElement | null>(null);
 function moveFocus(step: number) {
     const items = [...(menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
     if (!items.length) return;
-    const current = items.findIndex(item => item === document.activeElement);
-    const index = current === -1 ? (step > 0 ? 0 : items.length - 1) : (current + step + items.length) % items.length;
+    const active = document.activeElement;
+    const current = active instanceof HTMLElement ? items.indexOf(active) : -1;
+    const start = step > 0 ? 0 : items.length - 1;
+    const index = current === -1 ? start : (current + step + items.length) % items.length;
     items[index].focus();
 }
 

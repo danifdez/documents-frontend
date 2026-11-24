@@ -28,18 +28,14 @@
 
     <div v-else class="flex-1 overflow-y-auto">
       <div v-for="comment in sortedComments" :key="comment.id" :id="`comment-${comment.id}`"
-        class="group border-b border-border-light last:border-b-0 px-4 py-3 transition-colors hover:bg-surface-hover cursor-pointer"
-        :class="{ 'bg-amber-50': highlightedCommentId === comment.id }"
-        @click="handleCommentClick(comment.id)"
-        role="button"
-        tabindex="0"
-        @keydown.enter.self.prevent="handleCommentClick(comment.id)"
-        @keydown.space.self.prevent="handleCommentClick(comment.id)">
+        class="relative group border-b border-border-light last:border-b-0 px-4 py-3 transition-colors hover:bg-surface-hover cursor-pointer"
+        :class="{ 'bg-amber-50': highlightedCommentId === comment.id }">
         <div class="flex justify-between items-start gap-2 mb-1.5">
-          <div class="flex-1 text-text-primary text-sm leading-relaxed whitespace-pre-wrap break-words">
+          <button type="button" class="after:absolute after:inset-0 after:content-[''] flex-1 text-left text-text-primary text-sm leading-relaxed whitespace-pre-wrap break-words"
+            @click="handleCommentClick(comment.id)">
             {{ comment.content }}
-          </div>
-          <div class="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          </button>
+          <div class="flex items-center gap-0.5 relative z-10 flex-shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
             <button @click.stop="editComment(comment)"
               class="p-1 text-text-muted hover:text-accent rounded transition-colors cursor-pointer"
               title="Edit">

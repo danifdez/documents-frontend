@@ -54,16 +54,11 @@
                         ref="authorsInput" type="text" placeholder="Comma-separated...">
                     <div v-if="showAuthorSuggestions && filteredAuthorSuggestions.length > 0"
                         class="absolute z-10 w-full mt-1 bg-surface-elevated border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                        <div v-for="(suggestion, index) in filteredAuthorSuggestions" :key="suggestion.id"
-                            @mousedown="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
-                            @click="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
-                            role="button"
-                            tabindex="0"
-                            @keydown.enter.self.prevent="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
-                            @keydown.space.self.prevent="(e) => { e.preventDefault(); selectAuthorSuggestion(suggestion); }"
+                        <button type="button" class="block w-full text-left" v-for="(suggestion, index) in filteredAuthorSuggestions" :key="suggestion.id"
+                            @mousedown.prevent @click="selectAuthorSuggestion(suggestion)"
                             :class="['px-3 py-1.5 cursor-pointer text-sm', index === selectedSuggestionIndex ? 'bg-accent-subtle' : 'hover:bg-surface-hover']">
                             {{ suggestion.name }}
-                        </div>
+                        </button>
                     </div>
                 </div>
                 <div v-else @dblclick="startAuthorsEdit" class="cursor-pointer hover:bg-surface-hover px-2 py-1 rounded text-sm min-h-[24px]" title="Double-click to edit">

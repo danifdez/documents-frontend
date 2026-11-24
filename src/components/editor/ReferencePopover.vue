@@ -1,14 +1,10 @@
 <template>
     <span class="ref-popover-wrapper" style="display: inline; position: relative;">
         <!-- Rendered node -->
-        <span ref="badgeEl" :style="currentStyle" @click.stop="togglePopover"
-            role="button"
-            tabindex="0"
-            @keydown.enter.self.stop.prevent="togglePopover"
-            @keydown.space.self.stop.prevent="togglePopover">
+        <button type="button" ref="badgeEl" :style="currentStyle" @click.stop="togglePopover">
             <template v-if="displayMode === 'quote-citation'">"{{ markText }}" <span :style="miniBadgeStyle">{{ parentName }}</span></template>
             <template v-else>{{ displayText }}</template>
-        </span>
+        </button>
 
         <!-- Popover -->
         <Teleport to="body">

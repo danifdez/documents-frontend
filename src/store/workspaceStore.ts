@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { setApiBaseUrl } from '../services/api';
 import { setActiveWorkspaceId } from '../services/workspaceScope';
 import { reconnectSocket } from '../services/notifications/notification';
+import { useOfflineStore } from './offlineStore';
 import type { StoredWorkspace, Workspace } from '../types/Workspace';
 
 const LOCAL_WORKSPACE_ID = 'local';
@@ -50,7 +51,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         setApiBaseUrl(activeWorkspace.value.url);
         // Remote workspaces always require fresh login on startup
         const { useAuthStore } = await import('./authStore');
-        useAuthStore().reset();
+        useAuthStore().resetForWorkspace();
       }
     }
 
@@ -100,9 +101,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         await switchWorkspace(workspaces.value[0].id);
       } else {
         const { useAuthStore } = await import('./authStore');
-        useAuthStore().reset();
+        useAuthStore().resetForWorkspace();
         activeWorkspace.value = null;
         setActiveWorkspaceId(null);
+        useOfflineStore().clearOfflineState();
       }
     }
   }
@@ -120,17 +122,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeWorkspace.value = workspace;
     setActiveWorkspaceId(workspace.id);
 
+    const { useAuthStore } = await import('./authStore');
+    useAuthStore().resetForWorkspace();
+    const offlineStore = useOfflineStore();
+    const reloadOfflineState = offlineStore.initialized ? offlineStore.loadOfflineState() : undefined;
     if (workspace.type === 'local') {
-      const { useAuthStore } = await import('./authStore');
-      useAuthStore().reset();
-      await startLocalServer();
-    } else {
-      setApiBaseUrl(workspace.url);
-      reconnectSocket(workspace.url);
-      // Remote workspaces always require fresh login on switch
-      const { useAuthStore } = await import('./authStore');
-      useAuthStore().reset();
+      await Promise.all([startLocalServer(), reloadOfflineState]);
+      return;
     }
+    setApiBaseUrl(workspace.url);
+    reconnectSocket(workspace.url);
+    await reloadOfflineState;
   }
 
   async function startLocalServer() {

@@ -174,7 +174,7 @@ describe('resource details', () => {
     expect((button('Set authoring date') as HTMLButtonElement).disabled).toBe(true);
 
     const item = screen.getByText('“3–5 April”').closest('li')!;
-    await fireEvent.click(within(item).getByRole('button', { name: '×' }));
+    await fireEvent.click(within(item).getByRole('button', { name: 'Remove date' }));
     expect(await screen.findByText('0 resolved · 1 pending')).toBeTruthy();
     expect(api.delete).toHaveBeenCalledWith('/resources/17/dates/5');
   });

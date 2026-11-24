@@ -83,18 +83,22 @@ export function resolveVoiceDecoder(packageFile: string): { source: 'bundled' | 
   throw new Error('Local voice decoder is unavailable');
 }
 
-export function loadVoiceBindings(loader: NodeRequire = require) {
-  const manifestPath = loader.resolve('smart-whisper/package.json');
-  const entry = new VerifiedRuntimeFile(physicalPath(loader.resolve('smart-whisper')));
+function runtimeRequire(): NodeJS.Require {
+  return require;
+}
+
+export function loadVoiceBindings(require: NodeJS.Require = runtimeRequire()) {
+  const manifestPath = require.resolve('smart-whisper/package.json');
+  const entry = new VerifiedRuntimeFile(physicalPath(require.resolve('smart-whisper')));
   const manifest = new VerifiedRuntimeFile(physicalPath(manifestPath));
   const nativePath = path.join(path.dirname(manifestPath), 'build', 'Release', 'smart-whisper.node');
   const nativeBinary = new VerifiedRuntimeFile(physicalPath(nativePath));
-  const decoder = resolveVoiceDecoder(loader.resolve('ffmpeg-static/package.json'));
+  const decoder = resolveVoiceDecoder(require.resolve('ffmpeg-static/package.json'));
   // An already-loaded addon cannot be retrospectively attested from its current file.
-  if (loader.cache[nativePath]) throw new Error('Local voice module was loaded before verification');
-  const sw = loader('smart-whisper');
-  const loaded = loader.cache[nativePath];
-  const parent = loader.cache[loader.resolve('smart-whisper')];
+  if (require.cache[nativePath]) throw new Error('Local voice module was loaded before verification');
+  const sw = require('smart-whisper');
+  const loaded = require.cache[nativePath];
+  const parent = require.cache[require.resolve('smart-whisper')];
   if (typeof sw?.Whisper !== 'function' || !loaded || !parent?.children.includes(loaded)) throw new Error('Local voice native module is unconfirmed');
   const metadata = JSON.parse(fs.readFileSync(manifest.file, 'utf8'));
   if (metadata.name !== 'smart-whisper' || typeof metadata.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(metadata.version)) throw new Error('Invalid local voice adapter version');

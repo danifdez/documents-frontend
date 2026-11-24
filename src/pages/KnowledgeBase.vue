@@ -30,15 +30,11 @@
 
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                 <div v-for="entry in filteredItems" :key="entry.id"
-                    @click="router.push(`/knowledge-base/${entry.id}`)"
-                    role="button"
-                    tabindex="0"
-                    @keydown.enter.self.prevent="router.push(`/knowledge-base/${entry.id}`)"
-                    @keydown.space.self.prevent="router.push(`/knowledge-base/${entry.id}`)"
-                    class="group bg-surface-elevated border border-border rounded-xl p-4 cursor-pointer hover:border-accent/40 hover:shadow-sm transition-all duration-200">
+                    class="relative group bg-surface-elevated border border-border rounded-xl p-4 cursor-pointer hover:border-accent/40 hover:shadow-sm transition-all duration-200">
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <h3 class="text-sm font-medium text-text-primary leading-snug line-clamp-2 group-hover:text-accent transition-colors">
-                            {{ entry.title }}
+                            <button type="button" class="text-left after:absolute after:inset-0 after:content-['']"
+                                @click="router.push(`/knowledge-base/${entry.id}`)">{{ entry.title }}</button>
                         </h3>
                         <span v-if="entry.isDefinition"
                             class="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-700"

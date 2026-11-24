@@ -43,6 +43,20 @@ describe('desktop workspace IPC', () => {
     expect(invoke('getActive')).toEqual(local);
   });
 
+  it('preserves stored arrays and entries when adding or updating a workspace', () => {
+    const { invoke, store } = setup();
+    const original = Object.freeze([Object.freeze({ ...local })]);
+    store.get.mockReturnValue(original);
+    invoke('add', remote);
+    expect(store.set).toHaveBeenLastCalledWith('workspaces', [local, remote]);
+
+    const renamed = { ...local, name: 'New name' };
+    invoke('update', renamed);
+    expect(store.set).toHaveBeenLastCalledWith('workspaces', [renamed]);
+    expect(original).toEqual([local]);
+    expect(() => invoke('add', renamed)).toThrow('already exists');
+  });
+
   it('leaves the active workspace unchanged when removing a different workspace and tolerates stale IDs', () => {
     const { invoke, store } = setup();
     invoke('add', local);

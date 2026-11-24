@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore, type AuthUser } from '@/store/authStore';
+import { useOfflineStore } from '@/store/offlineStore';
 import { useFeatureStore } from '@/store/featureStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import type { Workspace } from '@/types/Workspace';
@@ -36,6 +37,8 @@ function installBridge() {
     standaloneStop: vi.fn().mockResolvedValue(undefined),
     standaloneGetFeatures: vi.fn().mockResolvedValue({ timelines: false }),
     getSettings: vi.fn().mockResolvedValue({ disabledFeatures: ['datasets'] }),
+    offlineGetManifest: vi.fn().mockResolvedValue({ keys: [], lastSync: null }),
+    offlineCountPendingChanges: vi.fn().mockResolvedValue(0),
   };
   vi.stubGlobal('electronAPI', bridge);
   return bridge;
@@ -146,7 +149,37 @@ describe('workspace lifecycle via Electron', () => {
     expect(bridge.getActiveWorkspace).not.toHaveBeenCalled();
     expect(bridge.setActiveWorkspace).toHaveBeenCalledWith(remote.id);
     expect(setApiBaseUrl).toHaveBeenCalledWith(remote.url);
+    expect(useAuthStore().accessToken).toBeNull();
+    api.get.mockResolvedValue({ data: { authEnabled: true } });
+    await useAuthStore().checkAuthStatus();
     expect(localStorage.getItem('accessToken_library')).toBeNull();
+  });
+
+  it('reloads the destination cache and restores only its session when switching offline', async () => {
+    const bridge = installBridge();
+    bridge.offlineGetManifest.mockResolvedValueOnce({ keys: ['doc:4'], lastSync: 'previous' })
+      .mockResolvedValueOnce({ keys: ['doc:8'], lastSync: 'destination' });
+    bridge.offlineCountPendingChanges.mockResolvedValueOnce(3).mockResolvedValueOnce(1);
+    localStorage.setItem('accessToken_library', 'library-session');
+    localStorage.setItem('accessToken_archive', 'archive-session');
+    localStorage.setItem('authRequired_archive', 'true');
+    api.get.mockRejectedValue(new Error('offline'));
+    const store = useWorkspaceStore();
+    await store.loadWorkspaces();
+    const offline = useOfflineStore();
+    await offline.loadOfflineState();
+    expect(offline.isItemOffline('doc', 4)).toBe(true);
+    expect(offline.pendingChangeCount).toBe(3);
+
+    await store.switchWorkspace(second.id);
+    await useAuthStore().checkAuthStatus();
+    expect(bridge.offlineGetManifest).toHaveBeenLastCalledWith(second.id);
+    expect(offline.isItemOffline('doc', 4)).toBe(false);
+    expect(offline.isItemOffline('doc', 8)).toBe(true);
+    expect(offline.pendingChangeCount).toBe(1);
+    expect(useAuthStore().authRequired).toBe(true);
+    expect(useAuthStore().accessToken).toBe('archive-session');
+    expect(localStorage.getItem('accessToken_library')).toBe('library-session');
   });
 
   it('falls back to the last active workspace if the default was removed', async () => {

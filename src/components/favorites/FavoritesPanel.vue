@@ -61,7 +61,7 @@
                     <template v-if="editingCategoryId === category.id">
                       <input aria-label="Category name" v-model="editingCategoryName" type="text"
                         class="flex-1 min-w-0 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
-                        @keydown.enter="saveCategoryRename(category)" @keydown.esc="cancelCategoryRename"
+                        @keydown.enter="saveCategoryRename(category)" @keydown.esc.stop.prevent="cancelCategoryRename"
                         @blur="saveCategoryRename(category)" />
                     </template>
                     <template v-else>
@@ -105,7 +105,7 @@
                       <template v-if="editingCategoryId === child.id">
                         <input aria-label="Subcategory name" v-model="editingCategoryName" type="text"
                           class="flex-1 min-w-0 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
-                          @keydown.enter="saveCategoryRename(child)" @keydown.esc="cancelCategoryRename"
+                          @keydown.enter="saveCategoryRename(child)" @keydown.esc.stop.prevent="cancelCategoryRename"
                           @blur="saveCategoryRename(child)" />
                       </template>
                       <template v-else>
@@ -139,7 +139,7 @@
                   <div v-if="addingChildParentId === category.id" class="flex items-center py-2 pl-8 pr-4">
                     <input aria-label="New subcategory name" v-model="childName" type="text" placeholder="Subcategory name"
                       class="flex-1 min-w-0 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text-primary outline-none placeholder:text-text-muted focus:border-accent"
-                      @keydown.enter="saveChildCategory(category)" @keydown.esc="cancelAddChild"
+                      @keydown.enter="saveChildCategory(category)" @keydown.esc.stop.prevent="cancelAddChild"
                       @blur="saveChildCategory(category)" />
                   </div>
                 </template>
@@ -153,7 +153,7 @@
               <div class="px-3 py-2 border-t border-border-light">
                 <input aria-label="New category name" v-if="creatingRoot" v-model="rootName" type="text" placeholder="Category name"
                   class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted focus:border-accent"
-                  @keydown.enter="saveRootCategory" @keydown.esc="cancelRootCategory" @blur="saveRootCategory" />
+                  @keydown.enter="saveRootCategory" @keydown.esc.stop.prevent="cancelRootCategory" @blur="saveRootCategory" />
                 <button v-else
                   class="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-accent hover:bg-accent-subtle rounded-lg transition-colors cursor-pointer"
                   @click="startRootCategory">
@@ -215,10 +215,10 @@
                     <div v-if="editingId === favorite.id" class="px-5 py-3 space-y-2">
                       <input aria-label="Favorite URL" v-model="editUrl" type="text" placeholder="https://example.com"
                         class="w-full bg-surface border border-border rounded-lg text-sm text-text-primary outline-none px-3 py-2 placeholder:text-text-muted focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
-                        @keydown.enter="saveEdit(favorite)" @keydown.esc="cancelEdit" />
+                        @keydown.enter="saveEdit(favorite)" @keydown.esc.stop.prevent="cancelEdit" />
                       <input aria-label="Favorite title" v-model="editTitle" type="text" placeholder="Title"
                         class="w-full bg-surface border border-border rounded-lg text-sm text-text-primary outline-none px-3 py-2 placeholder:text-text-muted focus:border-accent transition-all"
-                        @keydown.enter="saveEdit(favorite)" @keydown.esc="cancelEdit" />
+                        @keydown.enter="saveEdit(favorite)" @keydown.esc.stop.prevent="cancelEdit" />
                       <div class="flex items-center gap-2">
                         <select aria-label="Favorite category" v-model="editCategoryId"
                           class="flex-1 bg-surface border border-border rounded-lg text-xs text-text-secondary px-2.5 py-2 outline-none cursor-pointer">

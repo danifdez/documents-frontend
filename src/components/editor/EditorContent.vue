@@ -22,18 +22,14 @@
                         </template>
                     </div>
                     <div v-if="context !== 'summary'" class="marker-gutter">
-                        <div v-for="m in markerPositions" :key="m.id"
-                            class="marker-gutter-icon"
+                        <button type="button" v-for="m in markerPositions" :key="m.id"
+                            class="block text-left marker-gutter-icon"
                             :class="`marker-gutter-icon-${m.type}`"
                             :style="{ top: m.top + 'px' }"
                             :title="m.label + ': ' + m.text"
-                            @click="handleMarkerGutterClick(m.id)"
-                            role="button"
-                            tabindex="0"
-                            @keydown.enter.self.prevent="handleMarkerGutterClick(m.id)"
-                            @keydown.space.self.prevent="handleMarkerGutterClick(m.id)">
+                            @click="handleMarkerGutterClick(m.id)">
                             {{ m.icon }}
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>

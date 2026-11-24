@@ -30,22 +30,17 @@
 
         <ul v-if="resolved.length" class="divide-y divide-border-light">
             <li v-for="d in resolved" :key="d.id"
-                class="px-4 py-2 hover:bg-surface-hover cursor-pointer"
-                @click="$emit('select', d)"
-                role="button"
-                tabindex="0"
-                @keydown.enter.self.prevent="$emit('select', d)"
-                @keydown.space.self.prevent="$emit('select', d)">
+                class="relative px-4 py-2 hover:bg-surface-hover cursor-pointer">
                 <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2 min-w-0">
+                    <button type="button" class="after:absolute after:inset-0 after:content-[''] flex items-center gap-2 min-w-0" @click="$emit('select', d)">
                         <span class="font-mono text-sm text-text-primary whitespace-nowrap">{{ formatDate(d) }}</span>
                         <span v-if="d.precision"
                             class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-surface border border-border text-text-muted">
                             {{ d.precision }}
                         </span>
-                    </div>
-                    <button @click.stop="handleRemove(d.id)"
-                        class="text-xs text-text-muted hover:text-red-600">×</button>
+                    </button>
+                    <button type="button" aria-label="Remove date" @click.stop="handleRemove(d.id)"
+                        class="relative z-10 text-xs text-text-muted hover:text-red-600">×</button>
                 </div>
                 <div class="text-xs text-text-muted italic mt-0.5 truncate">“{{ d.rawExpression }}”</div>
                 <div v-if="d.contextSnippet" class="text-xs text-text-secondary mt-0.5 line-clamp-2">

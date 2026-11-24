@@ -1,18 +1,15 @@
 <template>
-    <div class="px-3 py-2.5 rounded-lg cursor-pointer transition-colors group"
-        :class="active ? 'bg-accent-subtle text-accent-dark' : 'hover:bg-surface-hover text-text-secondary'"
-        @click="$emit('select')"
-        role="button"
-        tabindex="0"
-        @keydown.enter.self.prevent="$emit('select')"
-        @keydown.space.self.prevent="$emit('select')">
+    <div class="relative px-3 py-2.5 rounded-lg cursor-pointer transition-colors group"
+        :class="active ? 'bg-accent-subtle text-accent-dark' : 'hover:bg-surface-hover text-text-secondary'">
         <div class="flex items-center gap-2">
-            <span v-if="agent.icon" class="text-base leading-none">{{ agent.icon }}</span>
-            <span class="text-sm font-medium truncate flex-1">{{ agent.name }}</span>
+            <button type="button" class="flex flex-1 min-w-0 items-center gap-2 text-left after:absolute after:inset-0 after:content-['']" @click="$emit('select')">
+                <span v-if="agent.icon" class="text-base leading-none">{{ agent.icon }}</span>
+                <span class="text-sm font-medium truncate flex-1">{{ agent.name }}</span>
+            </button>
 
             <!-- Favorite toggle (star) — same UI in card and chat header. -->
             <button @click.stop="onStarClick"
-                class="leading-none px-1.5 py-0.5 rounded hover:bg-surface transition-colors cursor-pointer"
+                class="relative z-10 leading-none px-1.5 py-0.5 rounded hover:bg-surface transition-colors cursor-pointer"
                 :class="agent.pinned ? 'text-amber-500' : 'text-text-muted hover:text-text-secondary'"
                 :title="agent.pinned ? 'Unfavorite' : 'Favorite (won\'t expire)'">
                 {{ agent.pinned ? '★' : '☆' }}
@@ -20,7 +17,7 @@
 
             <!-- Edit / delete in a small ghost menu. -->
             <button
-                class="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-surface text-text-muted hover:text-text-primary cursor-pointer"
+                class="relative z-10 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity p-0.5 rounded hover:bg-surface text-text-muted hover:text-text-primary cursor-pointer"
                 @click.stop="$emit('edit')" title="Edit agent">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                     aria-hidden="true" stroke="currentColor" stroke-width="2">
@@ -29,7 +26,7 @@
                 </svg>
             </button>
             <button
-                class="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-surface text-text-muted hover:text-red-600 cursor-pointer"
+                class="relative z-10 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity p-0.5 rounded hover:bg-surface text-text-muted hover:text-red-600 cursor-pointer"
                 @click.stop="onDelete" title="Delete agent">
                 <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">

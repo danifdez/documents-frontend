@@ -226,7 +226,7 @@ export function detectGpu(): GpuInfo {
       });
       if (output?.includes('Apple')) {
         result.available = true;
-        const match = output.match(/Chipset Model:\s*(.+)/);
+        const match = /Chipset Model:\s*(.+)/.exec(output);
         result.name = match ? match[1].trim() : 'Apple GPU';
         result.cuda = false; // Metal, not CUDA
       }
@@ -271,19 +271,10 @@ async function downloadComponentFromRelease(
 
   fs.mkdirSync(baseDir, { recursive: true });
   try {
-    if (localDirectory) {
-      copyLocalReleaseArtifact(localDirectory, artifact, tmpFile, (downloaded, total) => {
-        if (onProgress) onProgress({ component: componentName, downloaded, total, percent: Math.round((downloaded / total) * 50) });
-      });
-    } else {
-      if (!url) throw new Error('Standalone release URL is unavailable');
-      await downloadFile(url, tmpFile, (downloaded, total) => {
-        if (onProgress) {
-          const frac = total > 0 ? downloaded / total : 0;
-          onProgress({ component: componentName, downloaded, total, percent: Math.round(frac * 50) });
-        }
-      }, artifact.size);
-    }
+    await fetchReleaseArtifact(localDirectory, url, artifact, tmpFile, onProgress && ((downloaded, total) => {
+      const fraction = total > 0 ? downloaded / total : 0;
+      onProgress({ component: componentName, downloaded, total, percent: Math.round(fraction * 50) });
+    }));
 
     const checksum = await sha256File(tmpFile);
     if (checksum !== artifact.sha256) throw new Error(`Checksum mismatch for ${componentName}`);
@@ -304,15 +295,7 @@ async function downloadComponentFromRelease(
     validateExtractedComponent(stagingDir, component, artifact, target, variant);
     await runInstalledSelfCheck(stagingDir, component, artifact, variant);
 
-    if (fs.existsSync(finalDir)) {
-      const existingManifest = readComponentManifest(finalDir);
-      if (existingManifest?.version !== artifact.version || existingManifest?.target !== target) {
-        throw new Error(`Installation path collision for ${componentName}`);
-      }
-      replaceDirectory(stagingDir, finalDir);
-    } else {
-      fs.renameSync(stagingDir, finalDir);
-    }
+    installStagedComponent(stagingDir, finalDir, artifact, target, componentName);
 
     activateInstalledComponent(userData, {
       component,
@@ -347,6 +330,39 @@ export async function updateServices(
     updated.push(componentName);
   });
   return updated;
+}
+
+function installStagedComponent(
+  stagingDir: string,
+  finalDir: string,
+  artifact: ReleaseArtifact,
+  target: string,
+  componentName: string,
+): void {
+  if (!fs.existsSync(finalDir)) {
+    fs.renameSync(stagingDir, finalDir);
+    return;
+  }
+  const existingManifest = readComponentManifest(finalDir);
+  if (existingManifest?.version !== artifact.version || existingManifest?.target !== target) {
+    throw new Error(`Installation path collision for ${componentName}`);
+  }
+  replaceDirectory(stagingDir, finalDir);
+}
+
+async function fetchReleaseArtifact(
+  localDirectory: string | undefined,
+  url: string | undefined,
+  artifact: ReleaseArtifact,
+  destination: string,
+  onProgress?: (downloaded: number, total: number) => void,
+): Promise<void> {
+  if (localDirectory) {
+    copyLocalReleaseArtifact(localDirectory, artifact, destination, onProgress);
+    return;
+  }
+  if (!url) throw new Error('Standalone release URL is unavailable');
+  await downloadFile(url, destination, onProgress, artifact.size);
 }
 
 function copyLocalReleaseArtifact(

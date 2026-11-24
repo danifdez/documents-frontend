@@ -89,11 +89,8 @@ export const useOfflineStore = defineStore('offline', () => {
   let syncInterval: ReturnType<typeof setInterval> | null = null;
   let recoveryTimer: ReturnType<typeof setTimeout> | null = null;
   let recoveryAttempt = 0;
-
-  async function persistManifest() {
-    const wsId = getActiveWorkspaceId();
-    await updateManifest(wsId, [...offlineItemKeys.value], lastSyncTimestamp.value);
-  }
+  let offlineStateRequest = 0;
+  let loadedWorkspaceId: string | null = null;
 
   function setBackendReachable(value: boolean) {
     setServerReachable(value);
@@ -155,12 +152,24 @@ export const useOfflineStore = defineStore('offline', () => {
     recoveryAttempt = 0;
   }
 
+  function clearOfflineState() {
+    offlineStateRequest++;
+    loadedWorkspaceId = null;
+    offlineItemKeys.value = new Set();
+    lastSyncTimestamp.value = null;
+    pendingChangeCount.value = 0;
+  }
+
   async function loadOfflineState() {
     const wsId = getActiveWorkspaceId();
-    const manifest = await getManifest(wsId);
+    if (loadedWorkspaceId !== wsId) clearOfflineState();
+    const request = ++offlineStateRequest;
+    const [manifest, count] = await Promise.all([getManifest(wsId), countPendingChanges(wsId)]);
+    if (request !== offlineStateRequest || wsId !== getActiveWorkspaceId()) return;
     offlineItemKeys.value = new Set(manifest.keys);
     lastSyncTimestamp.value = manifest.lastSync;
-    pendingChangeCount.value = await countPendingChanges(wsId);
+    pendingChangeCount.value = count;
+    loadedWorkspaceId = wsId;
     initialized.value = true;
   }
 
@@ -170,18 +179,19 @@ export const useOfflineStore = defineStore('offline', () => {
 
   async function makeAvailableOffline(type: 'resource' | 'thread' | 'project', id: number) {
     const wsId = getActiveWorkspaceId();
+    const keys = offlineItemKeys.value;
     const { data: bundle } = await apiClient.get<OfflineBundle>(`/offline/bundle/${type}/${id}`);
     const now = new Date().toISOString();
 
     // Store project from bundle
     if (bundle.project) {
       await putOfflineItem(wsId, 'project', bundle.project.id, bundle.project, now, type, id);
-      offlineItemKeys.value.add(`project:${bundle.project.id}`);
+      keys.add(`project:${bundle.project.id}`);
     }
 
     await forEachSequential(bundleItems(bundle), async ({ type: entityType, item }) => {
       await putOfflineItem(wsId, entityType, item.id, item, now, type, id);
-      if (manifestTypes.has(entityType)) offlineItemKeys.value.add(`${entityType}:${item.id}`);
+      if (manifestTypes.has(entityType)) keys.add(`${entityType}:${item.id}`);
     });
 
     // Store files — pass base64 directly to filesystem
@@ -193,11 +203,11 @@ export const useOfflineStore = defineStore('offline', () => {
     );
 
     // Mark the parent item itself
-    offlineItemKeys.value.add(`${type}:${id}`);
+    keys.add(`${type}:${id}`);
 
     // Persist manifest to disk
-    lastSyncTimestamp.value = now;
-    await persistManifest();
+    if (keys === offlineItemKeys.value) lastSyncTimestamp.value = now;
+    await updateManifest(wsId, [...keys], now);
 
     const savedCounts = {
       projects: bundle.project ? 1 : 0,
@@ -216,22 +226,24 @@ export const useOfflineStore = defineStore('offline', () => {
 
   async function removeOffline(type: string, id: number) {
     const wsId = getActiveWorkspaceId();
+    const keys = offlineItemKeys.value;
+    const lastSync = lastSyncTimestamp.value;
 
     // Find and remove all child items that were saved with this parent
     const allItems = await getAllOfflineItemsByWorkspace(wsId);
     const children = allItems.filter(item => item.parentType === type && item.parentId === id);
     await forEachSequential(children, async (item) => {
       await deleteOfflineItem(wsId, item.entityType, item.entityId);
-      offlineItemKeys.value.delete(`${item.entityType}:${item.entityId}`);
+      keys.delete(`${item.entityType}:${item.entityId}`);
       if (item.entityType === 'resource') await deleteOfflineFile(wsId, item.entityId);
     });
 
     // Remove the parent key itself
-    offlineItemKeys.value.delete(`${type}:${id}`);
+    keys.delete(`${type}:${id}`);
     await deleteOfflineItem(wsId, type, id);
 
     // Persist manifest
-    await persistManifest();
+    await updateManifest(wsId, [...keys], lastSync);
   }
 
   async function addPendingChange(
@@ -240,7 +252,7 @@ export const useOfflineStore = defineStore('offline', () => {
   ) {
     const wsId = getActiveWorkspaceId();
     await dbAddPendingChange(wsId, entityType, entityId, method, payload);
-    pendingChangeCount.value++;
+    if (wsId === getActiveWorkspaceId()) pendingChangeCount.value++;
 
     // Also update local cache optimistically
     if (method === 'PATCH') {
@@ -254,7 +266,7 @@ export const useOfflineStore = defineStore('offline', () => {
 
   async function pushPendingChanges(wsId: string): Promise<void> {
     const pending = await getAllPendingChanges(wsId);
-    if (!pending.length) return;
+    if (!pending.length || wsId !== getActiveWorkspaceId()) return;
 
     const changes = pending.map(change => ({
       entityType: change.entityType,
@@ -273,7 +285,7 @@ export const useOfflineStore = defineStore('offline', () => {
       }
     });
     await clearPendingChanges(wsId);
-    pendingChangeCount.value = 0;
+    if (wsId === getActiveWorkspaceId()) pendingChangeCount.value = 0;
   }
 
   async function pullServerChanges(wsId: string): Promise<void> {
@@ -281,6 +293,7 @@ export const useOfflineStore = defineStore('offline', () => {
     if (!since) return;
     const projects = [...offlineItemKeys.value].filter(key => key.startsWith('project:'));
     await forEachSequential(projects, async (key) => {
+      if (wsId !== getActiveWorkspaceId()) return;
       const projectId = Number.parseInt(key.split(':')[1], 10);
       const { data } = await apiClient.get<OfflineBundle>('/offline/changes', { params: { since, projectId } });
       const now = new Date().toISOString();
@@ -289,15 +302,18 @@ export const useOfflineStore = defineStore('offline', () => {
   }
 
   async function syncOnReconnect() {
-    if (isSyncing.value) return;
-    isSyncing.value = true;
     const wsId = getActiveWorkspaceId();
+    if (isSyncing.value || (initialized.value && loadedWorkspaceId !== wsId)) return;
+    isSyncing.value = true;
+    const request = offlineStateRequest;
 
     try {
       await pushPendingChanges(wsId);
+      if (request !== offlineStateRequest) return;
       await pullServerChanges(wsId);
+      if (request !== offlineStateRequest) return;
       lastSyncTimestamp.value = new Date().toISOString();
-      await persistManifest();
+      await updateManifest(wsId, [...offlineItemKeys.value], lastSyncTimestamp.value);
     } catch (e) {
       console.error('Sync failed:', e);
     } finally {
@@ -335,6 +351,7 @@ export const useOfflineStore = defineStore('offline', () => {
     startRecoveryPoll,
     stopRecoveryPoll,
     loadOfflineState,
+    clearOfflineState,
     isItemOffline,
     makeAvailableOffline,
     removeOffline,

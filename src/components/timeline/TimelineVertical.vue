@@ -11,11 +11,7 @@
           : 'border-transparent text-text-secondary hover:border-border'"
         :style="{ backgroundColor: epoch.color }"
       >
-        <span class="cursor-pointer" @click="toggleEpochFocus(epoch.id)"
-            role="button"
-            tabindex="0"
-            @keydown.enter.self.prevent="toggleEpochFocus(epoch.id)"
-            @keydown.space.self.prevent="toggleEpochFocus(epoch.id)">{{ epoch.name }}</span>
+        <button type="button" class="cursor-pointer" @click="toggleEpochFocus(epoch.id)">{{ epoch.name }}</button>
         <button class="hidden group-hover:block p-0 text-text-muted hover:text-accent transition-colors" title="Edit" @click.stop="emit('edit-epoch', epoch)">
           <svg aria-hidden="true" class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
         </button>
@@ -65,8 +61,8 @@
 
         <!-- Epoch bands -->
         <template v-for="epoch in epochs" :key="'epoch-' + epoch.id">
-          <div
-            class="absolute cursor-pointer hover:opacity-90 transition-opacity left-0 right-0 rounded"
+          <button type="button"
+            class="text-left absolute cursor-pointer hover:opacity-90 transition-opacity left-0 right-0 rounded"
             :style="{
               top: dateToY(epoch.startDate) + 'px',
               height: Math.max(8, dateToY(epoch.endDate) - dateToY(epoch.startDate)) + 'px',
@@ -74,15 +70,11 @@
               display: focusedEpochId && focusedEpochId !== epoch.id ? 'none' : undefined,
             }"
             @click="$emit('edit-epoch', epoch)"
-            role="button"
-            tabindex="0"
-            @keydown.enter.self.prevent="$emit('edit-epoch', epoch)"
-            @keydown.space.self.prevent="$emit('edit-epoch', epoch)"
           >
             <span class="absolute top-0.5 left-1.5 text-[9px] font-semibold text-text-primary/70 whitespace-nowrap">
               {{ epoch.name }}
             </span>
-          </div>
+          </button>
         </template>
 
         <!-- Axis break indicators -->
@@ -102,20 +94,16 @@
 
         <!-- Marker dots (always visible on the axis) -->
         <template v-for="event in visibleEvents" :key="'dot-' + event.id">
-          <div
-            :data-event-id="event.id"
-            class="absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 shadow-sm z-20 cursor-pointer ring-1 hover:ring-accent/60 transition-all"
+          <button type="button"
+            :data-event-id="event.id" :aria-label="`Edit event: ${event.title}`"
+            class="text-left absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 shadow-sm z-20 cursor-pointer ring-1 hover:ring-accent/60 transition-all"
             :class="highlightedEventId === event.id ? 'ring-accent ring-2 border-accent scale-150' : 'ring-border border-white'"
             :style="{
               top: (dateToY(event.date) - 5) + 'px',
               backgroundColor: event.color,
             }"
             @click="$emit('edit-event', event)"
-            role="button"
-            tabindex="0"
-            @keydown.enter.self.prevent="$emit('edit-event', event)"
-            @keydown.space.self.prevent="$emit('edit-event', event)"
-          ></div>
+          ></button>
         </template>
 
         <!-- CARDS MODE with lane assignment -->
@@ -176,17 +164,13 @@
                   : { left: 'calc(50% + ' + (5 + el.connectorW) + 'px)' }),
               }"
             >
-              <span
+              <button type="button"
                 class="text-[10px] font-medium text-text-primary cursor-pointer hover:text-accent transition-colors truncate max-w-[140px] px-1.5 py-0.5 rounded-sm hover:bg-surface-hover"
                 :style="el.left
                   ? { borderRight: '2px solid ' + el.event.color }
                   : { borderLeft: '2px solid ' + el.event.color }"
                 @click="$emit('edit-event', el.event)"
-                role="button"
-                tabindex="0"
-                @keydown.enter.self.prevent="$emit('edit-event', el.event)"
-                @keydown.space.self.prevent="$emit('edit-event', el.event)"
-              >{{ el.event.title }}</span>
+              >{{ el.event.title }}</button>
               <span class="text-[8px] text-text-muted font-mono shrink-0">{{ formatDateShort(el.event.date) }}</span>
             </div>
           </template>

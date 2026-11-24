@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import apiClient from '../services/api';
-import { workspaceKey as tokenKey } from '../services/workspaceScope';
+import { getActiveWorkspaceId, workspaceKey } from '../services/workspaceScope';
 
 export interface AuthUser {
   id: number;
@@ -14,10 +14,11 @@ export interface AuthUser {
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null);
-  const accessToken = ref<string | null>(localStorage.getItem(tokenKey('accessToken')));
-  const refreshTokenValue = ref<string | null>(localStorage.getItem(tokenKey('refreshToken')));
+  const accessToken = ref<string | null>(localStorage.getItem(workspaceKey('accessToken')));
+  const refreshTokenValue = ref<string | null>(localStorage.getItem(workspaceKey('refreshToken')));
   const authRequired = ref(false);
   const initialized = ref(false);
+  let freshLoginRequired = false;
 
   const isAuthenticated = computed(() => !!accessToken.value);
   const isAdmin = computed(() => !!user.value?.permissions?.['user-management']);
@@ -27,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Local workspaces skip authentication entirely
     const { useWorkspaceStore } = await import('./workspaceStore');
     const wsStore = useWorkspaceStore();
+    const workspaceId = getActiveWorkspaceId();
     if (wsStore.isLocal) {
       logout();
       authRequired.value = false;
@@ -44,11 +46,16 @@ export const useAuthStore = defineStore('auth', () => {
       return;
     }
 
+    const authRequiredKey = workspaceKey('authRequired', workspaceId);
     try {
       const { data } = await apiClient.get('/auth/status');
+      if (workspaceId !== getActiveWorkspaceId()) return;
       authRequired.value = data.authEnabled === true;
-      // Remember last known auth state for offline use
-      localStorage.setItem(tokenKey('authRequired'), String(authRequired.value));
+      localStorage.setItem(authRequiredKey, String(authRequired.value));
+      if (freshLoginRequired) {
+        logout();
+        freshLoginRequired = false;
+      }
 
       // Pass feature flags to feature store
       if (data.features) {
@@ -58,14 +65,13 @@ export const useAuthStore = defineStore('auth', () => {
         await featureStore.loadLocalPreferences();
       }
     } catch {
-      // Offline: restore last known auth state
-      const cached = localStorage.getItem(tokenKey('authRequired'));
-      authRequired.value = cached === 'true';
+      if (workspaceId !== getActiveWorkspaceId()) return;
+      authRequired.value = localStorage.getItem(authRequiredKey) === 'true';
     }
 
-    // Load tokens for current workspace
-    accessToken.value = localStorage.getItem(tokenKey('accessToken'));
-    refreshTokenValue.value = localStorage.getItem(tokenKey('refreshToken'));
+    if (workspaceId !== getActiveWorkspaceId()) return;
+    accessToken.value = localStorage.getItem(workspaceKey('accessToken', workspaceId));
+    refreshTokenValue.value = localStorage.getItem(workspaceKey('refreshToken', workspaceId));
 
     initialized.value = true;
   }
@@ -75,8 +81,9 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = data.accessToken;
     refreshTokenValue.value = data.refreshToken;
     user.value = data.user;
-    localStorage.setItem(tokenKey('accessToken'), data.accessToken);
-    localStorage.setItem(tokenKey('refreshToken'), data.refreshToken);
+    freshLoginRequired = false;
+    localStorage.setItem(workspaceKey('accessToken'), data.accessToken);
+    localStorage.setItem(workspaceKey('refreshToken'), data.refreshToken);
 
     // Reconnect WebSocket with new token
     const { reconnectSocket } = await import('../services/notifications/notification');
@@ -92,8 +99,8 @@ export const useAuthStore = defineStore('auth', () => {
       accessToken.value = data.accessToken;
       refreshTokenValue.value = data.refreshToken;
       user.value = data.user;
-      localStorage.setItem(tokenKey('accessToken'), data.accessToken);
-      localStorage.setItem(tokenKey('refreshToken'), data.refreshToken);
+      localStorage.setItem(workspaceKey('accessToken'), data.accessToken);
+      localStorage.setItem(workspaceKey('refreshToken'), data.refreshToken);
       return true;
     } catch {
       logout();
@@ -101,18 +108,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
+  function clearSession() {
     user.value = null;
     accessToken.value = null;
     refreshTokenValue.value = null;
-    localStorage.removeItem(tokenKey('accessToken'));
-    localStorage.removeItem(tokenKey('refreshToken'));
   }
 
-  function reset() {
-    logout();
+  function logout() {
+    clearSession();
+    localStorage.removeItem(workspaceKey('accessToken'));
+    localStorage.removeItem(workspaceKey('refreshToken'));
+  }
+
+  function resetForWorkspace() {
+    // Keep persisted tokens available for offline startup. A reachable server
+    // still requires a fresh login when entering a remote workspace.
+    clearSession();
     authRequired.value = false;
     initialized.value = false;
+    freshLoginRequired = true;
   }
 
   function hasPermission(perm: string): boolean {
@@ -133,7 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     refresh,
     logout,
-    reset,
+    resetForWorkspace,
     hasPermission,
   };
 });

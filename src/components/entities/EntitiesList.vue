@@ -69,23 +69,19 @@
 
                 <!-- View Mode (compact) -->
                 <div v-else class="group px-4 py-2.5 flex items-center gap-3">
-                    <div @click="highlightEntityInContent(entity)"
-                        role="button"
-                        tabindex="0"
-                        @keydown.enter.self.prevent="highlightEntityInContent(entity)"
-                        @keydown.space.self.prevent="highlightEntityInContent(entity)" class="flex-1 min-w-0 cursor-pointer flex items-center gap-2.5"
+                    <button type="button" @click="highlightEntityInContent(entity)" class="text-left flex-1 min-w-0 cursor-pointer flex items-center gap-2.5"
                         :title="`Click to highlight ${displayEntityName(entity)} in the document`">
                         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider shrink-0"
                             :class="getEntityTypeBadgeClass(displayEntityType(entity))">
                             {{ displayEntityType(entity) }}
                         </span>
-                        <div class="min-w-0 flex-1">
+                        <span class="block min-w-0 flex-1">
                             <span class="text-sm font-medium text-text-primary truncate block">{{ displayEntityName(entity) }}</span>
                             <span v-if="entity.aliases && entity.aliases.length > 0" class="text-[11px] text-text-muted truncate block">
                                 {{ entity.aliases.map(a => a.value).join(', ') }}
                             </span>
-                        </div>
-                    </div>
+                        </span>
+                    </button>
 
                     <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" @click.stop
                         @keydown.enter.stop

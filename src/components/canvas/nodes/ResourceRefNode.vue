@@ -9,17 +9,13 @@
     <NodeFloatingToolbar :selected="selected" node-type="resourceRef" :data="node.data"
       @update="onToolbarUpdate" />
     <div class="flex items-start gap-2 h-full">
-      <div class="p-0.5 rounded bg-emerald-500/10 cursor-pointer hover:bg-emerald-500/20 transition-colors shrink-0 mt-0.5"
-        @click="navigateToResource"
-        role="button"
-        tabindex="0"
-        @keydown.enter.self.prevent="navigateToResource"
-        @keydown.space.self.prevent="navigateToResource" :title="node.data.sourceName || 'Open resource'">
+      <button type="button" class="block text-left p-0.5 rounded bg-emerald-500/10 cursor-pointer hover:bg-emerald-500/20 transition-colors shrink-0 mt-0.5"
+        @click="navigateToResource" :title="node.data.sourceName || 'Open resource'">
         <svg aria-hidden="true" class="h-3 w-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
-      </div>
+      </button>
       <div class="flex-1 min-w-0">
         <textarea aria-label="Resource reference text" v-if="isEditing" ref="inputRef" v-model="editText"
           class="w-full h-full text-sm text-text-primary bg-transparent border-0 outline-none resize-none nowheel nodrag"

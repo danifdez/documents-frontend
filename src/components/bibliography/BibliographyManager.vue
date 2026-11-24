@@ -42,21 +42,17 @@
                         <p class="text-xs mt-1">Usa el botón Añadir o importa un archivo .bib</p>
                     </div>
                     <div v-else>
-                        <div v-for="entry in filteredEntries" :key="entry.id"
+                        <button type="button" v-for="entry in filteredEntries" :key="entry.id"
                             @click="selectEntry(entry)"
-                            role="button"
-                            tabindex="0"
-                            @keydown.enter.self.prevent="selectEntry(entry)"
-                            @keydown.space.self.prevent="selectEntry(entry)"
                             :class="selectedEntry?.id === entry.id ? 'bg-accent/10 border-l-2 border-accent' : 'hover:bg-surface-hover border-l-2 border-transparent'"
-                            class="flex items-start gap-2 px-4 py-3 cursor-pointer transition-colors border-b border-border/50">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-medium truncate">{{ entry.title || entry.citeKey || 'Sin título' }}</div>
-                                <div class="text-xs text-text-muted mt-0.5 truncate">
+                            class="w-full text-left flex items-start gap-2 px-4 py-3 cursor-pointer transition-colors border-b border-border/50">
+                            <span class="block flex-1 min-w-0">
+                                <span class="block text-sm font-medium truncate">{{ entry.title || entry.citeKey || 'Sin título' }}</span>
+                                <span class="block text-xs text-text-muted mt-0.5 truncate">
                                     {{ formatCreators(entry.creators) }}
                                     <span v-if="entry.year"> · {{ entry.year }}</span>
-                                </div>
-                                <div class="flex items-center gap-1 mt-1">
+                                </span>
+                                <span class="flex items-center gap-1 mt-1">
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-surface-hover text-text-muted">{{ entry.entryType }}</span>
                                     <span v-if="!entry.project" class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">global</span>
                                     <span v-if="entry.project && !projectId" class="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 truncate max-w-[12rem]">{{ entry.project.name }}</span>
@@ -66,9 +62,9 @@
                                         </svg>
                                         recurso
                                     </span>
-                                </div>
-                            </div>
-                        </div>
+                                </span>
+                            </span>
+                        </button>
                     </div>
                 </div>
 

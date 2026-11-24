@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/vue';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ReferencePopover from '@/components/editor/ReferencePopover.vue';
 import type { BibliographyEntry } from '@/types/Bibliography';
@@ -94,7 +94,7 @@ describe('editor reference popover', () => {
     await fireEvent.click(document.body);
     expect(screen.queryByText('Mary Evans')).toBeNull();
     await view.rerender({ displayMode: 'title' });
-    const rendered = view.container.querySelector<HTMLElement>('.ref-popover-wrapper > span')!;
+    const rendered = within(view.container).getByRole('button');
     expect(rendered.textContent).toBe('Ship List');
     await fireEvent.click(rendered);
     await fireEvent.click(screen.getByRole('link', { name: 'Go to resource' }));
@@ -129,7 +129,7 @@ describe('editor reference popover', () => {
     const view = openReference({ refType: 'mark', refId: '21', label: 'Mark 21', displayMode: 'quote-citation' });
     expect(await screen.findByText(parent)).toBeTruthy();
     expect(view.container.textContent).toContain('"The book is bound in vellum"');
-    await fireEvent.click(view.container.querySelector<HTMLElement>('.ref-popover-wrapper > span')!);
+    await fireEvent.click(within(view.container).getByRole('button'));
     expect(screen.getByText('Preservation note')).toBeTruthy();
     await fireEvent.click(button('Citation'));
     expect(update).toHaveBeenCalledWith({ 'data-display-mode': 'citation' });

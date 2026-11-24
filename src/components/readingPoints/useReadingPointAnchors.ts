@@ -228,8 +228,8 @@ function caretAtPoint(x: number, y: number): { node: Node; offset: number } | nu
   }
 
   // Older browser engines expose the WebKit API without the standard API.
-  const legacy = doc as Document & Record<string, (x: number, y: number) => Range | null>;
-  const range = legacy['caretRangeFromPoint']?.(x, y);
+  const legacy: { caretRangeFromPoint?: (x: number, y: number) => Range | null } = doc;
+  const range = legacy.caretRangeFromPoint?.(x, y);
   return range ? { node: range.startContainer, offset: range.startOffset } : null;
 }
 

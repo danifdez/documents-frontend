@@ -13,8 +13,8 @@ export function setActiveWorkspaceId(id: string | null): void {
   else localStorage.removeItem(ACTIVE_WORKSPACE_ID_KEY);
 }
 
-export function workspaceKey(key: string): string {
-  return `${key}_${getActiveWorkspaceId()}`;
+export function workspaceKey(key: string, workspaceId = getActiveWorkspaceId()): string {
+  return `${key}_${workspaceId}`;
 }
 
 export function getAccessToken(): string | null {

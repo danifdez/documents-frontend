@@ -70,13 +70,9 @@
 
     <!-- Edge color picker (teleported) -->
     <Teleport to="body">
-      <div v-if="showEdgeColors" class="fixed inset-0 z-[9998]" @click="showEdgeColors = false"
-          role="button"
-          tabindex="0"
+      <button type="button" v-if="showEdgeColors" class="text-left fixed inset-0 z-[9998]" @click="showEdgeColors = false"
           aria-label="Dismiss overlay"
-          @keydown.esc.stop="showEdgeColors = false"
-          @keydown.enter.self.prevent="showEdgeColors = false"
-          @keydown.space.self.prevent="showEdgeColors = false"></div>
+          @keydown.esc.stop="showEdgeColors = false"></button>
       <div v-if="showEdgeColors" class="fixed z-[9999] bg-surface-elevated border border-border rounded-xl shadow-xl p-2.5"
         :style="edgeColorPos">
         <div class="grid grid-cols-5 gap-1.5">

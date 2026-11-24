@@ -200,7 +200,7 @@ describe('annotations and selected text', () => {
     select(term, 'Primary records');
     await fireEvent.contextMenu(term);
     await fireEvent.click(button('Search in KB'));
-    await fireEvent.click(await screen.findByText('Primary records', { selector: 'p', exact: true }));
+    await fireEvent.click(await screen.findByRole('button', { name: /Primary records/ }));
     expect(api.get).toHaveBeenCalledWith('/knowledge-entries', { params: { q: 'Primary records' } });
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/knowledge-base/8'));
   });

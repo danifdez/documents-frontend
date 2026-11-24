@@ -43,44 +43,41 @@
     <!-- Results -->
     <div v-else class="flex-1 overflow-y-auto">
       <div v-for="result in results" :key="`${result.collection}-${result.id}`"
-        class="border-b border-border-light last:border-b-0 px-3 py-2.5 hover:bg-surface-hover transition-colors cursor-pointer group"
-        @click="openResult(result)"
-        role="button"
-        tabindex="0"
-        @keydown.enter.self.prevent="openResult(result)"
-        @keydown.space.self.prevent="openResult(result)">
+        class="relative border-b border-border-light last:border-b-0 px-3 py-2.5 hover:bg-surface-hover transition-colors cursor-pointer group">
         <div class="flex items-start gap-2">
-          <div class="flex-shrink-0 mt-0.5">
-            <span class="inline-flex items-center justify-center w-5 h-5 rounded"
-              :class="collectionStyle(result.collection).bg">
-              <svg aria-hidden="true" class="h-3 w-3" :class="collectionStyle(result.collection).text" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" :d="collectionStyle(result.collection).icon" />
-              </svg>
+          <button type="button" class="after:absolute after:inset-0 after:content-[''] flex flex-1 min-w-0 items-start gap-2 text-left" @click="openResult(result)">
+            <span class="flex-shrink-0 mt-0.5">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded"
+                :class="collectionStyle(result.collection).bg">
+                <svg aria-hidden="true" class="h-3 w-3" :class="collectionStyle(result.collection).text" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" :d="collectionStyle(result.collection).icon" />
+                </svg>
+              </span>
             </span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-text-primary truncate group-hover:text-accent transition-colors">
-              {{ result.name }}
-            </p>
-            <p v-if="result.highlightedContent" class="text-[11px] text-text-muted mt-0.5 line-clamp-2">
-              {{ result.highlightedContent }}
-            </p>
-            <div class="flex items-center gap-2 mt-1">
-              <span class="text-[10px] text-text-muted capitalize">{{ formatCollection(result.collection) }}</span>
-              <span v-if="result.score" class="text-[10px] text-text-muted">
-                {{ Math.round(result.score * 100) }}% match
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-medium text-text-primary truncate group-hover:text-accent transition-colors">
+                {{ result.name }}
               </span>
-              <span
-                class="text-[10px] px-1 py-0.5 rounded"
-                :class="result.source === 'rag' ? 'bg-purple-100 text-purple-600' : 'bg-surface text-text-muted'">
-                {{ result.source === 'rag' ? 'Semantic' : 'Keyword' }}
+              <span v-if="result.highlightedContent" class="text-[11px] text-text-muted mt-0.5 line-clamp-2">
+                {{ result.highlightedContent }}
               </span>
-            </div>
-          </div>
+              <span class="flex items-center gap-2 mt-1">
+                <span class="text-[10px] text-text-muted capitalize">{{ formatCollection(result.collection) }}</span>
+                <span v-if="result.score" class="text-[10px] text-text-muted">
+                  {{ Math.round(result.score * 100) }}% match
+                </span>
+                <span
+                  class="text-[10px] px-1 py-0.5 rounded"
+                  :class="result.source === 'rag' ? 'bg-purple-100 text-purple-600' : 'bg-surface text-text-muted'">
+                  {{ result.source === 'rag' ? 'Semantic' : 'Keyword' }}
+                </span>
+              </span>
+            </span>
+          </button>
           <!-- Insert button -->
           <button v-if="result.collection === 'docs'" @click.stop="$emit('insert-link', result)"
-            class="opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-all cursor-pointer flex-shrink-0"
+            class="relative z-10 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-1 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-all cursor-pointer flex-shrink-0"
             title="Insert link to this document">
             <svg aria-hidden="true" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round"

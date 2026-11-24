@@ -8,40 +8,32 @@
 
         <!-- All-day events -->
         <div v-if="allDayEvents.length > 0" class="px-2 py-1.5 border-b border-border shrink-0">
-            <div v-for="event in allDayEvents" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
-                class="px-2 py-1 rounded text-[11px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity mb-0.5"
+            <button type="button" v-for="event in allDayEvents" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
+                class="block w-full text-left px-2 py-1 rounded text-[11px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity mb-0.5"
                 :class="{ 'opacity-50 line-through': event.trackCompletion && event.completed }"
                 :style="{ backgroundColor: event.color + '20', color: event.color }"
-                @click="$emit('eventClick', event)"
-                role="button"
-                tabindex="0"
-                @keydown.enter.self.prevent="$emit('eventClick', event)"
-                @keydown.space.self.prevent="$emit('eventClick', event)">
+                @click="$emit('eventClick', event)">
                 <span v-if="event.trackCompletion && event.completed" class="mr-0.5">✓</span>{{ event.title }}
-            </div>
+            </button>
         </div>
 
         <!-- Hourly timeline -->
         <div class="flex-1 min-h-0 overflow-y-auto" ref="scrollContainer">
             <div class="relative" style="height: 1152px;">
                 <!-- Hour rows -->
-                <div v-for="hour in 24" :key="hour - 1"
-                    class="absolute w-full flex border-b border-border-light/50 hover:bg-surface-hover/50 transition-colors cursor-pointer"
+                <button type="button" v-for="hour in 24" :key="hour - 1"
+                    class="text-left absolute w-full flex border-b border-border-light/50 hover:bg-surface-hover/50 transition-colors cursor-pointer"
                     :style="{ top: (hour - 1) * 48 + 'px', height: '48px' }"
-                    @click="handleHourClick(hour - 1)"
-                    role="button"
-                    tabindex="0"
-                    @keydown.enter.self.prevent="handleHourClick(hour - 1)"
-                    @keydown.space.self.prevent="handleHourClick(hour - 1)">
-                    <div class="w-10 shrink-0 pr-1.5 pt-0.5 text-right">
+                    @click="handleHourClick(hour - 1)">
+                    <span class="block w-10 shrink-0 pr-1.5 pt-0.5 text-right">
                         <span class="text-[10px] text-text-muted leading-none">{{ formatHourLabel(hour - 1) }}</span>
-                    </div>
-                    <div class="flex-1 border-l border-border-light/50"></div>
-                </div>
+                    </span>
+                    <span class="block flex-1 border-l border-border-light/50"></span>
+                </button>
 
                 <!-- Timed events positioned by time -->
-                <div v-for="evt in positionedEvents" :key="`${evt.event.id}-${evt.event.occurrenceStart ?? evt.event.startDate}`"
-                    class="absolute rounded px-1.5 py-1 text-[11px] font-medium cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
+                <button type="button" v-for="evt in positionedEvents" :key="`${evt.event.id}-${evt.event.occurrenceStart ?? evt.event.startDate}`"
+                    class="text-left absolute rounded px-1.5 py-1 text-[11px] font-medium cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
                     :class="{ 'opacity-50': evt.event.trackCompletion && evt.event.completed }"
                     :style="{
                         top: evt.top + 'px',
@@ -52,17 +44,13 @@
                         color: evt.event.color,
                         borderLeft: '3px solid ' + evt.event.color,
                     }"
-                    @click.stop="$emit('eventClick', evt.event)"
-                    role="button"
-                    tabindex="0"
-                    @keydown.enter.self.stop.prevent="$emit('eventClick', evt.event)"
-                    @keydown.space.self.stop.prevent="$emit('eventClick', evt.event)">
-                    <p class="truncate font-semibold"
+                    @click.stop="$emit('eventClick', evt.event)">
+                    <span class="block truncate font-semibold"
                        :class="{ 'line-through': evt.event.trackCompletion && evt.event.completed }">
                         <span v-if="evt.event.trackCompletion && evt.event.completed" class="mr-0.5">✓</span>{{ evt.event.title }}
-                    </p>
-                    <p class="text-[10px] opacity-75 truncate">{{ formatTime(evt.event) }}</p>
-                </div>
+                    </span>
+                    <span class="block text-[10px] opacity-75 truncate">{{ formatTime(evt.event) }}</span>
+                </button>
 
                 <!-- Current time indicator -->
                 <div v-if="isToday" class="absolute pointer-events-none"

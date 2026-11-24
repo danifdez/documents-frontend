@@ -5,13 +5,9 @@
     <div class="space-y-4">
       <div class="flex flex-col">
         <label :for="`${formId}-document-files`" class="block text-sm font-medium text-text-secondary mb-1">Select Documents</label>
-        <div ref="dropZoneRef"
-          class="border-2 border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-surface-hover w-full min-h-28"
+        <button type="button" ref="dropZoneRef"
+          class="text-left border-2 border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-surface-hover w-full min-h-28"
           :class="{ 'border-blue-500 bg-blue-50': dragging }" @click="selectDocuments"
-          role="button"
-          tabindex="0"
-          @keydown.enter.self.prevent="selectDocuments"
-          @keydown.space.self.prevent="selectDocuments"
           @dragenter.prevent="handleDragEnter" @dragover.prevent="handleDragOver" @dragleave.prevent="handleDragLeave"
           @drop.prevent="handleDrop">
           <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-text-muted" fill="none" viewBox="0 0 24 24"
@@ -19,9 +15,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
-          <p class="mt-2 text-sm text-text-muted">{{ dragging ? 'Drop files here' : 'Click to select documents' }}</p>
-          <p class="text-xs text-text-muted">You can select multiple files</p>
-        </div>
+          <span class="block mt-2 text-sm text-text-muted">{{ dragging ? 'Drop files here' : 'Click to select documents' }}</span>
+          <span class="block text-xs text-text-muted">You can select multiple files</span>
+        </button>
         <!-- Hidden file input fallback for non-electron browsers -->
         <input :id="`${formId}-document-files`" ref="fileInputRef" type="file" class="hidden" multiple @change="onFileInputChange" />
       </div>

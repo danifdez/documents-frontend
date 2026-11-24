@@ -5,20 +5,16 @@
         </div>
 
         <div v-else class="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3">
-            <div v-for="a in store.assistants" :key="a.id"
-                class="px-3 py-2.5 rounded-lg cursor-pointer transition-colors" :class="selection === 'assistant-' + a.id
+            <button type="button" v-for="a in store.assistants" :key="a.id"
+                class="block text-left px-3 py-2.5 rounded-lg cursor-pointer transition-colors" :class="selection === 'assistant-' + a.id
                     ? 'bg-accent-subtle text-accent-dark'
-                    : 'hover:bg-surface-hover text-text-secondary'" @click="onSelectAssistant(a.id)"
-                    role="button"
-                    tabindex="0"
-                    @keydown.enter.self.prevent="onSelectAssistant(a.id)"
-                    @keydown.space.self.prevent="onSelectAssistant(a.id)">
-                <div class="flex items-center gap-2">
+                    : 'hover:bg-surface-hover text-text-secondary'" @click="onSelectAssistant(a.id)">
+                <span class="flex items-center gap-2">
                     <span class="text-lg leading-none">{{ a.icon || '◇' }}</span>
                     <span class="text-sm font-semibold">{{ a.name }}</span>
-                </div>
-                <div class="text-[11px] text-text-muted mt-0.5 pl-7">{{ a.sub || 'Your personal assistant' }}</div>
-            </div>
+                </span>
+                <span class="block text-[11px] text-text-muted mt-0.5 pl-7">{{ a.sub || 'Your personal assistant' }}</span>
+            </button>
 
             <!-- Agents: separate entity, separate store. -->
             <AgentList @new-agent="$emit('new-agent')" @select-agent="onSelectAgent"

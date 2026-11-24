@@ -74,13 +74,9 @@
       </template>
 
       <Teleport to="body">
-        <div v-if="showColors" class="fixed inset-0 z-[9998]" @click="showColors = false"
-            role="button"
-            tabindex="0"
+        <button type="button" v-if="showColors" class="text-left fixed inset-0 z-[9998]" @click="showColors = false"
             aria-label="Dismiss overlay"
-            @keydown.esc.stop="showColors = false"
-            @keydown.enter.self.prevent="showColors = false"
-            @keydown.space.self.prevent="showColors = false"></div>
+            @keydown.esc.stop="showColors = false"></button>
         <div v-if="showColors" class="fixed z-[9999] bg-surface-elevated border border-border rounded-xl shadow-xl p-2.5"
           :style="colorPickerStyle">
           <div class="grid grid-cols-4 gap-1.5">
@@ -135,13 +131,9 @@
 
       <!-- Border color picker (teleported) -->
       <Teleport to="body">
-        <div v-if="showBorderColors" class="fixed inset-0 z-[9998]" @click="showBorderColors = false"
-            role="button"
-            tabindex="0"
+        <button type="button" v-if="showBorderColors" class="text-left fixed inset-0 z-[9998]" @click="showBorderColors = false"
             aria-label="Dismiss overlay"
-            @keydown.esc.stop="showBorderColors = false"
-            @keydown.enter.self.prevent="showBorderColors = false"
-            @keydown.space.self.prevent="showBorderColors = false"></div>
+            @keydown.esc.stop="showBorderColors = false"></button>
         <div v-if="showBorderColors" class="fixed z-[9999] bg-surface-elevated border border-border rounded-xl shadow-xl p-2.5"
           :style="borderColorPickerStyle">
           <div class="grid grid-cols-5 gap-1.5">

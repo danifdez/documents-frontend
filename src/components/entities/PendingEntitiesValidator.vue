@@ -181,11 +181,7 @@
                     </div>
 
                     <!-- Entity name + type (clickable to edit) -->
-                    <div class="flex-1 min-w-0 flex items-center gap-2 cursor-pointer" @click="startEditEntity(entity)"
-                        role="button"
-                        tabindex="0"
-                        @keydown.enter.self.prevent="startEditEntity(entity)"
-                        @keydown.space.self.prevent="startEditEntity(entity)">
+                    <button type="button" class="text-left flex-1 min-w-0 flex items-center gap-2 cursor-pointer" @click="startEditEntity(entity)">
                         <span class="text-[13px] font-medium truncate"
                             :class="entity.isConfirmed ? 'text-text-muted line-through' : entity.status === 'merged' ? 'text-text-muted' : 'text-text-primary'">
                             {{ getEntityDisplayText(entity) }}
@@ -195,7 +191,7 @@
                             :class="getEntityTypeBadgeClass(entity.entityType?.name)">
                             {{ entity.entityType?.name }}
                         </span>
-                    </div>
+                    </button>
 
                     <!-- Hover actions -->
                     <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">

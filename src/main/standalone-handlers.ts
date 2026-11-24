@@ -143,7 +143,7 @@ export function registerStandaloneHandlers({ store, getMainWindow }: StandaloneH
       }
     },
 
-    [IpcChannels.standalone.uninstallModels]: async () => {
+    [IpcChannels.standalone.uninstallModels]: () => {
       try {
         uninstallModels();
         return { success: true };

@@ -57,7 +57,7 @@ describe('knowledge base', () => {
     await fireEvent.update(search, ' access REQUIREMENTS ');
     expect(screen.queryByRole('heading', { name: 'Collections' })).toBeNull();
     expect(screen.getByText('1 entradas')).toBeTruthy();
-    await fireEvent.click(screen.getByRole('heading', { name: 'Reading rooms' }));
+    await fireEvent.click(button('Reading rooms'));
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/knowledge-base/5'));
     await waitFor(() => expect(titleInput().value).toBe('Reading rooms'));
   });

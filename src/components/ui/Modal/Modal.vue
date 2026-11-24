@@ -1,11 +1,12 @@
 <template>
     <Teleport to="body">
         <Transition name="modal" appear>
-            <div v-if="modelValue" class="modal-overlay" v-on="$attrs"
-                @click.self="closeOnBackdrop ? $emit('update:modelValue', false) : null"
-                @keydown.esc.stop="$emit('update:modelValue', false)">
-                <div class="modal-container" :class="{ 'modal-wide': wide }"
-                    role="dialog" aria-modal="true" :aria-label="title || 'Dialog'">
+            <dialog v-if="modelValue" class="modal-overlay" :aria-label="title || 'Dialog'" v-bind="$attrs"
+                @vue:mounted="($event.el as HTMLDialogElement).showModal()"
+                @click.self="dismissFromBackdrop"
+                @keydown.esc.stop.prevent="dismissFromBackdrop"
+                @cancel.prevent="dismissFromBackdrop">
+                <div class="modal-container" :class="{ 'modal-wide': wide }">
                     <div class="modal-header">
                         <h3 class="modal-title">{{ title }}</h3>
                         <button aria-label="Close dialog" class="modal-close" @click="$emit('update:modelValue', false)">
@@ -22,13 +23,13 @@
                         <slot name="footer"></slot>
                     </div>
                 </div>
-            </div>
+            </dialog>
         </Transition>
     </Teleport>
 </template>
 
 <script setup lang="ts">
-defineProps({
+const props = defineProps({
     modelValue: {
         type: Boolean,
         required: true
@@ -47,22 +48,34 @@ defineProps({
     }
 });
 
-defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue']);
+
+function dismissFromBackdrop() {
+    if (props.closeOnBackdrop) emit('update:modelValue', false);
+}
 </script>
 
 <style scoped>
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
     background-color: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+}
+
+.modal-overlay::backdrop {
+    background: transparent;
 }
 
 .modal-container {

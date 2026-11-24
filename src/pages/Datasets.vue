@@ -45,13 +45,8 @@
             <!-- Scrollable rows -->
             <div class="flex-1 overflow-y-auto divide-y divide-border-light">
                 <div v-for="dataset in filteredDatasets" :key="dataset.id"
-                    class="group grid grid-cols-[1fr_6rem_8rem_6.5rem] gap-3 items-center px-4 py-3.5 hover:bg-surface-hover transition-colors cursor-pointer"
-                    @click="router.push(`/datasets/${dataset.id}`)"
-                    role="button"
-                    tabindex="0"
-                    @keydown.enter.self.prevent="router.push(`/datasets/${dataset.id}`)"
-                    @keydown.space.self.prevent="router.push(`/datasets/${dataset.id}`)">
-                    <div class="min-w-0">
+                    class="relative group grid grid-cols-[1fr_6rem_8rem_6.5rem] gap-3 items-center px-4 py-3.5 hover:bg-surface-hover transition-colors cursor-pointer">
+                    <button type="button" class="after:absolute after:inset-0 after:content-[''] min-w-0 text-left" @click="router.push(`/datasets/${dataset.id}`)">
                         <span class="text-sm font-medium text-text-primary truncate block">{{ dataset.name }}</span>
                         <span v-if="dataset.description" class="text-xs text-text-muted truncate block mt-0.5">
                             {{ dataset.description }}
@@ -59,13 +54,10 @@
                         <span v-if="dataset.project" class="text-[10px] text-accent mt-0.5 block">
                             {{ dataset.project.name }}
                         </span>
-                    </div>
+                    </button>
                     <span class="text-sm text-text-secondary text-center">{{ dataset.schema.length }}</span>
                     <span class="text-sm text-text-secondary text-center">{{ dataset.recordCount || 0 }}</span>
-                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end"
-                        @click.stop
-                        @keydown.enter.stop
-                        @keydown.space.stop>
+                    <div class="relative z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity justify-end">
                         <button @click="router.push(`/datasets/${dataset.id}`)"
                             class="p-1.5 rounded text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
                             title="View">

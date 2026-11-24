@@ -23,22 +23,18 @@
     <!-- Dropdown -->
     <div v-if="open"
       class="absolute left-0 top-full mt-1 w-56 bg-surface border border-border rounded-lg shadow-lg z-50 py-1">
-      <div v-for="ws in workspaceStore.workspaces" :key="ws.id"
+      <button type="button" v-for="ws in workspaceStore.workspaces" :key="ws.id"
         @click="selectWorkspace(ws.id)"
-        role="button"
-        tabindex="0"
-        @keydown.enter.self.prevent="selectWorkspace(ws.id)"
-        @keydown.space.self.prevent="selectWorkspace(ws.id)"
-        class="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors"
+        class="w-full text-left flex items-center gap-2 px-3 py-2 text-sm cursor-pointer transition-colors"
         :class="ws.id === workspaceStore.activeWorkspaceId
           ? 'bg-accent-subtle text-accent-dark font-medium'
           : 'text-text-secondary hover:bg-surface-hover'">
-        <div class="w-2 h-2 rounded-full shrink-0"
-          :class="ws.id === workspaceStore.activeWorkspaceId ? 'bg-accent' : 'bg-border'"></div>
+        <span class="block w-2 h-2 rounded-full shrink-0"
+          :class="ws.id === workspaceStore.activeWorkspaceId ? 'bg-accent' : 'bg-border'"></span>
         <span class="truncate flex-1">{{ ws.name }}</span>
         <span v-if="ws.type === 'local'" class="text-xs text-accent truncate max-w-24">local</span>
         <span v-else class="text-xs text-text-muted truncate max-w-24">{{ formatUrl(ws.url) }}</span>
-      </div>
+      </button>
 
       <div class="border-t border-border mt-1 pt-1">
         <button @click="showAddModal = true; open = false"
@@ -87,8 +83,6 @@ async function selectWorkspace(id: string) {
   open.value = false;
   if (id === workspaceStore.activeWorkspaceId) return;
 
-  // Reset app state
-  authStore.reset();
   projectStore.clearCurrentProject();
 
   // Switch workspace

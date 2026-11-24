@@ -2,13 +2,9 @@
     <Teleport to="body">
         <!-- Backdrop -->
         <Transition name="fade">
-            <div v-if="modelValue" class="fixed inset-0 z-40 bg-black/20" @click="close"
-                role="button"
-                tabindex="0"
+            <button type="button" v-if="modelValue" class="text-left fixed inset-0 z-40 bg-black/20" @click="close"
                 aria-label="Dismiss overlay"
-                @keydown.esc.stop="close"
-                @keydown.enter.self.prevent="close"
-                @keydown.space.self.prevent="close"></div>
+                @keydown.esc.stop="close"></button>
         </Transition>
 
         <!-- Panel -->
@@ -55,14 +51,11 @@
                                 @keydown.backspace="handleBackspace(task, index, $event)"
                                 @keydown.up.prevent="focusInput(index - 1)"
                                 @keydown.down.prevent="focusInput(index + 1)" @keydown.esc="close" />
-                            <span v-if="task.reminderAt"
-                                class="shrink-0 text-[13px] cursor-default"
+                            <button type="button" v-if="task.reminderAt"
+                                class="shrink-0 text-[13px] cursor-pointer"
+                                :aria-label="`Reminder: ${formatLocal(task.reminderAt)}`"
                                 :title="`Reminder · ${formatLocal(task.reminderAt)}`"
-                                @click.stop="expandedTask = task.id"
-                                role="button"
-                                tabindex="0"
-                                @keydown.enter.self.stop.prevent="expandedTask = task.id"
-                                @keydown.space.self.stop.prevent="expandedTask = task.id">🔔</span>
+                                @click.stop="expandedTask = task.id">🔔</button>
                             <button aria-label="Delete task" @click="removeTask(task)"
                                 class="shrink-0 p-1.5 rounded-lg text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
                                 <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"

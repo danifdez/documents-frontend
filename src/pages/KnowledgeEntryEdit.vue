@@ -85,15 +85,11 @@
                                             <div class="animate-spin rounded-full h-4 w-4 border-2 border-accent border-t-transparent"></div>
                                         </div>
                                         <template v-else>
-                                            <div v-for="ent in entitySearchResults" :key="ent.id" @click="linkEntity(ent)"
-                                                role="button"
-                                                tabindex="0"
-                                                @keydown.enter.self.prevent="linkEntity(ent)"
-                                                @keydown.space.self.prevent="linkEntity(ent)"
-                                                class="px-3 py-2 text-xs cursor-pointer hover:bg-surface-hover transition-colors">
+                                            <button type="button" v-for="ent in entitySearchResults" :key="ent.id" @click="linkEntity(ent)"
+                                                class="block w-full text-left px-3 py-2 text-xs cursor-pointer hover:bg-surface-hover transition-colors">
                                                 <span class="font-medium text-text-primary">{{ ent.name }}</span>
                                                 <span class="ml-1.5 text-[10px] text-text-muted">{{ ent.entityType?.name }}</span>
-                                            </div>
+                                            </button>
                                             <div v-if="!entitySearchLoading && entitySearchResults.length === 0 && entitySearchQuery.length > 0"
                                                 class="px-3 py-3 text-center text-xs text-text-muted">
                                                 Sin resultados

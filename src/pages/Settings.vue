@@ -670,7 +670,6 @@ async function handleWorkspaceSave(data: { name: string; url: string }) {
 }
 
 async function switchToWorkspace(id: string) {
-    authStore.reset();
     projectStore.clearCurrentProject();
     await workspaceStore.switchWorkspace(id);
     await authStore.checkAuthStatus();

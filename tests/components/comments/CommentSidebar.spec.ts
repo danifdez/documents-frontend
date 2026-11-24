@@ -35,7 +35,7 @@ describe('document and resource comment lists', () => {
     const olderRow = rowFor(first.content);
     const scroll = vi.spyOn(olderRow, 'scrollIntoView');
     vi.useFakeTimers();
-    await fireEvent.click(olderRow);
+    await fireEvent.click(within(olderRow).getByRole('button', { name: first.content }));
     expect(onClick).toHaveBeenCalledWith(first.id);
     expect(olderRow.classList.contains('bg-amber-50')).toBe(true);
     await vi.advanceTimersByTimeAsync(100);

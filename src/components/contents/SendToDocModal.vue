@@ -1,13 +1,13 @@
 <template>
     <Teleport to="body">
         <Transition name="modal">
-            <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center"
+            <dialog v-if="isOpen" aria-label="Send selection to document"
+                class="fixed inset-0 m-0 flex h-full w-full max-h-none max-w-none items-center justify-center bg-black/40 p-0 text-inherit backdrop:bg-transparent"
+                @vue:mounted="($event.el as HTMLDialogElement).showModal()"
                 @click.self="$emit('close')"
-                @keydown.esc.stop="$emit('close')">
-                <div class="fixed inset-0 bg-black/40 pointer-events-none" aria-hidden="true"></div>
-                <div
-                    role="dialog" aria-modal="true" aria-label="Send selection to document"
-                    class="relative bg-surface-elevated rounded-xl shadow-2xl border border-border w-full max-w-md mx-4 overflow-hidden">
+                @keydown.esc.stop.prevent="$emit('close')"
+                @cancel.prevent="$emit('close')">
+                <div class="relative bg-surface-elevated rounded-xl shadow-2xl border border-border w-full max-w-md mx-4 overflow-hidden">
 
                     <!-- Header -->
                     <div class="px-5 py-4 border-b border-border-light">
@@ -77,7 +77,7 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </dialog>
         </Transition>
     </Teleport>
 </template>

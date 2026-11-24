@@ -1,16 +1,12 @@
 <template>
-    <div @click="$emit('click', day.date)"
-        role="button"
-        tabindex="0"
-        @keydown.enter.self.prevent="$emit('click', day.date)"
-        @keydown.space.self.prevent="$emit('click', day.date)"
-        class="p-1.5 border-b border-r border-border-light cursor-pointer transition-colors overflow-hidden"
+    <div class="relative p-1.5 border-b border-r border-border-light cursor-pointer transition-colors overflow-hidden"
         :class="{
             'bg-surface-elevated': day.isCurrentMonth,
             'bg-surface/50': !day.isCurrentMonth,
             'hover:bg-surface-hover': true,
         }">
-        <div class="flex items-center justify-between mb-1">
+        <button type="button" class="flex w-full items-center mb-1 after:absolute after:inset-0 after:content-['']"
+            :aria-label="day.date.toLocaleDateString()" @click="$emit('click', day.date)">
             <span class="text-xs font-medium" :class="{
                 'text-white bg-accent rounded-full w-6 h-6 flex items-center justify-center': day.isToday,
                 'text-text-primary': day.isCurrentMonth && !day.isToday,
@@ -18,20 +14,16 @@
             }">
                 {{ day.date.getDate() }}
             </span>
-        </div>
+        </button>
 
         <div class="flex flex-col gap-0.5">
-            <div v-for="event in visibleEvents" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
+            <button type="button" v-for="event in visibleEvents" :key="`${event.id}-${event.occurrenceStart ?? event.startDate}`"
                 @click.stop="$emit('eventClick', event)"
-                role="button"
-                tabindex="0"
-                @keydown.enter.self.stop.prevent="$emit('eventClick', event)"
-                @keydown.space.self.stop.prevent="$emit('eventClick', event)"
-                class="px-1.5 py-0.5 rounded text-[10px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity"
+                class="relative z-10 block text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity"
                 :class="{ 'opacity-50 line-through': event.trackCompletion && event.completed }"
                 :style="{ backgroundColor: event.color + '20', color: event.color }">
                 <span v-if="event.trackCompletion && event.completed" class="mr-0.5">✓</span>{{ event.title }}
-            </div>
+            </button>
             <div v-if="overflowCount > 0" class="text-[10px] text-text-muted px-1.5">
                 +{{ overflowCount }} more
             </div>
