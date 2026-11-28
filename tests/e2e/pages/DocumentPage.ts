@@ -3,7 +3,7 @@ import { BasePage } from './BasePage';
 
 export class DocumentPage extends BasePage {
   get nameInput() { return this.page.getByPlaceholder('Document name...'); }
-  get editor() { return this.page.locator('[contenteditable="true"]'); }
+  get editor() { return this.page.locator('.tiptap[contenteditable="true"]'); }
 
   async expectVisible() {
     await expect(this.page).toHaveURL(/\/document\//, { timeout: 15_000 });

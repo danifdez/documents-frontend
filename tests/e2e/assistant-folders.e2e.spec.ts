@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from './fixtures/electron-app';
+import { TEST_API_URL } from './fixtures/helpers';
 
 const NOW = '2026-08-26T12:00:00.000Z';
 
@@ -150,7 +151,7 @@ async function prepareWindow(page: Page) {
   const workspaceModal = page.locator('h2:has-text("Add Workspace")');
   if (await workspaceModal.isVisible().catch(() => false)) {
     await page.fill('input#field-name', 'Folder E2E Workspace');
-    await page.fill('input#field-server-url', 'http://localhost:3000');
+    await page.fill('input#field-server-url', TEST_API_URL);
     await page.click('button[type="submit"]:has-text("Add")');
     await workspaceModal.waitFor({ state: 'hidden', timeout: 15_000 });
   }

@@ -5,14 +5,15 @@
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "strict": false,
     "noImplicitAny": true,
     "sourceMap": true,
-    "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "vite": ["./node_modules/vite/dist/node/index.d.ts"]
     },
     "outDir": "dist",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true
   }
 }

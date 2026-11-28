@@ -11,7 +11,8 @@ export class BasePage {
   }
 
   breadcrumb(name: string) {
-    return this.page.locator(`a:has-text("${name}")`);
+    return this.page.getByRole('navigation', { name: 'Breadcrumb' })
+      .getByRole('link', { name, exact: true });
   }
 
   async clickBreadcrumb(name: string) {

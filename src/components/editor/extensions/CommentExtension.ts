@@ -1,4 +1,5 @@
 import { Mark } from '@tiptap/core';
+import { DOMSerializer } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 
 export interface CommentOptions {
@@ -61,6 +62,20 @@ const CommentExtension = Mark.create<CommentOptions>({
 
     renderHTML({ HTMLAttributes }) {
         return ['span', { ...this.options.HTMLAttributes, ...HTMLAttributes, class: 'comment-mark' }, 0];
+    },
+
+    addMarkView() {
+        return ({ mark, view, inline }) => {
+            const { dom, contentDOM } = DOMSerializer.renderSpec(view.dom.ownerDocument, mark.type.spec.toDOM!(mark, inline));
+            return {
+                dom: dom as HTMLElement,
+                contentDOM,
+                // The sidebar flashes the mark through its inline style.
+                ignoreMutation: mutation => mutation.type === 'attributes'
+                    && mutation.target === dom
+                    && mutation.attributeName === 'style',
+            };
+        };
     },
 
     addCommands() {

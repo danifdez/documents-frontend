@@ -7,6 +7,7 @@ test.describe('Tasks', () => {
 
     await tasks.open();
     await tasks.expectVisible();
+    await expect(tasks.pendingTitles).toHaveCount(0);
   });
 
   test('create a task', async ({ window }) => {

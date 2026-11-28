@@ -3,11 +3,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { mockModelExecutions } from './api-mocks';
-import { waitForOnline } from './helpers';
+import { TEST_API_URL, waitForOnline } from './helpers';
 
 const MAIN_ENTRY = path.join(__dirname, '..', '..', '..', '.vite', 'build', 'main.cjs');
 const WORKSPACE_NAME = 'Test Workspace';
-const WORKSPACE_URL = process.env.TEST_API_URL || 'http://localhost:3000';
 
 type ElectronFixtures = {
   electronApp: ElectronApplication;
@@ -25,7 +24,7 @@ async function setupWorkspaceIfNeeded(window: Page) {
   if (!isVisible) return;
 
   await window.fill('input#field-name', WORKSPACE_NAME);
-  await window.fill('input#field-server-url', WORKSPACE_URL);
+  await window.fill('input#field-server-url', TEST_API_URL);
   await window.click('button[type="submit"]:has-text("Add")');
   await modal.waitFor({ state: 'hidden', timeout: 15_000 });
 

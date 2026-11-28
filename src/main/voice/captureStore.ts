@@ -265,7 +265,7 @@ export class LocalCaptureStore {
     catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
       const capture = await this.read(id);
-      if (canonical(capture.capture) !== canonical(options)) throw new Error('Local capture identity conflicts');
+      if (canonical(capture.capture) !== canonical(options)) throw new Error('Local capture identity conflicts', { cause: error });
       return { claimed: false, status: capture.status };
     }
     await syncDirectory(this.root());

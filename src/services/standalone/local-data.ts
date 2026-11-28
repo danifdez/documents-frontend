@@ -49,7 +49,7 @@ function moveLegacyItem(legacyRoot: string, persistentRoot: string, name: string
   } catch (error: unknown) {
     const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
     if (code === 'EXDEV') {
-      throw new Error(`Local data was not moved because its destination is on another filesystem. Move ${source} to ${target} before starting Documents.`);
+      throw new Error(`Local data was not moved because its destination is on another filesystem. Move ${source} to ${target} before starting Documents.`, { cause: error });
     }
     throw error;
   }

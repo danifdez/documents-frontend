@@ -160,6 +160,7 @@ export class LocalEngine {
       this.close(s, 'failed', 'preparation_failed');
       if (options) {
         await s.captureClosing?.catch((): undefined => undefined);
+        // eslint-disable-next-line preserve-caught-error -- Keep capture details out of IPC errors.
         throw new Error('Local voice capture could not be started');
       }
       throw error;

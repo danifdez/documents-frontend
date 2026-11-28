@@ -4,13 +4,13 @@ import type { Page } from '@playwright/test';
 export class TaskPanel {
   constructor(private page: Page) {}
 
-  get header() { return this.page.locator('h2:has-text("Tasks")'); }
-  get newTaskInput() { return this.page.getByPlaceholder('Add a task...'); }
-  // The close X button contains path "M6 18L18 6M6 6l12 12" (X icon)
-  get closeButton() { return this.page.locator('button:has(path[d="M6 18L18 6M6 6l12 12"])').first(); }
+  get header() { return this.page.getByRole('heading', { name: 'Tasks', exact: true, level: 2 }); }
+  get newTaskInput() { return this.page.getByRole('textbox', { name: 'New task title', exact: true }); }
+  get pendingTitles() { return this.page.getByRole('textbox', { name: 'Task title', exact: true }); }
+  get closeButton() { return this.page.getByRole('button', { name: 'Close tasks', exact: true }); }
 
   async open() {
-    const tasksButton = this.page.locator('nav button:has(path[d*="M9 5H7"])');
+    const tasksButton = this.page.getByTitle('Tasks (Ctrl+Shift+T)', { exact: true });
     await tasksButton.click();
     await expect(this.header).toBeVisible({ timeout: 10_000 });
   }
@@ -29,7 +29,8 @@ export class TaskPanel {
 
   async completeTask(title: string) {
     const taskRow = this.taskItem(title).locator('..');
-    await taskRow.locator('button').first().click();
+    await taskRow.getByRole('button', { name: 'Mark task as complete', exact: true }).click();
+    await expect(this.taskItem(title)).toHaveCount(0);
   }
 
   async expectCompleted(count: number) {
@@ -41,11 +42,11 @@ export class TaskPanel {
   }
 
   completedItem(title: string) {
-    return this.page.locator('.line-through', { hasText: title });
+    return this.page.locator('.line-through').and(this.page.getByText(title, { exact: true }));
   }
 
   taskItem(title: string) {
-    return this.page.locator(`input[value="${title}"]`);
+    return this.pendingTitles.and(this.page.locator(`input[value=${JSON.stringify(title)}]`));
   }
 
   async close() {

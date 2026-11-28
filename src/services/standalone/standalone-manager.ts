@@ -101,7 +101,7 @@ class StandaloneManager {
       this._status.postgres = 'error';
       this._errors.postgres = describeError(err);
       console.error('StandaloneManager: Postgres failed to start', err);
-      throw new Error(`PostgreSQL failed to start: ${err}`);
+      throw new Error(`PostgreSQL failed to start: ${err}`, { cause: err });
     }
   }
 
@@ -140,7 +140,7 @@ class StandaloneManager {
       // Do NOT stop Postgres here so the user can inspect logs and
       // re-attempt startup from the UI. Leaving the DB running helps
       // diagnose boot races or migration problems.
-      throw new Error(`Backend failed to start: ${err}`);
+      throw new Error(`Backend failed to start: ${err}`, { cause: err });
     }
 
     // The ML worker (if installed) consumes work exclusively through the

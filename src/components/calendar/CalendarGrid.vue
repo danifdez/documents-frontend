@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-surface-elevated rounded-2xl border border-border overflow-hidden flex flex-col h-full">
+    <section aria-label="Month calendar" class="bg-surface-elevated rounded-2xl border border-border overflow-hidden flex flex-col h-full">
         <!-- Day names header -->
         <div class="grid grid-cols-7 border-b border-border shrink-0">
             <div v-for="dayName in dayNames" :key="dayName"
@@ -19,7 +19,7 @@
                 @event-click="$emit('eventClick', $event)"
             />
         </div>
-    </div>
+    </section>
 </template>
 
 <script setup lang="ts">

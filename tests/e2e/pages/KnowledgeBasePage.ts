@@ -3,7 +3,10 @@ import { BasePage } from './BasePage';
 
 export class KnowledgeBasePage extends BasePage {
   get heading() { return this.page.locator('h1', { hasText: 'Knowledge Base' }); }
-  get newEntryButton() { return this.page.locator('button:has-text("Nueva entrada")'); }
+  get newEntryButton() {
+    return this.page.getByRole('button', { name: 'Nueva entrada', exact: true })
+      .and(this.page.locator('.btn-primary'));
+  }
   get emptyState() { return this.page.getByText('Sin entradas todavía'); }
 
   async goto() {

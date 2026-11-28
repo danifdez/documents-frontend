@@ -37,10 +37,10 @@ test.describe('Threads', () => {
 
     await expect(thread.breadcrumb('Dashboard')).toBeVisible();
     await expect(thread.breadcrumb('Breadcrumb Project')).toBeVisible();
-    await expect(window.getByText('Breadcrumb Thread')).toBeVisible();
+    await expect(window.getByRole('heading', { name: 'Breadcrumb Thread', exact: true, level: 1 })).toBeVisible();
 
     await thread.goToProject('Breadcrumb Project');
-    await expect(window.getByText('Breadcrumb Thread')).toBeVisible();
+    await expect(project.threadLink('Breadcrumb Thread')).toBeVisible();
   });
 
   test('create multiple threads in a project', async ({ window }) => {
@@ -52,8 +52,8 @@ test.describe('Threads', () => {
     await project.createThread('Thread Beta');
     await project.createThread('Thread Gamma');
 
-    await expect(window.getByText('Thread Alpha')).toBeVisible();
-    await expect(window.getByText('Thread Beta')).toBeVisible();
-    await expect(window.getByText('Thread Gamma')).toBeVisible();
+    await expect(project.threadLink('Thread Alpha')).toBeVisible();
+    await expect(project.threadLink('Thread Beta')).toBeVisible();
+    await expect(project.threadLink('Thread Gamma')).toBeVisible();
   });
 });

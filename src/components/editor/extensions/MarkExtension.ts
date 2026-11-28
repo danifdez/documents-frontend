@@ -11,7 +11,7 @@ export interface MarkOptions {
 declare module '@tiptap/core' {
     interface Commands<ReturnType> {
         textMark: {
-            setTextMark: (markId: string, markType?: MarkType) => ReturnType;
+            setTextMark: (markId: string, markType?: import('./markTypes').MarkType) => ReturnType;
             unsetTextMark: () => ReturnType;
         };
     }

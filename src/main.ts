@@ -767,8 +767,8 @@ const createWindow = () => {
     mainWindow.maximize();
   }
 
-  // Open DevTools automatically in development.
-  if (!app.isPackaged) {
+  // Open DevTools automatically during interactive development.
+  if (!app.isPackaged && !testUserDataDir) {
     mainWindow.webContents.openDevTools();
   }
 };

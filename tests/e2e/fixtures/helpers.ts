@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 
+export const TEST_API_URL = process.env.TEST_API_URL || 'http://localhost:3000';
 
 /**
  * Confirm the backend is reachable before running tests.
@@ -10,16 +11,16 @@ import type { Page } from '@playwright/test';
  */
 export async function waitForOnline(page: Page) {
   await page.waitForFunction(
-    async () => {
+    async (defaultUrl) => {
       try {
-        const baseUrl = localStorage.getItem('_lastApiBaseUrl') || 'http://localhost:3000';
+        const baseUrl = localStorage.getItem('_lastApiBaseUrl') || defaultUrl;
         const res = await fetch(`${baseUrl}/auth/status`, { signal: AbortSignal.timeout(3000) });
         return res.ok;
       } catch {
         return false;
       }
     },
-    undefined,
+    TEST_API_URL,
     { timeout: 16_000, polling: 2_000 },
   );
 }

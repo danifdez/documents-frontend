@@ -41,7 +41,7 @@
                     <div v-for="(task, index) in pendingTasks" :key="task.id" class="rounded-xl">
                         <div
                             class="group flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-surface-hover transition-colors">
-                            <button @click="toggleTask(task)"
+                            <button aria-label="Mark task as complete" @click="toggleTask(task)"
                                 class="shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 cursor-pointer border-border-light hover:border-accent">
                             </button>
                             <input aria-label="Task title" :ref="el => setInputRef(el, index)" :value="task.title" type="text"

@@ -1,7 +1,21 @@
 import { test, expect } from './fixtures/electron-app';
+import { TEST_API_URL } from './fixtures/helpers';
 import { EntitiesPage } from './pages';
 
 test.describe('Entities', () => {
+  const entityTypeName = 'E2E Person';
+
+  test.beforeAll(async ({ request }) => {
+    const url = `${TEST_API_URL}/entity-types`;
+    const existing = await request.get(url);
+    await expect(existing).toBeOK();
+    const types: Array<{ name: string }> = await existing.json();
+    if (types.some(({ name }) => name === entityTypeName)) return;
+
+    const response = await request.post(url, { data: { name: entityTypeName } });
+    await expect(response).toBeOK();
+  });
+
   test('entities page loads with empty state', async ({ window }) => {
     const entities = new EntitiesPage(window);
 
@@ -26,21 +40,22 @@ test.describe('Entities', () => {
     const entities = new EntitiesPage(window);
 
     await entities.goto();
-    await entities.createEntity('Albert Einstein', { description: 'Theoretical physicist' });
+    await entities.createEntity('Albert Einstein', entityTypeName, 'Theoretical physicist');
   });
 
   test('search entities by name', async ({ window }) => {
     const entities = new EntitiesPage(window);
 
     await entities.goto();
-    await entities.createEntity('Marie Curie');
+    await entities.createEntity('Katherine Johnson', entityTypeName);
+    await entities.createEntity('Marie Curie', entityTypeName);
 
-    await entities.search('Einstein');
-    await expect(entities.entityRow('Albert Einstein')).toBeVisible();
+    await entities.search('Johnson');
+    await expect(entities.entityRow('Katherine Johnson')).toBeVisible();
     await expect(entities.entityRow('Marie Curie')).toBeHidden();
 
     await entities.search('');
-    await expect(entities.entityRow('Albert Einstein')).toBeVisible();
+    await expect(entities.entityRow('Katherine Johnson')).toBeVisible();
     await expect(entities.entityRow('Marie Curie')).toBeVisible();
   });
 

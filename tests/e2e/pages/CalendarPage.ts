@@ -2,18 +2,12 @@ import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class CalendarPage extends BasePage {
-  get newEventButton() { return this.page.locator('button:has-text("New Event")'); }
-  get todayButton() { return this.page.locator('button:has-text("Today")'); }
+  get newEventButton() { return this.page.getByRole('button', { name: 'New Event', exact: true }); }
+  get todayButton() { return this.page.getByRole('button', { name: 'Today', exact: true }); }
 
-  // Event modal
-  get eventModal() { return this.page.locator('h3:has-text("New Event")'); }
-  get editEventModal() { return this.page.locator('h3:has-text("Edit Event")'); }
-  get titleInput() { return this.page.getByPlaceholder('Event title'); }
-  get descriptionInput() { return this.page.getByPlaceholder('Optional description'); }
-  get allDayCheckbox() { return this.page.locator('input[type="checkbox"]'); }
-  get startDateInput() { return this.page.locator('input[type="date"], input[type="datetime-local"]').first(); }
-  get createButton() { return this.page.locator('button:has-text("Create")'); }
-  get updateButton() { return this.page.locator('button:has-text("Update")'); }
+  get eventModal() { return this.page.getByRole('dialog', { name: 'New Event', exact: true }); }
+  get editEventModal() { return this.page.getByRole('dialog', { name: 'Edit Event', exact: true }); }
+  get titleInput() { return this.editEventModal.getByPlaceholder('Event title'); }
 
   async goto() {
     await this.navigateTo('/calendar');
@@ -32,34 +26,35 @@ export class CalendarPage extends BasePage {
 
   async createEvent(title: string, opts?: { description?: string; allDay?: boolean; startDate?: string }) {
     await this.openNewEventModal();
-    await this.titleInput.fill(title);
+    await this.eventModal.getByPlaceholder('Event title').fill(title);
     if (opts?.description) {
-      await this.descriptionInput.fill(opts.description);
+      await this.eventModal.getByPlaceholder('Optional description').fill(opts.description);
     }
     if (opts?.allDay) {
-      await this.allDayCheckbox.check();
-      // Checking all-day changes input type and clears the value — must re-fill
-      const today = new Date().toISOString().split('T')[0];
-      await this.startDateInput.fill(opts.startDate || today);
+      const start = this.eventModal.getByLabel('Start', { exact: true });
+      const localDay = (await start.inputValue()).split('T')[0];
+      await this.eventModal.getByRole('checkbox', { name: 'All day', exact: true }).check();
+      await start.fill(opts.startDate ?? localDay);
     }
-    await this.createButton.click();
+    await this.eventModal.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(this.eventModal).toBeHidden({ timeout: 15_000 });
-    await expect(this.page.getByText(title)).toBeVisible({ timeout: 10_000 });
+    await expect(this.eventCard(title)).toBeVisible();
   }
 
   async clickEvent(title: string) {
-    await this.page.getByText(title).click();
+    await this.eventCard(title).click();
     await expect(this.editEventModal).toBeVisible();
   }
 
   async updateEvent(newTitle: string) {
     await this.titleInput.fill(newTitle);
-    await this.updateButton.click();
+    await this.editEventModal.getByRole('button', { name: 'Update', exact: true }).click();
     await expect(this.editEventModal).toBeHidden({ timeout: 15_000 });
-    await expect(this.page.getByText(newTitle)).toBeVisible({ timeout: 10_000 });
+    await expect(this.eventCard(newTitle)).toBeVisible();
   }
 
   eventCard(title: string) {
-    return this.page.getByText(title);
+    return this.page.getByRole('region', { name: 'Month calendar', exact: true })
+      .getByRole('button', { name: title, exact: true });
   }
 }
